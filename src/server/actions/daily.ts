@@ -321,14 +321,23 @@ async function creditGuildContract(
   });
   if (!membership) return false;
 
+  // `NOW() AT TIME ZONE 'UTC'`, never a bare `NOW()`. Every DateTime column in
+  // this schema is a `TIMESTAMP(3)` *without* a time zone holding UTC, because
+  // that is what Prisma writes into one. A bare `NOW()` is a `timestamptz`, and
+  // assigning it to such a column converts it through the database session's
+  // own zone — so on any server not running in UTC this stamp lands hours away
+  // from every other timestamp in the database. `completedAt` is not decoration:
+  // it is compared against `GuildMember.createdAt` to decide who was in the
+  // guild when the contract closed, and a stamp three hours in the future hands
+  // the day's purse to everyone who joined after it.
   const rows = await tx.$queryRaw<{ progress: number; goal: number }[]>`
     UPDATE "GuildContract"
     SET progress = progress + 1,
         "completedAt" = COALESCE(
           "completedAt",
-          CASE WHEN progress + 1 >= goal THEN NOW() ELSE NULL END
+          CASE WHEN progress + 1 >= goal THEN (NOW() AT TIME ZONE 'UTC') ELSE NULL END
         ),
-        "updatedAt" = NOW()
+        "updatedAt" = (NOW() AT TIME ZONE 'UTC')
     WHERE "guildId" = ${membership.guildId} AND day = ${day}
     RETURNING progress::int AS progress, goal::int AS goal
   `;

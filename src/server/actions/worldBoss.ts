@@ -253,11 +253,19 @@ export async function strikeWorldBoss(): Promise<ActionState> {
       // exclusive: of two players landing the last blow together, exactly one
       // matches a row with health left. The GREATEST clamp keeps health from
       // going negative, so the bar never reads below empty.
+      // `NOW() AT TIME ZONE 'UTC'` rather than a bare `NOW()`: these columns are
+      // `TIMESTAMP(3)` without a zone holding UTC, which is what Prisma writes
+      // into one, and assigning a `timestamptz` to such a column converts it
+      // through the database session's own zone. On a server not running in UTC
+      // the kill would be stamped hours from every other timestamp in the
+      // database — and `defeatedAt` is what the whole week's fixture is read
+      // against. See the same note in actions/daily.ts.
       const rows = await tx.$queryRaw<{ hp: number; slain: boolean }[]>`
         UPDATE "WorldBoss"
         SET hp = GREATEST(0, hp - ${damage}),
             "defeatedAt" = CASE
-              WHEN hp - ${damage} <= 0 AND "defeatedAt" IS NULL THEN NOW()
+              WHEN hp - ${damage} <= 0 AND "defeatedAt" IS NULL
+                THEN (NOW() AT TIME ZONE 'UTC')
               ELSE "defeatedAt" END,
             "slayerId" = CASE
               WHEN hp - ${damage} <= 0 AND "defeatedAt" IS NULL THEN ${empireId}
@@ -265,7 +273,7 @@ export async function strikeWorldBoss(): Promise<ActionState> {
             "slayerName" = CASE
               WHEN hp - ${damage} <= 0 AND "defeatedAt" IS NULL THEN ${empire.name}
               ELSE "slayerName" END,
-            "updatedAt" = NOW()
+            "updatedAt" = (NOW() AT TIME ZONE 'UTC')
         WHERE id = ${boss.id} AND hp > 0
         RETURNING hp, ("slayerId" = ${empireId} AND hp <= 0) AS slain
       `;

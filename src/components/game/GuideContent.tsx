@@ -377,7 +377,7 @@ const nf = (v: number) => Math.round(v).toLocaleString("he-IL");
  */
 function Purse({ rewards }: { rewards: readonly Reward[] }) {
   return (
-    <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+    <span className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-1 align-middle">
       {rewards.map((reward) => (
         <span key={reward.kind} className="flex items-center gap-1 whitespace-nowrap">
           <Icon name={REWARD_ICON[reward.kind]} size={13} className="text-gold" />
@@ -713,10 +713,16 @@ export async function GuideContent({
                 ]}
                 example={
                   <>
-                    משימת <b>{fillParams(MISSION_SHAPES[0].name, { goal: missionGoal(MISSION_SHAPES[0], "DAY", 1) })}</b>{" "}
-                    בעיר אחת שווה <Purse rewards={missionRewards(MISSION_SHAPES[0], "DAY", 1)} />, ובעיר
-                    חמש אותה משימה משלמת{" "}
-                    <Purse rewards={missionRewards(MISSION_SHAPES[0], "DAY", 5)} />.
+                    אותה משימה בדיוק —{" "}
+                    <b>
+                      {fillParams(MISSION_SHAPES[0].name, {
+                        goal: missionGoal(MISSION_SHAPES[0], "DAY", 1),
+                      })}
+                    </b>{" "}
+                    — משלמת <b className="nums">{nf(missionRewards(MISSION_SHAPES[0], "DAY", 1)[0].amount)}</b>{" "}
+                    {REWARD_LABEL[missionRewards(MISSION_SHAPES[0], "DAY", 1)[0].kind]} בעיר אחת, ו־
+                    <b className="nums">{nf(missionRewards(MISSION_SHAPES[0], "DAY", 5)[0].amount)}</b>{" "}
+                    {REWARD_LABEL[missionRewards(MISSION_SHAPES[0], "DAY", 5)[0].kind]} בעיר חמש.
                   </>
                 }
               />
@@ -725,19 +731,18 @@ export async function GuideContent({
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>יום ברצף</th>
+                      <th>יום</th>
+                      <th>השלב</th>
                       <th>מה מחכה שם</th>
                     </tr>
                   </thead>
                   <tbody>
                     {STREAK_LADDER.map((rung) => (
                       <tr key={rung.day} className={rung.day === STREAK_CYCLE_DAYS ? "font-bold" : ""}>
-                        <td className="whitespace-nowrap text-bone">
-                          <span className="nums me-1" dir="ltr">
-                            {rung.day}
-                          </span>
-                          {rung.name}
+                        <td className="nums text-gold-bright" dir="ltr">
+                          {rung.day}
                         </td>
+                        <td className="whitespace-nowrap text-bone">{rung.name}</td>
                         <td>
                           <Purse rewards={rung.rewards} />
                         </td>
@@ -836,7 +841,7 @@ export async function GuideContent({
               </Note>
             </GuideSection>
 
-            {/* ============================ 04 mines ============================ */}
+            {/* ============================ 05 mines ============================ */}
             <GuideSection meta={SECTIONS.mines} index={INDEX.mines}>
               <Lead>
                 ארבעת המכרות הם מנוע הכלכלה. מכרה לא מייצר כלום מעצמו — הוא מייצר לפי
@@ -937,7 +942,7 @@ export async function GuideContent({
               </Note>
             </GuideSection>
 
-            {/* ============================ 05 cities ============================ */}
+            {/* ============================ 06 cities ============================ */}
             <GuideSection meta={SECTIONS.cities} index={INDEX.cities}>
               <Lead>
                 עיר היא קפיצת המדרגה הגדולה במשחק. כל עיר מכפילה את תפוקת המכרות,
@@ -1038,7 +1043,7 @@ export async function GuideContent({
               />
             </GuideSection>
 
-            {/* ============================ 06 storage ============================ */}
+            {/* ============================ 07 storage ============================ */}
             <GuideSection meta={SECTIONS.storage} index={INDEX.storage}>
               <Lead>
                 מחסן הוא הכספת מפני תוקפים. משאב שהופקד במחסן <b>לא נבזז לעולם</b> — אבל
@@ -1114,7 +1119,7 @@ export async function GuideContent({
               </Note>
             </GuideSection>
 
-            {/* ============================ 07 bank ============================ */}
+            {/* ============================ 08 bank ============================ */}
             <GuideSection meta={SECTIONS.bank} index={INDEX.bank}>
               <Lead>
                 הבנק מקבל <b>זהב בלבד</b>, מגן עליו מביזה, ומשלם עליו ריבית דריבית בכל
@@ -1171,7 +1176,7 @@ export async function GuideContent({
               <BankCalc />
             </GuideSection>
 
-            {/* ============================ 08 army ============================ */}
+            {/* ============================ 09 army ============================ */}
             <GuideSection meta={SECTIONS.army} index={INDEX.army}>
               <Lead>
                 אימון יחידות לא עולה משאבים — הוא עולה <b>אזרחים</b>. כל אזרח הופך
@@ -1226,7 +1231,7 @@ export async function GuideContent({
               </Note>
             </GuideSection>
 
-            {/* ============================ 09 weapons ============================ */}
+            {/* ============================ 10 weapons ============================ */}
             <GuideSection meta={SECTIONS.weapons} index={INDEX.weapons}>
               <Lead>
                 נשק הוא הדרך להפוך משאבים לכוח. יש{" "}
@@ -1393,7 +1398,7 @@ export async function GuideContent({
               </div>
             </GuideSection>
 
-            {/* ============================ 10 upgrades ============================ */}
+            {/* ============================ 11 upgrades ============================ */}
             <GuideSection meta={SECTIONS.upgrades} index={INDEX.upgrades}>
               <Lead>
                 שישה שדרוגים גלובליים שמשנים כללים, לא מספרים בודדים. רובם חסומים בתקרה
@@ -1761,7 +1766,7 @@ export async function GuideContent({
               </div>
             </GuideSection>
 
-            {/* ============================ 12 spy ============================ */}
+            {/* ============================ 14 spy ============================ */}
             <GuideSection meta={SECTIONS.spy} index={INDEX.spy}>
               <Lead>
                 ריגול נפתר בדיוק כמו קרב — השוואת מספרים, בלי הגרלה. ההבדל: המגן מתגונן
@@ -2101,7 +2106,7 @@ export async function GuideContent({
               </div>
             </GuideSection>
 
-            {/* ============================ 14 items ============================ */}
+            {/* ============================ 17 items ============================ */}
             <GuideSection meta={SECTIONS.items} index={INDEX.items}>
               <Lead>
                 תשעה מקומות על הגיבור, כל אחד עם סטטיסטיקה משלו. חפץ נקבע לחלוטין
@@ -2314,7 +2319,119 @@ export async function GuideContent({
               </div>
             </GuideSection>
 
-            {/* ============================ 15 potions ============================ */}
+            {/* ============================ 18 forge ============================ */}
+            <GuideSection meta={SECTIONS.forge} index={INDEX.forge}>
+              <Lead>
+                חפצים נופלים בדרגה אקראית, ולכן לכל שחקן יש בסוף תשע חרבות ואפס מגפיים.{" "}
+                <Link href={gameHref("/game/hero/forge")} className="text-gold underline">
+                  הנפחייה
+                </Link>{" "}
+                היא שער החליפין בין שתי העובדות האלה, והיא עושה דבר אחד:{" "}
+                <b>הופכת רוחב לכיוון</b>. מפרקים חפצים שאין בהם צורך לרסיסים, ומזמינים
+                בהם חפץ <b>במשבצת שאתה בוחר</b>.
+              </Lead>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Fact
+                  icon="iron"
+                  label="רסיסים להזמנה"
+                  value={COMMISSION_SHARDS}
+                  hint={`כ־${COMMISSION_DROPS} נפילות`}
+                />
+                <Fact
+                  icon="spark"
+                  label="רסיסים לנפילה"
+                  value={SHARDS_PER_DROP.toFixed(1)}
+                  hint="בממוצע, לפי טבלת הנדירות"
+                  tone="text-violet-300"
+                />
+                <Fact
+                  icon="gold"
+                  label="זהב להזמנה ברמה 50"
+                  value={formatShort(commissionGoldCost(50))}
+                  hint="השדרוג הזול בעשור שלך"
+                  tone="text-gold-bright"
+                />
+                <Fact
+                  icon="hero"
+                  label="הדרגה שמוגרלת"
+                  value="כמו נפילה"
+                  hint="סביב רמת הגיבור שלך"
+                  tone="text-emerald-300"
+                />
+              </div>
+
+              <TableWrap>
+                <table className="guide-table w-full text-right text-[0.78rem]">
+                  <thead>
+                    <tr>
+                      <th>נדירות</th>
+                      <th>פירוק נותן</th>
+                      <th>ליטוש לדרגה הבאה</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {RARITY_ORDER.map((rarity) => (
+                      <tr key={rarity}>
+                        <td className={`font-bold ${RARITY_META[rarity].tone}`}>
+                          {RARITY_META[rarity].label}
+                        </td>
+                        <td className="nums text-bone-bright" dir="ltr">
+                          {SHARDS_BY_RARITY[rarity]}
+                        </td>
+                        <td className="nums text-gold-bright" dir="ltr">
+                          {rarity === "LEGENDARY"
+                            ? "—"
+                            : TEMPER_SHARDS[rarity as keyof typeof TEMPER_SHARDS]}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+
+              <Formula
+                label="שני הספסלים"
+                expr={
+                  <>
+                    <V>הזמנה</V>
+                    <O>=</O>
+                    <N>{COMMISSION_SHARDS}</N>
+                    <V> רסיסים</V>
+                    <O>+</O>
+                    <V>זהב</V>
+                    <O>→</O>
+                    <R>משבצת לבחירתך</R>
+                  </>
+                }
+                legend={[
+                  {
+                    term: "אתה קונה משבצת, לא כוח",
+                    desc: "הדרגה והנדירות מוגרלות בדיוק באותה פונקציה ובאותה טבלה של נפילה רגילה. אגדי מהנפחייה נדיר כמו אגדי מפשיטה.",
+                  },
+                  {
+                    term: "ליטוש הוא הדרך השנייה",
+                    desc: `מעלה חפץ קיים דרגה אחת בתוך העשור שלו תמורת רסיסים בלבד — ${TEMPER_SHARDS.COMMON}/${TEMPER_SHARDS.RARE}/${TEMPER_SHARDS.EPIC} — ועוצר באגדי, בדיוק כמו שדרוג הזהב.`,
+                  },
+                  {
+                    term: "ערך הרסיס קבוע",
+                    desc: "פשוט שווה רסיס אחד בין אם הוא מהעשור הראשון או העשירי, והזמנה עולה אותו דבר תמיד. אין קצה זול לחקור ואין ארביטראז׳.",
+                  },
+                  {
+                    term: "הזהב הוא הבור שגדל",
+                    desc: "מחיר ההזמנה נלקח מסולם שדרוגי החפצים — השדרוג הזול ביותר בעשור שהגיבור שלך עומד בו — כך שהנפחייה מתייקרת יחד עם שאר כלכלת הציוד.",
+                  },
+                ]}
+              />
+
+              <Note tone="gold" icon="spark" title="אגדי הוא התקרה של הסט שלו">
+                שום כמות של זהב או רסיסים לא מעבירה חפץ לסט שמעליו. הדרך היחידה לעשור
+                הבא היא <b>למצוא</b> חפץ ממנו — והנפחייה לא נועדה לעקוף את זה, אלא לחסוך
+                לך את החרב העשירית.
+              </Note>
+            </GuideSection>
+
+            {/* ============================ 19 potions ============================ */}
             <GuideSection meta={SECTIONS.potions} index={INDEX.potions}>
               <Lead>
                 שיקוי הוא לא ציוד — הוא <b>חלון זמן שבו חוק אחד במשחק מתעקם</b>. נופל
@@ -2360,7 +2477,7 @@ export async function GuideContent({
               </div>
             </GuideSection>
 
-            {/* ============================ 16 hero quests ============================ */}
+            {/* ============================ 20 hero quests ============================ */}
             <GuideSection meta={SECTIONS.quests} index={INDEX.quests}>
               <Lead>
                 בין קרב לקרב הגיבור לא חייב לשבת בבית. מסע שולח אותו לזמן אמת ומשלם
@@ -2548,7 +2665,7 @@ export async function GuideContent({
               </Note>
             </GuideSection>
 
-            {/* ============================ 17 bosses ============================ */}
+            {/* ============================ 21 bosses ============================ */}
             <GuideSection meta={SECTIONS.bosses} index={INDEX.bosses}>
               <Lead>
                 לכל אחת מעשר דרגות הערים יש שליט אחד — קיר PvE שכוחו{" "}
@@ -2712,7 +2829,292 @@ export async function GuideContent({
               </Note>
             </GuideSection>
 
-            {/* ============================ 18 guild ============================ */}
+            {/* ============================ 22 arena ============================ */}
+            <GuideSection meta={SECTIONS.arena} index={INDEX.arena}>
+              <Lead>
+                הדירוג אומר לך איפה אתה עומד; הוא אף פעם לא אומר לך אם היית{" "}
+                <b>מנצח</b>.{" "}
+                <Link href={gameHref("/game/arena")} className="text-gold underline">
+                  הזירה
+                </Link>{" "}
+                היא הקרב ההוגן הזה, פעם בשבוע, לכל מי שנרשם: כשהשבוע מתהפך כל נרשם פוגש{" "}
+                <b>כל נרשם אחר בדיוק פעם אחת</b>, והטבלה היא התוצאה. אף אחד לא לוחץ
+                תקיפה ואף אחד לא צריך להיות מחובר.
+              </Lead>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Fact
+                  icon="turns"
+                  label="דמי כניסה"
+                  value={ARENA_ENTRY_TURNS}
+                  hint="תורות, פעם בשבוע"
+                  tone="text-emerald-300"
+                />
+                <Fact
+                  icon="laurel"
+                  label="נרשמים לזירה"
+                  value={`עד ${ARENA_MAX_ENTRANTS}`}
+                  hint="זירה אחת לכל דרגת ערים"
+                />
+                <Fact
+                  icon="dice"
+                  label="משקל המזל"
+                  value={`${Math.round(ARENA_LUCK * 100)}%`}
+                  hint="השאר הוא כוח"
+                  tone="text-purple-300"
+                />
+                <Fact
+                  icon="diamond"
+                  label="סף הפודיום"
+                  value={ARENA_PODIUM_MIN_ENTRANTS}
+                  hint="נרשמים, אחרת אין יהלומים"
+                  tone="text-cyan-300"
+                />
+              </div>
+
+              <Formula
+                label="הסיכוי לנצח דו־קרב"
+                expr={
+                  <>
+                    <V>חלקך</V>
+                    <O>=</O>
+                    <V>√כוחך</V>
+                    <O>÷</O>
+                    <O>(</O>
+                    <V>√כוחך</V>
+                    <O>+</O>
+                    <V>√כוחו</V>
+                    <O>)</O>
+                    <O>,</O>
+                    <R>סיכוי</R>
+                    <O>=</O>
+                    <V>חלקך</V>
+                    <O>×</O>
+                    <N>{(1 - ARENA_LUCK).toFixed(2)}</N>
+                    <O>+</O>
+                    <N>{(0.5 * ARENA_LUCK).toFixed(3)}</N>
+                  </>
+                }
+                legend={[
+                  {
+                    term: "שורש, לא כוח גולמי",
+                    desc: "בתוך דרגת ערים אחת הפערים בכוח הם סדרי גודל. השורש דוחס אותם לטווח שבו למזל עדיין יש מה לומר, ובלעדיו כל דו־קרב בין לא־שווים היה פורמליות.",
+                  },
+                  {
+                    term: `${Math.round(ARENA_LUCK * 100)}% מזל`,
+                    desc: "אימפריה עם חצי מהכוח של יריבתה עדיין לוקחת בערך דו־קרב אחד מכל חמישה — מספיק כדי שכדאי להיכנס מכל מקום בטבלה, ורחוק מלהפוך את זה להגרלה.",
+                  },
+                  {
+                    term: "התוצאה קבועה מראש",
+                    desc: "כל דו־קרב מוגרל מזרע שנגזר מהזירה ומשני המזהים, ולכן חישוב חוזר של אותה טבלה מחזיר בדיוק את אותן תוצאות — וסדר החישוב לא מיטיב עם אף צד.",
+                  },
+                  {
+                    term: "שוויון נשבר לפי כוח",
+                    desc: "שני נרשמים עם אותו מספר ניצחונות שלא נפגשו — החזק מביניהם מדורג גבוה יותר.",
+                  },
+                ]}
+              />
+
+              <TableWrap>
+                <table className="guide-table w-full text-right text-[0.78rem]">
+                  <thead>
+                    <tr>
+                      <th>מקום</th>
+                      <th>הפרס (בעיר אחת)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ARENA_PODIUM.map((purse, i) => (
+                      <tr key={i}>
+                        <td className="whitespace-nowrap font-bold text-gold-bright">
+                          מקום {i + 1}
+                        </td>
+                        <td>
+                          <Purse rewards={purse} />
+                        </td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td className="whitespace-nowrap text-bone">כל השאר</td>
+                      <td>
+                        <Purse rewards={ARENA_CONSOLATION} />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="whitespace-nowrap text-bone">ובנוסף, לכל ניצחון</td>
+                      <td>
+                        <Purse rewards={[{ kind: "gold", amount: ARENA_GOLD_PER_WIN }]} />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </TableWrap>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Note tone="green" icon="turns" title="כניסה אף פעם לא הפסד">
+                  פרס ההשתתפות שווה יותר מ־<b className="nums">{ARENA_ENTRY_TURNS}</b>{" "}
+                  התורות שעלתה הכניסה, ושבוע חזק של שלושים ניצחונות שווה יותר זהב
+                  מהפודיום עצמו — הפודיום מוכר את היהלומים, הניצחונות מוכרים את העבודה.
+                </Note>
+                <Note tone="gold" icon="diamond" title="למה צריך חמישה נרשמים">
+                  דרגת ערים גבוהה היא לפעמים אימפריה אחת בעולם, ומקום ראשון בטבלה של
+                  שורה אחת הוא ברז יהלומים בלי יריב ובלי סיכון. מתחת ל־
+                  <b className="nums">{ARENA_PODIUM_MIN_ENTRANTS}</b> נרשמים הזירה עדיין
+                  רצה ועדיין משלמת — פרס השתתפות וזהב לכל ניצחון — אבל בלי יהלומים.
+                </Note>
+              </div>
+            </GuideSection>
+
+            {/* ============================ 23 worldboss ============================ */}
+            <GuideSection meta={SECTIONS.worldboss} index={INDEX.worldboss}>
+              <Lead>
+                כל קרב אחר במשחק הוא בין שני שחקנים או בין שחקן לשליט העיר שלו.{" "}
+                <Link href={gameHref("/game/worldboss")} className="text-gold underline">
+                  מפלצת העולם
+                </Link>{" "}
+                היא המקום היחיד שבו <b>כל השרת נמצא באותו צד</b>: מפלצת אחת לשבוע, מאגר
+                חיים משותף שגדל עם מספר האימפריות, וכל אימפריה שהנחיתה מכה מקבלת חלק
+                בשלל. אין כפתור מנהלים — היא עולה על השעון.
+              </Lead>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Fact
+                  icon="turns"
+                  label="מכה עולה"
+                  value={WORLD_BOSS_STRIKE_TURNS}
+                  hint="תורות — כארבע תקיפות"
+                  tone="text-emerald-300"
+                />
+                <Fact
+                  icon="attack"
+                  label="מכות לשבוע"
+                  value={WORLD_BOSS_MAX_STRIKES}
+                  hint="לכל אימפריה, בלי קשר לתורות"
+                />
+                <Fact
+                  icon="heart"
+                  label="חיים לכל אימפריה"
+                  value={formatShort(WORLD_BOSS_HP_PER_EMPIRE)}
+                  hint={`מינימום ${formatShort(WORLD_BOSS_HP_MIN)}`}
+                  tone="text-crimson-bright"
+                />
+                <Fact
+                  icon="diamond"
+                  label="מכת המוות"
+                  value={WORLD_BOSS_KILL_DIAMONDS}
+                  hint="יהלומים, למי שהפיל אותה"
+                  tone="text-cyan-300"
+                />
+              </div>
+
+              <Formula
+                label="נזק של מכה"
+                expr={
+                  <>
+                    <V>√הכוח הצבאי שלך</V>
+                    <O>×</O>
+                    <N>{WORLD_BOSS_DAMAGE_PER_POWER}</N>
+                    <O>×</O>
+                    <O>(</O>
+                    <N>1</N>
+                    <O>±</O>
+                    <N>{Math.round(WORLD_BOSS_DAMAGE_SPREAD * 100)}%</N>
+                    <O>)</O>
+                    <O>=</O>
+                    <R>נזק</R>
+                  </>
+                }
+                legend={[
+                  {
+                    term: "שורש, שוב",
+                    desc: "פי מאה כוח שווה קצת יותר מפי שלושה נזק. בלי זה, הלוח היה נסגר לפני שהאימפריות הקטנות הספיקו לטעון את הדף, וחלקן בשלל היה מתעגל לאפס.",
+                  },
+                  {
+                    term: `למה ±${Math.round(WORLD_BOSS_DAMAGE_SPREAD * 100)}%`,
+                    desc: "הדף מפרסם את החיים שנשארו למפלצת. בלי פיזור, מי שיודע לחשב את הנזק שלו היה יושב וממתין שהמד ירד בדיוק אל מתחת למכה שלו — ולוקח את היהלומים כל שבוע בוודאות. הפיזור הופך את המכה האחרונה למרוץ.",
+                  },
+                  {
+                    term: "רצפה של נזק אחד",
+                    desc: "אימפריה טרייה בלי צבא בכלל עדיין מזיזה את המד. זה ההבדל בין ״עזרתי״ ל״למה הדף הזה קיים״.",
+                  },
+                  {
+                    term: "מאגר החיים ננעל בהופעה",
+                    desc: "הוא מחושב פעם אחת לפי מספר האימפריות באותו רגע ולא מחושב מחדש — מפלצת שהתחזקה כי מישהו נרשם ביום חמישי הייתה עונש על גדילה.",
+                  },
+                ]}
+              />
+
+              <Formula
+                label="חלוקת השלל"
+                expr={
+                  <>
+                    <N>{WORLD_BOSS_FLOOR_SHARE}</N>
+                    <O>÷</O>
+                    <V>מספר המשתתפים</V>
+                    <O>+</O>
+                    <N>{(1 - WORLD_BOSS_FLOOR_SHARE).toFixed(1)}</N>
+                    <O>×</O>
+                    <V>חלקך בנזק</V>
+                    <O>=</O>
+                    <R>חלקך בקופה</R>
+                  </>
+                }
+                legend={[
+                  {
+                    term: "חצי על ההופעה",
+                    desc: "מתחלק שווה בשווה בין כל מי שהנחית מכה. זה המספר שמחליט אם הפיקסצ׳ר שווה את הזמן של אימפריה קטנה, והוא נדיב בכוונה.",
+                  },
+                  {
+                    term: "חצי על הנזק",
+                    desc: "מי שנשא את הקרב עדיין מרוויח מזה שנשא אותו.",
+                  },
+                  {
+                    term: "הקופה המלאה (בעיר אחת)",
+                    desc: <Purse rewards={WORLD_BOSS_PURSE} />,
+                  },
+                  {
+                    term: "מי שלא הכה לא מקבל",
+                    desc: "אין פרס נוכחות. יש רצפה למי שהשתתף.",
+                  },
+                ]}
+              />
+
+              <TableWrap>
+                <table className="guide-table w-full text-right text-[0.78rem]">
+                  <thead>
+                    <tr>
+                      <th>המפלצת</th>
+                      <th>קושי</th>
+                      <th>הסיפור</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {WORLD_BOSSES.map((boss) => (
+                      <tr key={boss.key}>
+                        <td className="whitespace-nowrap font-bold text-bone">
+                          <span aria-hidden className="ms-1">
+                            {boss.sigil}
+                          </span>
+                          {boss.name}
+                        </td>
+                        <td className="nums text-crimson-bright" dir="ltr">
+                          ×{boss.toughness}
+                        </td>
+                        <td className="text-zinc-400">{boss.lore}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+
+              <Note tone="purple" icon="turns" title="שבוע אחד, מפלצת אחת">
+                איזו מפלצת מופיעה נגזר מהשבוע עצמו, כך שכל שחקן בעולם רואה את אותה
+                מפלצת בלי שאף אחד ״פתח״ אותה. מה שלא הופל עד סוף השבוע פשוט נעלם, והשבוע
+                הבא מביא חדשה — עם מאגר חיים חדש ומכסת מכות חדשה.
+              </Note>
+            </GuideSection>
+
+            {/* ============================ 24 guild ============================ */}
             <GuideSection meta={SECTIONS.guild} index={INDEX.guild}>
               <Lead>
                 ברית היא כוח משותף. הקמה עולה{" "}
@@ -2786,7 +3188,10 @@ export async function GuideContent({
                   legend={[
                     { term: "תקרה", desc: `${GUILD_AID_MAX_LEVEL}% מכוח הברית כולה.` },
                     { term: "מתי", desc: "גם בתקיפה וגם בהגנה, מתווסף אחרי כל המכפילים." },
-                    { term: "מחיר", desc: `${formatShort(aidUpgradeCostGold(0))} זהב לרמה הראשונה — כל חבר יכול לשלם.` },
+                    {
+                      term: "מחיר",
+                      desc: `${formatShort(aidUpgradeCostGold(0))} זהב לרמה הראשונה, ומשולם מאוצר הברית — לכן רק מנהיג או סגן יכולים לקנות אותו.`,
+                    },
                   ]}
                 />
               </div>
@@ -2818,9 +3223,22 @@ export async function GuideContent({
                 </table>
               </TableWrap>
 
-              <Note tone="gold" icon="guild" title="בנק הברית">
-                לברית יש קופת זהב משותפת: כל חבר מפקיד ומושך בחופשיות, וכל תנועה נרשמת
-                בפנקס עם שם האימפריה. מנהיג בודד שעוזב — הברית מתפרקת והזהב מוחזר.
+              <Note tone="gold" icon="guild" title="אוצר הברית">
+                קופת זהב משותפת שממנה נקנות שתי הסולמות שלמעלה — <b>ההרחבה והעזרה</b>.
+                כל חבר יכול לתרום (מינימום{" "}
+                <b className="nums">{formatShort(GUILD_DONATION_MIN)}</b> זהב לתרומה, כדי
+                שלוח התורמים ימדוד נתינה ולא לחיצות), ומה שנתת נרשם על שמך לתמיד גם אחרי
+                שהאוצר מתרוקן. <b>אין משיכה</b>: זהב שנכנס שייך לברית, וההנהגה מחליטה מה
+                הוא <b>קונה</b> — לא מי מקבל אותו בחזרה.
+              </Note>
+
+              <Note tone="green" icon="check" title="חוזה יומי">
+                לכל ברית יש יעד יומי משותף שנמדד במשימות היומיות של החברים, והוא משלם
+                לכל חבר בנפרד. הוא מופיע גם כאן וגם על{" "}
+                <Link href={gameHref("/game/daily")} className="text-gold underline">
+                  לוח היום
+                </Link>
+                .
               </Note>
 
               <Note tone="gold" icon="guild" title="אין תקיפות בין חברי ברית">
@@ -2831,7 +3249,7 @@ export async function GuideContent({
               </Note>
             </GuideSection>
 
-            {/* ============================ 19 chat ============================ */}
+            {/* ============================ 25 chat ============================ */}
             <GuideSection meta={SECTIONS.chat} index={INDEX.chat}>
               <Lead>
                 בפינה השמאלית התחתונה של כל מסך יושב <b>הצ׳אט</b>. הוא לא דף אלא חלונית
@@ -2922,7 +3340,7 @@ export async function GuideContent({
               </Note>
             </GuideSection>
 
-            {/* ============================ 20 community ============================ */}
+            {/* ============================ 26 community ============================ */}
             <GuideSection meta={SECTIONS.community} index={INDEX.community}>
               <Lead>
                 מחוץ למשחק יש ערוץ דיסקורד — שם יושבות ההכרזות, גיוס לבריתות, שאלות
@@ -2967,7 +3385,137 @@ export async function GuideContent({
               </div>
             </GuideSection>
 
-            {/* ============================ 21 rewards ============================ */}
+            {/* ============================ 27 referrals ============================ */}
+            <GuideSection meta={SECTIONS.referrals} index={INDEX.referrals}>
+              <Lead>
+                <b>שם האימפריה שלך הוא הקוד.</b> אין מה לייצר ואין מה להעתיק — חבר
+                שנרשם נכנס ל
+                <Link href={gameHref("/game/referrals")} className="text-gold underline">
+                  דף ההזמנות
+                </Link>{" "}
+                ורושם את השם שלך. שני הצדדים מקבלים את הפרס רק כשהחדש מגיע ל־
+                <b className="nums">{REFERRAL_GOAL_CITIES}</b> ערים — כלומר כששחקן אמיתי
+                נשאר, לא כשנפתח חשבון.
+              </Lead>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="panel-gold rounded-xl p-4">
+                  <p className="mb-2 flex items-center gap-2 font-black text-gold-bright">
+                    <Icon name="gift" size={18} /> למזמין
+                  </p>
+                  <Purse rewards={REFERRAL_REFERRER_PURSE} />
+                  <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
+                    החצי הגדול, בלי הגבלה על מספר המוזמנים. נגבה בנפרד לכל מוזמן שהגיע
+                    ליעד.
+                  </p>
+                </div>
+                <div className="panel-gold rounded-xl p-4">
+                  <p className="mb-2 flex items-center gap-2 font-black text-gold-bright">
+                    <Icon name="citizens" size={18} /> למוזמן
+                  </p>
+                  <Purse rewards={REFERRAL_JOINER_PURSE} />
+                  <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
+                    פחות יהלומים ויותר ממה שאימפריה צעירה באמת צריכה — תורות ואנשים.
+                  </p>
+                </div>
+              </div>
+
+              <Formula
+                label="החלון לרישום מזמין"
+                expr={
+                  <>
+                    <V>הערים שלך</V>
+                    <O>≤</O>
+                    <N>{REFERRAL_NAME_MAX_CITIES}</N>
+                    <O>→</O>
+                    <R>אפשר לרשום מזמין</R>
+                  </>
+                }
+                legend={[
+                  {
+                    term: "פעם אחת, ואי אפשר לשנות",
+                    desc: `אחרי ${REFERRAL_NAME_MAX_CITIES} ערים החלון נסגר — בערך הערב הראשון. מספיק זמן כדי שחבר יזכיר את זה אחרי המשחק הראשון, וקצר מספיק כדי ששחקן ותיק לא יסחר בנאמנות שלו.`,
+                  },
+                  {
+                    term: "לא בעיגול ולא לצוות",
+                    desc: "אי אפשר לרשום מישהו שכבר רשם אותך, ואי אפשר לרשום חשבון צוות או חשבון מוצב.",
+                  },
+                  {
+                    term: "היעד נמדד חי",
+                    desc: `הפרס נבדק מול מספר הערים שהחדש מחזיק עכשיו — ${REFERRAL_GOAL_CITIES} ערים זה ימים של משחק אמיתי, ולא חותמת שנרשמה פעם.`,
+                  },
+                  {
+                    term: "עונה חדשה, קשר חדש",
+                    desc: "איפוס עונה מוחק ובונה מחדש כל אימפריה, ולכן הקשר לא שורד אותו. הקריאה הנכונה של זה: להחזיר חבר שנטש בדיוק לעונה החדשה זו בדיוק ההתנהגות ששווה לשלם עליה שוב.",
+                  },
+                ]}
+              />
+            </GuideSection>
+
+            {/* ============================ 28 titles ============================ */}
+            <GuideSection meta={SECTIONS.titles} index={INDEX.titles}>
+              <Lead>
+                <Link href={gameHref("/game/titles")} className="text-gold underline">
+                  תואר
+                </Link>{" "}
+                הוא השורה שמתחת לשם שלך — בדוסיה ובדירוגים. הוא <b>לא מכפיל כלום</b>, וזה
+                כל העניין: זו הדרך הבטוחה היחידה למכור משהו, כי הוא לא משנה שום מספר
+                במשחק. שני סוגים, וההבדל ביניהם מכוון להיות ברור מהניסוח:{" "}
+                <b className="nums">{TITLES.filter((title) => title.kind === "earned").length}</b>{" "}
+                <b>נצברים</b> ולא נמכרים בשום מחיר, ו־
+                <b className="nums">{TITLES.filter((title) => title.kind === "bought").length}</b>{" "}
+                <b>נקנים</b> וכתובים כהתרברבות ולא כהישג.
+              </Lead>
+
+              <TableWrap>
+                <table className="guide-table w-full text-right text-[0.78rem]">
+                  <thead>
+                    <tr>
+                      <th>תואר</th>
+                      <th>איך משיגים</th>
+                      <th>מחיר</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TITLES.map((title) => (
+                      <tr key={title.key}>
+                        <td
+                          className="whitespace-nowrap font-black"
+                          style={{ color: `rgb(${title.accent})` }}
+                        >
+                          {title.label}
+                        </td>
+                        <td className="text-zinc-400">
+                          {fillParams(title.hint, TITLE_PARAMS)}
+                        </td>
+                        <td>
+                          {title.kind === "earned" ? (
+                            <span className="text-emerald-300">נצבר</span>
+                          ) : (
+                            <Cost amounts={[{ key: "diamonds", value: title.price }]} />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Note tone="gold" icon="achievements" title="תואר נצבר לא נמכר">
+                  התנאים שלו נבדקים מחדש בכל טעינה מול אותם מוני חיים שההישגים והמשימות
+                  קוראים — אין מה למלא ואין מה לגבות. הם מכוונים <b>גבוה יותר</b> מדרגת
+                  ההישג המקבילה, כי תואר צריך להיות נדיר יותר מסולם הפרסים או שהדירוג
+                  הופך לקיר של אותה כותרת.
+                </Note>
+                <Note tone="purple" icon="crown" title="עונדים אחד בכל פעם">
+                  אפשר להחזיק כמה שרוצים ולענוד אחד. תואר שהוסר מהמשחק פשוט מפסיק
+                  להופיע מתחת לשם, בלי לשבור שום דירוג.
+                </Note>
+              </div>
+            </GuideSection>
+
+            {/* ============================ 29 rewards ============================ */}
             <GuideSection meta={SECTIONS.rewards} index={INDEX.rewards}>
               <Lead>
                 שלושה מקורות פרסים שמתחדשים מעצמם — כולם על אותו שעון של העדכון היומי,
@@ -3042,12 +3590,16 @@ export async function GuideContent({
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <Note tone="purple" icon="dice" title="מיני־משחקים">
-                  אירועים שהמנהלים פותחים בזמן אמת — &quot;מצא את הכדור&quot; (הרם את הכוס
-                  הנכונה) ו&quot;פריצת הכספת&quot; (פצח קוד סודי; כל ניסיון מסמן איזו ספרה
-                  נכונה במקומה, איזו נכונה במקום אחר ואיזו לא בקוד כלל). כשמשחק נפתח
-                  מופיע כפתור זהוב בסרגל העליון עם שעון וספירת הניסיונות שנותרו — לחיצה
-                  פותחת את המשחק, לוח המתחרים ורשימת הזוכים. מספר הניסיונות נגזר מהמשחק:
-                  בכוסות זה כמעט תמיד ניסיון אחד, בכספת כמה וכמה — שם כל ניסיון הוא רמז.
+                  אירועים שהמנהלים פותחים בזמן אמת, בארבעה טעמים:{" "}
+                  <b>מצא את הכדור</b> (הרם את הכוס הנכונה),{" "}
+                  <b>פריצת הכספת</b> (פצח קוד; כל ניסיון מסמן איזו ספרה נכונה במקומה,
+                  איזו נכונה במקום אחר ואיזו לא בקוד כלל), <b>מפת האוצר</b> (חפור במשבצת
+                  ברשת, וכל חפירה חוזרת עם &quot;חם או קר&quot; לפי המרחק) ו<b>חידה</b>{" "}
+                  (שאלה אחת, תשובה אחת). כשמשחק נפתח מופיע כפתור זהוב בסרגל העליון עם
+                  שעון וספירת הניסיונות שנותרו — לחיצה פותחת את המשחק, לוח המתחרים
+                  ורשימת הזוכים. מספר הניסיונות נגזר מהמשחק: בכוסות זה כמעט תמיד ניסיון
+                  אחד; בכספת ובמפה כל ניסיון הוא רמז, ולכן יש כמה — אבל אף פעם לא מספיק
+                  כדי לסרוק את הלוח.
                 </Note>
                 <Note tone="gold" icon="achievements" title="הישגים">
                   ציוני דרך שנפתחים מעצמם תוך כדי משחק ומחכים לאיסוף. תג זהוב בסרגל
@@ -3060,7 +3612,7 @@ export async function GuideContent({
               </div>
             </GuideSection>
 
-            {/* ============================ 22 diamonds ============================ */}
+            {/* ============================ 30 diamonds ============================ */}
             <GuideSection meta={SECTIONS.diamonds} index={INDEX.diamonds}>
               <Lead>
                 יהלומים הם המטבע הנדיר. הם לא נופלים ממכרות, לא מהעונה ולא מחפצי
@@ -3165,7 +3717,7 @@ export async function GuideContent({
               </div>
             </GuideSection>
 
-            {/* ============================ 23 roadmap ============================ */}
+            {/* ============================ 31 roadmap ============================ */}
             <GuideSection meta={SECTIONS.roadmap} index={INDEX.roadmap}>
               <Lead>
                 אם אתה לא יודע מה לעשות עכשיו — זה הסדר שעובד. כל שלב פותח את הבא אחריו.

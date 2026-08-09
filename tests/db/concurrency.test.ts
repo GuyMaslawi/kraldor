@@ -70,6 +70,34 @@ describe("the shared rate limiter", () => {
     const row = await prisma.rateLimitBucket.findUnique({ where: { key } });
     expect(row?.count).toBe(1);
   });
+
+  it("stores the window's end in the same time the rest of the app keeps", async () => {
+    /**
+     * The bug this pins was invisible because it was two bugs.
+     *
+     * `resetAt` is a `TIMESTAMP(3)` without a zone. A JS Date bound into a *raw*
+     * query arrives as a `timestamptz` and is converted through the database
+     * session's own zone on the way in, so on a session east of UTC the stored
+     * instant was hours off. The rollover test then compared it against a bare
+     * `NOW()` — also a `timestamptz` — which converted the column back the same
+     * way, and the two errors cancelled. The limiter behaved correctly while
+     * storing a value nothing else in the application could read: `sweepShared`
+     * compares this column against a JS Date through the Prisma API, and saw
+     * every expired bucket as hours in the future.
+     *
+     * So the assertion is deliberately made from *outside* the raw statement —
+     * one Prisma read against one JS clock, which is the pair that has to agree.
+     */
+    const key = `${TAG}:clock`;
+    const windowMs = 60_000;
+    const before = Date.now();
+    await rateLimit(key, 5, windowMs);
+    const row = await prisma.rateLimitBucket.findUniqueOrThrow({ where: { key } });
+
+    const drift = row.resetAt.getTime() - (before + windowMs);
+    // Seconds of slack for the round trip; an offset bug is measured in hours.
+    expect(Math.abs(drift)).toBeLessThan(10_000);
+  });
 });
 
 describe("guarded debits", () => {

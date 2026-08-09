@@ -171,18 +171,42 @@ export async function rateLimit(
   // Cheap per-instance pre-filter — see the header.
   if (!localAllows(key, limit, windowMs, hits)) return false;
 
-  const resetAt = new Date(Date.now() + windowMs);
+  // The window is expressed in SQL rather than bound as a JS Date, and both
+  // sides of the rollover test read `NOW() AT TIME ZONE 'UTC'`. Two separate
+  // hazards make that necessary, and each one alone is enough to break the
+  // limiter on a database session that is not running in UTC:
+  //
+  //  - `resetAt` is a `TIMESTAMP(3)` *without* a zone. A JS Date bound into a
+  //    **raw** query arrives as a `timestamptz` and is converted through the
+  //    session's zone on the way in, so the stored instant is offset from what
+  //    every other timestamp in this database means — including the one
+  //    `sweepShared` compares against through the Prisma API, which is why dead
+  //    buckets would otherwise survive the sweep for hours.
+  //  - a bare `NOW()` is likewise a `timestamptz`, so comparing it against the
+  //    column converts the *column* instead. Paired with the write above the two
+  //    errors cancel, which is exactly why this was invisible: the limiter
+  //    worked while storing nonsense, and fixing either half alone breaks it.
+  //
+  // Computing the instant in UTC on the server settles both: what is stored is
+  // what every other reader of this table already believes a timestamp to be.
+  const windowSeconds = windowMs / 1000;
   try {
     const rows = await prisma.$queryRaw<{ count: number }[]>`
       INSERT INTO "RateLimitBucket" ("key", "count", "resetAt")
-      VALUES (${key}, ${hits}::int, ${resetAt})
+      VALUES (
+        ${key},
+        ${hits}::int,
+        (NOW() AT TIME ZONE 'UTC') + make_interval(secs => ${windowSeconds}::double precision)
+      )
       ON CONFLICT ("key") DO UPDATE SET
         "count" = CASE
-          WHEN "RateLimitBucket"."resetAt" <= NOW() THEN ${hits}::int
+          WHEN "RateLimitBucket"."resetAt" <= (NOW() AT TIME ZONE 'UTC') THEN ${hits}::int
           ELSE "RateLimitBucket"."count" + ${hits}::int
         END,
         "resetAt" = CASE
-          WHEN "RateLimitBucket"."resetAt" <= NOW() THEN ${resetAt}
+          WHEN "RateLimitBucket"."resetAt" <= (NOW() AT TIME ZONE 'UTC')
+            THEN (NOW() AT TIME ZONE 'UTC')
+                 + make_interval(secs => ${windowSeconds}::double precision)
           ELSE "RateLimitBucket"."resetAt"
         END
       RETURNING "count"

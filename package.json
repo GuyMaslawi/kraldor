@@ -15,6 +15,7 @@
     "db:seed": "prisma db seed",
     "db:wipe": "tsx scripts/wipe-data.ts",
     "db:admin": "tsx scripts/grant-admin.ts",
+    "db:test-user": "tsx --tsconfig scripts/tsconfig.json scripts/create-test-user.ts",
     "mail:test": "tsx scripts/test-mail.ts",
     "vercel:env": "bash scripts/vercel-env-sync.sh",
     "test": "vitest run",

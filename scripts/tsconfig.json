@@ -1,0 +1,26 @@
+{
+  // Scripts run under `tsx`, i.e. plain Node — not the Next build. Two of the
+  // app's module conventions have to be taught to that resolver before a script
+  // may import from `src/`:
+  //
+  //   • `@/*`, which the root tsconfig already declares (repeated here because
+  //     `paths` is replaced, not merged, by `extends`);
+  //   • `server-only`, a build-time marker with no runtime and no package on
+  //     disk. Next resolves it during bundling; Node cannot resolve it at all,
+  //     so importing e.g. `src/lib/game/createEmpire.ts` from a script throws
+  //     before a line of it runs. It is pointed at the same empty stub the test
+  //     suite uses (see vitest.config.ts).
+  //
+  // This file is deliberately NOT the root tsconfig: mapping `server-only` there
+  // would make Next resolve it too, disarming the guard that keeps server
+  // modules out of client bundles.
+  //
+  //   npx tsx --tsconfig scripts/tsconfig.json scripts/<script>.ts
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["../src/*"],
+      "server-only": ["../tests/stubs/server-only.ts"]
+    }
+  }
+}

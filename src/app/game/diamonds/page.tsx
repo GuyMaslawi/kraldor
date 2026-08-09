@@ -111,11 +111,9 @@ export default async function DiamondsPage() {
 
       {/* Above the shop grid on purpose: it is the one permanent purchase on
           the page, and it changes how every other screen is operated rather
-          than what it produces. */}
-      <VipCard
-        diamonds={diamonds}
-        vipSince={empire.vipSince?.toISOString() ?? null}
-      />
+          than what it produces. One row, though — the pitch lives in the dialog
+          it opens, not on this screen. */}
+      <VipCard vipSince={empire.vipSince?.toISOString() ?? null} />
 
       <DiamondShop
         diamonds={diamonds}

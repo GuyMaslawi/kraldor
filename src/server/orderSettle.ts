@@ -21,10 +21,11 @@ import { settleDiamondPurchase, type SettleOutcome } from "@/server/purchases";
  * `settleDiamondPurchase`, whose guarded PENDING→PAID flip means the loser of
  * the race credits nothing.
  *
- * This file is deliberately gateway-agnostic. It was written for Grow, and the
- * move to PayPlus changed nothing in it — which is the point of the
- * `OrderPaymentProvider` seam and the reason the next gateway will not touch it
- * either. Everything provider-shaped lives behind `getPaymentProvider()`.
+ * This file is deliberately gateway-agnostic. It was written for Grow and has
+ * since survived two gateway swaps without a line of it changing — which is the
+ * point of the `OrderPaymentProvider` seam and the reason the next gateway will
+ * not touch it either. Everything provider-shaped lives behind
+ * `getPaymentProvider()`.
  *
  * Nothing here fails a purchase that merely isn't paid *yet*. A row stays
  * PENDING until the gateway says the money moved, because the buyer may still be
@@ -46,7 +47,7 @@ const NOTHING: OrderSettleResult = { outcome: "not-found", diamonds: 0, purchase
  * Verify one order against the gateway and credit it if it is paid.
  *
  * @param ref.purchaseId our row id, as echoed to the gateway at order time
- *                       (Grow's `cField1`, PayPlus's `more_info`)
+ *                       (Grow's `cField1`)
  * @param ref.orderId    the gateway's own order id, stored as `providerRef`
  * @param ref.userId     set **only** on the browser-return path, where the row
  *                       must belong to the session that is asking. A callback
@@ -134,8 +135,8 @@ export async function settleOrder(ref: {
 
   // Tell the gateway we took delivery, so it stops retrying. Deliberately after
   // crediting and deliberately not awaited: the transaction is already booked on
-  // their side either way, and a gateway that does not need this (PayPlus) does
-  // not implement it at all.
+  // their side either way, and a gateway that does not need this does not
+  // implement it at all.
   void provider.acknowledge?.(orderRef, capture.captureId).catch(() => undefined);
 
   return { outcome: settled.outcome, diamonds: settled.diamonds, purchaseId: settled.purchaseId };

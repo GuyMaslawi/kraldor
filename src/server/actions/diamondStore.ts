@@ -282,7 +282,7 @@ export async function purchaseDiamondPackage(
  * {@link "@prisma/client".DiamondPurchase} row is opened for it, and the order
  * is created against that fixed amount. **Nothing is charged and no diamonds are
  * credited by this call** — settlement happens only after the gateway is asked,
- * server to server, what the buyer actually paid (see `@/server/growSettle`).
+ * server to server, what the buyer actually paid (see `@/server/orderSettle`).
  *
  * The buyer's name and phone are collected rather than derived: the gateway
  * requires both on its payment page, and the receipt an עוסק פטור issues per

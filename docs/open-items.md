@@ -24,10 +24,12 @@ Neon console → reset the role password → update `PRISMA_DATABASE_URL` and
 `PRISMA_DIRECT_URL` (and the Vercel↔Neon integration's own `DATABASE_URL`) on
 Vercel → redeploy. Nothing in the repo needs to change.
 
-### 1.2 Publish the operator identity · **PayPlus asked for two more fields on 08-04**
+### 1.2 Publish the operator identity · **five fields, gateway-independent**
 
-Five values are now required before the store may open, because PayPlus's
-underwriting asks for them by name:
+Five values are required before the store may open. Gateway underwriting asks
+for them by name, but the consumer-protection rule behind them is ours
+regardless — which is why the list has survived every change of gateway
+unchanged:
 
 | Variable | Status |
 | --- | --- |
@@ -76,75 +78,102 @@ Verify once against a known address in production (log it, or read it back from
 a `RateLimitBucket` key) and set the env var if the default is wrong. Cheap to
 check, expensive to be wrong about.
 
-### 1.4 Finish the PayPlus connection · **code complete 08-04, one value missing**
+### 1.4 Finish the Grow connection · **waiting on Grow to approve the account, 08-09**
 
-The gateway is **PayPlus**, not Grow. Grow wanted **₪500/month** for API access;
-PayPlus charges **₪29.9**. Everything is written and tested — `src/server/payplus.ts`,
-the signed callback at `/api/pay/payplus`, and the shared settlement path in
-`src/server/orderSettle.ts` that both gateways run through.
+**The gateway is Grow**, sole and unambiguous: `getPaymentProvider()` selects it
+or falls back to the mock, and no other gateway exists anywhere in the tree. The
+previous gateway was removed in full on 2026-08-09 when a better offer moved the
+account — provider module, callback route, tests and env vars all deleted.
 
-`src/server/grow.ts` stays in the tree. It works, it is tested, and keeping it is
-cheaper than rewriting it if the pricing ever changes. `getPaymentProvider()`
-prefers PayPlus; a deploy with both configured charges through PayPlus.
+Nothing else moved with it. `src/server/orderSettle.ts`, `src/server/purchases.ts`
+and the checkout UI never named a gateway, which is the whole point of the
+`OrderPaymentProvider` seam and why the swap was a one-file change in each
+direction.
 
-Set on Vercel (and in `.env` for local work):
+What is left on our side is **credentials, not code**. `src/server/grow.ts` and
+the callback at `/api/pay/grow/<secret>` are written and unit-tested
+(`tests/unit/grow.test.ts`), and `tests/unit/payments.test.ts` covers the seam
+above them — which provider is selected, and each go-live interlock asserted from
+the closed side.
+
+Set on Vercel (and in `.env` for local work — `npm run vercel:env` pushes them):
 
 | Variable | Where it comes from |
 | --- | --- |
-| `PAYPLUS_API_KEY` | PayPlus panel — **already in `.env`** |
-| `PAYPLUS_SECRET_KEY` | PayPlus panel — **already in `.env`**; also the HMAC key for callbacks |
-| `PAYPLUS_PAGE_UID` | **← THE MISSING ONE.** Panel → **דפי תשלום** → the page's UID |
-| `PAYPLUS_ENV` | `staging` (default) → `production` when you go live |
+| `GROW_USER_ID` | Grow panel — the business's id |
+| `GROW_PAGE_CODE` | Grow panel — the payment page's code |
+| `GROW_CALLBACK_SECRET` | **You invent it.** `openssl rand -hex 24`; ≥24 chars, `[A-Za-z0-9]` only |
+| `GROW_ENV` | `sandbox` (default) → `production` when you go live |
+| `GROW_PAYMENT_METHODS` | optional; default `1,6,13,14` = card, Bit, Apple Pay, Google Pay |
 
-Then, in the PayPlus panel, set the callback (`refURL_callback`) to:
+Then, in the Grow panel, set the callback (`notifyUrl`) to:
 
 ```
-https://<your-domain>/api/pay/payplus
+https://<your-domain>/api/pay/grow/<GROW_CALLBACK_SECRET>
 ```
 
-There is no callback secret to invent, unlike Grow: **PayPlus signs the body**
-(HMAC-SHA256 under `PAYPLUS_SECRET_KEY`, base64, in the `hash` header, with a
-`PayPlus` User-Agent), and that signature is the endpoint's authentication. The
-amount is still re-read from `Transactions/View` before anything is credited —
-a signature proves the message is theirs, not that it is fresh or unique.
+The secret lives in the **path**, not a query string, because Grow rejects
+special characters (`?`, `=`) in `notifyUrl`. It is compared in constant time and
+a wrong one gets a 404, so probing cannot even establish that the endpoint
+exists.
 
-One thing to confirm in the panel before the first real charge: the success
-**status code** — the code trusts `"000"`, marked `VERIFY:`. It fails **closed**:
-anything unrecognised leaves the purchase PENDING and visible in
-`/admin/purchases` rather than crediting diamonds. (`charge_method` used to be
-left to the page's setting; it is now sent explicitly as `1` — Charge/J4 — since
-PayPlus's guide documents the enum unambiguously.)
+**Grow does not sign its callbacks** — so the secret URL is one of only two
+things protecting the endpoint, and the second is the one that actually
+matters: the amount is never read out of the callback body. Both the
+callback and the browser's return re-ask Grow through `getPaymentProcessInfo`
+what the order is worth, and only that answer reaches `settleDiamondPurchase`. A
+caller who *learns* the secret still cannot mint a diamond.
 
-**Receipts are a panel subscription, not a code path.** The API request already
-sends everything PayPlus's guide asks for — `initial_invoice: true`,
-`paying_vat: false`, `items[].vat_type: 2` (exempt), and a `customer` with a name
-and e-mail — but PayPlus issues no tax document at all until **חשבונית+** (or an
-external invoicing company) is subscribed in the panel *and* enabled on this
-specific payment page, with a document numbering series configured. `sendEmailApproval`
-sends a payment confirmation, which is not a receipt. Once a document does get
-issued, `Invoice/GetDocuments` returns its PDF links (`original_doc_url` /
-`copy_doc_url`) keyed by `transaction_uid`.
+Two things marked `VERIFY:` in `src/server/grow.ts` to confirm against the panel
+before the first real charge:
 
-That lookup **is wired** (`fetchDocuments` on the provider seam →
-`getPurchaseReceipt` → the `ReceiptButton` in the **קבלה** column of
-`/admin/purchases` and on `/game/diamonds/buy/success`). It is the way to prove
-issuance without waiting on a buyer's inbox, and the way to tell the two silences
-apart: **"עדיין לא הונפק מסמך"** means PayPlus answered and the invoicing company
-has produced nothing — go and look at the panel. An error means the call itself
-failed. Nothing is stored: the links are signed and expiring, so they are fetched
-on the click and never written to a row.
+1. **The order-lookup parameters.** `getPaymentProcessInfo` is called with
+   `pageCode` + `processId` + `processToken`, which is the documented shape
+   everywhere it appears, but Grow's public docs do not pin it down.
+2. **The paid status code.** The code trusts `statusCode === "2"` (`שולם`).
 
-Order of operations for go-live: page UID → staging test purchase (PayPlus
-publishes sandbox card numbers) → check the row in `/admin/purchases` and that a
-receipt was issued → `PAYPLUS_ENV=production` → one real ₪ purchase, confirm the
-money lands in the bank → `DIAMOND_PURCHASES_LIVE=true`. The interlocks in
+Both fail **closed**: anything unrecognised leaves the purchase PENDING and
+visible in `/admin/purchases` rather than crediting diamonds. A real payment
+stuck PENDING is recoverable; the opposite default is not.
+
+**Receipts are not wired for Grow.** `fetchDocuments` is optional on the provider
+seam and `GrowProvider` does not implement it, so the `ReceiptButton` in the
+**קבלה** column of `/admin/purchases` and on `/game/diamonds/buy/success` will
+answer **"עדיין לא הונפק מסמך"** for every Grow purchase. Nothing is broken — the
+seam degrades to `none` rather than erroring — but it also means the app cannot
+prove a document was issued without looking in the Grow panel or a buyer's inbox.
+An עוסק פטור still has to issue a receipt per sale, so before go-live decide
+which of these it is:
+
+- Grow issues the document itself (its invoicing module, if included in the new
+  offer) → confirm it in the panel, and optionally implement `fetchDocuments`
+  against Grow's invoice API to turn the button back on;
+- an external invoicing company issues it → nothing to build; or
+- you issue it manually per sale → workable at low volume, and the sale data is
+  all in `/admin/purchases`.
+
+The VAT question travels with it: the operator is an **עוסק פטור**, so no
+document may break out VAT. Whatever ends up issuing the document has to be told
+that — a gateway left on its default will happily print a VAT line on every
+receipt, and that is a wrong tax document per sale to unwind with רשות המסים
+afterwards. Confirm it on the first issued receipt, not on the hundredth.
+
+Order of operations for go-live: Grow approves the account → fill the four
+variables → sandbox test purchase → check the row in `/admin/purchases` →
+`GROW_ENV=production` → one real ₪ purchase, confirm the money lands in the bank
+and that a receipt was issued → `DIAMOND_PURCHASES_LIVE=true`. The interlocks in
 `arePurchasesLive()` enforce that ordering; they do not enforce that you actually
 looked at your bank account.
 
-Still outstanding on the commercial side: the acquirer contract (1.2% domestic),
-whether there is a **minimum monthly commission**, whether a **rolling reserve**
-applies to virtual-currency merchants, and Bit (+₪16.9/mo + 1.4%, ~15 business
-days). None of them block the code.
+Still outstanding on the commercial side, against Grow's terms: the
+per-transaction rate and any flat per-sale fee, whether there is a **minimum
+monthly commission**, whether a **rolling reserve** applies to virtual-currency
+merchants, and whether Bit is included. None of them block the
+code — but the flat-fee answer is the one that priced the catalogue: see the
+note on the entry package in `src/lib/game/diamondStore.ts`, which was raised
+₪13.90 → ₪19.90 specifically because of Grow's ₪1-per-transaction fee past 20
+sales a month. If the new offer changes that fee, that decision is worth
+re-reading before it is re-made.
 
 ### 1.5 Edge rules for unauthenticated floods
 

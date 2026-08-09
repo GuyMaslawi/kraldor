@@ -9,7 +9,7 @@
 #
 # Each variable is removed and then re-added, because `vercel env add` refuses to
 # overwrite an existing value. That makes the script safe to re-run, which is the
-# point: you run it again on the day the acquirer approves, when PAYPLUS_ENV
+# point: you run it again on the day Grow approves the account, when GROW_ENV
 # becomes `production` and the sandbox keys are swapped for live ones.
 #
 #   npm run vercel:env              push
@@ -28,10 +28,10 @@ VERCEL="npx --yes vercel@latest"
 # Set on production AND preview: harmless in both, and it lets a preview
 # deployment exercise the sandbox checkout end to end.
 BOTH=(
-  PAYPLUS_API_KEY
-  PAYPLUS_SECRET_KEY
-  PAYPLUS_PAGE_UID
-  PAYPLUS_ENV
+  GROW_USER_ID
+  GROW_PAGE_CODE
+  GROW_CALLBACK_SECRET
+  GROW_ENV
   LEGAL_OPERATOR_TAX_ID
   LEGAL_CONTACT_PHONE
   LEGAL_OPERATOR_ADDRESS

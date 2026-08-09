@@ -13,9 +13,14 @@ import { getPurchaseReceipt, type ReceiptResult } from "@/server/actions/receipt
  * third party to render, and would do it once per row on the admin table.
  *
  * The empty answer gets its own wording. "לא נמצא מסמך" is the state an operator
- * is actually in while the חשבונית+ module is unsubscribed — a receipt that was
- * never issued, not one that failed to load — and reading it as an error sends
- * them looking in the wrong place.
+ * is actually in whenever no invoicing module is connected to the gateway — a
+ * receipt that was never issued, not one that failed to load — and reading it as
+ * an error sends them looking in the wrong place.
+ *
+ * That is the state today: the active provider does not implement
+ * `fetchDocuments` at all, so every click here answers "not issued". It is
+ * deliberately still a button rather than hidden — the moment the gateway's
+ * invoicing is wired, this starts returning links with no change on this side.
  */
 export function ReceiptButton({
   purchaseId,

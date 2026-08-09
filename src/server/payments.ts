@@ -3,7 +3,6 @@ import "server-only";
 import { STORE_CURRENCY } from "@/lib/game/diamondStore";
 import { getLegalOperator, missingLegalFields } from "@/lib/legal";
 import { growProvider, growConfigStatus } from "@/server/grow";
-import { payplusProvider, payplusConfigStatus } from "@/server/payplus";
 
 /**
  * Payment-provider seam for the real-money diamond store.
@@ -16,15 +15,16 @@ import { payplusProvider, payplusConfigStatus } from "@/server/payplus";
  *   end before credentials arrive.
  * - **order** (`OrderPaymentProvider`) — the buyer approves the payment on the
  *   provider's own page, so the flow is *create order → buyer approves →
- *   capture*. **PayPlus** (`@/server/payplus`) and **Grow** (`@/server/grow`)
- *   are both this shape, and the settlement half they share is already written
- *   and hardened: see `@/server/orderSettle` and `@/server/purchases`.
+ *   capture*. **Grow** (`@/server/grow`) is this shape, and the settlement half
+ *   is written and hardened independently of it: see `@/server/orderSettle` and
+ *   `@/server/purchases`.
  *
  * Which one is active is decided by {@link getPaymentProvider} from the
- * environment alone: configure a gateway's credentials and the store switches to
- * it; leave them unset and it stays on the mock. Nothing else in the codebase
- * names a gateway — which is what made replacing Grow with PayPlus a one-file
- * change rather than a rewrite.
+ * environment alone: configure the gateway's credentials and the store switches
+ * to it; leave them unset and it stays on the mock. Nothing else in the codebase
+ * names a gateway — which is what has twice made swapping one out a one-file
+ * change rather than a rewrite. Keep it that way: a gateway name belongs in its
+ * own provider module and nowhere else.
  *
  * Going live is a two-step change, and both steps are enforced:
  *   1. Wire a provider that moves real money (`isTestMode === false`).
@@ -109,10 +109,14 @@ export type CaptureResult =
 /**
  * One tax document the gateway's invoicing company issued against a payment.
  *
- * The link is **signed and short-lived** (PayPlus proxies Green Invoice, whose
- * download URLs carry their own expiring token), so it is fetched when someone
- * asks for it and never written to a row. A stored copy would be a dead link the
- * day a buyer clicks it, which is worse than no link at all.
+ * The link is **signed and short-lived** — a gateway proxies an invoicing
+ * company whose download URLs carry their own expiring token — so it is fetched
+ * when someone asks for it and never written to a row. A stored copy would be a
+ * dead link the day a buyer clicks it, which is worse than no link at all.
+ *
+ * Nothing implements this today: `fetchDocuments` is optional on the seam and
+ * the Grow provider does not offer it, so the receipt button honestly answers
+ * "no document" rather than pointing at an endpoint nobody has verified.
  */
 export interface PaymentDocument {
   /** Kind, as the invoicing company names it: "Invoice Receipt", "Credit Invoice". */
@@ -169,13 +173,13 @@ export interface OrderRef {
   token?: string | null;
   /**
    * *Our* purchase-row id, as echoed to the gateway at order time (Grow's
-   * `cField1`, PayPlus's `more_info`).
+   * `cField1`).
    *
-   * Present because the two gateways index the finished transaction
-   * differently: Grow answers on its own process id, while PayPlus's
-   * `Transactions/View` has no handle on the payment *page* at all and is
-   * queried by the merchant reference instead. Passing both means a provider
-   * can look the order up by whichever one it actually understands.
+   * Present because gateways index the finished transaction differently: Grow
+   * answers on its own process id, while others have no handle on the payment
+   * *page* at all and are queried by the merchant reference instead. Passing
+   * both means a provider can look the order up by whichever one it actually
+   * understands — which is what kept the seam intact across two gateway swaps.
    */
   purchaseId?: string | null;
 }
@@ -195,8 +199,8 @@ export interface OrderPaymentProvider extends ProviderBase {
   captureOrder(ref: OrderRef): Promise<CaptureResult>;
   /**
    * Optional: tell the gateway we took delivery of its notification, so it stops
-   * retrying. Grow needs this (`approveTransaction`); PayPlus treats a 200 as
-   * the acknowledgement and does not. Never throws — by the time it runs the
+   * retrying. Grow needs this (`approveTransaction`); a gateway that treats a
+   * 200 as the acknowledgement leaves it out. Never throws — by the time it runs the
    * money has moved and the diamonds are credited, so a failure costs at most a
    * duplicate callback, which the settlement guard swallows.
    */
@@ -242,21 +246,15 @@ const mockProvider = new MockPaymentProvider();
  * Everything downstream (the audit row, the interlocks, the checkout UI) reads
  * it through this one call.
  *
- * Selection is by configuration, not by a flag: a gateway takes over as soon as
- * its credentials are present and complete, and the mock holds the seat
- * otherwise. A *half*-configured gateway deliberately stays on the mock rather
- * than shipping a provider that errors on every checkout — but it is not silent
- * about it, since that state means a deploy meant to take money and is not. It
- * is named, by env var, in {@link purchaseBlockers}.
- *
- * **PayPlus wins ties.** It is the gateway the store actually settles through;
- * Grow lost on price (₪500/month for API access against PayPlus's ₪29.9) and is
- * kept only because it is written, tested, and the cheaper thing to keep than to
- * rewrite if that ever changes. A deploy with both configured is a mistake, but
- * a harmless and deterministic one — it charges through PayPlus.
+ * Selection is by configuration, not by a flag: Grow takes over as soon as its
+ * credentials are present and complete, and the mock holds the seat otherwise. A
+ * *half*-configured gateway deliberately stays on the mock rather than shipping
+ * a provider that errors on every checkout — but it is not silent about it,
+ * since that state means a deploy meant to take money and is not. It is named,
+ * by env var, in {@link purchaseBlockers}.
  */
 export function getPaymentProvider(): PaymentProvider {
-  return payplusProvider() ?? growProvider() ?? mockProvider;
+  return growProvider() ?? mockProvider;
 }
 
 /**
@@ -311,24 +309,18 @@ export function purchaseBlockers(): string[] {
     blockers.push('DIAMOND_PURCHASES_LIVE אינו "true"');
   }
   const grow = growConfigStatus();
-  const payplus = payplusConfigStatus();
   const provider = getPaymentProvider();
   if (provider.isTestMode) {
-    if (provider.name === "payplus") {
-      blockers.push(`PayPlus רץ בסביבת בדיקות (PAYPLUS_ENV=${payplus.env}) — לא זז כסף אמיתי`);
-    } else if (provider.name === "grow") {
+    if (provider.name === "grow") {
       blockers.push(`Grow רץ בסביבת בדיקות (GROW_ENV=${grow.env}) — לא זז כסף אמיתי`);
     } else {
       blockers.push("לא מחובר ספק תשלומים אמיתי — הרכישות רצות על ספק דמה");
     }
   }
   // A partial configuration is its own blocker, and a louder one: it means a
-  // deploy *meant* to take money is running on the mock. Without these lines the
+  // deploy *meant* to take money is running on the mock. Without this line the
   // only symptom is the generic "no real provider" above, which reads like
   // nothing was ever configured.
-  if (payplus.state === "partial") {
-    blockers.push(`הגדרות PayPlus חסרות: ${payplus.missing.join(", ")}`);
-  }
   if (grow.state === "partial") {
     blockers.push(`הגדרות Grow חסרות: ${grow.missing.join(", ")}`);
   }

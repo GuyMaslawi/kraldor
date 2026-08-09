@@ -22,45 +22,52 @@ export function RegisterForm() {
       <GoogleSignInButton />
       <AuthDivider />
       <form action={action} className="space-y-4">
-      <Input
-        label={t("השם שלך")}
-        name="name"
-        type="text"
-        required
-        minLength={2}
-        maxLength={40}
-        placeholder={t("למשל: דוד")}
-      />
-      <Input
-        label={t("שם האימפריה")}
-        name="empireName"
-        type="text"
-        required
-        minLength={2}
-        maxLength={40}
-        placeholder={t("למשל: ממלכת הברזל")}
-      />
-      <Input
-        label={t("אימייל")}
-        name="email"
-        type="email"
-        required
-        autoComplete="email"
-        placeholder="you@example.com"
-        dir="ltr"
-      />
-      <Input
-        label={t("סיסמה")}
-        name="password"
-        type="password"
-        required
-        minLength={8}
-        autoComplete="new-password"
-        placeholder={t("לפחות 8 תווים")}
-        dir="ltr"
-      />
-      <HeroClassPicker />
-      <FormMessage error={state.error} />
+        {/* Four short fields in one column made the panel taller than the
+            viewport on a laptop and pushed the class picker — the one thing on
+            this screen worth looking at — under the fold. The shell is already
+            wide for the picker, so the pairs share its width: who you are on
+            one row, how you sign in on the next. Single column below sm. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Input
+            label={t("השם שלך")}
+            name="name"
+            type="text"
+            required
+            minLength={2}
+            maxLength={40}
+            placeholder={t("למשל: דוד")}
+          />
+          <Input
+            label={t("שם האימפריה")}
+            name="empireName"
+            type="text"
+            required
+            minLength={2}
+            maxLength={40}
+            placeholder={t("למשל: ממלכת הברזל")}
+          />
+          <Input
+            label={t("אימייל")}
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="you@example.com"
+            dir="ltr"
+          />
+          <Input
+            label={t("סיסמה")}
+            name="password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            placeholder={t("לפחות 8 תווים")}
+            dir="ltr"
+          />
+        </div>
+        <HeroClassPicker />
+        <FormMessage error={state.error} />
         <SubmitButton className="w-full" pendingText={t("מקים אימפריה...")}>
           {t("הקם אימפריה")}{" "}
           <Icon name="crown" size={16} className="inline-block align-text-bottom" />

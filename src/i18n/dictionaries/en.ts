@@ -4074,5 +4074,11 @@ export const EN: Record<string, string> = {
   "כבר אספת את השלל הזה.": "You have already collected those spoils.",
   "מקום {place} בזירה, {wins} ניצחונות. קיבלת {spoils}.":
     "Place {place} in the arena, {wins} wins. You received {spoils}.",
+  "מקום {place} בזירה, {wins} ניצחונות. קיבלת {spoils} — פרסי הפודיום נפתחים מ-{min} משתתפים.":
+    "Place {place} in the arena, {wins} wins. You received {spoils} — podium prizes open from {min} entrants.",
+  "פרסי הפודיום (היהלומים) נפתחים מ-{min} משתתפים. מתחת לזה הזירה עדיין נלחמת ומשלמת על השתתפות ועל כל ניצחון.":
+    "Podium prizes (the diamonds) open from {min} entrants. Below that the arena still fights and still pays for entering and for every win.",
+  "חשבונות הנהלה אינם משתתפים בזירה.":
+    "Staff accounts do not take part in the arena.",
 
 };

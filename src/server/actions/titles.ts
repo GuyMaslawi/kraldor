@@ -12,6 +12,7 @@ import {
   titleUnlocked,
   type TitlesState,
 } from "@/lib/game/titles";
+import { UniqueRaceLost, uniqueRaceMessage } from "@/server/uniqueRace";
 import type { ActionState } from "./game";
 import { logError } from "@/server/errorLog";
 import { getT } from "@/i18n/server";
@@ -121,11 +122,11 @@ export async function buyTitle(
           data: { empireId, key: definition.key, paid: definition.price },
         });
       } catch {
-        await tx.empire.update({
-          where: { id: empireId },
-          data: { diamonds: { increment: definition.price } },
-        });
-        return { error: t("התואר הזה כבר שלך.") };
+        // Lost the race with another tab. The diamonds come back through the
+        // rollback this throw causes: the violation has already aborted the
+        // transaction, so a refund written here would never execute. See
+        // server/uniqueRace.ts.
+        throw new UniqueRaceLost(t("התואר הזה כבר שלך."));
       }
 
       return {
@@ -138,6 +139,10 @@ export async function buyTitle(
     revalidatePath("/game", "layout");
     return result;
   } catch (err) {
+    // A double-click on the buy button is an outcome, not a fault: the rollback
+    // has already returned the diamonds.
+    const raced = uniqueRaceMessage(err);
+    if (raced) return { error: raced };
     await logError("titles.buyTitle", err);
     return { error: t("אירעה שגיאה, נסה שוב") };
   }

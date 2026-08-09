@@ -8,6 +8,8 @@ import {
   WORLD_BOSS_MAX_STRIKES,
   WORLD_BOSS_PURSE,
   WORLD_BOSS_STRIKE_TURNS,
+  WORLD_BOSS_DAMAGE_SPREAD,
+  expectedStrikeDamage,
   rollWorldBoss,
   strikeDamage,
   worldBossMaxHp,
@@ -76,7 +78,7 @@ describe("worldBossMaxHp", () => {
     // within reach but not trivial.
     const boss = WORLD_BOSSES.find((b) => b.toughness === 1.0) ?? WORLD_BOSSES[0];
     const pool = worldBossMaxHp(boss, 200);
-    const perEmpireWeek = strikeDamage(500_000) * WORLD_BOSS_MAX_STRIKES;
+    const perEmpireWeek = expectedStrikeDamage(500_000) * WORLD_BOSS_MAX_STRIKES;
 
     // Everybody showing up clears it comfortably…
     expect(perEmpireWeek * 200).toBeGreaterThan(pool);
@@ -88,19 +90,24 @@ describe("worldBossMaxHp", () => {
 describe("strikeDamage", () => {
   it("never returns nothing, even for an empire with no army", () => {
     // A brand-new empire has to be able to move the bar, or the page has no
-    // reason to exist for them.
-    expect(strikeDamage(0)).toBeGreaterThanOrEqual(1);
-    expect(strikeDamage(-100)).toBeGreaterThanOrEqual(1);
+    // reason to exist for them. Checked across the whole spread, since the
+    // floor has to hold at the unlucky end too.
+    for (const roll of [0, 0.5, 1]) {
+      expect(strikeDamage(0, () => roll)).toBeGreaterThanOrEqual(1);
+      expect(strikeDamage(-100, () => roll)).toBeGreaterThanOrEqual(1);
+    }
   });
 
   it("rises with power", () => {
-    expect(strikeDamage(1_000_000)).toBeGreaterThan(strikeDamage(10_000));
+    expect(expectedStrikeDamage(1_000_000)).toBeGreaterThan(
+      expectedStrikeDamage(10_000)
+    );
   });
 
   it("is sub-linear — a hundred times the army is not a hundred times the blow", () => {
     // The whole reason a small empire's contribution stays visible.
-    const small = strikeDamage(10_000);
-    const large = strikeDamage(1_000_000);
+    const small = expectedStrikeDamage(10_000);
+    const large = expectedStrikeDamage(1_000_000);
     expect(large / small).toBeGreaterThan(5);
     expect(large / small).toBeLessThan(20);
   });
@@ -109,6 +116,54 @@ describe("strikeDamage", () => {
     for (const power of [0, 1, 999, 12_345, 9_876_543]) {
       expect(Number.isInteger(strikeDamage(power))).toBe(true);
     }
+  });
+});
+
+describe("the killing blow cannot be computed", () => {
+  /**
+   * The hole this closes. The kill is worth WORLD_BOSS_KILL_DIAMONDS and the
+   * arena publishes the boss's exact remaining health. While the blow was a
+   * pure function of the striker's own power, taking that prize was arithmetic
+   * rather than a race: hold a strike, watch the bar, fire the instant `hp`
+   * drops inside your own figure, and collect every week with certainty.
+   */
+  it("scatters the blow, so no striker knows which one lands the kill", () => {
+    const power = 1_000_000;
+    const seen = new Set<number>();
+    for (let i = 0; i < 400; i += 1) seen.add(strikeDamage(power));
+    expect(seen.size).toBeGreaterThan(20);
+  });
+
+  it("spreads it far enough to straddle a blow's own width", () => {
+    // The band has to be wide relative to one blow, or a sniper could still
+    // pick a health level that only their own strike can reach.
+    const power = 1_000_000;
+    const low = strikeDamage(power, () => 0);
+    const high = strikeDamage(power, () => 1);
+    const mid = expectedStrikeDamage(power);
+    expect(low).toBeLessThan(mid);
+    expect(high).toBeGreaterThan(mid);
+    expect((high - low) / mid).toBeGreaterThan(0.3);
+  });
+
+  it("stays inside the declared band in both directions", () => {
+    const power = 4_000_000;
+    const mid = expectedStrikeDamage(power);
+    for (let i = 0; i < 500; i += 1) {
+      const hit = strikeDamage(power);
+      expect(hit).toBeGreaterThanOrEqual(
+        Math.floor(mid * (1 - WORLD_BOSS_DAMAGE_SPREAD)) - 1
+      );
+      expect(hit).toBeLessThanOrEqual(
+        Math.ceil(mid * (1 + WORLD_BOSS_DAMAGE_SPREAD)) + 1
+      );
+    }
+  });
+
+  it("previews without consuming a roll", () => {
+    // A preview that spent the roll would either differ from the blow actually
+    // landed or hand the player the roll in advance.
+    expect(expectedStrikeDamage(1_000_000)).toBe(expectedStrikeDamage(1_000_000));
   });
 });
 

@@ -15,6 +15,7 @@ import {
   type MonumentsState,
 } from "@/lib/game/monuments";
 import { awardSeasonPassXp } from "@/server/seasonPassXp";
+import { UniqueRaceLost, uniqueRaceMessage } from "@/server/uniqueRace";
 import type { ActionState } from "./game";
 import { logError } from "@/server/errorLog";
 import { getT } from "@/i18n/server";
@@ -109,36 +110,34 @@ export async function raiseMonument(
       });
       if (paid.count === 0) return notEnough;
 
-      let raised = false;
       if (existing) {
         // Pinned to the level that was read: a second concurrent click matches
-        // nothing and is refunded below rather than buying a free level.
+        // nothing, so it is refunded here rather than buying a free level. This
+        // branch *can* refund, because a guarded `updateMany` that matches
+        // nothing is a successful statement — the transaction is still healthy.
         const bumped = await tx.empireMonument.updateMany({
           where: { id: existing.id, level: existing.level },
           data: { level: existing.level + 1 },
         });
-        raised = bumped.count > 0;
+        if (bumped.count === 0) {
+          await tx.empire.update({
+            where: { id: empireId },
+            data: { gold: { increment: cost } },
+          });
+          return { error: t("המונומנט השתנה בינתיים — נסה שוב.") };
+        }
       } else {
         try {
           await tx.empireMonument.create({
             data: { empireId, key: definition.key, level: 1 },
           });
-          raised = true;
         } catch {
-          // Lost the founding race. NOT rethrown: in Postgres a failed
-          // statement poisons the whole transaction, so the unique violation
-          // has to be caught here and turned into a refund — the same trap
-          // documented at awardSeasonPassXp and in the 2026-07-27 audit.
-          raised = false;
+          // Lost the founding race. The gold comes back through the rollback
+          // this throw causes — the trap documented in the 2026-07-27 audit is
+          // that the violation has *already* aborted the transaction, so a
+          // refund written here would never run. See server/uniqueRace.ts.
+          throw new UniqueRaceLost(t("המונומנט השתנה בינתיים — נסה שוב."));
         }
-      }
-
-      if (!raised) {
-        await tx.empire.update({
-          where: { id: empireId },
-          data: { gold: { increment: cost } },
-        });
-        return { error: t("המונומנט השתנה בינתיים — נסה שוב.") };
       }
 
       // Rated as an empire upgrade: it is the same act at a larger scale, and
@@ -159,6 +158,10 @@ export async function raiseMonument(
     revalidatePath("/game", "layout");
     return result;
   } catch (err) {
+    // A lost founding race is an outcome, not a fault: the rollback has already
+    // returned the gold.
+    const raced = uniqueRaceMessage(err);
+    if (raced) return { error: raced };
     await logError("monuments.raiseMonument", err);
     return { error: t("אירעה שגיאה, נסה שוב") };
   }

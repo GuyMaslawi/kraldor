@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { isBanned, notBannedWhere } from "@/lib/ban";
 import { appBaseUrl, isMailLive, sendMail } from "@/server/mailer";
 import { logError } from "@/server/errorLog";
 
@@ -89,32 +90,47 @@ export async function notifyPlayer(
             emailVerified: true,
             notifyRaids: true,
             notifiedAt: true,
+            // Both halves of a ban: `bannedAt` alone is a record that one was
+            // handed down, never a statement that one is live. See lib/ban.ts.
             bannedAt: true,
+            bannedUntil: true,
           },
         },
       },
     });
     if (!empire || empire.isBot || empire.isStaff) return false;
 
+    const now = new Date();
+
     const user = empire.user;
     // Every one of these is re-tested inside the claim below; this early exit
     // only saves the write.
     if (!user?.email || !user.emailVerified || !user.notifyRaids) return false;
-    if (user.bannedAt !== null) return false;
+    // `isBanned`, never `bannedAt !== null`. Nothing sweeps a lapsed timed ban
+    // off the row, so reading the column alone would silently cut a player off
+    // from notifications forever for a ban that expired months ago — the house
+    // rule stated at the top of lib/ban.ts.
+    if (isBanned(user, now)) return false;
 
-    const now = new Date();
     const cutoff = new Date(now.getTime() - NOTIFY_COOLDOWN_MS);
 
     // The claim. `OR` on the timestamp rather than a plain `lt`, because a
     // player who has never been notified has `null` there and `lt` matches no
     // null in SQL — which would have meant nobody ever received a first one.
+    //
+    // Both that OR and the ban filter's own OR live under an explicit `AND`:
+    // two `OR` keys cannot coexist in one Prisma filter object, and merging
+    // them into a single disjunction would let a banned player through on the
+    // strength of their cooldown having expired.
     const claimed = await prisma.user.updateMany({
       where: {
         id: user.id,
         notifyRaids: true,
-        bannedAt: null,
         emailVerified: { not: null },
-        OR: [{ notifiedAt: null }, { notifiedAt: { lt: cutoff } }],
+        AND: [
+          notBannedWhere(now),
+          { OR: [{ notifiedAt: null }, { notifiedAt: { lt: cutoff } }] },
+        ],
       },
       data: { notifiedAt: now },
     });

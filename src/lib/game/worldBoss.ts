@@ -1,5 +1,5 @@
 import type { IconName } from "@/components/ui/Icon";
-import { seededRandom } from "./random";
+import { secureRandom, seededRandom } from "./random";
 import { scaleRewards, type Reward } from "./rewards";
 
 /**
@@ -190,6 +190,27 @@ export const WORLD_BOSS_MAX_STRIKES = 20;
 export const WORLD_BOSS_DAMAGE_PER_POWER = 12;
 
 /**
+ * How far a blow may land either side of its expected size.
+ *
+ * ±25%, and it is a **security** parameter rather than a flavour one.
+ *
+ * The killing blow is worth WORLD_BOSS_KILL_DIAMONDS, and with a damage figure
+ * that was a pure function of the striker's own power the last blow was not a
+ * race but a calculation: the arena publishes the boss's exact remaining
+ * health, a player can compute their own damage to the point, and so anybody
+ * holding strikes could sit on the page, wait for `hp` to drop below their
+ * figure, and take the prize every single week with certainty. The comment on
+ * WORLD_BOSS_KILL_DIAMONDS claimed the blow could not be farmed; before this
+ * band, it could.
+ *
+ * A band wide enough to straddle the threshold means nobody can know which blow
+ * lands the kill. What remains is a genuine race at low health, between
+ * everybody watching the same bar — which is the contest the prize was always
+ * meant to be.
+ */
+export const WORLD_BOSS_DAMAGE_SPREAD = 0.25;
+
+/**
  * What one blow takes off.
  *
  * The **square root** of military power, not power itself. A linear term would
@@ -199,13 +220,36 @@ export const WORLD_BOSS_DAMAGE_PER_POWER = 12;
  * root keeps a big empire clearly better — ten times the power is a little over
  * three times the blow — while leaving a small one's contribution visible.
  *
+ * The result is then scattered across WORLD_BOSS_DAMAGE_SPREAD, from
+ * `secureRandom` rather than a seeded stream: this roll is worth diamonds to
+ * the player, which is exactly the line lib/game/random.ts draws between the
+ * two generators. A predictable damage figure hands the kill bonus to whoever
+ * does the arithmetic.
+ *
  * A floor of one point of damage means a brand-new empire with no army at all
  * still moves the bar, which is the difference between "I helped" and "why is
  * this page here".
  */
-export function strikeDamage(militaryPower: number): number {
+export function strikeDamage(
+  militaryPower: number,
+  random: () => number = secureRandom
+): number {
   const power = Math.max(0, militaryPower);
-  return Math.max(1, Math.round(Math.sqrt(power) * WORLD_BOSS_DAMAGE_PER_POWER));
+  const base = Math.sqrt(power) * WORLD_BOSS_DAMAGE_PER_POWER;
+  const spread = 1 + (random() * 2 - 1) * WORLD_BOSS_DAMAGE_SPREAD;
+  return Math.max(1, Math.round(base * spread));
+}
+
+/**
+ * The blow the *screen* quotes before it is struck — the expected size, with no
+ * roll taken.
+ *
+ * Deliberately separate from `strikeDamage`: a preview that consumed a roll
+ * would either differ from the blow actually landed or hand the player the roll
+ * in advance, and the second is the whole thing the spread exists to prevent.
+ */
+export function expectedStrikeDamage(militaryPower: number): number {
+  return strikeDamage(militaryPower, () => 0.5);
 }
 
 /* ------------------------------ the spoils ------------------------------ */
@@ -244,8 +288,14 @@ export const WORLD_BOSS_FLOOR_SHARE = 0.5;
  *
  * The one part of the fixture that is not shared. A world boss needs a moment
  * that belongs to somebody — the server should know who put it down — and a
- * small, unpredictable prize is the cheapest way to have one. It cannot be
- * farmed: which strike lands last depends on every other player's timing.
+ * small, unpredictable prize is the cheapest way to have one.
+ *
+ * "Unpredictable" is doing real work in that sentence, and it is only true
+ * because of WORLD_BOSS_DAMAGE_SPREAD. The arena publishes the boss's exact
+ * remaining health, so with a damage figure a player could compute they would
+ * simply wait for the bar to fall inside their own blow and take this every
+ * week. The spread is what makes the last blow a race between everyone watching
+ * rather than a sum anyone can do.
  */
 export const WORLD_BOSS_KILL_DIAMONDS = 100;
 

@@ -166,12 +166,44 @@ export function rankArena(
 /* ------------------------------ the spoils ------------------------------ */
 
 /**
+ * Entrants a card needs before it pays a podium at all.
+ *
+ * The one number standing between this feature and a diamond faucet, and it
+ * exists because a tier is not a room full of people — it is however many
+ * empires happen to hold that many cities this week. At the top of the ladder
+ * that is routinely one. Without a floor, the sole entrant in a thin tier is
+ * ranked first by arithmetic (a round-robin of one is zero duels and a table of
+ * one row), and collects the winner's diamonds every week forever for the price
+ * of the entry turns — with no opponent, no risk, and nothing to out-play. Two
+ * accounts in the same empty tier take first *and* second.
+ *
+ * Five is the smallest number for which "first place" describes something that
+ * happened. Below it the card still runs, still resolves, and still pays — the
+ * consolation purse and the per-win gold, which are earned rather than awarded —
+ * so a thin tier is never a dead screen. It simply does not mint diamonds until
+ * there is a tournament to win.
+ */
+export const ARENA_PODIUM_MIN_ENTRANTS = 5;
+
+/**
+ * Whether a card of this size pays its podium.
+ *
+ * Shared by the screen and the claim, so the purse a player is shown before the
+ * week turns over is the purse they are paid — the two must never be able to
+ * disagree about this.
+ */
+export function arenaPodiumPays(entrants: number): boolean {
+  return Math.max(0, Math.floor(entrants) || 0) >= ARENA_PODIUM_MIN_ENTRANTS;
+}
+
+/**
  * The podium purses, quoted at **one city**. Everyone below third takes the
  * participation purse instead — see `arenaReward`.
  *
  * Diamonds only on the podium, and modestly: this repeats every week for every
  * city tier, so a generous top prize would be a diamond faucet with as many
- * spouts as the game has tiers.
+ * spouts as the game has tiers. `ARENA_PODIUM_MIN_ENTRANTS` is the other half
+ * of that argument — the spout only opens where there is a contest.
  */
 export const ARENA_PODIUM: readonly (readonly Reward[])[] = [
   [
@@ -214,7 +246,14 @@ export const ARENA_CONSOLATION: readonly Reward[] = [
 export const ARENA_GOLD_PER_WIN = 4_000;
 
 /**
- * The purse for a given placing (1-based) and win count.
+ * The purse for a given placing (1-based) and win count on a card of
+ * `entrants` entrants.
+ *
+ * `entrants` is not decoration: a podium on a card too thin to have one pays
+ * the consolation purse instead (see ARENA_PODIUM_MIN_ENTRANTS). It is a
+ * parameter rather than a check at the call site precisely so it cannot be
+ * forgotten at one of the two call sites — the screen's preview and the claim
+ * both go through here, and both must reach the same answer.
  *
  * Merged after scaling, and that is load-bearing rather than tidiness: both the
  * podium table and the per-win bonus pay gold, so an unmerged list comes back
@@ -229,10 +268,11 @@ export const ARENA_GOLD_PER_WIN = 4_000;
 export function arenaReward(
   place: number,
   wins: number,
-  cities: number
+  cities: number,
+  entrants: number
 ): Reward[] {
   const base =
-    place >= 1 && place <= ARENA_PODIUM.length
+    place >= 1 && place <= ARENA_PODIUM.length && arenaPodiumPays(entrants)
       ? ARENA_PODIUM[place - 1]
       : ARENA_CONSOLATION;
   return mergeRewards(
@@ -274,6 +314,10 @@ export interface ArenaState {
   turns: number;
   entrants: number;
   maxEntrants: number;
+  /** Entrants this card needs before the podium pays diamonds. */
+  podiumMinEntrants: number;
+  /** Whether this card is big enough for the podium purses. */
+  podiumPays: boolean;
 
   /** Everyone entered, ranked once resolved and unordered before. */
   standings: ArenaStanding[];

@@ -66,6 +66,18 @@ export function ArenaBoard({ state }: { state: ArenaState }) {
           </span>
         </div>
 
+        {/* Said up front rather than discovered at the payout. A thin tier still
+            runs its card and still pays the participation purse and the per-win
+            gold — only the diamonds wait for there to be a tournament to win.
+            See ARENA_PODIUM_MIN_ENTRANTS. */}
+        {!state.podiumPays && (
+          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs leading-relaxed text-amber-200/90">
+            {t("פרסי הפודיום (היהלומים) נפתחים מ-{min} משתתפים. מתחת לזה הזירה עדיין נלחמת ומשלמת על השתתפות ועל כל ניצחון.", {
+              min: state.podiumMinEntrants,
+            })}
+          </p>
+        )}
+
         <div className="mt-4 flex flex-wrap items-center gap-3">
           {state.resolved ? (
             state.myPlace > 0 ? (

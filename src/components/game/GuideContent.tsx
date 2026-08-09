@@ -139,6 +139,7 @@ import {
 import {
   GUILD_AID_MAX_LEVEL,
   GUILD_CREATION_COST_DIAMONDS,
+  GUILD_DONATION_MIN,
   GUILD_SPELL_META,
   GUILD_SPELL_TYPES,
   aidUpgradeCostGold,
@@ -147,6 +148,77 @@ import {
   spellCastCostDiamonds,
   spellUpgradeCostDiamonds,
 } from "@/lib/game/guild";
+import {
+  GUILD_CONTRACTS,
+  GUILD_CONTRACT_MAX_PER_MEMBER,
+  GUILD_CONTRACT_MIN_GOAL,
+  guildContractGoal,
+} from "@/lib/game/guildContract";
+import {
+  MISSIONS_PER_BOARD,
+  MISSION_SHAPES,
+  missionGoal,
+  missionRewards,
+} from "@/lib/game/missions";
+import {
+  STREAK_CYCLE_DAYS,
+  STREAK_LADDER,
+  STREAK_WEEK_DIAMONDS,
+} from "@/lib/game/streak";
+import {
+  REWARD_CITY_MULTIPLIER,
+  REWARD_ICON,
+  REWARD_LABEL,
+  type Reward,
+} from "@/lib/game/rewards";
+import {
+  MONUMENTS,
+  MONUMENT_COST_GROWTH,
+  MONUMENT_MAX_LEVEL,
+  MONUMENT_PCT_PER_LEVEL,
+  monumentCost,
+  monumentTotalCost,
+} from "@/lib/game/monuments";
+import {
+  SABOTAGE_INTEL_MARGIN,
+  SABOTAGE_MISSIONS,
+} from "@/lib/game/sabotage";
+import {
+  COMMISSION_DROPS,
+  COMMISSION_SHARDS,
+  SHARDS_BY_RARITY,
+  SHARDS_PER_DROP,
+  TEMPER_SHARDS,
+  commissionGoldCost,
+} from "@/lib/game/forge";
+import {
+  ARENA_CONSOLATION,
+  ARENA_ENTRY_TURNS,
+  ARENA_GOLD_PER_WIN,
+  ARENA_LUCK,
+  ARENA_MAX_ENTRANTS,
+  ARENA_PODIUM,
+  ARENA_PODIUM_MIN_ENTRANTS,
+} from "@/lib/game/arena";
+import {
+  WORLD_BOSSES,
+  WORLD_BOSS_DAMAGE_PER_POWER,
+  WORLD_BOSS_DAMAGE_SPREAD,
+  WORLD_BOSS_FLOOR_SHARE,
+  WORLD_BOSS_HP_MIN,
+  WORLD_BOSS_HP_PER_EMPIRE,
+  WORLD_BOSS_KILL_DIAMONDS,
+  WORLD_BOSS_MAX_STRIKES,
+  WORLD_BOSS_PURSE,
+  WORLD_BOSS_STRIKE_TURNS,
+} from "@/lib/game/worldBoss";
+import {
+  REFERRAL_GOAL_CITIES,
+  REFERRAL_JOINER_PURSE,
+  REFERRAL_NAME_MAX_CITIES,
+  REFERRAL_REFERRER_PURSE,
+} from "@/lib/game/referral";
+import { TITLES, TITLE_PARAMS } from "@/lib/game/titles";
 import {
   SEASON_PASS_PREMIUM_PRICE,
   SEASON_PASS_TIER_COUNT,
@@ -223,6 +295,7 @@ import {
 const SECTIONS = {
   overview: { id: "overview", title: "מבט על", sub: "the loop", icon: "crown" },
   clock: { id: "clock", title: "שעון המשחק", sub: "the clock", icon: "turns" },
+  daily: { id: "daily", title: "לוח היום", sub: "the daily board", icon: "check" },
   resources: { id: "resources", title: "משאבים", sub: "resources", icon: "gold" },
   mines: { id: "mines", title: "מכרות ותפוקה", sub: "production", icon: "mine" },
   cities: { id: "cities", title: "ערים", sub: "cities", icon: "base" },
@@ -231,16 +304,23 @@ const SECTIONS = {
   army: { id: "army", title: "צבא ואזרחים", sub: "the army", icon: "army" },
   weapons: { id: "weapons", title: "מפעל הנשק", sub: "the foundry", icon: "factory" },
   upgrades: { id: "upgrades", title: "שדרוגי אימפריה", sub: "upgrades", icon: "upgrades" },
+  monuments: { id: "monuments", title: "מונומנטים", sub: "monuments", icon: "stone" },
   battle: { id: "battle", title: "קרב", sub: "war", icon: "attack" },
   spy: { id: "spy", title: "ריגול", sub: "espionage", icon: "spy" },
+  sabotage: { id: "sabotage", title: "חבלה", sub: "sabotage", icon: "unlocked" },
   hero: { id: "hero", title: "הגיבור", sub: "the hero", icon: "hero" },
   items: { id: "items", title: "חפצים", sub: "gear", icon: "spark" },
+  forge: { id: "forge", title: "נפחיית הגיבור", sub: "the forge", icon: "iron" },
   potions: { id: "potions", title: "שיקויים", sub: "potions", icon: "potion" },
   quests: { id: "quests", title: "מסעות הגיבור", sub: "expeditions", icon: "quest" },
   bosses: { id: "bosses", title: "שליטי הערים", sub: "city bosses", icon: "shield" },
+  arena: { id: "arena", title: "הזירה", sub: "the arena", icon: "laurel" },
+  worldboss: { id: "worldboss", title: "מפלצת העולם", sub: "world boss", icon: "heart" },
   guild: { id: "guild", title: "ברית", sub: "guilds", icon: "guild" },
   chat: { id: "chat", title: "צ׳אט", sub: "live chat", icon: "chat" },
   community: { id: "community", title: "קהילה", sub: "community", icon: "discord" },
+  referrals: { id: "referrals", title: "הזמנת חברים", sub: "referrals", icon: "gift" },
+  titles: { id: "titles", title: "תארים", sub: "titles", icon: "achievements" },
   rewards: { id: "rewards", title: "גלגל, פס עונה ואירועים", sub: "rewards", icon: "wheel" },
   diamonds: { id: "diamonds", title: "יהלומים", sub: "diamonds", icon: "diamond" },
   roadmap: { id: "roadmap", title: "מסלול התקדמות", sub: "roadmap", icon: "rankings" },
@@ -284,6 +364,39 @@ const LOOP_NODES: { icon: IconName; title: string; text: string }[] = [
 ];
 
 const nf = (v: number) => Math.round(v).toLocaleString("he-IL");
+
+/**
+ * A purse, as a row of chips.
+ *
+ * Every board added in the daily wave — missions, the muster roll, the guild
+ * contract, the arena, the world boss, the referral — pays a `Reward[]` quoted
+ * at one city, and the manual quotes them all in the same shape so a reader
+ * comparing two of them is comparing the same thing. `REWARD_ICON` and
+ * `REWARD_LABEL` are the game's own tables, so a new reward kind reaches the
+ * guide without a second list to keep in step.
+ */
+function Purse({ rewards }: { rewards: readonly Reward[] }) {
+  return (
+    <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+      {rewards.map((reward) => (
+        <span key={reward.kind} className="flex items-center gap-1 whitespace-nowrap">
+          <Icon name={REWARD_ICON[reward.kind]} size={13} className="text-gold" />
+          <span className="nums text-[0.78rem] text-zinc-300" dir="ltr">
+            {formatShort(reward.amount)}
+          </span>
+          <span className="text-[0.7rem] text-zinc-500">{REWARD_LABEL[reward.kind]}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** Fill the `{goal}`-style placeholders the mission and title catalogs carry. */
+const fillParams = (text: string, params: Record<string, string | number>) =>
+  Object.entries(params).reduce(
+    (out, [key, value]) => out.replaceAll(`{${key}}`, String(value)),
+    text
+  );
 
 /**
  * Everything an empire pays to take an upgrade from its starting level 1 up to
@@ -525,7 +638,160 @@ export async function GuideContent({
               </Note>
             </GuideSection>
 
-            {/* ============================ 03 resources ============================ */}
+            {/* ============================ 03 daily ============================ */}
+            <GuideSection meta={SECTIONS.daily} index={INDEX.daily}>
+              <Lead>
+                <Link href={gameHref("/game/daily")} className="text-gold underline">
+                  לוח היום
+                </Link>{" "}
+                הוא המסך היחיד שכל תוכנו פג. עליו ארבעה דברים:{" "}
+                <b>מפקד הנאמנים</b> (רצף הכניסה),{" "}
+                <b className="nums">{MISSIONS_PER_BOARD}</b> משימות יומיות,{" "}
+                <b className="nums">{MISSIONS_PER_BOARD}</b> שבועיות, ו<b>חוזה הברית</b>{" "}
+                המשותף. הכול נמדד ב<b>יום לוח ירושלמי</b> — חצות עד חצות — ולא בפעמון
+                העדכון היומי.
+              </Lead>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Fact
+                  icon="check"
+                  label="משימות בלוח"
+                  value={`${MISSIONS_PER_BOARD}+${MISSIONS_PER_BOARD}`}
+                  hint="יומיות + שבועיות"
+                />
+                <Fact
+                  icon="turns"
+                  label="מחזור הרצף"
+                  value={STREAK_CYCLE_DAYS}
+                  hint="ימים, ואז מתחיל מחדש"
+                  tone="text-emerald-300"
+                />
+                <Fact
+                  icon="diamond"
+                  label="יהלומים ביום השביעי"
+                  value={STREAK_WEEK_DIAMONDS}
+                  hint="הפרס היחיד ביהלומים בלוח"
+                  tone="text-cyan-300"
+                />
+                <Fact
+                  icon="gold"
+                  label="מכפיל לפי ערים"
+                  value={`×${REWARD_CITY_MULTIPLIER}`}
+                  hint="לכל עיר, על המשאבים בלבד"
+                  tone="text-gold-bright"
+                />
+              </div>
+
+              <Formula
+                label="התקדמות במשימה"
+                expr={
+                  <>
+                    <V>המונה שלך עכשיו</V>
+                    <O>−</O>
+                    <V>המונה ברגע שהלוח נפתח</V>
+                    <O>=</O>
+                    <R>ההתקדמות</R>
+                  </>
+                }
+                legend={[
+                  {
+                    term: "הלוח נפתח בכניסה הראשונה",
+                    desc: "אין מונה שרץ ברקע. הלוח מצלם את המונים שלך ברגע שאתה פותח אותו, ומודד את ההפרש — לכן פתח אותו בתחילת היום, לא בסופו.",
+                  },
+                  {
+                    term: "מה שנעשה לפני הפתיחה לא נספר",
+                    desc: "עשר תקיפות ב-08:00 ולוח שנפתח ב-22:00 מתחילות מאפס. זה המחיר של השיטה, והיא זו שמונעת ספירה כפולה.",
+                  },
+                  {
+                    term: "רק מונים שעולים",
+                    desc: "כל משימה נמדדת לפי מונה מצטבר לכל החיים — תקיפות, ביזה, ריגולים. אף משימה לא נמדדת לפי יתרה, כדי שפשיטה עליך לא תוריד לך בר.",
+                  },
+                  {
+                    term: "יעדים שגדלים איתך",
+                    desc: `משימות שנמדדות במשאבים או בגופות מוכפלות ב־×${REWARD_CITY_MULTIPLIER} לכל עיר — כמו הפרס. משימות שנספרות במעשים (שלוש תקיפות) זהות בכל גודל.`,
+                  },
+                ]}
+                example={
+                  <>
+                    משימת <b>{fillParams(MISSION_SHAPES[0].name, { goal: missionGoal(MISSION_SHAPES[0], "DAY", 1) })}</b>{" "}
+                    בעיר אחת שווה <Purse rewards={missionRewards(MISSION_SHAPES[0], "DAY", 1)} />, ובעיר
+                    חמש אותה משימה משלמת{" "}
+                    <Purse rewards={missionRewards(MISSION_SHAPES[0], "DAY", 5)} />.
+                  </>
+                }
+              />
+
+              <TableWrap>
+                <table className="guide-table w-full text-right text-[0.78rem]">
+                  <thead>
+                    <tr>
+                      <th>יום ברצף</th>
+                      <th>מה מחכה שם</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {STREAK_LADDER.map((rung) => (
+                      <tr key={rung.day} className={rung.day === STREAK_CYCLE_DAYS ? "font-bold" : ""}>
+                        <td className="whitespace-nowrap text-bone">
+                          <span className="nums me-1" dir="ltr">
+                            {rung.day}
+                          </span>
+                          {rung.name}
+                        </td>
+                        <td>
+                          <Purse rewards={rung.rewards} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Note tone="red" icon="turns" title="יום שהוחמץ שובר את הרצף">
+                  הרצף חוזר ל־<b className="nums">1</b>, והשיא האישי נשמר לצידו. אין דרך
+                  לקנות את הפער בחזרה — רצף שאפשר לשלם עליו הוא לא סיבה לחזור מחר.
+                </Note>
+                <Note tone="green" icon="guild" title="חוזה הברית">
+                  יעד יומי אחד לכל ברית, שנמדד ב<b>משימות היומיות שהחברים סיימו</b>. הוא
+                  ננעל לפי מספר החברים ברגע שנפתח (מינימום{" "}
+                  <b className="nums">{GUILD_CONTRACT_MIN_GOAL}</b> משימות, ולכל היותר{" "}
+                  <b className="nums">{GUILD_CONTRACT_MAX_PER_MEMBER}</b> לחבר), וכשהוא נסגר{" "}
+                  <b>כל חבר שהיה בברית באותו רגע</b> מקבל את מלוא הפרס — לא חלק ממנו.
+                </Note>
+              </div>
+
+              <TableWrap>
+                <table className="guide-table w-full text-right text-[0.78rem]">
+                  <thead>
+                    <tr>
+                      <th>חוזה</th>
+                      <th>יעד לברית של 5</th>
+                      <th>לכל חבר</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {GUILD_CONTRACTS.map((contract) => (
+                      <tr key={contract.key}>
+                        <td className="whitespace-nowrap">
+                          <Icon name={contract.icon} size={13} className="ms-1 inline text-gold" />
+                          <b className="text-bone">{contract.name}</b>
+                          <p className="text-[0.7rem] text-zinc-500">{contract.lore}</p>
+                        </td>
+                        <td className="nums text-gold-bright" dir="ltr">
+                          {guildContractGoal(contract, 5)}
+                        </td>
+                        <td>
+                          <Purse rewards={contract.reward} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+            </GuideSection>
+
+            {/* ============================ 04 resources ============================ */}
             <GuideSection meta={SECTIONS.resources} index={INDEX.resources}>
               <Lead>
                 שבעה מאזנים מנהלים את האימפריה. ארבעה מהם נאגרים ונבזזים, אחד נקנה
@@ -1249,7 +1515,132 @@ export async function GuideContent({
               />
             </GuideSection>
 
-            {/* ============================ 11 battle ============================ */}
+            {/* ============================ 12 monuments ============================ */}
+            <GuideSection meta={SECTIONS.monuments} index={INDEX.monuments}>
+              <Lead>
+                בשליש האחרון של עונה השדרוגים נגמרים והזהב ממשיך להיערם. מונומנט הוא
+                התשובה לזה, והוא הסוג היחיד של תשובה שמחזיק לנצח:{" "}
+                <b>בור זהב שמשלם באחוזים</b>. חמישה מונומנטים,{" "}
+                <b className="nums">{MONUMENT_MAX_LEVEL}</b> רמות לכל אחד,{" "}
+                <b className="nums">+{MONUMENT_PCT_PER_LEVEL}%</b> לרמה.
+              </Lead>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {MONUMENTS.map((monument) => (
+                  <div key={monument.key} className="panel-gold rounded-xl p-4">
+                    <p className="flex items-center gap-2 font-black text-gold-bright">
+                      <Icon name={monument.icon} size={18} className="text-crimson-bright" />
+                      {monument.name}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+                      {monument.lore}
+                    </p>
+                    <p className="mt-2 text-[11px] text-emerald-300">
+                      {fillParams(monument.effectLabel, {
+                        pct: MONUMENT_PCT_PER_LEVEL * MONUMENT_MAX_LEVEL,
+                      })}{" "}
+                      (בשיא)
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Fact
+                  icon="stone"
+                  label="רמות בכל מונומנט"
+                  value={MONUMENT_MAX_LEVEL}
+                  hint={`+${MONUMENT_PCT_PER_LEVEL}% לרמה`}
+                />
+                <Fact
+                  icon="gold"
+                  label="הרמה הראשונה"
+                  value={formatShort(monumentCost(0) ?? 0)}
+                  hint="זהב"
+                  tone="text-gold-bright"
+                />
+                <Fact
+                  icon="gold"
+                  label="הרמה האחרונה"
+                  value={formatShort(monumentCost(MONUMENT_MAX_LEVEL - 1) ?? 0)}
+                  hint={`×${MONUMENT_COST_GROWTH.toFixed(2)} בכל רמה`}
+                  tone="text-crimson-bright"
+                />
+                <Fact
+                  icon="crown"
+                  label="כל החמישה, מלאים"
+                  value={formatShort(monumentTotalCost() * MONUMENTS.length)}
+                  hint="פרויקט של עונה שלמה"
+                  tone="text-purple-300"
+                />
+              </div>
+
+              <Formula
+                label="למה הסולם לא בורח"
+                expr={
+                  <>
+                    <V>מחיר</V>
+                    <O>×</O>
+                    <N>{MONUMENT_COST_GROWTH.toFixed(2)}</N>
+                    <O>לרמה, מול</O>
+                    <V>תשואה</V>
+                    <O>+</O>
+                    <N>{MONUMENT_PCT_PER_LEVEL}</N>
+                    <O>נקודות אחוז לרמה</O>
+                  </>
+                }
+                legend={[
+                  {
+                    term: "המחיר גיאומטרי, התשואה קווית",
+                    desc: "כל רמה עולה פי שניים בערך מקודמתה ומשלמת בדיוק אותן שתי נקודות אחוז — לכן מונומנט אף פעם לא מחזיר את עצמו מהר יותר משהוא עולה.",
+                  },
+                  {
+                    term: "אבל הוא גם לא מתיישן",
+                    desc: "בגלל שהפרס הוא אחוז, הוא גדל יחד עם ההכנסה שקנתה אותו. פרס קבוע היה הופך לחסר ערך בעוד שבועיים; אחוז לא.",
+                  },
+                  {
+                    term: "הכול נכנס בעדכון",
+                    desc: "כל חמשת האפקטים מוחלים על ידי שעון המשחק בלבד — אין כפתור להפעיל ואין תפוגה לעקוב אחריה.",
+                  },
+                ]}
+              />
+
+              <TableWrap>
+                <table className="guide-table w-full text-right text-[0.78rem]">
+                  <thead>
+                    <tr>
+                      <th>רמה</th>
+                      <th>מחיר הרמה</th>
+                      <th>הבונוס אחריה</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: MONUMENT_MAX_LEVEL }, (_, held) => (
+                      <tr key={held}>
+                        <td className="nums" dir="ltr">
+                          {held} → {held + 1}
+                        </td>
+                        <td>
+                          <Cost amounts={[{ key: "gold", value: monumentCost(held) ?? 0 }]} />
+                        </td>
+                        <td className="nums text-emerald-300" dir="ltr">
+                          +{MONUMENT_PCT_PER_LEVEL * (held + 1)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+
+              <Note tone="gold" icon="attack" title="אף מונומנט לא נוגע בקרב">
+                לא בתקיפה, לא בהגנה ולא בריגול. מונומנט קונה <b>הכנסה</b> — מכרות,
+                תורות, אזרחים, ריבית וסיבובי גלגל — והקריאה הישרה של זה היא שזהב קנה לך
+                עוד זהב, לא ניצחון. דוח הקרב מפרט כל מרכיב של חישוב הכוח, ומודיפייר
+                שהיה מסתתר מחוץ לדוח היה הופך אותו לשקר.
+              </Note>
+            </GuideSection>
+
+            {/* ============================ 13 battle ============================ */}
             <GuideSection meta={SECTIONS.battle} index={INDEX.battle}>
               <Lead>
                 קרב בקראלדור הוא <b>דטרמיניסטי</b> — אין קובייה ואין מזל. שני מספרים
@@ -1429,7 +1820,94 @@ export async function GuideContent({
               </div>
             </GuideSection>
 
-            {/* ============================ 13 hero ============================ */}
+            {/* ============================ 15 sabotage ============================ */}
+            <GuideSection meta={SECTIONS.sabotage} index={INDEX.sabotage}>
+              <Lead>
+                ריגול רגיל רק מסתכל. <b>חבלה</b> היא מה שהמרגלים שלך עושים כשאתה מפסיק
+                לבקש מהם להסתכל: שלוש משימות שיוצאות מאותו לוח דוסיה של היעד, נפתרות
+                לפי אותה השוואת מודיעין, ולוקחות משהו אמיתי. הן חולקות כל כלל של ריגול —
+                אותה דרגת ערים בלבד, אותו מגן שחקן חדש, ותקיפה שמפילה את המגן שלך.
+              </Lead>
+
+              <TableWrap>
+                <table className="guide-table w-full text-right text-[0.78rem]">
+                  <thead>
+                    <tr>
+                      <th>משימה</th>
+                      <th>מרגלים</th>
+                      <th>תורות</th>
+                      <th>מה נלקח</th>
+                      <th>נחסמת על ידי</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SABOTAGE_MISSIONS.map((mission) => (
+                      <tr key={mission.kind}>
+                        <td className="whitespace-nowrap">
+                          <Icon name={mission.icon} size={13} className="ms-1 inline text-gold" />
+                          <b className="text-bone">{mission.name}</b>
+                          <p className="max-w-xs whitespace-normal text-[0.7rem] text-zinc-500">
+                            {mission.blurb}
+                          </p>
+                        </td>
+                        <td className="nums" dir="ltr">
+                          {mission.spies}
+                        </td>
+                        <td className="nums" dir="ltr">
+                          {mission.turns}
+                        </td>
+                        <td className="nums text-crimson-bright" dir="ltr">
+                          {Math.round(mission.share * 100)}%
+                        </td>
+                        <td className="text-zinc-400">
+                          {mission.shield === "resources" ? "מגן משאבים" : "מגן חיילים"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+
+              <Formula
+                label="האם המשימה נכנסת"
+                expr={
+                  <>
+                    <V>המודיעין שלך</V>
+                    <O>&gt;</O>
+                    <V>המודיעין של היעד</V>
+                    <O>×</O>
+                    <N>{SABOTAGE_INTEL_MARGIN}</N>
+                  </>
+                }
+                legend={[
+                  {
+                    term: "יתרון, לא ניצחון בשערה",
+                    desc: `ריגול רגיל מספיק לו להיות גדול ב־1. חבלה דורשת שליש יותר מודיעין — לשרוף מחסן זו לא אותה שליחות כמו לספור חיילים.`,
+                  },
+                  {
+                    term: "כישלון עולה במרגלים",
+                    desc: "המרגלים שהתחייבת אליהם אבודים, והתורות יורדות בכל מקרה. חבלה היא הימור, לא סריקה.",
+                  },
+                  {
+                    term: "השבר תמיד לטובת היעד",
+                    desc: "הכמות מעוגלת כלפי מטה — מי שמחזיק תשע יחידות מאבד אחת ב־12%, לא שתיים.",
+                  },
+                  {
+                    term: "שוד הגנזך לוקח לכיס שלך",
+                    desc: "הזהב עובר אליך; ההצתה וההרעלה רק משמידות. לכן שריפה פוגעת במלאי המוגן במחסנים, וגניבה ביתרה הזמינה.",
+                  },
+                ]}
+              />
+
+              <Note tone="red" icon="army" title="חבלה לעולם לא נוגעת בצבא">
+                לא בחיילים, לא בנשקים ולא בכוח. הסיבה היא החוזה של המשחק מול השחקנים:
+                צבא נהרס בקרבות שיש עליהם <b>דוח</b>. מרגל שיכול היה למחוק צבא בשקט היה
+                הופך את הדירוג ללא קריא ואת הדוחות לשקר. מה שנלקח הוא הכלכלה — מלאי,
+                זהב ועבדי מכרות — והיא חוזרת.
+              </Note>
+            </GuideSection>
+
+            {/* ============================ 16 hero ============================ */}
             <GuideSection meta={SECTIONS.hero} index={INDEX.hero}>
               <Lead>
                 הגיבור הוא המכפיל האישי שלך: הוא לא נלחם בעצמו, הוא מחזק את כל מה שיש

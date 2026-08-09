@@ -10,6 +10,8 @@ import { REWARD_LABEL, type Reward } from "@/lib/game/rewards";
 import {
   ARENA_ENTRY_TURNS,
   ARENA_MAX_ENTRANTS,
+  ARENA_PODIUM_MIN_ENTRANTS,
+  arenaPodiumPays,
   arenaReward,
   rankArena,
   resolveArena,
@@ -18,6 +20,7 @@ import {
 } from "@/lib/game/arena";
 import { payRewards } from "@/server/rewardGrant";
 import { awardSeasonPassXp } from "@/server/seasonPassXp";
+import { UniqueRaceLost, uniqueRaceMessage } from "@/server/uniqueRace";
 import type { ActionState } from "./game";
 import { logError } from "@/server/errorLog";
 import { getT, type T } from "@/i18n/server";
@@ -77,11 +80,17 @@ async function openArena(week: number, tier: number) {
 /**
  * Fight a card whose week has ended.
  *
- * The claim comes first and does all the work of making this safe: the guarded
- * UPDATE that stamps `resolvedAt` is what decides whether *this* call resolves
- * the arena, so two concurrent page loads cannot both write a table. Everything
- * after it is arithmetic — the duels are pure and seeded (see resolveArena), so
- * the winner of the race produces the only table there ever was.
+ * The stamp and the table are **one transaction**, and that is the whole
+ * safety story. The guarded UPDATE on `resolvedAt IS NULL` decides whether
+ * *this* call resolves the arena, so two concurrent page loads cannot both
+ * write a table; wrapping the entrant rows in with it means a request that dies
+ * between the two — a cold Vercel function hitting its ceiling mid-resolution —
+ * rolls the stamp back rather than leaving the card marked resolved with every
+ * `place` still 0, which would make its spoils permanently unclaimable. There
+ * is no scheduler behind this to repair such a card.
+ *
+ * The duels themselves are pure and seeded (see resolveArena), so the winner of
+ * the race produces the only table there ever was.
  *
  * The power figures are read live, at this moment, rather than at registration:
  * an empire that grew during the week fights with the army it actually has.
@@ -97,32 +106,32 @@ async function resolvePastArenas(tier: number, currentWeek: number): Promise<voi
   });
 
   for (const arena of stale) {
-    const claimed = await prisma.arena.updateMany({
-      where: { id: arena.id, resolvedAt: null },
-      data: { resolvedAt: new Date() },
-    });
-    if (claimed.count === 0) continue;
+    await prisma.$transaction(async (tx) => {
+      const claimed = await tx.arena.updateMany({
+        where: { id: arena.id, resolvedAt: null },
+        data: { resolvedAt: new Date() },
+      });
+      if (claimed.count === 0) return;
 
-    const entries = await prisma.arenaEntry.findMany({
-      where: { arenaId: arena.id },
-      select: { id: true, empireId: true, empire: { select: { militaryPower: true } } },
-      take: ARENA_MAX_ENTRANTS,
-    });
-    if (entries.length === 0) continue;
+      const entries = await tx.arenaEntry.findMany({
+        where: { arenaId: arena.id },
+        select: { id: true, empireId: true, empire: { select: { militaryPower: true } } },
+        take: ARENA_MAX_ENTRANTS,
+      });
+      if (entries.length === 0) return;
 
-    const fighters = entries.map((e) => ({
-      id: e.empireId,
-      power: e.empire.militaryPower,
-    }));
-    const powerById = new Map(fighters.map((f) => [f.id, f.power]));
-    const ranked = rankArena(resolveArena(arena.id, fighters), powerById);
-    const byEmpire = new Map(entries.map((e) => [e.empireId, e.id]));
+      const fighters = entries.map((e) => ({
+        id: e.empireId,
+        power: e.empire.militaryPower,
+      }));
+      const powerById = new Map(fighters.map((f) => [f.id, f.power]));
+      const ranked = rankArena(resolveArena(arena.id, fighters), powerById);
+      const byEmpire = new Map(entries.map((e) => [e.empireId, e.id]));
 
-    // One update per entrant rather than a bulk write: the figures differ per
-    // row, and an arena is bounded at ARENA_MAX_ENTRANTS by design.
-    await prisma.$transaction(
-      ranked.map((result, index) =>
-        prisma.arenaEntry.update({
+      // One update per entrant rather than a bulk write: the figures differ per
+      // row, and an arena is bounded at ARENA_MAX_ENTRANTS by design.
+      for (const [index, result] of ranked.entries()) {
+        await tx.arenaEntry.update({
           where: { id: byEmpire.get(result.id)! },
           data: {
             wins: result.wins,
@@ -130,9 +139,9 @@ async function resolvePastArenas(tier: number, currentWeek: number): Promise<voi
             place: index + 1,
             power: powerById.get(result.id) ?? 0,
           },
-        })
-      )
-    );
+        });
+      }
+    });
   }
 }
 
@@ -164,17 +173,45 @@ export async function getArenaState(): Promise<ArenaState | null> {
   const week = gameWeek(now);
   const tier = empire.cities;
 
-  await resolvePastArenas(tier, week);
+  // The viewer's own tier, plus any tier they are still owed a card in.
+  //
+  // A player's tier is their city count, and founding a city moves them. Left
+  // as the current tier alone, a card they entered at three cities and a card
+  // nobody in that tier is left to load would both go unresolved forever — and
+  // an arena resolves on a page load or not at all. Bounded by the number of
+  // tiers one empire can have entered in the last few weeks, which is small.
+  const pendingTiers = await prisma.arenaEntry.findMany({
+    where: {
+      empireId,
+      claimed: false,
+      arena: { week: { lt: week }, resolvedAt: null },
+    },
+    select: { arena: { select: { tier: true } } },
+    distinct: ["arenaId"],
+    take: 8,
+  });
+  for (const t of new Set([tier, ...pendingTiers.map((p) => p.arena.tier)])) {
+    await resolvePastArenas(t, week);
+  }
+
   const current = await openArena(week, tier);
 
   // An unclaimed finish from last week outranks this week's empty card: the
   // spoils are the thing the player came back for.
+  //
+  // Deliberately **not** filtered to the viewer's current tier. A finish is
+  // owed wherever it was fought, and a player who founded a city between the
+  // week ending and coming back to collect would otherwise be shown their new
+  // tier's empty card with no way to reach the purse they had won — `place` and
+  // `claimed` live on the entry, and the entry does not move when the empire
+  // grows. `collectArena` has always paid across tiers; this is the read side
+  // catching up with it.
   const unclaimed = await prisma.arenaEntry.findFirst({
     where: {
       empireId,
       claimed: false,
       place: { gt: 0 },
-      arena: { tier, week: { lt: week }, resolvedAt: { not: null } },
+      arena: { week: { lt: week }, resolvedAt: { not: null } },
     },
     select: { arenaId: true, arena: { select: { week: true, resolvedAt: true } } },
     orderBy: { arena: { week: "desc" } },
@@ -227,12 +264,16 @@ export async function getArenaState(): Promise<ArenaState | null> {
     turns: empire.turns,
     entrants,
     maxEntrants: ARENA_MAX_ENTRANTS,
+    podiumMinEntrants: ARENA_PODIUM_MIN_ENTRANTS,
+    podiumPays: arenaPodiumPays(entrants),
 
     standings,
     myPlace: mine?.place ?? 0,
     claimable: resolved && (mine?.place ?? 0) > 0 && !(mine?.claimed ?? false),
     claimed: mine?.claimed ?? false,
-    reward: arenaReward(mine?.place ?? 0, mine?.wins ?? 0, empire.cities),
+    // Priced against the count of *this* card — the same figure the claim will
+    // read — so a thin tier's preview never promises a podium it will not pay.
+    reward: arenaReward(mine?.place ?? 0, mine?.wins ?? 0, empire.cities, entrants),
   };
 }
 
@@ -246,9 +287,17 @@ export async function enterArena(): Promise<ActionState> {
 
     const empire = await prisma.empire.findUnique({
       where: { id: empireId },
-      select: { cities: true },
+      select: { cities: true, isStaff: true, isBot: true },
     });
     if (!empire) return { error: t("אירעה שגיאה, נסה שוב") };
+
+    // Staff accounts are out of the game — untargetable and unranked — and the
+    // arena is a ranked board with a purse. A staff entry would both occupy a
+    // seat and appear on a table it has no business being on. See
+    // Empire.isStaff.
+    if (empire.isStaff || empire.isBot) {
+      return { error: t("חשבונות הנהלה אינם משתתפים בזירה.") };
+    }
 
     const week = gameWeek(new Date());
     // Outside the transaction — a transaction must not ask for a second
@@ -289,14 +338,11 @@ export async function enterArena(): Promise<ActionState> {
       try {
         await tx.arenaEntry.create({ data: { arenaId: arena.id, empireId } });
       } catch {
-        // Lost the race with another tab. Caught rather than rethrown: a failed
-        // statement poisons a Postgres transaction, so the refund has to happen
-        // here.
-        await tx.empire.update({
-          where: { id: empireId },
-          data: { turns: { increment: ARENA_ENTRY_TURNS } },
-        });
-        return { error: t("כבר נרשמת לזירה של השבוע.") };
+        // Lost the race with another tab. The turns are given back by the
+        // rollback this throw causes — a refund written here would be dead
+        // code, because the violation has already aborted the transaction. See
+        // server/uniqueRace.ts.
+        throw new UniqueRaceLost(t("כבר נרשמת לזירה של השבוע."));
       }
 
       // Rated as an attack: it buys a card of them, but the player fights none
@@ -311,6 +357,10 @@ export async function enterArena(): Promise<ActionState> {
     revalidatePath("/game", "layout");
     return result;
   } catch (err) {
+    // A lost sign-up race is an outcome, not a fault: the rollback has already
+    // returned the turns, and there is nothing here worth logging.
+    const raced = uniqueRaceMessage(err);
+    if (raced) return { error: raced };
     await logError("arena.enterArena", err);
     return { error: t("אירעה שגיאה, נסה שוב") };
   }
@@ -337,10 +387,20 @@ export async function collectArena(): Promise<ActionState> {
           place: { gt: 0 },
           arena: { resolvedAt: { not: null } },
         },
-        select: { id: true, place: true, wins: true },
+        select: { id: true, arenaId: true, place: true, wins: true },
         orderBy: { createdAt: "asc" },
       });
       if (!entry) return { error: t("אין לך שלל זירה לאסוף.") };
+
+      // The size of the card that was actually fought, counted here rather than
+      // trusted from the screen. This is what decides whether a placing is worth
+      // a podium purse: a tier with one entrant ranks that entrant first by
+      // arithmetic alone, and without this the diamonds would be a standing
+      // weekly grant to anybody alone in a thin tier. See
+      // ARENA_PODIUM_MIN_ENTRANTS.
+      const entrants = await tx.arenaEntry.count({
+        where: { arenaId: entry.arenaId },
+      });
 
       const claimed = await tx.arenaEntry.updateMany({
         where: { id: entry.id, claimed: false },
@@ -351,15 +411,28 @@ export async function collectArena(): Promise<ActionState> {
       const paid = await payRewards(
         tx,
         empireId,
-        arenaReward(entry.place, entry.wins, empire.cities)
+        arenaReward(entry.place, entry.wins, empire.cities, entrants)
       );
 
+      const podium = entry.place <= 3 && arenaPodiumPays(entrants);
       return {
-        success: t("מקום {place} בזירה, {wins} ניצחונות. קיבלת {spoils}.", {
-          place: entry.place,
-          wins: entry.wins,
-          spoils: describeRewards(t, paid),
-        }),
+        success: podium || entry.place > 3
+          ? t("מקום {place} בזירה, {wins} ניצחונות. קיבלת {spoils}.", {
+              place: entry.place,
+              wins: entry.wins,
+              spoils: describeRewards(t, paid),
+            })
+          : // A podium finish on a card too small to pay one. Said plainly
+            // rather than silently paying less than the table promised.
+            t(
+              "מקום {place} בזירה, {wins} ניצחונות. קיבלת {spoils} — פרסי הפודיום נפתחים מ-{min} משתתפים.",
+              {
+                place: entry.place,
+                wins: entry.wins,
+                spoils: describeRewards(t, paid),
+                min: ARENA_PODIUM_MIN_ENTRANTS,
+              }
+            ),
       };
     });
 

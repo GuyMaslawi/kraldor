@@ -5,6 +5,8 @@ import {
   ARENA_LUCK,
   ARENA_MAX_ENTRANTS,
   ARENA_PODIUM,
+  ARENA_PODIUM_MIN_ENTRANTS,
+  arenaPodiumPays,
   arenaReward,
   duelSeed,
   duelWinner,
@@ -13,6 +15,13 @@ import {
 } from "@/lib/game/arena";
 import { seededRandom } from "@/lib/game/random";
 import { MAX_CITIES } from "@/lib/game/constants";
+
+/**
+ * A card with enough entrants to pay its podium. Every purse assertion below is
+ * about the *shape* of the table rather than about the thin-tier rule, so they
+ * all quote a real tournament; the thin-tier rule has its own block.
+ */
+const FULL_CARD = ARENA_PODIUM_MIN_ENTRANTS;
 
 describe("duelWinner", () => {
   const strong = { id: "strong", power: 1_000_000 };
@@ -176,7 +185,7 @@ describe("rankArena", () => {
 describe("arenaReward", () => {
   it("pays the podium more than the field", () => {
     const total = (place: number) =>
-      arenaReward(place, 0, 3).reduce((sum, r) => sum + r.amount, 0);
+      arenaReward(place, 0, 3, FULL_CARD).reduce((sum, r) => sum + r.amount, 0);
     expect(total(1)).toBeGreaterThan(total(2));
     expect(total(2)).toBeGreaterThan(total(3));
     expect(total(3)).toBeGreaterThan(total(4));
@@ -186,10 +195,10 @@ describe("arenaReward", () => {
     // This repeats weekly for every city tier; a diamond payout below the
     // podium would be a faucet with as many spouts as the game has tiers.
     for (let place = 1; place <= ARENA_PODIUM.length; place += 1) {
-      expect(arenaReward(place, 0, 1).some((r) => r.kind === "diamonds")).toBe(true);
+      expect(arenaReward(place, 0, 1, FULL_CARD).some((r) => r.kind === "diamonds")).toBe(true);
     }
     for (const place of [ARENA_PODIUM.length + 1, 10, 50]) {
-      expect(arenaReward(place, 0, 1).some((r) => r.kind === "diamonds")).toBe(false);
+      expect(arenaReward(place, 0, 1, FULL_CARD).some((r) => r.kind === "diamonds")).toBe(false);
     }
   });
 
@@ -198,7 +207,7 @@ describe("arenaReward", () => {
     // once. The consolation purse has to beat the ticket.
     const turns = ARENA_CONSOLATION.find((r) => r.kind === "turns")!.amount;
     expect(turns).toBeGreaterThan(ARENA_ENTRY_TURNS);
-    const last = arenaReward(ARENA_MAX_ENTRANTS, 0, 1);
+    const last = arenaReward(ARENA_MAX_ENTRANTS, 0, 1, FULL_CARD);
     expect(last.find((r) => r.kind === "turns")!.amount).toBeGreaterThan(
       ARENA_ENTRY_TURNS
     );
@@ -206,15 +215,15 @@ describe("arenaReward", () => {
 
   it("pays for wins, so fourth place is not last place", () => {
     const gold = (wins: number) =>
-      arenaReward(8, wins, 1).find((r) => r.kind === "gold")!.amount;
+      arenaReward(8, wins, 1, FULL_CARD).find((r) => r.kind === "gold")!.amount;
     expect(gold(30)).toBeGreaterThan(gold(2));
   });
 
   it("rides the city curve on its resource half only", () => {
     const diamonds = (cities: number) =>
-      arenaReward(1, 0, cities).find((r) => r.kind === "diamonds")!.amount;
+      arenaReward(1, 0, cities, FULL_CARD).find((r) => r.kind === "diamonds")!.amount;
     const gold = (cities: number) =>
-      arenaReward(1, 0, cities).find((r) => r.kind === "gold")!.amount;
+      arenaReward(1, 0, cities, FULL_CARD).find((r) => r.kind === "gold")!.amount;
     expect(diamonds(MAX_CITIES)).toBe(diamonds(1));
     expect(gold(MAX_CITIES)).toBeGreaterThan(gold(1));
   });
@@ -227,20 +236,78 @@ describe("arenaReward", () => {
   });
 });
 
+describe("a thin tier does not mint diamonds", () => {
+  /**
+   * The hole this closes. A city tier is not a room full of people — it is
+   * however many empires happen to hold that many cities this week, and at the
+   * top of the ladder that is routinely one. A round-robin of one entrant is
+   * zero duels and a table of one row, so that entrant is ranked first by
+   * arithmetic and, before the floor, collected the winner's diamonds every
+   * week forever for the price of the entry turns. Two accounts parked in the
+   * same empty tier took first *and* second.
+   */
+  it("pays a lone entrant no diamonds for placing first", () => {
+    expect(arenaReward(1, 0, 1, 1).some((r) => r.kind === "diamonds")).toBe(false);
+  });
+
+  it("pays no diamonds anywhere below the entrant floor", () => {
+    for (let entrants = 1; entrants < ARENA_PODIUM_MIN_ENTRANTS; entrants += 1) {
+      for (let place = 1; place <= ARENA_PODIUM.length; place += 1) {
+        expect(
+          arenaReward(place, 0, MAX_CITIES, entrants).some(
+            (r) => r.kind === "diamonds"
+          )
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("opens the podium the moment the card is a real tournament", () => {
+    expect(
+      arenaReward(1, 0, 1, ARENA_PODIUM_MIN_ENTRANTS).some(
+        (r) => r.kind === "diamonds"
+      )
+    ).toBe(true);
+  });
+
+  it("still pays a thin card its earned half, so it is never a dead screen", () => {
+    // The consolation purse and the per-win gold are earned rather than
+    // awarded, so they are not withheld — only the diamonds are.
+    const solo = arenaReward(1, 0, 1, 1);
+    expect(solo.find((r) => r.kind === "turns")!.amount).toBeGreaterThan(
+      ARENA_ENTRY_TURNS
+    );
+    const withWins = (wins: number) =>
+      arenaReward(1, wins, 1, 2).find((r) => r.kind === "gold")!.amount;
+    expect(withWins(9)).toBeGreaterThan(withWins(0));
+  });
+
+  it("agrees with the predicate the screen renders from", () => {
+    // The preview and the payout must never be able to disagree about this.
+    for (const entrants of [0, 1, 4, 5, 6, 60]) {
+      const pays = arenaPodiumPays(entrants);
+      const hasDiamonds = arenaReward(1, 0, 1, entrants).some(
+        (r) => r.kind === "diamonds"
+      );
+      expect(hasDiamonds).toBe(pays);
+    }
+  });
+});
+
 describe("the purse the screen shows is the purse that is paid", () => {
   it("returns one line per kind", () => {
     // Both the podium table and the per-win bonus pay gold. payRewards merges
     // before it credits, so an unmerged list here would show the player one
     // figure and hand them another — the classic "the preview lied" bug.
     for (const place of [1, 2, 3, 9]) {
-      const kinds = arenaReward(place, 12, 4).map((r) => r.kind);
+      const kinds = arenaReward(place, 12, 4, FULL_CARD).map((r) => r.kind);
       expect(new Set(kinds).size).toBe(kinds.length);
     }
   });
 
   it("includes the per-win gold in that single line", () => {
     const gold = (wins: number) =>
-      arenaReward(9, wins, 1).find((r) => r.kind === "gold")!.amount;
+      arenaReward(9, wins, 1, FULL_CARD).find((r) => r.kind === "gold")!.amount;
     expect(gold(30)).toBeGreaterThan(gold(0));
   });
 });

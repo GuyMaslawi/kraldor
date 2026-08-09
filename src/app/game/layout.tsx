@@ -28,6 +28,7 @@ import { MiniGameButton } from "@/components/game/MiniGameButton";
 import { VipQuickCommand } from "@/components/game/VipQuickCommand";
 import { isVip } from "@/lib/game/vip";
 import { getMiniGameStates } from "@/server/actions/minigame";
+import { countWaitingSupport } from "@/server/actions/support";
 import { HappyHourBanner } from "@/components/game/HappyHourBanner";
 import { getHappyHourState } from "@/server/actions/happyHour";
 import { getSeasonPassState } from "@/server/actions/seasonPass";
@@ -62,6 +63,10 @@ export default async function GameLayout({ children }: { children: ReactNode }) 
   const heroXp = heroAtCap ? 1 : hero?.xp ?? 0;
 
   const admin = await isAdmin();
+  // Tickets waiting on an answer, for the command bar's support alert. Only
+  // ever asked for an admin: a player's page load must not pay for a count
+  // they can never be shown. See AdminNav — the poll takes over from here.
+  const waitingSupport = admin ? await countWaitingSupport() : 0;
   // Read once and handed to both surfaces that offer the channel on every
   // screen: the chat dock and the command-bar pill.
   const discordUrl = discordInviteUrl();
@@ -218,7 +223,7 @@ export default async function GameLayout({ children }: { children: ReactNode }) 
             </Tip>
           ) : null
         }
-        admin={admin ? <AdminNav /> : null}
+        admin={admin ? <AdminNav waitingSupport={waitingSupport} /> : null}
         language={<LanguageSwitch compact />}
       />
 

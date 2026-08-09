@@ -651,29 +651,72 @@ export async function getSupportInbox(
 }
 
 /**
- * How many tickets are waiting on us — the badge in the admin nav.
+ * The work queue, as a `where`.
  *
  * "Waiting" is deliberately not "open": a thread we have already answered is
  * open until somebody closes it, and counting those would leave a permanent red
- * number that nobody can clear. This counts the ones whose newest line is
- * theirs, which is exactly the work queue.
+ * number that nobody can clear. This is the ones whose newest line is theirs.
+ *
+ * A function rather than a constant because it closes over a Prisma field
+ * reference, which must be read off the client after it has been constructed.
  */
+function waitingWhere() {
+  return {
+    status: "OPEN" as const,
+    OR: [
+      { staffReadAt: null },
+      { staffReadAt: { lt: prisma.supportThread.fields.lastMessageAt } },
+    ],
+  };
+}
+
+/** How many tickets are waiting on us — the badge in the admin nav. */
 export async function countWaitingSupport(): Promise<number> {
   const admin = await requireStaff();
   if (!admin) return 0;
   try {
-    return await prisma.supportThread.count({
-      where: {
-        status: "OPEN",
-        OR: [
-          { staffReadAt: null },
-          { staffReadAt: { lt: prisma.supportThread.fields.lastMessageAt } },
-        ],
-      },
-    });
+    return await prisma.supportThread.count({ where: waitingWhere() });
   } catch (err) {
     await logError("support.countWaitingSupport", err);
     return 0;
+  }
+}
+
+export type SupportPulse = {
+  /** Tickets whose newest line is the visitor's. */
+  waiting: number;
+  /**
+   * This round learned nothing — throttled, not staff, or a hiccup. Same
+   * contract as the player's inbox pulse: the caller keeps its last good count
+   * rather than letting a refused round read as "nothing is waiting".
+   */
+  stale: boolean;
+};
+
+const STALE_SUPPORT_PULSE: SupportPulse = { waiting: 0, stale: true };
+
+/**
+ * The same count, polled from the game's command bar so an admin who is playing
+ * finds out that somebody is stuck without walking into `/admin`.
+ *
+ * This is the alert of last resort, and the only one that always works: the
+ * Discord ping needs `DISCORD_WEBHOOK_URL_SUPPORT` to be configured, and the
+ * badge in the admin nav is only visible to somebody who is already looking at
+ * the control centre. A person who cannot get past the login screen has no
+ * other way to reach us, so noticing them must not depend on either.
+ */
+export async function getSupportPulse(): Promise<SupportPulse> {
+  try {
+    const admin = await requireStaff();
+    if (!admin) return STALE_SUPPORT_PULSE;
+    if (!localRateLimit(`poll:support-pulse:${admin.id}`, POLL_LIMIT, POLL_WINDOW_MS)) {
+      return STALE_SUPPORT_PULSE;
+    }
+    const waiting = await prisma.supportThread.count({ where: waitingWhere() });
+    return { waiting, stale: false };
+  } catch (err) {
+    await logError("support.getSupportPulse", err);
+    return STALE_SUPPORT_PULSE;
   }
 }
 

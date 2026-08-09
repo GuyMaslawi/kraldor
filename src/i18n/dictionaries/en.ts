@@ -3054,6 +3054,9 @@ export const EN: Record<string, string> = {
   "מרכז השליטה — ניהול שחקנים, אימפריות, מתנות, איזון והכרזות":
     "The control centre — players, empires, gifts, balance and announcements",
   "מרכז שליטה": "Control centre",
+  "פניות תמיכה שממתינות למענה — מישהו שנתקע במסך ההרשמה, בהתחברות או באימות האימייל כתב אלינו ואף אחד עוד לא ענה":
+    "Support tickets waiting for an answer — somebody stuck on the sign-up, sign-in or e-mail verification screen wrote to us and nobody has replied yet",
+  "תמיכה — {count} ממתינות": "Support — {count} waiting",
   "מצב אדמין — אתה משחק בתור": "Admin mode — you are playing as",
   "כל פעולה תירשם על שם השחקן.": "Every action is recorded under their name.",
   "חזרה לחשבון האדמין": "Back to the admin account",

@@ -3517,6 +3517,23 @@ export const EN: Record<string, string> = {
   "הרצף נשבר, ומתחיל מחדש. חתמת על יום 1 וקיבלת {spoils}.":
     "The run broke and begins again. You signed for day 1 and received {spoils}.",
 
+  /* the login chest (DailyGift) */
+  "מתנת הכניסה היומית": "Daily login gift",
+  "יום {day} ברצף": "Day {day} of your run",
+  "יום {day} — תיבת הנאמנים": "Day {day} — the Loyal Chest",
+  "יום {day} — נחתם!": "Day {day} — signed!",
+  "חתמת על המפקד? עוד לא. התיבה של היום מחכה לך.":
+    "Signed the muster yet? Not today. This day's chest is waiting for you.",
+  "פספסת יום — הרצף מתחיל מחדש. פתח את התיבה ונתחיל מיום 1.":
+    "You missed a day — the run starts over. Open the chest and we begin at day 1.",
+  "הרצף שלך: {count} ימים. חזור מחר ותקבל יותר.":
+    "Your run: {count} days. Come back tomorrow for more.",
+  "פתח את התיבה": "Open the chest",
+  "פותח…": "Opening…",
+  "קדימה, לשלטון": "Onward, to the throne",
+  "המתנה הבאה נפתחת בחצות — בעוד {left}":
+    "The next gift unseals at midnight — in {left}",
+
   /* the seven rungs */
   "יום ראשון ברצף": "First day of the run",
   "יום שני ברצף": "Second day of the run",
@@ -3766,8 +3783,9 @@ export const EN: Record<string, string> = {
   "התואר שלך": "Your title",
   "התארים אינם זמינים כרגע. נסה לרענן.":
     "Titles are unavailable right now. Try refreshing.",
-  "התואר מופיע תחת שמך בתיק השחקן ולצדו בדירוגים. הוא לא מוסיף כוח, לא משאבים ולא הגנה — הוא רק שלך.":
-    "Your title appears under your name on your dossier and beside it in the ladders. It adds no power, no resources and no protection — it is simply yours.",
+  "התואר מופיע לצד שמך בכל מקום שבו משווים בין שחקנים: בתיק השחקן, בסולם העיר ובטבלאות המובילים, ברשימת חברי הברית, בזירה, בלוח המלחמה, בפודיום העונה ובשיאי העולם. הוא לא מוסיף כוח, לא משאבים ולא הגנה — הוא רק שלך.":
+    "Your title appears beside your name everywhere players are compared: your dossier, the city ladder and the leaderboards, your guild roster, the arena, the war board, the season podium and the world records. It adds no power, no resources and no protection — it is simply yours.",
+  "נדיר": "Rare",
   "הושגו {earned} · נרכשו {owned}": "{earned} earned · {owned} bought",
   "ללא תואר": "No title",
   "ענוד": "Wear",

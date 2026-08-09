@@ -2,7 +2,12 @@ import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import { requireEmpire } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
-import { nextDailyUpdate, nextRegularUpdate, formatGameTime } from "@/lib/game/time";
+import {
+  gameDay,
+  nextDailyUpdate,
+  nextRegularUpdate,
+  formatGameTime,
+} from "@/lib/game/time";
 import { isProductionBuilding } from "@/lib/game/constants";
 import { liveWarStart } from "@/lib/game/guildWar";
 import {
@@ -33,7 +38,8 @@ import { HappyHourBanner } from "@/components/game/HappyHourBanner";
 import { getHappyHourState } from "@/server/actions/happyHour";
 import { getSeasonPassState } from "@/server/actions/seasonPass";
 import { getCollectableAchievements } from "@/server/achievementState";
-import { getDailyBadge } from "@/server/dailyState";
+import { buildStreakState, getDailyBadge } from "@/server/dailyState";
+import { DailyGift } from "@/components/game/DailyGift";
 import { OrnateFrame } from "@/components/ui/OrnateFrame";
 import { DiscordLink } from "@/components/ui/DiscordLink";
 import { Tip } from "@/components/ui/Tip";
@@ -190,6 +196,15 @@ export default async function GameLayout({ children }: { children: ReactNode }) 
       <ImpersonationBanner empireName={empire.name} />
       {/* Live toasts for incoming attacks / spies / messages. */}
       <WarAlerts />
+      {/* The day's chest, on the first game screen of the day and nowhere else.
+          Free to render: buildStreakState reads columns requireEmpire has
+          already loaded, and the component returns null the moment the roll is
+          signed. See DailyGift for the once-a-day rule. */}
+      <DailyGift
+        streak={buildStreakState(empire, now)}
+        today={gameDay(now)}
+        serverNow={now.getTime()}
+      />
       {/* The chat dock rides in the corner of every game screen — the public
           room and private conversations, without leaving the page you are on.
           Admins get the moderation control on each line. */}

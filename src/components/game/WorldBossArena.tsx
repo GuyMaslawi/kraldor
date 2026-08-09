@@ -247,6 +247,7 @@ export function WorldBossArena({ state }: { state: WorldBossState }) {
                   <PlayerLink
                     empireId={striker.empireId}
                     name={striker.empireName}
+                    titleKey={striker.title}
                     className="truncate font-bold"
                   />
                   <span className="shrink-0 text-[10px] nums text-zinc-600">

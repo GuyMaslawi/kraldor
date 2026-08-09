@@ -3480,8 +3480,10 @@ export async function GuideContent({
                     {TITLES.map((title) => (
                       <tr key={title.key}>
                         <td
-                          className="whitespace-nowrap font-black"
-                          style={{ color: `rgb(${title.accent})` }}
+                          className="title-worn-inline whitespace-nowrap font-black"
+                          data-kind={title.kind}
+                          data-rare={title.rare ? "1" : undefined}
+                          style={{ "--accent": title.accent } as CSSProperties}
                         >
                           {title.label}
                         </td>
@@ -3511,6 +3513,26 @@ export async function GuideContent({
                 <Note tone="purple" icon="crown" title="עונדים אחד בכל פעם">
                   אפשר להחזיק כמה שרוצים ולענוד אחד. תואר שהוסר מהמשחק פשוט מפסיק
                   להופיע מתחת לשם, בלי לשבור שום דירוג.
+                </Note>
+                <Note tone="gold" icon="rankings" title="איפה התואר נראה">
+                  בכל מקום שבו <b>משווים בין שחקנים</b>: בדוסיה, בסולם העיר ובטבלאות
+                  המובילים, ברשימת חברי הברית, בזירה ובלוח מלחמת הבריתות, בפודיום העונה
+                  ובשיאי העולם. הוא <b>לא</b> מופיע בצ׳אט, בדואר ובהיסטוריית הקרבות
+                  והריגול — מילה צבועה בכל שורה של פיד נגללת מפסיקה להיות הבחנה.
+                </Note>
+                <Note tone="red" icon="spark" title="נצבר זוהר, נקנה לא">
+                  תואר נצבר נמשך בהילה משלו וקנוי נצבע בצבע שטוח בלבד, כדי שמי שקורא
+                  דירוג יבדיל בלי להכיר את הקטלוג. שלושת הנצברים הקשים ביותר{" "}
+                  <span
+                    className="title-worn-inline"
+                    data-kind="earned"
+                    data-rare="1"
+                    style={{ "--accent": "228 195 90" } as CSSProperties}
+                  >
+                    נושמים
+                  </span>{" "}
+                  — פעימה איטית בצבע התואר. אין תואר קנוי שנושם: הדבר היחיד שיהלומים
+                  לא קונים כאן הוא מראה של הישג.
                 </Note>
               </div>
             </GuideSection>

@@ -13,6 +13,7 @@ import { AutoRefresh } from "@/components/game/AutoRefresh";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { PresenceDot } from "@/components/ui/PresenceDot";
+import { WornTitle } from "@/components/ui/WornTitle";
 import { Tip } from "@/components/ui/Tip";
 import { getT } from "@/i18n/server";
 
@@ -120,6 +121,12 @@ async function Board({
                   >
                     {row.name}
                   </Link>
+                  {/* Outside the link, so the ellipsis that truncates a long
+                      name on a narrow board never eats the תואר. These are the
+                      six global boards — the shortest list in the game and the
+                      one most worth being named on — which is exactly where a
+                      title is supposed to be legible. */}
+                  <WornTitle titleKey={row.title} />
                   {isMe && (
                     <span className="shrink-0 rounded-full bg-gold/15 px-1.5 text-[10px] font-bold text-gold">
                         {t("את/ה")}

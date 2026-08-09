@@ -51,6 +51,23 @@ export interface TitleDefinition {
   /** Diamonds, for a bought title; 0 for an earned one. */
   price: number;
   /**
+   * The handful that are allowed to *move* — a slow breath of their own accent
+   * wherever the title is drawn (`.title-worn-inline[data-rare="1"]`).
+   *
+   * Deliberately a flag on three titles rather than a property of `earned`. The
+   * game already has exactly one animated name — `.staff-name`, molten gold with
+   * a highlight travelling across it — and its whole job is to say "this account
+   * is the house". A second animated treatment on eight of fourteen titles would
+   * put motion on most of the rankings and take that signal apart. Three, at the
+   * far end of the earned shelf, stay rare enough to mean something; the pulse is
+   * also a *glow* rather than a metallic sweep and is drawn in the title's own
+   * colour, so it never reads as the gold one.
+   *
+   * Never set on a bought title. That is the line the whole feature rests on: the
+   * one thing diamonds must not buy here is the appearance of a feat.
+   */
+  rare?: boolean;
+  /**
    * The condition, for an earned title. Absent on a bought one, which is what
    * `titleUnlocked` tests rather than testing `kind` — a bought title with a
    * condition would be a bug the type system cannot catch, and this way it
@@ -103,6 +120,7 @@ export const TITLES: readonly TitleDefinition[] = [
     kind: "earned",
     accent: "232 82 82",
     price: 0,
+    rare: true,
     condition: (s) => s.distinctBossesBeaten >= MAX_CITIES,
   },
   {
@@ -112,6 +130,7 @@ export const TITLES: readonly TitleDefinition[] = [
     kind: "earned",
     accent: "228 195 90",
     price: 0,
+    rare: true,
     condition: (s) => s.cities >= MAX_CITIES,
   },
   {
@@ -139,6 +158,7 @@ export const TITLES: readonly TitleDefinition[] = [
     kind: "earned",
     accent: "62 200 140",
     price: 0,
+    rare: true,
     condition: (s) => effectiveHeroLevel(s.heroLevel, s.heroResets) >= 150,
   },
 
@@ -223,6 +243,7 @@ export interface TitleView {
   kind: TitleKind;
   accent: string;
   price: number;
+  rare: boolean;
   unlocked: boolean;
   /** Bought and owned — the shop shows it as owned rather than for sale. */
   owned: boolean;
@@ -254,6 +275,7 @@ export function buildTitlesState(
       kind: definition.kind,
       accent: definition.accent,
       price: definition.price,
+      rare: definition.rare === true,
       unlocked,
       owned: definition.kind === "bought" && ownedKeys.has(definition.key),
       worn: worn === definition.key,

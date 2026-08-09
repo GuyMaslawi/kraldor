@@ -373,6 +373,12 @@ export default async function GuildPage() {
                   // the war (see src/lib/staff.ts), so the roster has to say so
                   // rather than count them as a fighter.
                   isStaff: true,
+                  // The תואר beside a guildmate's name. This is the roster you
+                  // read most often in the game, and the one place where the
+                  // people on the list are not rivals — which is exactly why a
+                  // title belongs on it: it is the only board that shows off
+                  // your own.
+                  title: true,
                   // Collapsed to a boolean before it reaches the roster below —
                   // the raw heartbeat never becomes a prop. `isBot` rides along
                   // because presence is read off the whole row (see isOnline).
@@ -509,6 +515,7 @@ export default async function GuildPage() {
                     <PlayerLink
                       empireId={member.empireId}
                       name={member.empire.name}
+                      titleKey={member.empire.title}
                       staff={member.empire.isStaff}
                     />
                     {member.empireId === empire.id && (

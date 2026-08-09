@@ -130,6 +130,17 @@ export interface ChampionSnapshot {
   rank: number;
   empireId: string;
   empireName: string;
+  /**
+   * `Empire.title` — the תואר the seat holder is wearing *now*.
+   *
+   * Live only. It is read here because `buildPodium` is deliberately the one
+   * function that ranks a podium (see its note: two queries that merely looked
+   * alike would drift on the one night it matters), so the prize screen cannot
+   * get its rows anywhere else. It is dropped again at the archive insert —
+   * `SeasonChampion` has no column for it, and freezing one would be a schema
+   * change in service of a decoration on a board about a finished season.
+   */
+  title: string | null;
   playerName: string | null;
   guildName: string | null;
   power: number;
@@ -162,6 +173,7 @@ async function buildPodium(
       id: true,
       name: true,
       cities: true,
+      title: true,
       militaryPower: true,
       user: { select: { name: true } },
       hero: { select: { level: true, resets: true } },
@@ -181,6 +193,7 @@ async function buildPodium(
       rank: i + 1,
       empireId: e.id,
       empireName: e.name,
+      title: e.title,
       playerName: e.user?.name ?? null,
       guildName: e.guildMembership?.guild.name ?? null,
       power: Math.floor(e.militaryPower),
@@ -674,7 +687,10 @@ async function archiveSeason(
   let written = 0;
   if (podium.length > 0) {
     const result = await tx.seasonChampion.createMany({
-      data: podium.map((c) => ({ ...stamp, ...c })),
+      // `title` is destructured off rather than spread: it is the one field on a
+      // ChampionSnapshot the archive has no column for, and it is live data on a
+      // row that must be frozen. See the note on ChampionSnapshot.title.
+      data: podium.map(({ title: _title, ...c }) => ({ ...stamp, ...c })),
       skipDuplicates: true,
     });
     written = result.count;

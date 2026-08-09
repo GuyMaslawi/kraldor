@@ -476,7 +476,11 @@ function Fighters({ state }: { state: GuildWarLiveState }) {
                   </span>
                 </td>
                 <td className="py-2 font-semibold text-zinc-100">
-                  <PlayerLink empireId={fighter.empireId} name={fighter.name} />
+                  <PlayerLink
+                    empireId={fighter.empireId}
+                    name={fighter.name}
+                    titleKey={fighter.title}
+                  />
                   {fighter.me && (
                     <span className="ms-2 text-[10px] font-black text-gold-bright">
                       {t("(אתה)")}

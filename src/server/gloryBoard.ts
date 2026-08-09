@@ -29,6 +29,8 @@ import { GLORY_KEYS, type AchievementsState } from "@/lib/game/achievements";
 export interface GloryChampion {
   empireId: string;
   empireName: string;
+  /** `Empire.title` — the holder's תואר as it stands now, or null for none. */
+  title: string | null;
   awardedAt: Date;
 }
 
@@ -92,12 +94,22 @@ export async function getGloryChampions(): Promise<Map<string, GloryChampion>> {
   // key, or one findMany over every award followed by a JS reduce — is either
   // seven round trips or a scan proportional to the playerbase.
   const rows = await prisma.$queryRaw<
-    { key: string; empire_id: string; empire_name: string; awarded_at: Date }[]
+    {
+      key: string;
+      empire_id: string;
+      empire_name: string;
+      empire_title: string | null;
+      awarded_at: Date;
+    }[]
   >`
     SELECT DISTINCT ON (g.key)
       g.key                AS key,
       g."empireId"         AS empire_id,
       e.name               AS empire_name,
+      -- The holder's תואר, off a join this query was already making for the
+      -- name. Live rather than frozen at the award, deliberately: the case says
+      -- who holds the record now, and a title is what that player is called now.
+      e.title              AS empire_title,
       g."awardedAt"        AS awarded_at
     FROM "EmpireGloryAward" g
     JOIN "Empire" e ON e.id = g."empireId"
@@ -116,7 +128,12 @@ export async function getGloryChampions(): Promise<Map<string, GloryChampion>> {
   return new Map(
     rows.map((r) => [
       r.key,
-      { empireId: r.empire_id, empireName: r.empire_name, awardedAt: r.awarded_at },
+      {
+        empireId: r.empire_id,
+        empireName: r.empire_name,
+        title: r.empire_title,
+        awardedAt: r.awarded_at,
+      },
     ])
   );
 }

@@ -127,7 +127,7 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
         empireId: true,
         damage: true,
         hits: true,
-        empire: { select: { name: true } },
+        empire: { select: { name: true, title: true } },
       },
     }),
     prisma.worldBossStrike.count({ where: { bossId: boss.id } }),
@@ -147,6 +147,7 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
   const board: WorldBossStriker[] = strikes.map((row) => ({
     empireId: row.empireId,
     empireName: row.empire.name,
+    title: row.empire.title,
     damage: row.damage,
     hits: row.hits,
     isMe: row.empireId === empireId,

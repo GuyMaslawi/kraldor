@@ -52,6 +52,15 @@ export interface LadderRow {
   hero: { level: number; resets: number } | null;
   power: number;
   /**
+   * `Empire.title` — the תואר this player is wearing, or null for none.
+   *
+   * A bare key, resolved against the catalog at render time by WornTitle, never
+   * a label or a colour. That is what lets a title be retired by deleting it
+   * from src/lib/game/titles.ts: the key stops resolving and quietly disappears
+   * from every ladder, with nothing to backfill.
+   */
+  title: string | null;
+  /**
    * Whether this player had the game open in the last few minutes.
    *
    * A boolean, never the timestamp behind it. `Empire.lastSeenAt` is the same
@@ -192,10 +201,11 @@ export async function getCityLadderPage(
       resets: number | null;
       lastSeenAt: Date | null;
       isBot: boolean;
+      title: string | null;
     }[]
   >`
     SELECT e.id, e.name, e.gold, e."militaryPower" AS power,
-           e."lastSeenAt", e."isBot", a.soldiers, h.level, h.resets
+           e."lastSeenAt", e."isBot", e.title, a.soldiers, h.level, h.resets
     FROM "Empire" e
     LEFT JOIN "Army" a ON a."empireId" = e.id
     LEFT JOIN "Hero" h ON h."empireId" = e.id
@@ -216,6 +226,7 @@ export async function getCityLadderPage(
       gold: r.gold,
       power: r.power,
       army: r.soldiers === null ? null : { soldiers: r.soldiers },
+      title: r.title,
       hero: r.level === null ? null : { level: r.level, resets: r.resets ?? 0 },
       // The viewer is here by definition — they are reading this. Their own
       // heartbeat is stamped by the chat dock's poll, which on a fresh tab has
@@ -246,6 +257,8 @@ export interface BoardRow {
    * LadderRow.online.
    */
   online: boolean;
+  /** `Empire.title`, on the same terms as `LadderRow.title`. */
+  title: string | null;
   /**
    * The city tier this empire holds (`Empire.cities`), so the board can name the
    * place each row lives in.
@@ -327,6 +340,7 @@ export async function getGlobalBoards(): Promise<GlobalBoards> {
         id: true,
         name: true,
         cities: true,
+        title: true,
         generalPower: true,
         spyPower: true,
         lastSeenAt: true,
@@ -345,6 +359,7 @@ export async function getGlobalBoards(): Promise<GlobalBoards> {
         // The heartbeat is collapsed to a boolean here and the Date is dropped:
         // what ships to the browser must not be the timestamp itself.
         online: isOnline(e, now),
+        title: e.title,
         // Public knowledge — the city ladder already names every empire in your
         // own tier, and the boss banner names the tier itself.
         cities: e.cities,
@@ -385,7 +400,7 @@ async function nameRaidRows(
   const t = await getT();
   const named = await prisma.empire.findMany({
     where: { id: { in: sums.map((s) => s.attackerEmpireId) } },
-    select: { id: true, name: true, cities: true, lastSeenAt: true, isBot: true },
+    select: { id: true, name: true, cities: true, title: true, lastSeenAt: true, isBot: true },
   });
   const byId = new Map(named.map((e) => [e.id, e]));
   // One clock for the board, as everywhere else here.
@@ -398,6 +413,9 @@ async function nameRaidRows(
     // the truthful answer for a name that is no longer anybody — and holds no
     // city at all, rather than a made-up one.
     online: isOnline(byId.get(row.attackerEmpireId), now),
+    // A deleted raider has no row and therefore no title, which is the honest
+    // answer — the name already degrades to a placeholder here.
+    title: byId.get(row.attackerEmpireId)?.title ?? null,
     cities: byId.get(row.attackerEmpireId)?.cities ?? null,
   }));
 }

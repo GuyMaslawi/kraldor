@@ -289,6 +289,13 @@ export function arenaReward(
 export interface ArenaStanding {
   empireId: string;
   empireName: string;
+  /**
+   * `Empire.title` — resolved against the catalog by WornTitle at render time,
+   * null for a fighter wearing none. The arena card is a table of at most a
+   * handful of rivals from your own city tier, which is the shape a title reads
+   * best in.
+   */
+  title: string | null;
   wins: number;
   losses: number;
   /** 1-based placing; 0 while the card is unresolved. */

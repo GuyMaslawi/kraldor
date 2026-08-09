@@ -373,6 +373,13 @@ export interface GuildWarFeedItem {
 export interface GuildWarFighterRow {
   empireId: string;
   name: string;
+  /**
+   * `Empire.title`, filled in after the board is cut to FIGHTER_LIMIT — see the
+   * lookup in server/guildWarState.ts. Null both for a fighter wearing none and
+   * for one whose empire is gone; the row's name is denormalised onto the clash
+   * and outlives the account.
+   */
+  title: string | null;
   guildName: string;
   points: number;
   wins: number;

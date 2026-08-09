@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { WornTitle } from "@/components/ui/WornTitle";
 import { useT } from "@/i18n/client";
 
 /**
@@ -24,6 +25,7 @@ export function PlayerLink({
   name,
   className = "",
   title,
+  titleKey,
   staff = false,
 }: {
   empireId: string | null | undefined;
@@ -31,6 +33,17 @@ export function PlayerLink({
   className?: string;
   /** Tooltip; defaults to naming what the link opens. */
   title?: string;
+  /**
+   * `Empire.title` — the תואר to draw after the name, on the boards that show
+   * one. Omitted everywhere else, which is most callers: see WornTitle for which
+   * screens earn a title and why the streams deliberately do not.
+   *
+   * Passed in rather than looked up, for the same reason `staff` is: this
+   * component stays query-free so a server page and a client table can both
+   * render it, and every caller that shows a title is already selecting the
+   * empire row the key sits on.
+   */
+  titleKey?: string | null;
   /**
    * Render as the game's own account: molten gold with a highlight travelling
    * across it (`.staff-name` in globals.css).
@@ -48,19 +61,36 @@ export function PlayerLink({
   // staff class goes last and the two are never both meaningful.
   const t = useT();
   const cls = `${className} ${staff ? "staff-name" : ""}`.trim();
-  if (!empireId) return <span className={cls}>{name}</span>;
+  // A sibling of the name, never a child of it: `className` here is routinely
+  // `truncate`, and a title inside the link would be the first thing an ellipsis
+  // ate on a narrow row. Outside it, the name gives ground and the title stays
+  // whole — which is the right way round, since the name is also a tooltip and
+  // a link while the title is only ever the word.
+  const worn = <WornTitle titleKey={titleKey} className="ms-1.5 align-middle" />;
+
+  if (!empireId)
+    return (
+      <>
+        <span className={cls}>{name}</span>
+        {worn}
+      </>
+    );
+
   return (
-    <Link
-      href={`/game/empires/${empireId}`}
-      title={
-        title ??
-        (staff
-          ? t("הנהלת המשחק — {name}", { name })
-          : t("הפרופיל של {name}", { name }))
-      }
-      className={`underline-offset-4 hover:text-gold-bright hover:underline ${cls}`}
-    >
-      {name}
-    </Link>
+    <>
+      <Link
+        href={`/game/empires/${empireId}`}
+        title={
+          title ??
+          (staff
+            ? t("הנהלת המשחק — {name}", { name })
+            : t("הפרופיל של {name}", { name }))
+        }
+        className={`underline-offset-4 hover:text-gold-bright hover:underline ${cls}`}
+      >
+        {name}
+      </Link>
+      {worn}
+    </>
   );
 }

@@ -258,7 +258,11 @@ export default async function PrizesPage() {
                           {t("מחזיק בכיסא")}
                         </p>
                         <p className="mt-1 truncate text-sm font-bold text-gold-bright">
-                          <PlayerLink empireId={champ.empireId} name={champ.empireName} />
+                          <PlayerLink
+                            empireId={champ.empireId}
+                            name={champ.empireName}
+                            titleKey={champ.title}
+                          />
                           {isMe && (
                             <span className="mr-1.5 rounded-full bg-gold/15 px-1.5 align-middle text-[10px] font-bold text-gold">
                               {t("את/ה")}

@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -24,7 +23,7 @@ import { SHIELDS } from "@/lib/game/diamondShop";
 import { HeroPaperdoll } from "@/components/game/HeroPaperdoll";
 import { EmpireMedals } from "@/components/game/EmpireMedals";
 import { EmpireBio } from "@/components/game/EmpireBio";
-import { wornTitle } from "@/lib/game/titles";
+import { WornTitle } from "@/components/ui/WornTitle";
 import { getEmpireMedals } from "@/server/empireMedals";
 import type { HeroItemView } from "@/components/game/heroItemView";
 import { formatNumber, formatDate } from "@/lib/game/format";
@@ -134,7 +133,6 @@ export default async function EmpireProfilePage({
   });
   if (!empire) notFound();
 
-  const title = wornTitle(empire.title);
   const hero = empire.hero;
   const heroLevel = hero?.level ?? 1;
   const heroResets = hero?.resets ?? 0;
@@ -246,14 +244,7 @@ export default async function EmpireProfilePage({
                 (see src/lib/game/titles.ts) — and it resolves to nothing at all
                 for a key that has fallen out of the catalog, so retiring a
                 title quietly clears it from every dossier. */}
-            {title && (
-              <span
-                className="title-worn-inline shrink-0 text-xs font-black"
-                style={{ "--accent": title.accent } as CSSProperties}
-              >
-                {t(title.label)}
-              </span>
-            )}
+            <WornTitle titleKey={empire.title} />
             {staffTarget && (
               <span className="shrink-0 rounded-full border border-gold/40 bg-gold/15 px-2 py-0.5 text-xs font-black text-gold-bright">
                 הנהלת המשחק

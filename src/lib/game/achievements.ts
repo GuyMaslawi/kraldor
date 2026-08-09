@@ -1186,6 +1186,8 @@ const GLORY_DISPLAY: Record<
 export interface GloryRecord {
   empireId: string;
   empireName: string;
+  /** `Empire.title` — the holder's תואר, drawn beside their name on the case. */
+  title: string | null;
   /**
    * "12.07.26", formatted here rather than in the board.
    *
@@ -1231,7 +1233,10 @@ export function selectGlory(
   state: AchievementsState,
   records: ReadonlyMap<
     string,
-    { empireId: string; empireName: string; awardedAt: Date }
+    // Structural rather than an import of GloryChampion: this module is pure and
+    // server/gloryBoard.ts is "server-only", so naming its type here would drag
+    // the import into the test suite's pure bundle.
+    { empireId: string; empireName: string; title: string | null; awardedAt: Date }
   >,
   viewerEmpireId: string,
   locale: Locale
@@ -1259,6 +1264,7 @@ export function selectGlory(
           ? {
               empireId: held.empireId,
               empireName: held.empireName,
+              title: held.title,
               awardedLabel: date.format(held.awardedAt),
               isMe: held.empireId === viewerEmpireId,
             }

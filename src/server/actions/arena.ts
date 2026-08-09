@@ -233,7 +233,7 @@ export async function getArenaState(): Promise<ArenaState | null> {
         wins: true,
         losses: true,
         place: true,
-        empire: { select: { name: true } },
+        empire: { select: { name: true, title: true } },
       },
     }),
     prisma.arenaEntry.count({ where: { arenaId } }),
@@ -246,6 +246,7 @@ export async function getArenaState(): Promise<ArenaState | null> {
   const standings: ArenaStanding[] = entries.map((row) => ({
     empireId: row.empireId,
     empireName: row.empire.name,
+    title: row.empire.title,
     wins: row.wins,
     losses: row.losses,
     place: row.place,

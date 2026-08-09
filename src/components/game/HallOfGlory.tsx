@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
+import { WornTitle } from "@/components/ui/WornTitle";
 import { useAfterFirstPaint, useCountUp } from "@/components/ui/motion";
 import { formatCompact } from "@/lib/game/format";
 import { useT } from "@/i18n/client";
@@ -128,6 +129,10 @@ function GloryCard({ item, index }: { item: GloryView; index: number }) {
             >
               {item.record.empireName}
             </Link>
+            {/* Seven rows in the whole case, each naming the first player in the
+                world to do a thing. If a תואר is worth showing anywhere, it is
+                on the line that already says "ראשון בעולם". */}
+            <WornTitle titleKey={item.record.title} />
             <span className="nums mr-auto shrink-0 text-zinc-600" dir="ltr">
               {item.record.awardedLabel}
             </span>

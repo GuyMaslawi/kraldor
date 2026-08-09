@@ -342,6 +342,8 @@ export function worldBossReward(
 export interface WorldBossStriker {
   empireId: string;
   empireName: string;
+  /** `Empire.title` — drawn beside the name by WornTitle, null for none. */
+  title: string | null;
   damage: number;
   hits: number;
   /** The viewer — their own row is marked rather than hidden. */

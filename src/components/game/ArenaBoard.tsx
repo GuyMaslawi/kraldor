@@ -194,6 +194,7 @@ export function ArenaBoard({ state }: { state: ArenaState }) {
                   <PlayerLink
                     empireId={row.empireId}
                     name={row.empireName}
+                    titleKey={row.title}
                     className="truncate font-bold"
                   />
                 </span>

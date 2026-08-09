@@ -31,7 +31,7 @@ export function TitleBoard({ state }: { state: TitlesState }) {
           {t("התואר שלך")}
         </h2>
         <p className="mt-1 max-w-2xl text-xs leading-relaxed text-zinc-400">
-          {t("התואר מופיע תחת שמך בתיק השחקן ולצדו בדירוגים. הוא לא מוסיף כוח, לא משאבים ולא הגנה — הוא רק שלך.")}
+          {t("התואר מופיע לצד שמך בכל מקום שבו משווים בין שחקנים: בתיק השחקן, בסולם העיר ובטבלאות המובילים, ברשימת חברי הברית, בזירה, בלוח המלחמה, בפודיום העונה ובשיאי העולם. הוא לא מוסיף כוח, לא משאבים ולא הגנה — הוא רק שלך.")}
         </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -125,7 +125,21 @@ function TitleCard({
             : "border-border-subtle bg-black/10 opacity-60"
       }`}
     >
-      <p className="title-name font-black">{t(entry.label)}</p>
+      {/* Drawn with the same two data-attributes the title carries beside a name
+          (see WornTitle.tsx), so the card is a true preview: what a player picks
+          off this shelf is exactly what the rankings will show. */}
+      <p className="title-name font-black" data-kind={entry.kind}>
+        {t(entry.label)}
+        {entry.rare && (
+          <span
+            className="title-worn-inline ms-2 align-middle text-[10px]"
+            data-kind="earned"
+            data-rare="1"
+          >
+            {t("נדיר")}
+          </span>
+        )}
+      </p>
       <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-500">
         {t(entry.hint, TITLE_PARAMS)}
       </p>

@@ -835,6 +835,7 @@ export async function buildLiveState(params: {
     tally.set(row.attackerEmpireId, {
       empireId: row.attackerEmpireId,
       name: row.attackerName,
+      title: null,
       guildName: row.attackerGuildName,
       points: row._sum.points ?? 0,
       wins: row._count._all,
@@ -847,6 +848,7 @@ export async function buildLiveState(params: {
     tally.set(row.defenderEmpireId, {
       empireId: row.defenderEmpireId,
       name: prev?.name ?? row.defenderName,
+      title: null,
       guildName: prev?.guildName ?? row.defenderGuildName,
       points: (prev?.points ?? 0) + (row._sum.points ?? 0),
       wins: prev?.wins ?? 0,
@@ -858,6 +860,22 @@ export async function buildLiveState(params: {
   const fighters = [...tally.values()]
     .sort((a, b) => b.points - a.points || b.wins - a.wins)
     .slice(0, FIGHTER_LIMIT);
+
+  // Titles for the fighter board, and only for it. The clash rows carry
+  // denormalised names and no empire join, so this is a genuinely extra read —
+  // affordable because it is taken *after* the cut: at most FIGHTER_LIMIT ids,
+  // looked up by primary key, however many thousands of clashes the war
+  // produced. The feed above is deliberately left alone; it is a stream, it can
+  // run to hundreds of lines in one bell, and a coloured word on every one of
+  // them would be wallpaper rather than a distinction (see WornTitle).
+  const titles = fighters.length
+    ? await prisma.empire.findMany({
+        where: { id: { in: fighters.map((f) => f.empireId) } },
+        select: { id: true, title: true },
+      })
+    : [];
+  const titleById = new Map(titles.map((e) => [e.id, e.title]));
+  for (const fighter of fighters) fighter.title = titleById.get(fighter.empireId) ?? null;
 
   return {
     warId: war.id,

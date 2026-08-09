@@ -15,6 +15,7 @@ import { getCityBossState } from "@/server/bossState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PresenceDot } from "@/components/ui/PresenceDot";
 import { PlayerLink } from "@/components/ui/PlayerLink";
+import { WornTitle } from "@/components/ui/WornTitle";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Tip } from "@/components/ui/Tip";
 import { getI18n, getT } from "@/i18n/server";
@@ -304,6 +305,14 @@ export default async function RankingsPage({
                           >
                             {empire.name}
                           </Link>{" "}
+                          {/* The תואר, straight after the name and before the
+                              level — a ladder is read name, then who they are,
+                              then how big. Cosmetic only, and it is the whole
+                              point of the feature that it be *here*: a title
+                              nobody but its owner ever saw would have been worth
+                              nothing. Renders nothing at all for the players
+                              wearing none, which on most rows is what happens. */}
+                          <WornTitle titleKey={empire.title} className="me-1" />{" "}
                           {/* The level beside the name is the *hero* level —
                               the only one that moves. It used to print
                               `empire.level`, a column no gameplay path ever
@@ -314,7 +323,12 @@ export default async function RankingsPage({
                               "רמה" and not "גיבור רמה": there is one level in
                               this game and it is the hero's, so the word only
                               cost width. */}
-                          <span className="nums text-xs text-gold-dim">
+                          {/* nowrap: the name line is a wrapping inline flow, and
+                              with a תואר now sitting in it "רמה" and its number
+                              were landing on two different lines on a phone. The
+                              pair is one token to a reader — it breaks before it,
+                              never inside it. */}
+                          <span className="nums whitespace-nowrap text-xs text-gold-dim">
                             {t("רמה")}{" "}
                             <span className="font-bold text-gold-bright">
                               {empire.hero?.level ?? 1}

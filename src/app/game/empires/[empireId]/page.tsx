@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +11,8 @@ import { cityFullName, cityName } from "@/lib/game/cities";
 import { MAX_CITIES } from "@/lib/game/constants";
 import { Tip } from "@/components/ui/Tip";
 import { RankActions } from "@/components/game/RankActions";
+import { SabotagePanel } from "@/components/game/SabotagePanel";
+import { SABOTAGE_MISSIONS, type SabotageOption } from "@/lib/game/sabotage";
 import { MessageCompose } from "@/components/game/MessageCompose";
 import { ShieldBadges } from "@/components/game/ShieldBadges";
 import { ActivePotions } from "@/components/game/ActivePotions";
@@ -21,6 +24,7 @@ import { SHIELDS } from "@/lib/game/diamondShop";
 import { HeroPaperdoll } from "@/components/game/HeroPaperdoll";
 import { EmpireMedals } from "@/components/game/EmpireMedals";
 import { EmpireBio } from "@/components/game/EmpireBio";
+import { wornTitle } from "@/lib/game/titles";
 import { getEmpireMedals } from "@/server/empireMedals";
 import type { HeroItemView } from "@/components/game/heroItemView";
 import { formatNumber, formatDate } from "@/lib/game/format";
@@ -130,6 +134,7 @@ export default async function EmpireProfilePage({
   });
   if (!empire) notFound();
 
+  const title = wornTitle(empire.title);
   const hero = empire.hero;
   const heroLevel = hero?.level ?? 1;
   const heroResets = hero?.resets ?? 0;
@@ -152,6 +157,28 @@ export default async function EmpireProfilePage({
   // page says why instead of spending the click to find out.
   const staffTarget = isStaffEmpire(empire);
   const canEngage = !isMe && sameCity && !staffTarget;
+
+  // The sabotage bench, priced against what the viewer actually holds and
+  // against the target's paid shields. Only assembled when the two are in the
+  // same city — the panel is not rendered otherwise, and the shield lookup is a
+  // query nobody should pay for on a dossier they cannot act on.
+  const targetShields = canEngage
+    ? await getActiveShields(empire.id)
+    : null;
+  const sabotageOptions: SabotageOption[] = SABOTAGE_MISSIONS.map((mission) => ({
+    kind: mission.kind,
+    name: mission.name,
+    blurb: mission.blurb,
+    icon: mission.icon,
+    accent: mission.accent,
+    spies: mission.spies,
+    turns: mission.turns,
+    pct: Math.round(mission.share * 100),
+    affordable:
+      myEmpire.turns >= mission.turns &&
+      (myEmpire.army?.spies ?? 0) >= mission.spies,
+    shielded: Boolean(targetShields?.[mission.shield]),
+  }));
   // Guildmates never raid each other (see lib/game/guildAllies.ts). Only the
   // attack half is off — a spy mission against an ally still runs.
   const allied = isMe ? null : await sharedGuild(myEmpire.id, empire.id);
@@ -215,6 +242,18 @@ export default async function EmpireProfilePage({
         subtitle={
           <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
             <span>{empire.user.name}</span>
+            {/* The תואר, in its own ink. Cosmetic only — it multiplies nothing
+                (see src/lib/game/titles.ts) — and it resolves to nothing at all
+                for a key that has fallen out of the catalog, so retiring a
+                title quietly clears it from every dossier. */}
+            {title && (
+              <span
+                className="title-worn-inline shrink-0 text-xs font-black"
+                style={{ "--accent": title.accent } as CSSProperties}
+              >
+                {t(title.label)}
+              </span>
+            )}
             {staffTarget && (
               <span className="shrink-0 rounded-full border border-gold/40 bg-gold/15 px-2 py-0.5 text-xs font-black text-gold-bright">
                 הנהלת המשחק
@@ -382,11 +421,23 @@ export default async function EmpireProfilePage({
                 </div>
 
                 {canEngage ? (
-                  <RankActions
-                    targetEmpireId={empire.id}
-                    currentTurns={myEmpire.turns}
-                    attackBlockedReason={allied ? "בן ברית — אין תקיפה" : null}
-                  />
+                  <>
+                    <RankActions
+                      targetEmpireId={empire.id}
+                      currentTurns={myEmpire.turns}
+                      attackBlockedReason={allied ? "בן ברית — אין תקיפה" : null}
+                    />
+                    {/* The third verb. Allied empires keep the raid block but
+                        not this one on purpose: a guild's own members can still
+                        be scouted today, and sabotage sits on the same side of
+                        that line — it is an espionage action, and the alliance
+                        rule the game enforces is about armies. */}
+                    <SabotagePanel
+                      targetEmpireId={empire.id}
+                      targetName={empire.name}
+                      missions={sabotageOptions}
+                    />
+                  </>
                 ) : staffTarget ? (
                   <p className="text-sm text-zinc-400">
                     אין כאן פעולות מלחמה — האימפריה הזו שייכת להנהלת המשחק ואינה

@@ -3484,4 +3484,595 @@ export const EN: Record<string, string> = {
   "לבש {item}": "Equip {item}",
   "דרוש גיבור רמה {level}": "Needs a level {level} hero",
 
+  /* ------------------------------------------------------------------ */
+  /* לוח היום — the daily board                                          */
+  /* ------------------------------------------------------------------ */
+
+  "לוח היום": "Daily Board",
+  "לוח היום | KRALDOR": "Daily Board | KRALDOR",
+  "לוח היום אינו זמין כרגע. נסה לרענן.":
+    "The daily board is unavailable right now. Try refreshing.",
+  "מתחדש בעוד": "Resets in",
+  "מתחדש…": "Resetting…",
+  /* the countdown's two forms — compact enough to sit next to a heading */
+  "{h}ש {m}ד": "{h}h {m}m",
+  "{m}ד": "{m}m",
+
+  /* the muster roll */
+  "מפקד הנאמנים": "The Loyal Muster",
+  "חתום על המפקד פעם ביום. יום שמפוספס מאפס את הרצף — ולא את השיא.":
+    "Sign the muster once a day. A missed day resets the run — never the record.",
+  "ימים רצופים שבהם חתמת על המפקד": "Days in a row you have signed the muster",
+  "הרצף הארוך ביותר שהיה לך אי־פעם": "The longest run you have ever held",
+  "ברצף": "streak",
+  "חתום על המפקד": "Sign the muster",
+  "חותם…": "Signing…",
+  "חתמת היום": "Signed today",
+  "פספסת יום — החתימה הבאה מתחילה רצף חדש מיום 1.":
+    "You missed a day — the next signature starts a fresh run at day 1.",
+  "כבר חתמת על מפקד היום. חזור מחר.":
+    "You have already signed today's muster. Come back tomorrow.",
+  "יום {count} ברצף. קיבלת {spoils}.":
+    "Day {count} of your run. You received {spoils}.",
+  "הרצף נשבר, ומתחיל מחדש. חתמת על יום 1 וקיבלת {spoils}.":
+    "The run broke and begins again. You signed for day 1 and received {spoils}.",
+
+  /* the seven rungs */
+  "יום ראשון ברצף": "First day of the run",
+  "יום שני ברצף": "Second day of the run",
+  "יום שלישי ברצף": "Third day of the run",
+  "יום רביעי ברצף": "Fourth day of the run",
+  "יום חמישי ברצף": "Fifth day of the run",
+  "יום שישי ברצף": "Sixth day of the run",
+  "שבוע שלם — מפקד הנאמנים": "A full week — the Loyal Muster",
+
+  /* mission boards */
+  "משימות היום": "Today's missions",
+  "משימות השבוע": "This week's missions",
+  "שלוש משימות, נבחרות מחדש בכל יום בחצות. הן נמדדות ממתי שהלוח נפתח — לא מתחילת היום.":
+    "Three missions, dealt again every midnight. They are measured from when the board opened — not from the start of the day.",
+  "שלוש משימות גדולות יותר, נבחרות מחדש בכל יום ראשון בחצות.":
+    "Three larger missions, dealt again every Sunday at midnight.",
+  "אין משימות פתוחות כרגע.": "No open missions right now.",
+  "אסוף": "Collect",
+  "הלוח של היום עדיין לא נפתח.": "Today's board has not been opened yet.",
+  "המשימה הזו לא על הלוח שלך.": "That mission is not on your board.",
+  "כבר אספת את המשימה הזו.": "You have already collected that mission.",
+  "המשימה עדיין לא הושלמה.": "That mission is not finished yet.",
+  'השלמת "{mission}" וקיבלת {spoils}.':
+    'You completed "{mission}" and received {spoils}.',
+  'השלמת "{mission}" וקיבלת {spoils}. הברית השלימה את החוזה היומי!':
+    'You completed "{mission}" and received {spoils}. Your guild has fulfilled its daily contract!',
+
+  /* mission names and hints — patterns, so one entry covers every size */
+  "{goal} פשיטות": "{goal} raids",
+  "פתח ב-{goal} תקיפות — ניצחון או הפסד, שתיהן נספרות":
+    "Launch {goal} attacks — win or lose, both count",
+  "חסל {goal} חיילי אויב — בתקיפה או בהגנה":
+    "Kill {goal} enemy soldiers — attacking or defending",
+  "{goal} הפקדות בבנק": "{goal} bank deposits",
+  "הפקד זהב בבנק {goal} פעמים": "Deposit gold at the bank {goal} times",
+  "{goal} בוסים": "{goal} bosses",
+  "הפל את בוס העיר {goal} פעמים": "Fell your city's boss {goal} times",
+  "רכוש {goal} כלי נשק במפעל": "Buy {goal} weapons at the armory",
+  "{goal} דגמי נשק חדשים": "{goal} new weapon models",
+  "הוסף {goal} דגמי נשק שלא היו לך למחסן":
+    "Add {goal} weapon models you did not own to your arsenal",
+  "{goal} רמות גיבור": "{goal} hero levels",
+  "העלה את הגיבור {goal} רמות": "Raise your hero {goal} levels",
+  "{goal} רמות מכרה": "{goal} mine levels",
+  "שדרג את המכרה המפותח ביותר שלך ב-{goal} רמות":
+    "Raise your most developed mine by {goal} levels",
+  "מחסנים ב-{goal} רמות": "Warehouses up {goal} levels",
+  "העלה את המחסן הנמוך ביותר שלך ב-{goal} רמות":
+    "Raise your lowest warehouse by {goal} levels",
+  "{goal} רמות שדרוג": "{goal} upgrade levels",
+  "העלה את השדרוג הנמוך ביותר שלך ב-{goal} רמות":
+    "Raise your lowest empire upgrade by {goal} levels",
+  "קבלת מגויסים +{goal}": "Recruit intake +{goal}",
+  'שדרג את "קבלת מגויסים" ב-{goal} רמות': 'Raise "Recruit intake" by {goal} levels',
+  "הדוף {goal} תקיפות על האימפריה שלך — הן מגיעות אליך, לא אתה אליהן":
+    "Repel {goal} attacks on your empire — they come to you, not the other way round",
+  "אסוף {goal} פריטי ציוד לגיבור — מתקיפות שניצחת וממסעות":
+    "Collect {goal} pieces of hero gear — from attacks you won and from expeditions",
+  "פריט אפי": "An epic item",
+  "זכה בפריט אחד בדרגת נדירות אפי לפחות":
+    "Win one item of epic rarity or better",
+  "נצח {goal} פעמים במיני-משחק — הם משוחררים מדי פעם, שים לב לסרגל העליון":
+    "Win {goal} mini-games — they are released from time to time; watch the top bar",
+  "עיר נוספת": "One more city",
+  "ייסד עיר נוספת לאימפריה": "Found another city for your empire",
+
+  /* the guild contract */
+  "משימות יומיות שחברי הברית השלימו":
+    "Daily missions your guild's members have completed",
+  "היעד נקבע לפי {members} חברי הברית כשהחוזה נפתח היום. רק משימות יומיות נספרות.":
+    "The goal was set from the {members} members the guild had when today's contract opened. Only daily missions count.",
+  "כשהברית תשלים את היעד, כל חבר יוכל לקחת את חלקו כאן.":
+    "Once the guild meets the goal, every member can take their share here.",
+  "קח את חלקך": "Take your share",
+  "לקחת את חלקך.": "You have taken your share.",
+  "החוזה של היום עדיין לא הושלם.": "Today's contract is not complete yet.",
+  "החוזה של היום כבר אינו בתוקף.": "Today's contract is no longer valid.",
+  "כבר לקחת את חלקך בחוזה של היום.":
+    "You have already taken your share of today's contract.",
+  "הצטרפת לברית אחרי שהחוזה הושלם — החלק הזה כבר חולק.":
+    "You joined the guild after the contract was completed — that share is already divided.",
+  '"{contract}" הושלם. חלקך: {spoils}.':
+    '"{contract}" is complete. Your share: {spoils}.',
+
+  "מסע האספקה": "The Supply Run",
+  "השיירות של הברית יוצאות עם שחר. כל אחד לוקח את החלק שלו.":
+    "The guild's caravans leave at dawn. Everyone carries their share.",
+  "מפקד הברית": "The Guild Muster",
+  "המפקדים רוצים לראות מי עוד עומד על הרגליים. תתייצבו.":
+    "The commanders want to see who is still on their feet. Present yourselves.",
+  "מכסת הנפחייה": "The Forge Quota",
+  "המפעל עובד כל הלילה, ומישהו צריך להביא את הברזל.":
+    "The works run all night, and somebody has to bring the iron.",
+  "קריאת החרב": "The Call of the Sword",
+  "יום אחד בשבוע הברית לא מתגוננת. היום הזה.":
+    "One day a week the guild does not defend. This is that day.",
+
+  /* ------------------------------------------------------------------ */
+  /* נפחיית הגיבור — the forge                                           */
+  /* ------------------------------------------------------------------ */
+
+  "נפחייה": "Forge",
+  "נפחייה | KRALDOR": "Forge | KRALDOR",
+  "נפחיית הגיבור": "The Hero's Forge",
+  "הנפחייה אינה זמינה כרגע. נסה לרענן.":
+    "The forge is unavailable right now. Try refreshing.",
+  "נפחייה: פרק ציוד לרסיסים, הזמן פריט למשבצת שחסרה לך, ולטש פריט קיים":
+    "Forge: dismantle gear into shards, commission a piece for a slot you are missing, and temper what you hold",
+  "פרק ציוד שאינך זקוק לו לרסיסים, והשתמש בהם כדי להזמין פריט למשבצת שחסרה לך או ללטש פריט קיים לדרגה הבאה.":
+    "Dismantle gear you have no use for into shards, then spend them commissioning a piece for a slot you are missing or tempering one you already hold.",
+  "כל פריט שאתה מפרק — בתיק או על הגוף — הופך לרסיסים. הנפחייה לא יוצרת ציוד חזק ממה שהמשחק היה נותן לך בלאו הכי: היא רק מכוונת אותו למשבצת שחסרה לך.":
+    "Every piece you dismantle — in the bag or worn — becomes shards. The forge never makes gear stronger than the game would have given you anyway: it only aims it at the slot you are missing.",
+  "רסיסים": "shards",
+  "רסיסי ציוד — נצברים מפירוק פריטים":
+    "Gear shards — earned by dismantling pieces",
+
+  /* dismantling */
+  "{item} פורק ל-{shards} רסיסים": "{item} dismantled into {shards} shards",
+  "{item} פורק ל-{shards} רסיסים — ומזל טוב! 🎡 זכית בסיבוב גלגל מזל!":
+    "{item} dismantled into {shards} shards — and congratulations! 🎡 You won a wheel spin!",
+  "{count} חפצים פורקו ל-{shards} רסיסים":
+    "{count} pieces dismantled into {shards} shards",
+  "{count} חפצים פורקו ל-{shards} רסיסים — ומזל טוב! 🎡 זכית ב-{spins} סיבובי גלגל מזל!":
+    "{count} pieces dismantled into {shards} shards — and congratulations! 🎡 You won {spins} wheel spins!",
+  "פירוק: {shards}": "Dismantle: {shards}",
+
+  /* the commission bench */
+  "הזמנת ציוד": "Commission gear",
+  "בחר משבצת ושלם. הנדירות והרמה נקבעות בדיוק לפי אותה טבלה שממנה נופל ציוד בקרב — הדבר היחיד שאתה קונה הוא המשבצת. שווה ערך ל-{drops} פריטים שפורקו.":
+    "Pick a slot and pay. Rarity and level roll on exactly the table gear drops from in battle — the only thing you are buying is the slot. Worth {drops} dismantled pieces.",
+  "בחר משבצת": "Pick a slot",
+  "הזמן {slot}": "Commission {slot}",
+  "מחשל…": "Forging…",
+  "משבצת לא תקינה": "Invalid slot",
+  "ריק": "empty",
+  "×{count}": "×{count}",
+  "· סדרה {decade} (רמת גיבור {level})":
+    "· series {decade} (hero level {level})",
+  "הזמנה עולה {shards} רסיסים ו-{gold} זהב.":
+    "A commission costs {shards} shards and {gold} gold.",
+  "הנפחייה מסרה {item} (רמה {level}, {rarity}).":
+    "The forge delivered {item} (level {level}, {rarity}).",
+  "התיק מלא — פרק או לבש פריט לפני שתזמין חדש.":
+    "The bag is full — dismantle or equip something before commissioning more.",
+  "הגיבור מת — הנפחייה לא עובדת עבורו עד שיקום לתחייה.":
+    "Your hero is dead — the forge will not work for him until he rises.",
+
+  /* the temper bench */
+  "ליטוש": "Tempering",
+  "העלה פריט לדרגה הבאה בתוך הסדרה שלו — אותה מדרגה שהשדרוג בזהב קונה, רק שכאן משלמים ברסיסים. פריט אגדי הוא שיא הסדרה שלו ואינו ניתן לליטוש.":
+    "Raise a piece to the next grade within its own series — the same step the gold upgrade buys, paid in shards instead. A legendary is its series' ceiling and cannot be tempered.",
+  "התיק ריק. ציוד נופל מתקיפות שניצחת וממסעות הגיבור.":
+    "The bag is empty. Gear drops from attacks you win and from your hero's expeditions.",
+  "ליטוש הפריט הזה עולה {shards} רסיסים.":
+    "Tempering this piece costs {shards} shards.",
+  "{item} לוטש ל{rarity} (רמה {level}).":
+    "{item} tempered to {rarity} (level {level}).",
+  "אין לפריט הזה דרגה גבוהה יותר.": "This piece has no higher grade.",
+  "פריט אגדי הוא שיא הסדרה שלו": "A legendary is its series' ceiling",
+  "פריט אגדי הוא שיא הסדרה שלו — רק פריט מסדרה גבוהה יותר יעלה עליו.":
+    "A legendary is its series' ceiling — only a piece from a higher series will beat it.",
+  "הפריט השתנה בינתיים — נסה שוב.": "The piece changed in the meantime — try again.",
+
+  /* ------------------------------------------------------------------ */
+  /* מונומנטים — the capital's skyline                                    */
+  /* ------------------------------------------------------------------ */
+
+  "מונומנטים": "Monuments",
+  "מונומנטים | KRALDOR": "Monuments | KRALDOR",
+  "מונומנטים של הבירה": "Monuments of the capital",
+  "המונומנטים אינם זמינים כרגע. נסה לרענן.":
+    "Monuments are unavailable right now. Try refreshing.",
+  "מבנים שנבנים פעם אחת ועומדים עד סוף העונה. כל רמה מוסיפה {pct}% לאחד ממקורות ההכנסה של האימפריה — ואף מונומנט אינו נוגע בכוח הקרב.":
+    "Structures raised once and standing until the season ends. Every level adds {pct}% to one of the empire's sources of income — and no monument touches combat power.",
+  "רמות שהועלו מתוך כל הרמות האפשריות": "Levels raised out of every level on offer",
+  "רמות": "levels",
+  "רמה {level}/{max}": "Level {level}/{max}",
+  "ייסד": "Found it",
+  "הרם רמה": "Raise a level",
+  "בונה…": "Building…",
+  "במלוא גובהו": "At its full height",
+  "מונומנט לא תקין": "Invalid monument",
+  "{monument} עומד במלוא גובהו.": "{monument} stands at its full height.",
+  "הרמה הבאה של {monument} עולה {gold} זהב.":
+    "The next level of {monument} costs {gold} gold.",
+  "{monument} הועלה לרמה {level} — {effect}.":
+    "{monument} raised to level {level} — {effect}.",
+  "המונומנט השתנה בינתיים — נסה שוב.":
+    "The monument changed in the meantime — try again.",
+
+  /* the five, and what each of them does */
+  "עמוד הפועלים": "The Labourers' Column",
+  "עמוד בזלת בן ארבעים מטר, ועליו חקוקים שמותיהם של אלה שחפרו את המכרות הראשונים.":
+    "Forty metres of basalt, carved with the names of those who dug the first mines.",
+  "+{pct}% לתפוקת המכרות": "+{pct}% mine output",
+  "מגדל השעון הגדול": "The Great Clock Tower",
+  "פעמון אחד לכל שעה, ונשמע עד קצה הנחלה. מאז שהוקם, איש בבירה לא איחר.":
+    "One bell an hour, heard to the far edge of the realm. Nobody in the capital has been late since it was raised.",
+  "+{pct}% לתורות שנצברות": "+{pct}% turns accrued",
+  "שער הניצחון": "The Victory Gate",
+  "כל צבא שחוזר עובר תחתיו, וכל נער בעיר רואה אותו. הגיוס מאז לא היה בעיה.":
+    "Every returning army marches under it, and every boy in the city watches. Recruitment has not been a problem since.",
+  "+{pct}% לאזרחים בכל עדכון יומי": "+{pct}% citizens per daily update",
+  "בית הגנזים": "The Hall of Records",
+  "שמונה קומות מתחת לאדמה, ובהן ספרי החשבונות של האימפריה מאז ייסודה.":
+    "Eight floors below ground, holding the empire's ledgers since its founding.",
+  "+{pct}% לריבית הבנק": "+{pct}% bank interest",
+  "גלגל השמיים": "The Sky Wheel",
+  "מבנה שאיש אינו יודע להסביר, שממשיך להסתובב גם כשאין רוח. העם מייחס לו מזל.":
+    "A structure nobody can explain, still turning when there is no wind. The people credit it with luck.",
+  "+{pct}% לסיבובי גלגל המזל היומיים": "+{pct}% daily wheel spins",
+
+  /* ------------------------------------------------------------------ */
+  /* אוצר הברית — the guild treasury                                      */
+  /* ------------------------------------------------------------------ */
+
+  "אוצר הברית": "Guild treasury",
+  "הזהב שנתרם על ידי חברי הברית — ממנו משולמים שדרוגי הברית":
+    "Gold donated by the guild's members — the guild's upgrades are paid out of it",
+  "כל חבר יכול לתרום זהב. מנהיג או סגן קונים מהאוצר את שדרוגי הברית. אין משיכה — מה שנכנס נשאר של הברית.":
+    "Any member can donate gold. A leader or deputy buys the guild's upgrades out of the treasury. There is no withdrawal — what goes in stays the guild's.",
+  "סכום לתרומה (מינימום {min})": "Amount to donate (minimum {min})",
+  "תרום": "Donate",
+  "תורם...": "Donating…",
+  "תורמי הברית": "The guild's donors",
+  "איש עדיין לא תרם. תהיה הראשון.": "Nobody has donated yet. Be the first.",
+  "תרומה מינימלית היא {min} זהב.": "The minimum donation is {min} gold.",
+  "אין לך {amount} זהב זמין לתרומה.":
+    "You do not have {amount} gold available to donate.",
+  "תרמת {amount} זהב לאוצר {guild}.":
+    "You donated {amount} gold to {guild}'s treasury.",
+  "מנהיג או סגן בלבד — משולם מאוצר הברית.":
+    "Leader or deputy only — paid out of the guild treasury.",
+  "ההרחבה עולה {cost} זהב מאוצר הברית — אין מספיק באוצר.":
+    "The expansion costs {cost} gold from the guild treasury — there is not enough in it.",
+  "השדרוג עולה {cost} זהב מאוצר הברית — אין מספיק באוצר.":
+    "The upgrade costs {cost} gold from the guild treasury — there is not enough in it.",
+  "רק מנהיג או סגן יכולים לשדרג את עזרת הברית.":
+    "Only a leader or deputy can upgrade the guild's aid.",
+
+  /* ------------------------------------------------------------------ */
+  /* תארים — the line under a name                                       */
+  /* ------------------------------------------------------------------ */
+
+  "תארים": "Titles",
+  "תארים | KRALDOR": "Titles | KRALDOR",
+  "התואר שלך": "Your title",
+  "התארים אינם זמינים כרגע. נסה לרענן.":
+    "Titles are unavailable right now. Try refreshing.",
+  "התואר מופיע תחת שמך בתיק השחקן ולצדו בדירוגים. הוא לא מוסיף כוח, לא משאבים ולא הגנה — הוא רק שלך.":
+    "Your title appears under your name on your dossier and beside it in the ladders. It adds no power, no resources and no protection — it is simply yours.",
+  "הושגו {earned} · נרכשו {owned}": "{earned} earned · {owned} bought",
+  "ללא תואר": "No title",
+  "ענוד": "Wear",
+  "עונד…": "Wearing…",
+  "נעול": "Locked",
+  "תארים שמושגים במשחק": "Titles earned in play",
+  "אי אפשר לקנות אותם בשום מחיר. זה בדיוק מה שנותן להם ערך.":
+    "They cannot be bought at any price. That is exactly what makes them worth anything.",
+  "חנות התארים": "The title shop",
+  "נרכשים ביהלומים, ואינם מתיימרים להיות הישג. מי שקורא את הדירוג יידע להבדיל.":
+    "Bought with diamonds, and making no claim to be an achievement. Anyone reading the ladder will know the difference.",
+  "תואר לא תקין": "Invalid title",
+  "את התואר הזה משיגים במשחק, לא בקנייה.":
+    "That title is earned in play, not bought.",
+  "התואר הזה כבר שלך.": "That title is already yours.",
+  "התואר הזה עדיין לא נרכש.": "That title has not been bought yet.",
+  "התואר עולה {price} יהלומים — אין לך מספיק.":
+    "The title costs {price} diamonds — you do not have enough.",
+  'התואר "{title}" נרכש. אפשר לענוד אותו עכשיו.':
+    'The title "{title}" is yours. You can wear it now.',
+  'ענדת את התואר "{title}".': 'You are now wearing the title "{title}".',
+  "הסרת את התואר.": "You have taken your title off.",
+  "עדיין לא עמדת בתנאי של התואר הזה: {hint}":
+    "You have not met that title's condition yet: {hint}",
+
+  /* the earned shelf */
+  "הפושט": "The Raider",
+  "נצח ב-250 תקיפות": "Win 250 attacks",
+  "צל המלך": "The King's Shadow",
+  "חזור עם 200 דוחות ריגול מוצלחים": "Come back with 200 successful spy reports",
+  "החומה": "The Wall",
+  "הדוף 100 תקיפות על האימפריה שלך": "Repel 100 attacks on your empire",
+  "מפיל הכתרים": "Crownbreaker",
+  "הפל את הבוסים של כל {cities} דרגות הערים":
+    "Fell the bosses of all {cities} city tiers",
+  "הקיסר": "The Emperor",
+  "החזק את כל {cities} הערים בו-זמנית": "Hold all {cities} cities at once",
+  "בן האלמוות": "The Deathless",
+  "אפס את הגיבור שלוש פעמים לאחר שהגיע לשיא":
+    "Reset your hero three times after reaching the cap",
+  "האגדה": "The Legend",
+  "זכה בחמישה פריטים בדרגת נדירות אגדי": "Win five items of legendary rarity",
+  "מצביא הדורות": "Warlord of Ages",
+  "העלה את הגיבור לרמה אפקטיבית 150 ומעלה":
+    "Take your hero to an effective level of 150 or more",
+
+  /* the shop shelf — boasts, not feats */
+  "בעל המאה": "The Moneyed",
+  "האספן": "The Collector",
+  "המהמר": "The Gambler",
+  "מי שלא ישן": "The One Who Never Sleeps",
+  "הנדיב": "The Generous",
+  "המשוגע לדבר": "Utterly Obsessed",
+  "נקנה בחנות התארים": "Bought in the title shop",
+
+  /* ------------------------------------------------------------------ */
+  /* מפלצת העולם — the world boss                                        */
+  /* ------------------------------------------------------------------ */
+
+  "מפלצת העולם": "World Boss",
+  "מפלצת העולם | KRALDOR": "World Boss | KRALDOR",
+  "הזירה אינה זמינה כרגע. נסה לרענן.":
+    "The arena is unavailable right now. Try refreshing.",
+  "אין מפלצת עולם השבוע.": "There is no world boss this week.",
+  "{count} נלחמים": "{count} fighting",
+  "השבוע נגמר": "the week is over",
+  "{d}י {h}ש": "{d}d {h}h",
+  "{h}ש": "{h}h",
+
+  /* striking */
+  "הכה": "Strike",
+  "מכה…": "Striking…",
+  "כל מכה עולה תורות": "Every strike costs turns",
+  "{left}/{max} מכות": "{left}/{max} strikes",
+  "מספר המכות מוגבל כדי שלוח הנזק לא יהיה עותק של דירוג הכוח":
+    "Strikes are capped so the damage board is not simply a copy of the power ladder",
+  "מכה עולה {turns} תורות.": "A strike costs {turns} turns.",
+  "ניצלת את כל {max} המכות שלך השבוע.":
+    "You have used all {max} of your strikes this week.",
+  "{boss} כבר הופלה השבוע.": "{boss} has already been felled this week.",
+  "פגעת ב{boss} ב-{damage} נזק. נותרו לה {hp} חיים.":
+    "You hit {boss} for {damage} damage. It has {hp} health left.",
+  "המכה שלך הפילה את {boss}! {diamonds} יהלומים על המכה האחרונה.":
+    "Your blow felled {boss}! {diamonds} diamonds for the killing strike.",
+
+  /* the kill and the spoils */
+  "המפלצת הופלה!": "The beast is down!",
+  "המכה האחרונה: {name}": "Killing blow: {name}",
+  "המפלצת עדיין עומדת — אין שלל לחלק.":
+    "The beast is still standing — there are no spoils to divide.",
+  "לא הכית את המפלצת השבוע.": "You did not strike the beast this week.",
+  "לא הכית את המפלצת השבוע — אין חלק בשלל.":
+    "You did not strike the beast this week — no share of the spoils.",
+  "כבר אספת את חלקך.": "You have already collected your share.",
+  "אספת את חלקך.": "You have collected your share.",
+  "חלקך בשלל: {spoils}. ({pct}% מהנזק)":
+    "Your share of the spoils: {spoils}. ({pct}% of the damage)",
+
+  /* the damage board */
+  "לוח הנזק": "Damage board",
+  "הנזק שלך: {damage}": "Your damage: {damage}",
+  "×{hits}": "×{hits}",
+  "אף אחד עדיין לא הכה. תהיה הראשון.":
+    "Nobody has struck yet. Be the first.",
+  "חצי מהשלל מתחלק שווה בשווה בין כל מי שהכה, וחצי לפי נזק. מי שמפיל אותה מקבל {diamonds} יהלומים לעצמו.":
+    "Half the spoils are split evenly among everyone who struck, and half by damage. Whoever fells it takes {diamonds} diamonds for themselves.",
+
+  /* the six beasts */
+  "תולעת האפר": "The Ashworm",
+  "היא עלתה מתחת לארץ האפר ובלעה שיירה שלמה לפני שמישהו הספיק לצעוק. הדרך דרומה סגורה עד שהיא תיפול.":
+    "It came up beneath the Ashlands and swallowed a whole caravan before anyone could shout. The southern road is closed until it falls.",
+  "קולוסוס הברזל": "The Iron Colossus",
+  "מבנה בגובה חומה שצועד לאט ולא עוצר. איש אינו יודע מי בנה אותו ולא ברור שיש בפנים מישהו.":
+    "A wall-high thing that walks slowly and does not stop. Nobody knows who built it, and it is not clear anyone is inside.",
+  "דרקון הסופה": "The Storm Drake",
+  "הוא מגיע עם העננים ויוצא מהם רק כדי לקחת. שלוש ערים כבר איבדו את גגותיהן השבוע.":
+    "It arrives with the clouds and leaves them only to take. Three cities have lost their roofs this week.",
+  "מבשר הדבר": "The Plague Herald",
+  "הוא אינו נלחם. הוא פשוט עומד, והמכרות שסביבו מפסיקים להפיק. זה מספיק.":
+    "It does not fight. It simply stands, and the mines around it stop producing. That is enough.",
+  "רוח הכתר": "The Crown Wraith",
+  "מה שנשאר מהקיסר האפל הראשון, ומה שהוא רוצה זה בדיוק מה שיש לך.":
+    "What is left of the first Dark Emperor, and what it wants is exactly what you have.",
+  "לווייתן המעמקים": "The Deep Leviathan",
+  "הנמלים ריקים מאז יום שלישי. הדייגים אומרים שהם ראו עין, ואיש לא צחק.":
+    "The harbours have been empty since Tuesday. The fishermen say they saw an eye, and nobody laughed.",
+
+  /* ------------------------------------------------------------------ */
+  /* חבלה — sabotage                                                     */
+  /* ------------------------------------------------------------------ */
+
+  "חבלה": "Sabotage",
+  "משימות חבלה פוגעות בכלכלה בלבד — מלאי, זהב ועבדי מכרות. הן לעולם לא נוגעות בחיילים, בנשק או בכוח. נדרש יתרון מודיעיני של פי {margin} לפחות, וכישלון עולה בכל התא.":
+    "Sabotage hits the economy only — stores, gold and mine slaves. It never touches soldiers, weapons or power. It needs an intelligence advantage of at least {margin}×, and failure costs the whole cell.",
+  "({pct}%)": "({pct}%)",
+  "מרגלים שנשלחים — אובדים אם התא נתפס":
+    "Spies committed — lost if the cell is caught",
+  "שולח…": "Sending…",
+  "על היעד יש מגן פעיל שחוסם את המשימה הזו":
+    "The target has an active shield that blocks this mission",
+  "{target} תמיד מקבל התראה על חבלה — מוצלחת או שנתפסה.":
+    "{target} is always alerted to sabotage — whether it lands or is caught.",
+
+  "משימת חבלה לא תקינה": "Invalid sabotage mission",
+  "לא ניתן לחבל באימפריה שלך": "You cannot sabotage your own empire",
+  "לא ניתן לחבל באימפריה שאינה בעיר שלך.":
+    "You cannot sabotage an empire outside your own city.",
+  "נדרשים {count} מרגלים למשימה הזו.":
+    "That mission needs {count} spies.",
+  "המשימה עולה {turns} תורות.": "The mission costs {turns} turns.",
+  "על {target} יש מגן פעיל — המשימה הזו לא תעבור.":
+    "{target} has an active shield — this mission will not get through.",
+  '"{mission}" הצליחה נגד {target}.': '"{mission}" succeeded against {target}.',
+  '"{mission}" נכשלה — התא נתפס ו-{spies} מרגלים אבדו.':
+    '"{mission}" failed — the cell was caught and {spies} spies were lost.',
+  '{attacker} ביצע "{mission}" נגדך. בדוק את ההיסטוריה לפרטים.':
+    '{attacker} ran "{mission}" against you. Check your history for the details.',
+  "כוחות הביטחון שלך תפסו תא חבלה של {attacker} לפני שהספיק לפעול.":
+    "Your security forces caught a sabotage cell from {attacker} before it could act.",
+
+  /* the three missions */
+  "הצתת המחסנים": "Torch the Warehouses",
+  "שריפת חלק מהמלאי המוגן במחסני היעד — עץ, ברזל ואבן.":
+    "Burns part of the protected stock in the target's warehouses — wood, iron and stone.",
+  "שוד הגנזך": "Raid the Vault",
+  "גניבת חלק מהזהב הזמין של היעד — ישר לקופה שלך.":
+    "Steals part of the target's available gold — straight into your own coffers.",
+  "הרעלת הבארות": "Poison the Wells",
+  "חיסול חלק מעבדי המכרות של היעד. המכרות שלו יאטו עד שיחליף אותם.":
+    "Kills part of the target's mine slaves. Their mines run slower until they are replaced.",
+
+  /* ------------------------------------------------------------------ */
+  /* הזמנת חבר — referrals                                               */
+  /* ------------------------------------------------------------------ */
+
+  "הזמנת חברים": "Invite friends",
+  "הזמנת חברים | KRALDOR": "Invite friends | KRALDOR",
+  "הזמן חבר": "Invite a friend",
+  "העמוד אינו זמין כרגע. נסה לרענן.":
+    "This page is unavailable right now. Try refreshing.",
+  "שם האימפריה שלך הוא הקוד. מי שמצטרף מציין אותו בעמוד הזה אצלו, וכששניכם — כשהוא מגיע ל-{goal} ערים — כל אחד מכם אוסף את חלקו. אין פרס על הרשמה בלבד: זה מה שהופך את זה למשהו ששווה לעשות.":
+    "Your empire's name is the code. Whoever joins names it on this page of their own, and once they reach {goal} cities you each collect your half. Nothing is paid for a signup alone — that is exactly what makes this worth doing.",
+  "העתק": "Copy",
+  "הועתק!": "Copied!",
+  "על כל חבר:": "Per friend:",
+
+  /* who brought me */
+  "מי הזמין אותך": "Who invited you",
+  "הצטרפת דרך {name}.": "You joined through {name}.",
+  "ההתקדמות שלך": "Your progress",
+  "מישהו הביא אותך לכאן? רשום את שם האימפריה שלו. אפשר פעם אחת בלבד, ורק בתחילת הדרך.":
+    "Did somebody bring you here? Name their empire. Once only, and only early on.",
+  "שם האימפריה שהזמינה אותך": "The empire that invited you",
+  "רשום": "Register",
+  "רושם...": "Registering…",
+  "נפתח ב-{goal} ערים": "Opens at {goal} cities",
+
+  /* who I brought */
+  "החברים שהבאת": "The friends you brought",
+  "עדיין לא הבאת אף אחד. שלח את שם האימפריה שלך לחבר.":
+    "You have not brought anyone in yet. Send a friend your empire's name.",
+  "ממתין ל-{goal} ערים": "Waiting for {goal} cities",
+
+  /* the actions */
+  "שם אימפריה לא תקין": "Invalid empire name",
+  "אימפריה לא תקינה": "Invalid empire",
+  "כבר ציינת מי הזמין אותך.": "You have already named who invited you.",
+  "אפשר לציין מזמין רק בתחילת הדרך, עד {max} ערים.":
+    "You can only name an inviter early on, up to {max} cities.",
+  "אי אפשר להזמין את עצמך.": "You cannot invite yourself.",
+  "אי אפשר להזמין זה את זה.": "You cannot invite each other.",
+  "לא נמצאה אימפריה בשם הזה.": "No empire by that name was found.",
+  "{referrer} רשום כמי שהזמין אותך. שניכם תקבלו פרס כשתגיע ל-{goal} ערים.":
+    "{referrer} is recorded as your inviter. You will both be rewarded when you reach {goal} cities.",
+  "לא ציינת מי הזמין אותך.": "You have not named who invited you.",
+  "הפרס נפתח ב-{goal} ערים.": "The reward opens at {goal} cities.",
+  "כבר אספת את הפרס הזה.": "You have already collected that reward.",
+  "קיבלת {spoils} על ההצטרפות דרך חבר.":
+    "You received {spoils} for joining through a friend.",
+  "לא הזמנת את האימפריה הזו.": "You did not invite that empire.",
+  "{name} עדיין לא הגיע ל-{goal} ערים.":
+    "{name} has not reached {goal} cities yet.",
+  "כבר אספת את הפרס על {name}.":
+    "You have already collected the reward for {name}.",
+  "קיבלת {spoils} על שהבאת את {name}.":
+    "You received {spoils} for bringing {name} in.",
+
+  /* ------------------------------------------------------------------ */
+  /* mini-games: מפת האוצר and חידה                                      */
+  /* ------------------------------------------------------------------ */
+
+  "מפת האוצר": "Treasure Map",
+  "כל חפירה מגלה כמה קרוב היית — לא לאן ללכת.":
+    "Every dig tells you how close you were — not which way to go.",
+  "שורה {row}, עמודה {col}": "Row {row}, column {col}",
+  "שורה {row}, עמודה {col} — {band}": "Row {row}, column {col} — {band}",
+  "🗺️ {band}": "🗺️ {band}",
+  /* the four readings a dig can come back with */
+  "כאן!": "Here!",
+  "חם": "Hot",
+  "פושר": "Warm",
+  "קר": "Cold",
+
+  "חידה": "Riddle",
+  "התשובה שלך": "Your answer",
+  "ענה": "Answer",
+  "בודק…": "Checking…",
+  "❓ לא זו התשובה…": "❓ That is not it…",
+
+  /* the takeover copy for both */
+  "מפה חדשה הגיעה לנמל": "A new map has reached the harbour",
+  "משהו קבור על הרשת. כל חפירה מספרת כמה קרוב היית — ולא יותר מזה.":
+    "Something is buried on the grid. Every dig tells you how close you were — and nothing more.",
+  "🗺️ קדימה, לחפירה!": "🗺️ Go on, start digging!",
+  "חידה חדשה נתלתה בכיכר": "A new riddle is up in the square",
+  "שאלה אחת, תשובה אחת. מי שיודע — יודע.":
+    "One question, one answer. Either you know it or you do not.",
+  "❓ קדימה, לחידה!": "❓ Go on, take a guess!",
+
+  /* ------------------------------------------------------------------ */
+  /* raid notifications                                                  */
+  /* ------------------------------------------------------------------ */
+
+  "התראות במייל": "Email notifications",
+  "מייל קצר כשמישהו פורץ את ההגנות שלך, שולח תא חבלה או נתפס מרגל בשטחך — כדי שתדע גם כשאתה לא במשחק. לכל היותר מייל אחד ב-6 שעות, והוא לא מפרט מה נלקח.":
+    "A short email when somebody breaches your defences, sends a sabotage cell, or has a spy caught on your ground — so you know even when you are not in the game. At most one email every 6 hours, and it never says what was taken.",
+  "התראות פעילות": "Notifications on",
+  "התראות כבויות": "Notifications off",
+  "התראות הופעלו.": "Notifications enabled.",
+  "התראות בוטלו.": "Notifications disabled.",
+
+  /* ------------------------------------------------------------------ */
+  /* הזירה — the weekly arena                                            */
+  /* ------------------------------------------------------------------ */
+
+  "הזירה": "The Arena",
+  "הזירה | KRALDOR": "The Arena | KRALDOR",
+  "אסוף שלל": "Collect spoils",
+  "הזירה של השבוע": "This week's arena",
+  "תוצאות הזירה": "Arena results",
+  "כל מי שנרשם נלחם בכל השאר בדיוק פעם אחת, כשהשבוע מסתיים. אתה לא צריך להיות מחובר — הזירה נלחמת לבד. הזירה מוגבלת לעיר שלך, וכ-{luck}% מהתוצאה הם מזל, כדי שגם אימפריה קטנה תיקח קרבות.":
+    "Everyone entered fights everyone else exactly once when the week ends. You do not need to be online — the arena fights itself. It is confined to your own city, and about {luck}% of each duel is luck, so a small empire still takes fights.",
+  "נרשמו": "entered",
+  "הירשם לזירה": "Enter the arena",
+  "נרשם…": "Entering…",
+  "הזירה מלאה השבוע": "The arena is full this week",
+  "אתה בפנים. הקרבות ייערכו בסוף השבוע.":
+    "You are in. The fights happen when the week ends.",
+  "נלחמת בעוד": "Fought in",
+  "עוד רגע": "any moment",
+  "מקום {place}": "Place {place}",
+  "לא נרשמת לזירה הזו.": "You did not enter that arena.",
+  "הטבלה הסופית": "The final table",
+  "מי נרשם": "Who has entered",
+  "עדיין אף אחד לא נרשם. היה הראשון.": "Nobody has entered yet. Be the first.",
+
+  "כבר נרשמת לזירה של השבוע.": "You have already entered this week's arena.",
+  "הזירה של השבוע מלאה ({max} משתתפים).":
+    "This week's arena is full ({max} entrants).",
+  "הרשמה לזירה עולה {turns} תורות.": "Entering the arena costs {turns} turns.",
+  "נרשמת לזירה של השבוע. הקרבות ייערכו כשהשבוע יסתיים.":
+    "You have entered this week's arena. The fights happen when the week ends.",
+  "אין לך שלל זירה לאסוף.": "You have no arena spoils to collect.",
+  "כבר אספת את השלל הזה.": "You have already collected those spoils.",
+  "מקום {place} בזירה, {wins} ניצחונות. קיבלת {spoils}.":
+    "Place {place} in the arena, {wins} wins. You received {spoils}.",
+
 };

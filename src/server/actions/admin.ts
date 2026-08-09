@@ -40,6 +40,10 @@ import {
   SAFE_DIGITS_MIN,
   clampAttempts,
   clampCups,
+  clampMapSize,
+  MAP_SIZE_MIN,
+  RIDDLE_ANSWER_MAX,
+  RIDDLE_QUESTION_MAX,
   clampDigits,
   prizeText,
   type MiniGameShape,
@@ -3484,7 +3488,12 @@ export async function saveTunables(
 /*                         MINI-GAMES                           */
 /* ============================================================= */
 
-const miniTypeSchema = z.enum(["FIND_BALL", "CRACK_SAFE"]);
+const miniTypeSchema = z.enum([
+  "FIND_BALL",
+  "CRACK_SAFE",
+  "TREASURE_MAP",
+  "RIDDLE",
+]);
 
 /** Random integer in [min, max] (inclusive). */
 function randInt(min: number, max: number): number {
@@ -3496,11 +3505,28 @@ function randInt(min: number, max: number): number {
   return randomInt(min, max + 1);
 }
 
-/** Build a fresh secret config (with a new random answer) for a mini-game. */
+/**
+ * Build a fresh secret config (with a new random answer) for a mini-game.
+ *
+ * A riddle is the one type whose secret is *authored* rather than rolled — so
+ * it is the one type this cannot mint on its own, and the caller passes the
+ * question and answer through `authored`. Re-releasing a riddle therefore
+ * reuses its text (see the note in `releaseMiniGame`), while every other game
+ * gets a genuinely new answer each time.
+ */
 function freshConfig(
   type: MiniGameType,
-  params: { cups: number; digits: number }
-): { cups?: number; digits?: number; answer?: number; code?: string } {
+  params: MiniGameShape,
+  authored?: { question: string; word: string }
+): {
+  cups?: number;
+  digits?: number;
+  size?: number;
+  answer?: number;
+  code?: string;
+  question?: string;
+  word?: string;
+} {
   if (type === "CRACK_SAFE") {
     // Kept as a string, not a number: the code may legitimately start with a
     // zero, and "047" must survive the round trip through the JSON column as
@@ -3509,7 +3535,29 @@ function freshConfig(
     for (let i = 0; i < params.digits; i++) code += String(randInt(0, 9));
     return { digits: params.digits, code };
   }
+  if (type === "TREASURE_MAP") {
+    const size = clampMapSize(params.size ?? MAP_SIZE_MIN);
+    return { size, answer: randInt(0, size * size - 1) };
+  }
+  if (type === "RIDDLE") {
+    return {
+      question: (authored?.question ?? "").slice(0, RIDDLE_QUESTION_MAX),
+      word: (authored?.word ?? "").slice(0, RIDDLE_ANSWER_MAX),
+    };
+  }
   return { cups: params.cups, answer: randInt(0, params.cups - 1) };
+}
+
+/** The admin-authored half of a riddle, read off the creation form. */
+function readRiddle(formData: FormData): { question: string; word: string } {
+  const read = (key: string, max: number) => {
+    const raw = formData.get(key);
+    return typeof raw === "string" ? raw.trim().slice(0, max) : "";
+  };
+  return {
+    question: read("question", RIDDLE_QUESTION_MAX),
+    word: read("answer", RIDDLE_ANSWER_MAX),
+  };
 }
 
 /** Clamp the admin-supplied shape of each game to what its UI can render. */
@@ -3517,6 +3565,7 @@ function readShape(formData: FormData): MiniGameShape {
   return {
     cups: clampCups(optNum(formData, "cups", CUPS_MIN)),
     digits: clampDigits(optNum(formData, "digits", SAFE_DIGITS_MIN)),
+    size: clampMapSize(optNum(formData, "size", MAP_SIZE_MIN)),
   };
 }
 
@@ -3588,6 +3637,13 @@ async function activateEvent(
   const params: MiniGameShape = {
     cups: clampCups(cfg.cups ?? CUPS_MIN),
     digits: clampDigits(cfg.digits ?? SAFE_DIGITS_MIN),
+    size: clampMapSize(cfg.size ?? MAP_SIZE_MIN),
+  };
+  // A riddle's secret is written, not rolled, so re-releasing one has to carry
+  // its own text forward — `freshConfig` cannot invent a question.
+  const authored = {
+    question: typeof cfg.question === "string" ? cfg.question : "",
+    word: typeof cfg.word === "string" ? cfg.word : "",
   };
   const maxAttempts = clampAttempts(event.type, params, event.maxAttempts);
   const minutes = Math.min(MAX_DURATION_MINUTES, Math.max(0, Math.round(durationMinutes)));
@@ -3614,7 +3670,7 @@ async function activateEvent(
         endsAt,
         endedAt: null,
         maxAttempts,
-        config: freshConfig(event.type, params),
+        config: freshConfig(event.type, params, authored),
       },
     }),
   ]);
@@ -3694,11 +3750,19 @@ export async function createMiniGame(
       );
     }
 
+    // A riddle is the one game whose secret is written rather than rolled, so
+    // it is refused up front if either half is missing — an empty answer can
+    // never be matched, which would be a release nobody could win.
+    const riddle = readRiddle(formData);
+    if (type === "RIDDLE" && (!riddle.question || !riddle.word)) {
+      throw new AdminError("לחידה צריך גם שאלה וגם תשובה");
+    }
+
     const event = await prisma.miniGameEvent.create({
       data: {
         type,
         title,
-        config: freshConfig(type, shape),
+        config: freshConfig(type, shape, riddle),
         maxAttempts,
         maxWinners,
         durationMinutes,

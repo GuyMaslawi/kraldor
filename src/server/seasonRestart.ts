@@ -70,7 +70,16 @@ export async function restartWorld(
 
   const empires = await tx.empire.findMany({
     where: notBot,
-    select: { userId: true, name: true, diamonds: true, isStaff: true },
+    select: {
+      userId: true,
+      name: true,
+      diamonds: true,
+      isStaff: true,
+      // The muster roll carries over — see the note at the assignment below.
+      streakDay: true,
+      streakCount: true,
+      streakBest: true,
+    },
   });
 
   // Guilds first: members, spells and treasury transactions cascade off.
@@ -89,10 +98,23 @@ export async function restartWorld(
       undefined,
       e.isStaff
     );
-    // The one carry-over. Everything else on the rebuilt row is whatever
+    // The carry-overs. Everything else on the rebuilt row is whatever
     // `newEmpireData` gives a brand-new registration — including `vipSince` and
     // `discordJoinedAt`, which are null again on purpose (see above).
     data.diamonds = e.diamonds;
+    // The muster roll survives the restart, and it is the one thing here that
+    // is *not* about the world. A streak is a record of the player's habit —
+    // how many days in a row they have opened the game — and the world being
+    // wiped is not something they did. Breaking a forty-day run because an
+    // admin scheduled a new season would punish exactly the players the loop
+    // exists to keep, and on a day they did nothing wrong.
+    //
+    // It also cannot be exploited: the columns only ever gate *tomorrow's*
+    // claim (see streakTransition), and the day they encode is a calendar day,
+    // so carrying them forward hands out nothing on the day of the restart.
+    data.streakDay = e.streakDay;
+    data.streakCount = e.streakCount;
+    data.streakBest = e.streakBest;
     // No new-player shield on a restart: everyone starts equal and may compete
     // immediately. The shield is only for a genuine mid-season registration
     // joining among established players.

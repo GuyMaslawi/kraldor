@@ -1,0 +1,16 @@
+-- נפחיית הגיבור — the forge, in one column.
+--
+-- Gear only ever came from winning attacks and expeditions, and both hand out a
+-- random slot: a player ends up with nine swords and no boots, and every
+-- duplicate they throw away is progress they earned and cannot use. Shards are
+-- the exchange rate between those two facts — melt what you cannot wear, aim the
+-- next drop at the slot you are missing.
+--
+-- On the hero rather than the empire because it is gear, and because it has to
+-- survive a prestige: a reset takes the level back to 1 and leaves the bag
+-- alone, so taking the shards would be taking gear the player still holds.
+--
+-- Additive and defaulted, so every existing hero reads back with an empty
+-- pouch — which is right: shards are earned by dismantling, and nothing has
+-- been dismantled yet.
+ALTER TABLE "Hero" ADD COLUMN "shards" INTEGER NOT NULL DEFAULT 0;

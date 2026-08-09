@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
+  MAP_SIZE_MIN,
+  MAP_SIZE_MAX,
+  clampMapSize,
+  digBand,
+  normalizeRiddleAnswer,
+  publicConfig,
+  riddleSolved,
   scoreCode,
   parseHistory,
   attemptsRange,
@@ -164,5 +171,154 @@ describe("clampAttempts", () => {
   it("falls back to the shape's default when nothing usable was submitted", () => {
     expect(clampAttempts("FIND_BALL", { cups: 4, digits: 3 }, Number.NaN)).toBe(1);
     expect(clampAttempts("CRACK_SAFE", { cups: 3, digits: 3 }, Number.NaN)).toBe(5);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* the two newer games                                                 */
+/* ------------------------------------------------------------------ */
+
+describe("digBand", () => {
+  it("names the cell itself", () => {
+    expect(digBand(12, 12, 5)).toBe("found");
+  });
+
+  it("bands by Chebyshev distance — a diagonal neighbour is as close", () => {
+    // On a 5×5, cell 12 is the centre (row 2, col 2). Its orthogonal and
+    // diagonal neighbours must read the same, because a player reasons in rings
+    // around a dig rather than in city blocks.
+    for (const neighbour of [6, 7, 8, 11, 13, 16, 17, 18]) {
+      expect(digBand(neighbour, 12, 5)).toBe("hot");
+    }
+  });
+
+  it("cools with distance", () => {
+    expect(digBand(2, 12, 5)).toBe("warm"); // two rows up
+    expect(digBand(0, 24, 5)).toBe("cold"); // opposite corners
+  });
+
+  it("uses absolute thresholds, not proportional ones", () => {
+    // "hot means one cell away" has to mean the same on every grid, or it is a
+    // rule nobody can learn. Same relative position, two grid sizes.
+    expect(digBand(0, 1, 4)).toBe("hot");
+    expect(digBand(0, 1, 7)).toBe("hot");
+    expect(digBand(0, 3, 4)).toBe("cold");
+    expect(digBand(0, 3, 7)).toBe("cold");
+  });
+
+  it("never returns 'found' for a cell that is not the answer", () => {
+    for (let size = MAP_SIZE_MIN; size <= MAP_SIZE_MAX; size += 1) {
+      for (let pick = 0; pick < size * size; pick += 1) {
+        const band = digBand(pick, 0, size);
+        expect(band === "found").toBe(pick === 0);
+      }
+    }
+  });
+});
+
+describe("clampMapSize", () => {
+  it("holds the grid inside what the board can render", () => {
+    expect(clampMapSize(1)).toBe(MAP_SIZE_MIN);
+    expect(clampMapSize(99)).toBe(MAP_SIZE_MAX);
+    expect(clampMapSize(Number.NaN)).toBe(MAP_SIZE_MIN);
+    expect(clampMapSize(5)).toBe(5);
+  });
+});
+
+describe("riddleSolved", () => {
+  it("accepts the answer", () => {
+    expect(riddleSolved("קראלדור", "קראלדור")).toBe(true);
+  });
+
+  it("forgives the keyboard, not the word", () => {
+    // Case, surrounding space, runs of space inside, niqqud and geresh are all
+    // typing rather than meaning. A different word is a different word.
+    expect(riddleSolved("  קראלדור  ", "קראלדור")).toBe(true);
+    expect(riddleSolved("Kraldor", "kraldor")).toBe(true);
+    expect(riddleSolved("שתי   מילים", "שתי מילים")).toBe(true);
+    expect(riddleSolved("קראלדור", "קראלדורים")).toBe(false);
+    expect(riddleSolved("", "קראלדור")).toBe(false);
+  });
+
+  it("never accepts anything against an empty answer", () => {
+    // An event saved without an answer must be unwinnable rather than
+    // winnable by everyone — the admin form refuses to create one, and this is
+    // the backstop if a row ever gets there another way.
+    expect(riddleSolved("", "")).toBe(false);
+    expect(riddleSolved("anything", "")).toBe(false);
+    expect(riddleSolved("", "   ")).toBe(false);
+  });
+
+  it("normalises both sides the same way", () => {
+    // The admin never has to guess which form to save.
+    expect(normalizeRiddleAnswer("  שתי   מילים ")).toBe(
+      normalizeRiddleAnswer("שתי מילים")
+    );
+  });
+});
+
+describe("attemptsRange for the newer games", () => {
+  it("never lets the treasure map be swept", () => {
+    // A budget near the cell count would turn deduction into a search.
+    for (let size = MAP_SIZE_MIN; size <= MAP_SIZE_MAX; size += 1) {
+      const range = attemptsRange("TREASURE_MAP", { cups: 3, digits: 3, size });
+      expect(range.max).toBeLessThan(size * size);
+      expect(range.max).toBeLessThanOrEqual(Math.floor((size * size) / 4));
+      expect(range.fallback).toBeLessThanOrEqual(range.max);
+      expect(range.fallback).toBeGreaterThanOrEqual(range.min);
+    }
+  });
+
+  it("keeps a riddle's budget small — attempts buy nothing but retries", () => {
+    const range = attemptsRange("RIDDLE", { cups: 3, digits: 3, size: 4 });
+    expect(range.max).toBeLessThanOrEqual(5);
+    expect(range.fallback).toBeGreaterThanOrEqual(range.min);
+    expect(range.fallback).toBeLessThanOrEqual(range.max);
+  });
+});
+
+describe("publicConfig", () => {
+  it("ships the shape and the question, never an answer", () => {
+    // Everything this returns crosses to the browser.
+    const pub = publicConfig({
+      config: {
+        size: 5,
+        answer: 17,
+        question: "מה שם הבירה?",
+        word: "קראלדור",
+        code: "0472",
+        cups: 3,
+      },
+    } as never);
+    expect(pub.size).toBe(5);
+    expect(pub.question).toBe("מה שם הבירה?");
+    expect(Object.values(pub)).not.toContain(17);
+    expect(Object.values(pub)).not.toContain("קראלדור");
+    expect(Object.values(pub)).not.toContain("0472");
+  });
+
+  it("reads junk back as absent rather than throwing", () => {
+    const pub = publicConfig({ config: { size: "5", question: 7 } } as never);
+    expect(pub.size).toBeNull();
+    expect(pub.question).toBeNull();
+  });
+});
+
+describe("parseHistory for the newer games", () => {
+  it("keeps well-formed dig and word rows", () => {
+    const rows = parseHistory([
+      { kind: "dig", pick: 4, band: "hot" },
+      { kind: "word", word: "קראלדור", hit: false },
+    ]);
+    expect(rows).toEqual([
+      { kind: "dig", pick: 4, band: "hot" },
+      { kind: "word", word: "קראלדור", hit: false },
+    ]);
+  });
+
+  it("drops a dig with a band the game does not have", () => {
+    expect(parseHistory([{ kind: "dig", pick: 4, band: "boiling" }])).toEqual([]);
+    expect(parseHistory([{ kind: "dig", pick: 1.5, band: "hot" }])).toEqual([]);
+    expect(parseHistory([{ kind: "word", word: 7, hit: true }])).toEqual([]);
   });
 });

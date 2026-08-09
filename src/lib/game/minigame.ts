@@ -43,6 +43,8 @@ export function prizeText(t: T, event: MiniGameEvent): string {
 export const MINIGAME_TYPE_META: Record<MiniGameType, { label: string; icon: string }> = {
   FIND_BALL: { label: "מצא את הכדור", icon: "🥤" },
   CRACK_SAFE: { label: "פריצת הכספת", icon: "🔐" },
+  TREASURE_MAP: { label: "מפת האוצר", icon: "🗺️" },
+  RIDDLE: { label: "חידה", icon: "❓" },
 };
 
 /**
@@ -68,14 +70,34 @@ export const CUPS_MAX = 6;
 export const SAFE_DIGITS_MIN = 3;
 export const SAFE_DIGITS_MAX = 5;
 
+/**
+ * The treasure map's grid, per side. Four is the floor for the same reason
+ * three cups is: a 3×3 map is nine cells and the hot/cold banding has nowhere
+ * to speak, so the deduction the game is *for* never happens. Seven is the
+ * ceiling because a 49-cell grid still fits a phone at a readable tap size.
+ */
+export const MAP_SIZE_MIN = 4;
+export const MAP_SIZE_MAX = 7;
+
+/** Longest riddle answer the engine will store or compare. */
+export const RIDDLE_ANSWER_MAX = 60;
+/** Longest question an admin may set. */
+export const RIDDLE_QUESTION_MAX = 240;
+
 /** Hard floor/ceiling on the attempt budget, whatever the game. */
 export const ATTEMPTS_MIN = 1;
 export const ATTEMPTS_CEILING = 30;
 
-/** The shape of a game — only one of the two fields matters per type. */
+/** The shape of a game — only the field its own type uses matters. */
 export interface MiniGameShape {
   cups: number;
   digits: number;
+  /**
+   * Side of the treasure map's square grid. Optional so the two older games'
+   * call sites — which have no notion of a grid — keep compiling unchanged;
+   * `clampMapSize` supplies the floor for anything absent.
+   */
+  size?: number;
 }
 
 /**
@@ -103,6 +125,26 @@ export function attemptsRange(
     const cups = clampCups(shape.cups);
     return { min: ATTEMPTS_MIN, max: Math.max(ATTEMPTS_MIN, cups - 2), fallback: 1 };
   }
+  if (type === "TREASURE_MAP") {
+    // Every dig comes back banded by distance, so attempts are information here
+    // exactly as they are on the safe — but a grid is far larger than a code,
+    // and a budget near the cell count would let a patient player sweep it. The
+    // ceiling is a quarter of the map, and the default is one dig per side:
+    // enough to triangulate, nowhere near enough to search.
+    const size = clampMapSize(shape.size ?? MAP_SIZE_MIN);
+    const cells = size * size;
+    return {
+      min: ATTEMPTS_MIN,
+      max: Math.max(ATTEMPTS_MIN + 1, Math.floor(cells / 4)),
+      fallback: size,
+    };
+  }
+  if (type === "RIDDLE") {
+    // A riddle has no partial credit — an answer is right or it is not — so
+    // attempts buy nothing but retries. Three is generous enough to survive a
+    // typo and mean enough that the guessing has to stop.
+    return { min: ATTEMPTS_MIN, max: 5, fallback: 3 };
+  }
   const digits = clampDigits(shape.digits);
   return { min: ATTEMPTS_MIN, max: ATTEMPTS_CEILING, fallback: digits * 2 - 1 };
 }
@@ -118,6 +160,10 @@ export function clampDigits(value: number): number {
   return Number.isFinite(value) ? clamp(value, SAFE_DIGITS_MIN, SAFE_DIGITS_MAX) : SAFE_DIGITS_MIN;
 }
 
+export function clampMapSize(value: number): number {
+  return Number.isFinite(value) ? clamp(value, MAP_SIZE_MIN, MAP_SIZE_MAX) : MAP_SIZE_MIN;
+}
+
 /** Clamp an admin-supplied attempt budget into what this shape can carry. */
 export function clampAttempts(
   type: MiniGameType,
@@ -128,16 +174,32 @@ export function clampAttempts(
   return Number.isFinite(value) ? clamp(value, range.min, range.max) : range.fallback;
 }
 
-/** Public (answer-free) parameters a player is allowed to see. */
+/**
+ * Public (answer-free) parameters a player is allowed to see.
+ *
+ * Every field here crosses to the browser, so the rule is absolute: the shape
+ * of a game may be public, its answer may not. `question` is the one string
+ * that ships — a riddle without its question is not a riddle — and it is the
+ * admin's own text, never derived from the answer.
+ */
 export interface MiniGamePublicConfig {
   cups: number | null;
   digits: number | null;
+  /** Side of the treasure map's grid. */
+  size: number | null;
+  /** The riddle's question. Never its answer. */
+  question: string | null;
 }
 
 export function publicConfig(event: MiniGameEvent): MiniGamePublicConfig {
   const cfg = (event.config ?? {}) as Record<string, unknown>;
   const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
-  return { cups: n(cfg.cups), digits: n(cfg.digits) };
+  return {
+    cups: n(cfg.cups),
+    digits: n(cfg.digits),
+    size: n(cfg.size),
+    question: typeof cfg.question === "string" ? cfg.question : null,
+  };
 }
 
 /* ---------------------------- attempt history ---------------------------- */
@@ -146,13 +208,95 @@ export function publicConfig(event: MiniGameEvent): MiniGamePublicConfig {
 export type SafeMark = "hit" | "near" | "miss";
 
 /**
+ * How close a dig landed. Bands rather than a raw distance, and that is the
+ * whole design of the treasure map: a number would make the grid a
+ * co-ordinate puzzle solvable with two digs and a pencil, while four bands
+ * narrow the search without ever handing over the cell.
+ *
+ * Measured in Chebyshev distance (the larger of the row and column gaps),
+ * because on a grid a diagonal neighbour is as close as an orthogonal one —
+ * a player reasons in rings around a dig, not in city blocks.
+ */
+export type DigBand = "found" | "hot" | "warm" | "cold";
+
+export const DIG_BANDS: readonly DigBand[] = ["found", "hot", "warm", "cold"];
+
+export function isDigBand(value: unknown): value is DigBand {
+  return typeof value === "string" && (DIG_BANDS as string[]).includes(value);
+}
+
+/** What each band is called when a dig comes back. */
+export const DIG_BAND_LABEL: Record<DigBand, string> = {
+  found: "כאן!",
+  hot: "חם",
+  warm: "פושר",
+  cold: "קר",
+};
+
+/**
+ * Band a dig by its distance from the buried cell.
+ *
+ * The thresholds are absolute rather than scaled to the grid, and deliberately
+ * so: "hot means one cell away" is a rule a player can learn once and use on
+ * every map, where a proportional band would mean something different on a 4×4
+ * than on a 7×7 and could never be reasoned about.
+ */
+export function digBand(
+  pick: number,
+  answer: number,
+  size: number
+): DigBand {
+  if (pick === answer) return "found";
+  const dr = Math.abs(Math.floor(pick / size) - Math.floor(answer / size));
+  const dc = Math.abs((pick % size) - (answer % size));
+  const distance = Math.max(dr, dc);
+  if (distance <= 1) return "hot";
+  if (distance <= 2) return "warm";
+  return "cold";
+}
+
+/* ---------------------------- riddles ---------------------------- */
+
+/**
+ * Normalise a riddle answer for comparison.
+ *
+ * A riddle is judged on what the player *meant*, not on their keyboard: case,
+ * surrounding space, runs of space inside, Hebrew niqqud and the geresh/gershayim
+ * that half of players type and half do not. Applied identically to the stored
+ * answer and to the attempt, so the admin never has to guess which form to save.
+ *
+ * Deliberately no further cleverness — no stemming, no edit distance. A riddle
+ * whose answer needs fuzzy matching is a badly written riddle, and a matcher
+ * that accepts near-misses would eventually accept a wrong one.
+ */
+export function normalizeRiddleAnswer(value: string): string {
+  return value
+    .normalize("NFKC")
+    .replace(/[\u0591-\u05C7]/g, "")
+    .replace(/[\u05F3\u05F4'"`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("he");
+}
+
+/** Whether an attempt answers the riddle. */
+export function riddleSolved(guess: string, answer: string): boolean {
+  const wanted = normalizeRiddleAnswer(answer);
+  return wanted.length > 0 && normalizeRiddleAnswer(guess) === wanted;
+}
+
+/**
  * One past attempt by the viewing player. Answer-free by construction: a cup row
  * says which cup *this player* lifted, a code row says what they typed and how
  * it scored — neither is enough to name the answer without playing for it.
  */
 export type MiniGameHistoryRow =
   | { kind: "cup"; pick: number; hit: boolean }
-  | { kind: "code"; code: string; marks: SafeMark[] };
+  | { kind: "code"; code: string; marks: SafeMark[] }
+  /** A dig on the treasure map: which cell, and how close it turned out to be. */
+  | { kind: "dig"; pick: number; band: DigBand }
+  /** An answer to a riddle: what was typed, and whether it was right. */
+  | { kind: "word"; word: string; hit: boolean };
 
 /** Most recent attempts kept per player — the safe's board never needs more. */
 export const HISTORY_LIMIT = 12;
@@ -171,6 +315,15 @@ export function parseHistory(value: unknown): MiniGameHistoryRow[] {
         (m): m is SafeMark => m === "hit" || m === "near" || m === "miss"
       );
       if (marks.length === r.marks.length) rows.push({ kind: "code", code: r.code, marks });
+    } else if (
+      r.kind === "dig" &&
+      typeof r.pick === "number" &&
+      Number.isInteger(r.pick) &&
+      isDigBand(r.band)
+    ) {
+      rows.push({ kind: "dig", pick: r.pick, band: r.band });
+    } else if (r.kind === "word" && typeof r.word === "string") {
+      rows.push({ kind: "word", word: r.word, hit: r.hit === true });
     }
   }
   return rows.slice(-HISTORY_LIMIT);
@@ -231,6 +384,10 @@ export interface MiniGameState {
   prizeText: string;
   cups: number | null;
   digits: number | null;
+  /** Side of the treasure map's grid. */
+  size: number | null;
+  /** The riddle's question. Never its answer. */
+  question: string | null;
   /** The viewer's own attempt log, oldest first. Never another player's. */
   history: MiniGameHistoryRow[];
   attempts: number;

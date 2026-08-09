@@ -17,7 +17,10 @@ import { useRouter } from "next/navigation";
 import { useScrollLock } from "@/components/ui/scrollLock";
 import { pollMiniGame, submitMiniGameGuess } from "@/server/actions/minigame";
 import {
+  DIG_BAND_LABEL,
   MINIGAME_TYPE_META,
+  RIDDLE_ANSWER_MAX,
+  type DigBand,
   type MiniGameBoardRow,
   type MiniGameHistoryRow,
   type MiniGameState,
@@ -265,6 +268,158 @@ function SafeLegend() {
  * failures. The marks are computed server-side (see scoreCode); the client only
  * ever paints what it was handed.
  */
+/**
+ * מפת האוצר — the grid, with every dig left where it landed.
+ *
+ * The board *is* the player's notes. Each cell they have dug keeps its band
+ * ("חם" / "פושר" / "קר") permanently, because the whole game is triangulating
+ * from those readings — a grid that forgot them would force the player to
+ * remember four numbers to play a puzzle about deduction.
+ *
+ * Bands rather than distances is a rule of the game, not of the view: see
+ * `digBand`. Nothing here can compute a band, and nothing here is told the
+ * answer — the server sends the reading with the dig.
+ */
+function TreasureGame({
+  size,
+  history,
+  interactive,
+  pending,
+  onDig,
+}: {
+  size: number;
+  history: MiniGameHistoryRow[];
+  interactive: boolean;
+  pending: boolean;
+  onDig: (index: number) => void;
+}) {
+  const t = useT();
+  const digs = useMemo(() => {
+    const map = new Map<number, DigBand>();
+    for (const row of history) if (row.kind === "dig") map.set(row.pick, row.band);
+    return map;
+  }, [history]);
+
+  return (
+    <div className="tmap-stage" role="group" aria-label={t("מפת האוצר")}>
+      <div
+        className="tmap-grid"
+        style={{ "--size": size } as CSSProperties}
+      >
+        {Array.from({ length: size * size }).map((_, i) => {
+          const band = digs.get(i);
+          const row = Math.floor(i / size) + 1;
+          const col = (i % size) + 1;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onDig(i)}
+              disabled={!interactive || band !== undefined || pending}
+              className="tmap-cell"
+              data-band={band ?? "idle"}
+              aria-label={
+                band
+                  ? t("שורה {row}, עמודה {col} — {band}", {
+                      row,
+                      col,
+                      band: t(DIG_BAND_LABEL[band]),
+                    })
+                  : t("שורה {row}, עמודה {col}", { row, col })
+              }
+            >
+              {band === "found" ? "💰" : band ? t(DIG_BAND_LABEL[band]) : ""}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-center text-[11px] text-zinc-500">
+        {t("כל חפירה מגלה כמה קרוב היית — לא לאן ללכת.")}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * חידה — the question, a box, and everything already tried.
+ *
+ * The list of past answers is the only feedback there is: a riddle has no
+ * partial credit, so showing what has been said keeps a player from spending
+ * their last attempt on a word they already tried.
+ */
+function RiddleGame({
+  question,
+  history,
+  interactive,
+  pending,
+  onAnswer,
+}: {
+  question: string;
+  history: MiniGameHistoryRow[];
+  interactive: boolean;
+  pending: boolean;
+  onAnswer: (value: string) => void;
+}) {
+  const t = useT();
+  const [value, setValue] = useState("");
+  const tried = history.filter(
+    (row): row is Extract<MiniGameHistoryRow, { kind: "word" }> =>
+      row.kind === "word"
+  );
+
+  return (
+    <div className="riddle-stage">
+      <p className="riddle-question">{question}</p>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const answer = value.trim();
+          if (!answer) return;
+          onAnswer(answer);
+          setValue("");
+        }}
+        className="mt-3 flex flex-wrap items-center justify-center gap-2"
+      >
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          disabled={!interactive || pending}
+          maxLength={RIDDLE_ANSWER_MAX}
+          autoComplete="off"
+          placeholder={t("התשובה שלך")}
+          className="w-full max-w-xs rounded-lg border border-border-subtle bg-surface-raised px-3 py-2 text-center text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-colors focus:border-gold"
+        />
+        <button
+          type="submit"
+          disabled={!interactive || pending || value.trim().length === 0}
+          className="btn btn-gold px-4 py-2 text-sm disabled:opacity-50"
+        >
+          {pending ? t("בודק…") : t("ענה")}
+        </button>
+      </form>
+
+      {tried.length > 0 && (
+        <ul className="mt-3 flex flex-wrap justify-center gap-1.5">
+          {tried.map((row, i) => (
+            <li
+              key={`${row.word}-${i}`}
+              className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${
+                row.hit
+                  ? "border-emerald-500/50 bg-emerald-950/40 text-emerald-300"
+                  : "border-border-subtle bg-black/30 text-zinc-500 line-through"
+              }`}
+            >
+              {row.word}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function SafeGame({
   digits,
   history,
@@ -635,6 +790,22 @@ function MiniGameStage({
               pending={pending}
               attempts={state.attempts}
               onSubmit={onPlay}
+            />
+          ) : state.type === "TREASURE_MAP" ? (
+            <TreasureGame
+              size={state.size ?? 4}
+              history={state.history}
+              interactive={interactive}
+              pending={pending}
+              onDig={(i) => onPlay(String(i))}
+            />
+          ) : state.type === "RIDDLE" ? (
+            <RiddleGame
+              question={state.question ?? ""}
+              history={state.history}
+              interactive={interactive}
+              pending={pending}
+              onAnswer={onPlay}
             />
           ) : (
             <CupsGame

@@ -42,7 +42,7 @@ const LEAVE_MS = 420;
 
 type Flavour = {
   /** Drives the palette and the background wash — see `.mgt[data-game]`. */
-  game: "cups" | "safe";
+  game: "cups" | "safe" | "map" | "riddle";
   kicker: string;
   tagline: string;
   cta: string;
@@ -61,6 +61,18 @@ const FLAVOUR: Record<MiniGameState["type"], Flavour> = {
     kicker: "כספת חדשה נפתחה לפריצה",
     tagline: "הקוד ידוע רק לכספת. פענח אותו לפני כולם — וקח את מה שבפנים.",
     cta: "🔓 קדימה, לפריצה!",
+  },
+  TREASURE_MAP: {
+    game: "map",
+    kicker: "מפה חדשה הגיעה לנמל",
+    tagline: "משהו קבור על הרשת. כל חפירה מספרת כמה קרוב היית — ולא יותר מזה.",
+    cta: "🗺️ קדימה, לחפירה!",
+  },
+  RIDDLE: {
+    game: "riddle",
+    kicker: "חידה חדשה נתלתה בכיכר",
+    tagline: "שאלה אחת, תשובה אחת. מי שיודע — יודע.",
+    cta: "❓ קדימה, לחידה!",
   },
 };
 
@@ -88,6 +100,23 @@ function CupsStage() {
           <span className="mgt-cup-base" />
         </span>
       ))}
+    </div>
+  );
+}
+
+/**
+ * The shared stage for the newer games: one large sigil, breathing.
+ *
+ * Deliberately not two more bespoke animations. The takeover holds the screen
+ * for six seconds and then hands over to the pill in the command bar — the
+ * palette and the flavour line already say which game arrived, and a scene
+ * nobody has time to read is scenery for its own sake.
+ */
+function SigilStage({ sigil }: { sigil: string }) {
+  return (
+    <div className="mgt-stage mgt-stage--sigil" aria-hidden>
+      <span className="mgt-spot" />
+      <span className="mgt-sigil">{sigil}</span>
     </div>
   );
 }
@@ -200,7 +229,16 @@ export function MiniGameTakeover({
         {/* The stage lands first and hardest — it is the part that says which
             game this is, before the title has been read. */}
         <div className="mgt-stage-wrap">
-          {state.type === "CRACK_SAFE" ? <SafeStage /> : <CupsStage />}
+          {state.type === "CRACK_SAFE" ? (
+            <SafeStage />
+          ) : state.type === "FIND_BALL" ? (
+            <CupsStage />
+          ) : (
+            // The two newer games share one sigil stage. A six-second
+            // announcement does not need a bespoke animation each — the flavour
+            // text and the palette already say which game arrived.
+            <SigilStage sigil={state.type === "TREASURE_MAP" ? "🗺️" : "❓"} />
+          )}
         </div>
 
         <h2 className="mgt-title mgt-rise" style={{ ["--mgt-delay" as string]: "0.45s" }}>

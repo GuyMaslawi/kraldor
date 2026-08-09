@@ -10,6 +10,7 @@ import {
   GUILD_AID_MAX_LEVEL,
   GUILD_CAPACITY_MAX_LEVEL,
   GUILD_CREATION_COST_DIAMONDS,
+  GUILD_DONATION_MIN,
   GUILD_INVITE_TTL_HOURS,
   GUILD_INVITE_TTL_MS,
   GUILD_NAME_MAX_LENGTH,
@@ -64,10 +65,12 @@ async function spendDiamonds(
 }
 
 /**
- * Spend the member's own available gold. Guilds have no treasury, so guild-wide
- * upgrades are funded personally by whoever buys them. The guarded update means
- * concurrent spends can never drive the balance negative; returns false when the
- * empire lacks enough gold.
+ * Spend the member's own available gold. The guarded update means concurrent
+ * spends can never drive the balance negative; returns false when the empire
+ * lacks enough gold.
+ *
+ * Only donations use this now. The guild's own ladders are bought from the
+ * treasury — see `spendTreasury`.
  */
 async function spendOwnGold(
   tx: Prisma.TransactionClient,
@@ -77,6 +80,23 @@ async function spendOwnGold(
   const updated = await tx.empire.updateMany({
     where: { id: empireId, gold: { gte: cost } },
     data: { gold: { decrement: cost } },
+  });
+  return updated.count > 0;
+}
+
+/**
+ * Spend from the guild's treasury. Same guarded shape as every other debit in
+ * this codebase — a concurrent purchase can never overdraw the till, and the
+ * caller decides what to do when it returns false.
+ */
+async function spendTreasury(
+  tx: Prisma.TransactionClient,
+  guildId: string,
+  cost: number
+): Promise<boolean> {
+  const updated = await tx.guild.updateMany({
+    where: { id: guildId, treasury: { gte: cost } },
+    data: { treasury: { decrement: cost } },
   });
   return updated.count > 0;
 }
@@ -645,11 +665,77 @@ export async function upgradeGuildSpell(
   });
 }
 
+/* ------------------------------ the treasury ------------------------------ */
+
+const donationSchema = z.object({
+  amount: z.coerce.number().finite().int().min(GUILD_DONATION_MIN),
+});
+
+/**
+ * Put gold into the guild's treasury.
+ *
+ * Open to every member, including the newest: donating is the one guild action
+ * that cannot be abused by someone who joined an hour ago, and gating it would
+ * defeat the point of having a shared till.
+ *
+ * There is deliberately **no withdrawal**. Gold that goes in belongs to the
+ * guild, and a treasury a leader can empty into their own balance is a trap
+ * laid for every member who trusts them — the leadership decides what it *buys*,
+ * not who gets it back. That also removes any laundering angle, since gold can
+ * only ever leave the till by turning into a guild upgrade.
+ */
+export async function donateToGuild(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const parsed = donationSchema.safeParse({ amount: formData.get("amount") });
+
+  return runMemberAction(async (membership, tx, empireId, t) => {
+    if (!parsed.success) {
+      return {
+        error: t("תרומה מינימלית היא {min} זהב.", {
+          min: GUILD_DONATION_MIN.toLocaleString("en-US"),
+        }),
+      };
+    }
+    const { amount } = parsed.data;
+
+    // Guarded debit first: the member's gold is the half that can fail, and a
+    // treasury credited before the payment cleared would be minting gold.
+    if (!(await spendOwnGold(tx, empireId, amount))) {
+      return {
+        error: t("אין לך {amount} זהב זמין לתרומה.", {
+          amount: amount.toLocaleString("en-US"),
+        }),
+      };
+    }
+
+    // Two increments rather than absolute sets: donations from several members
+    // land concurrently, and either column written absolutely would lose one of
+    // them.
+    await tx.guild.update({
+      where: { id: membership.guildId },
+      data: { treasury: { increment: amount } },
+    });
+    await tx.guildMember.update({
+      where: { id: membership.id },
+      data: { donated: { increment: amount } },
+    });
+
+    return {
+      success: t("תרמת {amount} זהב לאוצר {guild}.", {
+        amount: amount.toLocaleString("en-US"),
+        guild: membership.guild.name,
+      }),
+    };
+  });
+}
+
 export async function upgradeGuildCapacity(): Promise<ActionState> {
   return runMemberAction(async (membership, tx, empireId, t) => {
     const { guild } = membership;
     // Roster size is a leadership call, so only a leader or deputy may buy a
-    // seat — out of their own pocket, since the guild has no treasury.
+    // seat — and it is now bought with the guild's money rather than theirs.
     if (membership.role === "MEMBER") {
       return { error: t("רק מנהיג או סגן יכולים להרחיב את הברית.") };
     }
@@ -661,13 +747,13 @@ export async function upgradeGuildCapacity(): Promise<ActionState> {
       };
     }
 
-    // Paid from the buyer's own gold with a guarded debit, so concurrent spends
-    // can never overdraw; the level guard below then rolls it back if another
-    // member bought the same level first.
+    // Paid from the treasury with a guarded debit, so concurrent spends can
+    // never overdraw; the level guard below then rolls it back if another
+    // officer bought the same level first.
     const cost = capacityUpgradeCostGold(guild.capacityLevel);
-    if (!(await spendOwnGold(tx, empireId, cost))) {
+    if (!(await spendTreasury(tx, guild.id, cost))) {
       return {
-        error: t("ההרחבה עולה {cost} זהב מהזהב הזמין שלך — אין לך מספיק.", {
+        error: t("ההרחבה עולה {cost} זהב מאוצר הברית — אין מספיק באוצר.", {
           cost: cost.toLocaleString("en-US"),
         }),
       };
@@ -690,8 +776,13 @@ export async function upgradeGuildCapacity(): Promise<ActionState> {
 export async function upgradeGuildAid(): Promise<ActionState> {
   return runMemberAction(async (membership, tx, empireId, t) => {
     const { guild } = membership;
-    // Open to every member: whoever wants more aid pays for it from their own
-    // available gold — there is no treasury to drain, so no role gate.
+    // Now that there IS a treasury to drain, this needs the role gate the
+    // capacity ladder always had: an upgrade paid from everyone's donations is
+    // a leadership decision, and one member spending the guild's savings on a
+    // ladder nobody agreed to is exactly what a shared till makes possible.
+    if (membership.role === "MEMBER") {
+      return { error: t("רק מנהיג או סגן יכולים לשדרג את עזרת הברית.") };
+    }
     if (guild.aidLevel >= GUILD_AID_MAX_LEVEL) {
       return {
         error: t("עזרת הברית כבר ברמה המקסימלית ({max}%).", {
@@ -701,9 +792,9 @@ export async function upgradeGuildAid(): Promise<ActionState> {
     }
 
     const cost = aidUpgradeCostGold(guild.aidLevel);
-    if (!(await spendOwnGold(tx, empireId, cost))) {
+    if (!(await spendTreasury(tx, guild.id, cost))) {
       return {
-        error: t("השדרוג עולה {cost} זהב מהזהב הזמין שלך — אין לך מספיק.", {
+        error: t("השדרוג עולה {cost} זהב מאוצר הברית — אין מספיק באוצר.", {
           cost: cost.toLocaleString("en-US"),
         }),
       };

@@ -13,10 +13,10 @@ import { useT } from "@/i18n/client";
 export interface GuildCapacityCardProps {
   memberCount: number;
   capacity: number;
-  /** Own gold for one more seat; null when the guild is fully expanded. */
+  /** Treasury gold for one more seat; null when the guild is fully expanded. */
   upgradeCost: number | null;
-  /** The viewer's available gold — the upgrade is paid from it. */
-  availableGold: number;
+  /** The guild's treasury — the upgrade is paid out of it, not out of anyone's purse. */
+  treasury: number;
   /** False for plain members, who may not buy seats — the button hides. */
   mayUpgrade: boolean;
 }
@@ -25,7 +25,7 @@ export function GuildCapacityCard({
   memberCount,
   capacity,
   upgradeCost,
-  availableGold,
+  treasury,
   mayUpgrade,
 }: GuildCapacityCardProps) {
   const [state, action] = useActionState<ActionState, FormData>(
@@ -51,7 +51,7 @@ export function GuildCapacityCard({
         {t("הרחבת הברית מוסיפה מקום לחבר נוסף — עד 10 חברים.")}
       </p>
       <p className="text-[11px] text-zinc-500">
-        {t("מנהיג או סגן בלבד — משולם מהזהב הזמין שלו.")}
+        {t("מנהיג או סגן בלבד — משולם מאוצר הברית.")}
       </p>
 
       {/* How full the hall is right now — the same bar the aid card carries. */}
@@ -63,7 +63,7 @@ export function GuildCapacityCard({
         {upgradeCost != null ? (
           <SubmitButton
             className="btn btn-dark w-full"
-            disabled={!mayUpgrade || availableGold < upgradeCost}
+            disabled={!mayUpgrade || treasury < upgradeCost}
             pendingText={t("מרחיב...")}
           >
             {t("הרחב ל־{count}", { count: capacity + 1 })} · {formatNumber(upgradeCost)}{" "}

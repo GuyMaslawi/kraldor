@@ -21,6 +21,7 @@ import {
   heroShouldRevive,
   resourceProductionPct,
 } from "./hero";
+import { monumentBonuses, monumentMultiplier } from "./monuments";
 import { getActiveGuildBuffPct } from "./guildBuffs";
 import { getActiveResourceBoosts } from "./diamondEffects";
 import { getActivePotionKinds } from "./potionEffects";
@@ -38,6 +39,11 @@ const FULL_EMPIRE_INCLUDE = {
   weapons: true,
   weaponUnlocks: true,
   hero: { include: { items: true } },
+  // At most five rows, and it rides the same JOINed read as everything else —
+  // see relationLoadStrategy below. This function is the *only* place the
+  // monuments' effects are applied (rule 2 in lib/game/monuments.ts), so it is
+  // the one place they have to be loaded.
+  monuments: true,
 } satisfies Prisma.EmpireInclude;
 
 export type FullEmpire = Prisma.EmpireGetPayload<{
@@ -142,6 +148,12 @@ export async function applyPendingUpdates(
   // contributes none of it (heroBonuses).
   const heroBonus = heroBonuses(empire.hero);
 
+  // The capital's monuments, folded into five percentages. This is the only
+  // place in the game they are read — see rule 2 in lib/game/monuments.ts, and
+  // note that none of them touches combat power, which is why nothing outside
+  // this function has to know they exist.
+  const monuments = monumentBonuses(empire.monuments);
+
   /* ---- regular ticks: mine-slave production + turns ---- */
   const ticks = elapsedRegularTicks(empire.lastRegularUpdateAt, now);
   const gained: Record<StorableResource, number> = { gold: 0, wood: 0, iron: 0, stone: 0 };
@@ -167,6 +179,10 @@ export async function applyPendingUpdates(
       bonusMultiplier(resourceProductionPct(heroBonus)) *
       bonusMultiplier(guildResourcesPct) *
       potionResources *
+      // עמוד הפועלים. Multiplies alongside the hero and the guild spell rather
+      // than adding into either, so a monument is worth the same *proportion*
+      // however decorated the empire already is.
+      monumentMultiplier(monuments.mines) *
       tunables.economy.mineProductionMultiplier *
       cityProductionMultiplier(empire.cities);
     // Happy Hour rides on the *tick count*, not the multiplier: the backlog being
@@ -197,7 +213,15 @@ export async function applyPendingUpdates(
     }
     // Full ticks only — no partial-tick turns, no cap for now. The hero's turn
     // items are NOT paid here; they ride the daily update below.
-    turnsGained = Math.round(ticks * turnsGainFromUpgrades(empire.upgrades));
+    //
+    // מגדל השעון multiplies the upgrade's rate, not the tick count: the ticks
+    // being settled are a fact about the clock, and a monument that changed how
+    // many of them there were would double-pay any backlog it straddled.
+    turnsGained = Math.round(
+      ticks *
+        turnsGainFromUpgrades(empire.upgrades) *
+        monumentMultiplier(monuments.turns)
+    );
   }
 
   /* ---- daily updates: citizens + turns + bank interest + deposit-period reset ---- */
@@ -212,9 +236,16 @@ export async function applyPendingUpdates(
     // No ceiling: the whole backlog lands, so a week away is a week's citizens
     // rather than one update's worth. Cities still shape this figure through the
     // CITIZEN_GROWTH levels they unlock — they just no longer cap the pool.
+    // שער הניצחון multiplies the upgrade's intake but NOT the hero's flat item
+    // bonus. A flat grant from a piece of gear is a fixed number of people the
+    // item conjures; a percentage of it would make the monument worth more to a
+    // decorated hero than to a bare one, for no reason a player could name.
     citizensGained =
-      Math.round(citizensPerDaily * missedDailies.length) +
-      heroBonus.itemsFlat.citizens * missedDailies.length;
+      Math.round(
+        citizensPerDaily *
+          missedDailies.length *
+          monumentMultiplier(monuments.citizens)
+      ) + heroBonus.itemsFlat.citizens * missedDailies.length;
 
     // Turn items pay per daily update, alongside citizens — NOT per 5-minute
     // tick, which is where this used to live.
@@ -237,9 +268,21 @@ export async function applyPendingUpdates(
   // reward — has incremented wheelSpins without advancing lastDailyUpdateAt.
   // An absolute `wheelSpins: value` would clobber that grant (lost update,
   // destroying the won spins); the increment composes with it.
+  //
+  // גלגל השמיים multiplies it. Floored rather than rounded: at the first rung
+  // (+2% of four spins) rounding would pay nothing anyway, and flooring makes
+  // "the monument is worth a spin from level N" a fact a player can check
+  // rather than a rounding artefact that appears on some days and not others.
   const wheelSpinsDelta =
     missedDailies.length > 0
-      ? Math.max(0, tunables.daily.wheelSpins * missedDailies.length)
+      ? Math.max(
+          0,
+          Math.floor(
+            tunables.daily.wheelSpins *
+              missedDailies.length *
+              monumentMultiplier(monuments.wheelSpins)
+          )
+        )
       : 0;
 
   if (ticks === 0 && missedDailies.length === 0) return empire;
@@ -302,7 +345,13 @@ export async function applyPendingUpdates(
     // Interest compounds once per missed daily update, floored to whole gold.
     const interestLevel =
       empire.upgrades.find((u) => u.type === "BANK_DAILY_INTEREST")?.level ?? 1;
-    const rate = bankInterestRate(interestLevel);
+    // בית הגנזים multiplies the rate the upgrade bought. Applied *after* the
+    // ladder's own clamp rather than before it: BANK_INTEREST_MAX_RATE exists
+    // because interest compounds on plunder-immune gold twice a day, and a
+    // monument that raised the ceiling would be a different feature from a
+    // monument that helps you reach it. At full height this is +24% of a rate
+    // already capped — meaningful, and still bounded.
+    const rate = bankInterestRate(interestLevel) * monumentMultiplier(monuments.interest);
     let balance = bankAccount.goldBalance;
     const interestEntries: { amount: number; balanceAfter: number; createdAt: Date }[] = [];
     for (const dailyAt of missedDailies) {

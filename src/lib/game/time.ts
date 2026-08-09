@@ -180,6 +180,61 @@ export function lastDailyUpdate(date: Date): Date {
   return new Date(date.getTime() - 86_400_000);
 }
 
+/* ------------------------------ calendar days ------------------------------ */
+
+/**
+ * The Jerusalem calendar day an instant falls in, as a plain integer count of
+ * days since 1970-01-01.
+ *
+ * The game's own clock runs on 07:30/19:30 boundaries, and everything that
+ * *pays* uses those. This is a different unit on purpose, and it is the one the
+ * daily loop needs: a player who signs in at 23:00 and again at 08:00 the next
+ * morning has visited on two days, but has crossed only one daily-update
+ * boundary — counting their streak on the game clock would break it for anyone
+ * whose habit is late nights, which is most of them.
+ *
+ * An integer rather than a "YYYY-MM-DD" key so consecutiveness is `b - a === 1`
+ * — no string parsing, no month arithmetic, and it sorts and indexes as itself.
+ *
+ * DST is why this cannot be `floor(ms / 86_400_000)`: two days a year in
+ * Jerusalem are 23 and 25 hours long, and on those days a UTC-derived index
+ * disagrees with the calendar the player is reading. Going through the zoned
+ * parts costs an Intl format and is correct on every day of the year.
+ */
+export function gameDay(date: Date): number {
+  const { year, month, day } = zonedParts(date);
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+}
+
+/** Midnight Jerusalem opening the day *after* the one `date` falls in. */
+export function nextGameDayStart(date: Date): Date {
+  const base = zonedParts(new Date(date.getTime() + 86_400_000));
+  return wallTimeToUtc({
+    year: base.year,
+    month: base.month,
+    day: base.day,
+    hour: 0,
+    minute: 0,
+  });
+}
+
+/**
+ * The Jerusalem week an instant falls in, as an integer.
+ *
+ * Weeks start on **Sunday**, which is the working week where the game is played
+ * and where its season boundaries already sit. Day index 0 (1970-01-01) was a
+ * Thursday, so the +4 shift moves the epoch onto a Sunday before the divide.
+ */
+export function gameWeek(date: Date): number {
+  return Math.floor((gameDay(date) + 4) / 7);
+}
+
+/** Midnight Jerusalem opening the week *after* the one `date` falls in. */
+export function nextGameWeekStart(date: Date): Date {
+  const daysLeft = 7 - ((gameDay(date) + 4) % 7);
+  return nextGameDayStart(new Date(date.getTime() + (daysLeft - 1) * 86_400_000));
+}
+
 /** Format an instant as Jerusalem wall time (HH:MM). */
 export function formatGameTime(date: Date): string {
   return new Intl.DateTimeFormat("he-IL", {

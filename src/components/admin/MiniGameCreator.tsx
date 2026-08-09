@@ -11,6 +11,10 @@ import {
   CUPS_MAX,
   SAFE_DIGITS_MIN,
   SAFE_DIGITS_MAX,
+  MAP_SIZE_MIN,
+  MAP_SIZE_MAX,
+  RIDDLE_ANSWER_MAX,
+  RIDDLE_QUESTION_MAX,
   attemptsRange,
 } from "@/lib/game/minigame";
 import type { AdminActionState } from "@/server/actions/admin";
@@ -23,6 +27,8 @@ type Action = (
 const TYPES: { value: MiniGameType; label: string; icon: string; hint: string }[] = [
   { value: "FIND_BALL", label: "מצא את הכדור", icon: "🥤", hint: "מרימים כוס ומקווים לטוב" },
   { value: "CRACK_SAFE", label: "פריצת הכספת", icon: "🔐", hint: "מפצחים קוד סודי לפי רמזים" },
+  { value: "TREASURE_MAP", label: "מפת האוצר", icon: "🗺️", hint: "חופרים על רשת, כל חפירה מגלה כמה קרוב" },
+  { value: "RIDDLE", label: "חידה", icon: "❓", hint: "שאלה שאתה כותב, תשובה במילים" },
 ];
 
 const PRIZE_FIELDS = [
@@ -44,6 +50,7 @@ const PRIZE_FIELDS = [
 export function MiniGameCreator({ action }: { action: Action }) {
   const [state, formAction] = useActionState<AdminActionState, FormData>(action, {});
   const [type, setType] = useState<MiniGameType>("FIND_BALL");
+  const [size, setSize] = useState(String(MAP_SIZE_MIN));
   const meta = TYPES.find((t) => t.value === type)!;
 
   // The shape drives the attempt budget, so these three fields are controlled
@@ -51,7 +58,11 @@ export function MiniGameCreator({ action }: { action: Action }) {
   // next to the number of cups / digits it is guessing at.
   const [cups, setCups] = useState(String(CUPS_MIN));
   const [digits, setDigits] = useState(String(SAFE_DIGITS_MIN));
-  const range = attemptsRange(type, { cups: Number(cups), digits: Number(digits) });
+  const range = attemptsRange(type, {
+    cups: Number(cups),
+    digits: Number(digits),
+    size: Number(size),
+  });
 
   // The budget follows the shape until the admin types their own, and is pulled
   // back into range whenever the shape moves under it. Reconciled on the *shape
@@ -123,7 +134,11 @@ export function MiniGameCreator({ action }: { action: Action }) {
           hint={
             type === "FIND_BALL"
               ? `${range.min}–${range.max} · יותר מזה = די להרים את כל הכוסות`
-              : `${range.min}–${range.max} · מומלץ ${range.fallback} לקוד בן ${digits} ספרות`
+              : type === "TREASURE_MAP"
+                ? `${range.min}–${range.max} · מומלץ ${range.fallback} לרשת ${size}×${size}`
+                : type === "RIDDLE"
+                  ? `${range.min}–${range.max} · לחידה אין רמזים, הניסיונות הם רק הזדמנויות`
+                  : `${range.min}–${range.max} · מומלץ ${range.fallback} לקוד בן ${digits} ספרות`
           }
         />
         <LabeledInput label="מקס׳ זוכים (0=∞)" name="maxWinners" type="number" min={0} defaultValue={0} />
@@ -138,7 +153,33 @@ export function MiniGameCreator({ action }: { action: Action }) {
       </div>
 
       {/* Type-specific config */}
-      {type === "FIND_BALL" ? (
+      {type === "TREASURE_MAP" ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <LabeledInput
+            label="גודל הרשת"
+            name="size"
+            type="number"
+            min={MAP_SIZE_MIN}
+            max={MAP_SIZE_MAX}
+            value={size}
+            onValueChange={setSize}
+            hint={`${MAP_SIZE_MIN}–${MAP_SIZE_MAX} · רשת ${size}×${size} = ${Number(size) * Number(size)} תאים`}
+          />
+        </div>
+      ) : type === "RIDDLE" ? (
+        <div className="grid gap-3">
+          <LabeledInput
+            label="השאלה"
+            name="question"
+            hint={`מה שהשחקנים יראו · עד ${RIDDLE_QUESTION_MAX} תווים`}
+          />
+          <LabeledInput
+            label="התשובה"
+            name="answer"
+            hint={`עד ${RIDDLE_ANSWER_MAX} תווים · ההשוואה מתעלמת מרישיות, רווחים כפולים, ניקוד וגרשיים — אבל לא ממילה אחרת`}
+          />
+        </div>
+      ) : type === "FIND_BALL" ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <LabeledInput
             label="מספר כוסות"

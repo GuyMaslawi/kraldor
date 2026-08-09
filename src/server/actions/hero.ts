@@ -26,6 +26,7 @@ import {
   rollDiscardWheelSpin,
   tierForLevel,
 } from "@/lib/game/hero";
+import { shardsForItem } from "@/lib/game/forge";
 import { itemSetForLevel } from "@/lib/game/heroSets";
 import { forgeDiscountedCost } from "@/lib/game/potions";
 import { isPotionActive } from "@/lib/game/potionEffects";
@@ -329,6 +330,21 @@ export async function unequipHeroItem(
 
 /* ------------------------------ discard ------------------------------ */
 
+/**
+ * Throwing gear away is now *dismantling* it: the piece is still destroyed and
+ * still rolls the wheel, and it also yields shards for the forge (see
+ * src/lib/game/forge.ts).
+ *
+ * Bolted onto the existing paths rather than given a second "dismantle" button.
+ * They would have been the same action with two names — the item is gone either
+ * way — and a bag screen with both would have made players wonder which one
+ * loses them something. The wording moved; the mechanic gained a payout.
+ *
+ * The shard credit rides the *same guard* the spin roll already rides: only an
+ * item this transaction actually deleted pays. Two concurrent discards of one
+ * item therefore mint one item's worth of shards, not two.
+ */
+
 /** Permanently throw away a single owned item (bag or equipped). */
 export async function discardHeroItem(
   _prev: ActionState,
@@ -374,11 +390,24 @@ export async function discardHeroItem(
         });
       }
 
+      // What the pieces are worth at the forge. An increment, never an absolute
+      // set: a commission or a temper may commit between this transaction's
+      // read of the hero and this write, and `shards: value` would silently
+      // undo it.
+      const shards = shardsForItem(item.level);
+      await tx.hero.update({
+        where: { id: hero.id },
+        data: { shards: { increment: shards } },
+      });
+
       const name = itemDisplayName(t, item.slot, item.level);
       return {
         success: wonSpin
-          ? t("{item} נזרק — ומזל טוב! 🎡 זכית בסיבוב גלגל מזל!", { item: name })
-          : t("{item} נזרק", { item: name }),
+          ? t("{item} פורק ל-{shards} רסיסים — ומזל טוב! 🎡 זכית בסיבוב גלגל מזל!", {
+              item: name,
+              shards,
+            })
+          : t("{item} פורק ל-{shards} רסיסים", { item: name, shards }),
       };
     });
 
@@ -444,12 +473,16 @@ export async function discardHeroItems(
       // roll a full set of spins for a single real deletion (spin duplication).
       let count = 0;
       let spinsWon = 0;
+      // Accumulated across the loop and credited once. Same guard as the spins:
+      // only a piece this transaction actually removed is melted down.
+      let shardsWon = 0;
       for (const item of owned) {
         const del = await tx.heroItem.deleteMany({
           where: { id: item.id, heroId: hero.id },
         });
         if (del.count === 0) continue;
         count += del.count;
+        shardsWon += shardsForItem(item.level);
         if (rollDiscardWheelSpin(item.level, luckBonus)) spinsWon += 1;
       }
       if (count === 0) return { error: t("הפריטים לא נמצאו בתיק שלך") };
@@ -459,15 +492,24 @@ export async function discardHeroItems(
           data: { wheelSpins: { increment: spinsWon } },
         });
       }
+      if (shardsWon > 0) {
+        await tx.hero.update({
+          where: { id: hero.id },
+          data: { shards: { increment: shardsWon } },
+        });
+      }
 
       return {
         success:
           spinsWon > 0
-            ? t("{count} חפצים נזרקו — ומזל טוב! 🎡 זכית ב-{spins} סיבובי גלגל מזל!", {
+            ? t(
+                "{count} חפצים פורקו ל-{shards} רסיסים — ומזל טוב! 🎡 זכית ב-{spins} סיבובי גלגל מזל!",
+                { count, shards: shardsWon, spins: spinsWon }
+              )
+            : t("{count} חפצים פורקו ל-{shards} רסיסים", {
                 count,
-                spins: spinsWon,
-              })
-            : t("{count} חפצים נזרקו", { count }),
+                shards: shardsWon,
+              }),
       };
     });
 

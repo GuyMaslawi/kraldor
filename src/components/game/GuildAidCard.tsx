@@ -14,13 +14,24 @@ import { useT } from "@/i18n/client";
 export interface GuildAidCardProps {
   /** Current aid percent (= aid level). */
   aidPct: number;
-  /** Own gold needed to raise the aid by 1%; null when maxed. */
+  /** Treasury gold needed to raise the aid by 1%; null when maxed. */
   upgradeCost: number | null;
-  /** The viewer's available gold — the upgrade is paid from it. */
-  availableGold: number;
+  /** The guild's treasury — the upgrade is paid out of it. */
+  treasury: number;
+  /**
+   * False for plain members. The gate is new: while the ladder was paid out of
+   * the buyer's own pocket anyone could raise it, but a purchase from everyone's
+   * donations is a leadership decision.
+   */
+  mayUpgrade: boolean;
 }
 
-export function GuildAidCard({ aidPct, upgradeCost, availableGold }: GuildAidCardProps) {
+export function GuildAidCard({
+  aidPct,
+  upgradeCost,
+  treasury,
+  mayUpgrade,
+}: GuildAidCardProps) {
   const [state, action] = useActionState<ActionState, FormData>(
     upgradeGuildAid,
     {}
@@ -58,14 +69,14 @@ export function GuildAidCard({ aidPct, upgradeCost, availableGold }: GuildAidCar
         />
       </div>
       <p className="text-[11px] text-zinc-500">
-        {t("כל חבר יכול לשדרג — משולם מהזהב הזמין שלך.")}
+        {t("מנהיג או סגן בלבד — משולם מאוצר הברית.")}
       </p>
 
       <form action={action} className="mt-auto">
         {upgradeCost != null ? (
           <SubmitButton
             className="btn btn-dark w-full"
-            disabled={availableGold < upgradeCost}
+            disabled={!mayUpgrade || treasury < upgradeCost}
             pendingText={t("משדרג...")}
           >
             {t("שדרג ל־{pct}%", { pct: aidPct + 1 })} · {formatNumber(upgradeCost)}{" "}

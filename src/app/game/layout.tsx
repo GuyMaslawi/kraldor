@@ -33,6 +33,7 @@ import { HappyHourBanner } from "@/components/game/HappyHourBanner";
 import { getHappyHourState } from "@/server/actions/happyHour";
 import { getSeasonPassState } from "@/server/actions/seasonPass";
 import { getCollectableAchievements } from "@/server/achievementState";
+import { getDailyBadge } from "@/server/dailyState";
 import { OrnateFrame } from "@/components/ui/OrnateFrame";
 import { DiscordLink } from "@/components/ui/DiscordLink";
 import { Tip } from "@/components/ui/Tip";
@@ -101,6 +102,7 @@ export default async function GameLayout({ children }: { children: ReactNode }) 
     newSpyReports,
     collectableAchievements,
     finishedQuest,
+    dailyWaiting,
   ] = await Promise.all([
       prisma.message.count({ where: { empireId: empire.id, readAt: null } }),
       prisma.battleReport.count({
@@ -124,6 +126,12 @@ export default async function GameLayout({ children }: { children: ReactNode }) 
       prisma.heroQuest.count({
         where: { empireId: empire.id, endsAt: { lte: new Date() } },
       }),
+      // An unsigned muster roll plus any finished mission. The streak half is
+      // free — it reads columns requireEmpire already loaded — and the mission
+      // half reuses the counters snapshot the achievements badge on the line
+      // above is gathering anyway (both go through getEmpireStats, memoised per
+      // request). It never opens a board; see getDailyBadge.
+      getDailyBadge(empire, now),
     ]);
 
   // The war arena is a guild screen: guildless players never see the link.
@@ -170,6 +178,7 @@ export default async function GameLayout({ children }: { children: ReactNode }) 
     recruits: empire.citizens,
     freeMineSlaves,
     collectableAchievements,
+    dailyWaiting,
     heroQuestReady: finishedQuest > 0,
     inGuild: guildMembership !== null,
     guildWarLive,

@@ -56,6 +56,12 @@ export type SidebarProps = {
   freeMineSlaves?: number;
   /** Achievement rewards unlocked and waiting to be collected. */
   collectableAchievements?: number;
+  /**
+   * Things waiting on לוח היום: an unsigned muster roll plus any finished
+   * mission. Deliberately *not* the whole daily state — see getDailyBadge for
+   * why the nav's count is the cheap one and what it leaves out.
+   */
+  dailyWaiting?: number;
   /** The hero is back from an expedition and his haul is uncollected. */
   heroQuestReady?: boolean;
   /** In a guild — the only players the war arena exists for, so the only ones who see it. */
@@ -322,6 +328,7 @@ function SidebarContent({
   recruits,
   freeMineSlaves = 0,
   collectableAchievements = 0,
+  dailyWaiting = 0,
   heroQuestReady = false,
   inGuild = false,
   guildWarLive = false,
@@ -350,6 +357,17 @@ function SidebarContent({
   // loading.tsx, so the skeleton paints immediately on click.
   const navItems: NavItem[] = [
     { href: "/game/base", label: t("בסיס"), icon: "base" },
+    // Second row, directly under the base — the daily board is the first thing
+    // a returning player should be able to clear, and a row buried at the
+    // bottom of seventeen entries is a row nobody opens on the day they were
+    // most likely to sign the roll.
+    {
+      href: "/game/daily",
+      label: t("לוח היום"),
+      icon: "quest",
+      badge: dailyWaiting,
+      badgeTone: "attention",
+    },
     {
       href: "/game/hero",
       label: t("גיבור"),
@@ -361,6 +379,13 @@ function SidebarContent({
       badgeTone: "attention",
     },
     { href: "/game/rankings", label: t("דירוג"), icon: "rankings" },
+    // Beside the ladder rather than in the war block: the world boss is the one
+    // fixture where the whole server is on the same side, and it is read as a
+    // standing rather than as a raid.
+    { href: "/game/worldboss", label: t("מפלצת העולם"), icon: "attack" },
+    // Beside the world boss: both are fixtures the system fights on a clock,
+    // and both answer a question the ladder cannot.
+    { href: "/game/arena", label: t("הזירה"), icon: "crown" },
     // The prize hall is deliberately absent: it rides in the top command bar
     // beside the inbox (see InboxNav), where the season's stakes are visible
     // from every screen rather than only from an open nav list.
@@ -401,11 +426,23 @@ function SidebarContent({
       badgeTone: "attention",
     },
     { href: "/game/upgrades", label: t("שדרוגים"), icon: "upgrades" },
+    // Under the upgrades, because that is what a monument is at a larger
+    // scale — and because a player only looks for one once the upgrade ladder
+    // has stopped taking their gold.
+    { href: "/game/monuments", label: t("מונומנטים"), icon: "crown" },
+    // Beside the achievements rather than the shop: most of the shelf is earned
+    // rather than bought, and a title filed under "things to buy" would teach
+    // the wrong thing about the eight that cannot be.
+    { href: "/game/titles", label: t("תארים"), icon: "laurel" },
     { href: "/game/guide", label: t("מדריך"), icon: "reports" },
     // Points at the game's own community page rather than straight out to
     // Discord: the invite may not exist yet, the page works either way, and a
     // player who lands there also gets the house rules and the welcome purse.
     { href: "/game/community", label: t("קהילה"), icon: "discord" },
+    // Beside the community rather than near the shop: bringing a friend in is a
+    // social act, and filing it under "ways to get diamonds" would frame the
+    // one growth loop the game has as a bounty scheme.
+    { href: "/game/referrals", label: t("הזמנת חברים"), icon: "gift" },
   ];
 
   const xpPct = heroXpMax > 0 ? Math.round((heroXp / heroXpMax) * 100) : 0;

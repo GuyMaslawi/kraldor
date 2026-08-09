@@ -7,6 +7,16 @@ import type { T } from "@/i18n/translate";
 /** Founding a guild costs diamonds — name only, no tag. */
 export const GUILD_CREATION_COST_DIAMONDS = 750;
 
+/**
+ * The smallest donation אוצר הברית accepts.
+ *
+ * Not a nicety — it is what keeps `GuildMember.donated` meaningful. Without a
+ * floor, a member could top the contribution board with ten thousand one-gold
+ * donations, and the number everybody reads as "who carried this guild" would
+ * be measuring clicking rather than giving.
+ */
+export const GUILD_DONATION_MIN = 1_000;
+
 export const GUILD_NAME_MIN_LENGTH = 2;
 export const GUILD_NAME_MAX_LENGTH = 30;
 

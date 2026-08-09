@@ -10309,3 +10309,490 @@ body {
     display: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* /game/daily — the muster roll                                       */
+/* ------------------------------------------------------------------ */
+
+/* Every /game screen carries a scene; this one is the smallest in the game on
+   purpose. The card underneath it is a *checklist* — seven tiles, a number and
+   a button — and anything that drifts, rises or twinkles across it competes
+   with the one thing the player came to read. So: one slow rotating shaft of
+   light behind the panel, and a single pulse on the tile that is live. */
+
+.streak-scene {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Sunbeams from a point above the card, turning once a minute. Conic rather
+   than a stack of rotated gradients so it is one paint, and masked to a radial
+   falloff so the spokes dissolve before they reach the panel's own border. */
+.streak-rays {
+  position: absolute;
+  inset: -60% -20% auto -20%;
+  height: 220%;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg at 50% 22%,
+    transparent 0deg,
+    rgba(196, 160, 50, 0.13) 8deg,
+    transparent 16deg,
+    transparent 40deg,
+    rgba(196, 160, 50, 0.1) 48deg,
+    transparent 56deg,
+    transparent 96deg,
+    rgba(196, 160, 50, 0.13) 104deg,
+    transparent 112deg,
+    transparent 160deg,
+    rgba(196, 160, 50, 0.09) 168deg,
+    transparent 176deg,
+    transparent 360deg
+  );
+  -webkit-mask-image: radial-gradient(60% 45% at 50% 22%, #000 20%, transparent 72%);
+  mask-image: radial-gradient(60% 45% at 50% 22%, #000 20%, transparent 72%);
+  animation: streak-rays-turn 64s linear infinite;
+}
+
+@keyframes streak-rays-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The seven tiles land one after another when the card first paints — a stagger
+   short enough to read as one gesture, not as seven animations. `backwards`, not
+   `both`: the tile must be invisible during its own delay, and must keep no
+   animated state once it has arrived (see the note on the login gate). */
+.streak-tile {
+  animation: streak-tile-in 0.34s ease-out backwards;
+  animation-delay: calc(var(--i, 1) * 45ms);
+}
+
+@keyframes streak-tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* The one tile the player can act on. A border pulse rather than a glow on the
+   whole tile: the tile also carries reward icons, and a bloom over those makes
+   them harder to read at the moment they matter most. */
+.streak-tile-live {
+  animation:
+    streak-tile-in 0.34s ease-out backwards,
+    streak-tile-pulse 2.6s ease-in-out 0.4s infinite;
+}
+
+@keyframes streak-tile-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(196, 160, 50, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(196, 160, 50, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-rays {
+    animation: none;
+  }
+  .streak-tile,
+  .streak-tile-live {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* /game/hero/forge — the smithy                                       */
+/* ------------------------------------------------------------------ */
+
+/* Embers drifting up off the shard pouch. Positions and delays come from a
+   fixed table in the component, never Math.random(): the panel is
+   server-rendered, and a random offset would differ between the SSR pass and
+   hydration. Same rule every scene on the site follows. */
+
+.forge-scene {
+  position: relative;
+  overflow: hidden;
+}
+
+.forge-embers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.forge-embers > span {
+  position: absolute;
+  bottom: -0.5rem;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgb(255 150 60);
+  box-shadow: 0 0 8px rgba(255, 130, 40, 0.9);
+  animation: forge-ember-rise 9s ease-in infinite;
+}
+
+/* The horizontal drift is what stops six identical columns reading as a
+   sprinkler: each ember leans, fades, and is gone before it clears the panel. */
+@keyframes forge-ember-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(1.2rem, -9rem) scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forge-embers {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* /game/monuments — the capital's skyline                             */
+/* ------------------------------------------------------------------ */
+
+/* Each card carries its monument's accent as `--accent` (an `R G B` triple set
+   from the catalog), so one rule paints five different buildings. The scene is
+   deliberately still: these are stone, and a skyline that shimmers reads as a
+   mirage rather than as something permanent. */
+
+.mono-card {
+  position: relative;
+  overflow: hidden;
+  animation: mono-card-in 0.4s ease-out backwards;
+  animation-delay: calc(var(--i, 1) * 60ms);
+}
+
+@keyframes mono-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* One shaft of the monument's own colour, anchored behind its sigil and bled
+   past the card's edge. Radial rather than a box-shadow so it can escape the
+   border without repainting it. */
+.mono-glow {
+  position: absolute;
+  inset: -50% 40% auto -20%;
+  height: 200%;
+  pointer-events: none;
+  background: radial-gradient(
+    45% 35% at 25% 30%,
+    rgb(var(--accent) / 0.16),
+    rgb(var(--accent) / 0.05) 50%,
+    transparent 75%
+  );
+}
+
+/* The sigil tile picks up the accent for its border, its ink and its light —
+   the only place on the card where the colour is fully saturated, so the eye
+   lands there first. */
+.mono-sigil {
+  border-color: rgb(var(--accent) / 0.55);
+  background: rgb(var(--accent) / 0.12);
+  color: rgb(var(--accent));
+  box-shadow: inset 0 0 14px rgb(var(--accent) / 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mono-card {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* /game/titles — the line under a name                                */
+/* ------------------------------------------------------------------ */
+
+/* Each card carries its title's accent as `--accent` (an `R G B` triple from
+   the catalog), so one rule paints fourteen different titles. The title itself
+   is the only saturated thing on the card — a title is a word, and the word is
+   supposed to be what the eye lands on. */
+
+.title-card {
+  transition: border-color 0.15s ease;
+}
+
+.title-name {
+  color: rgb(var(--accent));
+  text-shadow: 0 0 14px rgb(var(--accent) / 0.35);
+}
+
+/* The one being worn. A ring plus a wash of its own colour, so the card the
+   player has chosen is findable in a grid of fourteen without reading any of
+   them. */
+.title-card-worn {
+  border-color: rgb(var(--accent) / 0.7);
+  background: rgb(var(--accent) / 0.1);
+  box-shadow: inset 0 0 20px rgb(var(--accent) / 0.12);
+}
+
+/* The worn title as it appears on a dossier and in the ladders — the same ink,
+   without the card around it. */
+.title-worn-inline {
+  color: rgb(var(--accent));
+  text-shadow: 0 0 10px rgb(var(--accent) / 0.4);
+}
+
+/* ------------------------------------------------------------------ */
+/* /game/worldboss — the arena                                         */
+/* ------------------------------------------------------------------ */
+
+/* The card carries the week's beast as `--accent` (an `R G B` triple from the
+   catalog), so one rule dresses six different monsters. Unlike the monuments'
+   still skyline this scene *breathes*: the thing on it is alive, and the whole
+   fixture is about whether the server can put it down before Sunday. */
+
+.wb-scene {
+  position: relative;
+  overflow: hidden;
+}
+
+/* The beast's own light, pulsing behind it. */
+.wb-aura {
+  position: absolute;
+  inset: -40% 0 auto 0;
+  height: 180%;
+  pointer-events: none;
+  background: radial-gradient(
+    45% 30% at 50% 22%,
+    rgb(var(--accent) / 0.22),
+    rgb(var(--accent) / 0.06) 45%,
+    transparent 72%
+  );
+  animation: wb-aura-breathe 5.5s ease-in-out infinite;
+}
+
+@keyframes wb-aura-breathe {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.07);
+  }
+}
+
+/* The sigil, lit and shifting its weight — enough to read as a living thing
+   without becoming a mascot bouncing on the page. */
+.wb-sigil {
+  filter: drop-shadow(0 6px 22px rgb(var(--accent) / 0.65));
+  animation: wb-sigil-sway 6s ease-in-out infinite;
+}
+
+@keyframes wb-sigil-sway {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(2deg);
+  }
+}
+
+/* Once it is down it stops moving and goes grey — the single clearest signal
+   the page can give, and it needs no words. */
+.wb-sigil-slain {
+  animation: none;
+  filter: grayscale(1) brightness(0.55);
+  transform: rotate(90deg);
+  transition: filter 0.4s ease, transform 0.6s ease;
+}
+
+/* The health bar. Taller than the game's other meters on purpose: it is the
+   page, and it is read from across a room. */
+.wb-bar {
+  position: relative;
+  height: 1.35rem;
+  overflow: hidden;
+  border: 1px solid rgb(0 0 0 / 0.6);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.55);
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.6);
+}
+
+.wb-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--accent) / 0.75),
+    rgb(var(--accent))
+  );
+  box-shadow: 0 0 18px rgb(var(--accent) / 0.55);
+  /* Every strike shortens it; the ease is what makes a blow feel landed. */
+  transition: width 0.5s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-aura,
+  .wb-sigil {
+    animation: none;
+  }
+  .wb-bar > span {
+    transition: none;
+  }
+}
+
+/* The takeover stage shared by מפת האוצר and חידה — one large sigil under the
+   same spotlight the cups and the safe use. See SigilStage: a six-second
+   announcement does not earn a bespoke animation per game. */
+.mgt-stage--sigil {
+  display: grid;
+  place-items: center;
+}
+
+.mgt-sigil {
+  font-size: 5.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 8px 26px rgb(0 0 0 / 0.6));
+  animation: mgt-sigil-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes mgt-sigil-breathe {
+  0%,
+  100% {
+    transform: scale(1) rotate(-3deg);
+  }
+  50% {
+    transform: scale(1.08) rotate(3deg);
+  }
+}
+
+/* The two new palettes, matching how .mgt[data-game] dresses the cups and the
+   safe: a parchment gold for the map, a cold violet for the riddle. */
+.mgt[data-game="map"] {
+  --mgt-accent: 205 150 70;
+}
+
+.mgt[data-game="riddle"] {
+  --mgt-accent: 150 96 232;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mgt-sigil {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* mini-games: מפת האוצר and חידה                                       */
+/* ------------------------------------------------------------------ */
+
+/* The treasure map's grid. Every dug cell keeps its reading permanently —
+   the board IS the player's notes, and a grid that forgot them would turn a
+   deduction puzzle into a memory test. */
+
+.tmap-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tmap-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--size, 4), minmax(0, 1fr));
+  gap: 0.25rem;
+  /* Sized off the viewport so a 7×7 still fits a phone at a tappable size,
+     and capped so a 4×4 does not sprawl on a desktop. */
+  width: min(100%, calc(var(--size, 4) * 3.25rem));
+}
+
+.tmap-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border-subtle, rgb(255 255 255 / 0.12));
+  background: rgb(0 0 0 / 0.35);
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--bone-dim, rgb(200 195 185));
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.2s ease,
+    transform 0.12s ease;
+}
+
+.tmap-cell:not(:disabled):hover {
+  border-color: var(--gold, rgb(196 160 50));
+  transform: translateY(-1px);
+}
+
+.tmap-cell:disabled {
+  cursor: default;
+}
+
+/* The four readings. Warm colours mean close, and the ramp is the only thing
+   on the board carrying information — so it is the only thing with colour. */
+.tmap-cell[data-band="found"] {
+  border-color: rgb(196 160 50 / 0.9);
+  background: rgb(196 160 50 / 0.28);
+  font-size: 1.1rem;
+}
+
+.tmap-cell[data-band="hot"] {
+  border-color: rgb(232 82 82 / 0.7);
+  background: rgb(232 82 82 / 0.2);
+  color: rgb(255 170 170);
+}
+
+.tmap-cell[data-band="warm"] {
+  border-color: rgb(228 160 60 / 0.6);
+  background: rgb(228 160 60 / 0.14);
+  color: rgb(240 200 140);
+}
+
+.tmap-cell[data-band="cold"] {
+  border-color: rgb(96 156 224 / 0.45);
+  background: rgb(96 156 224 / 0.12);
+  color: rgb(160 195 240);
+}
+
+/* The riddle: a question, a box, and the answers already spent. */
+
+.riddle-stage {
+  text-align: center;
+}
+
+.riddle-question {
+  margin-inline: auto;
+  max-width: 34rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(150 96 232 / 0.4);
+  background: rgb(150 96 232 / 0.1);
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.65;
+  color: var(--bone, rgb(226 222 214));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tmap-cell {
+    transition: none;
+  }
+  .tmap-cell:not(:disabled):hover {
+    transform: none;
+  }
+}

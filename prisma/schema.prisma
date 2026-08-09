@@ -53,6 +53,19 @@ model User {
   role          Role      @default(USER)
   /// When the ban was handed down. Never a ban check on its own — see
   /// `bannedUntil` and `isBanned()` in src/lib/ban.ts.
+  /// Whether this player wants to hear about what happened while they were
+  /// away — a raid they lost, a sabotage cell in their warehouses. Opt-*out*,
+  /// because the whole point is reaching somebody who is not looking at the
+  /// game, and a notification nobody switched on is a notification nobody gets.
+  ///
+  /// It is the only kind of mail the game sends unprompted, and it is rationed
+  /// hard (see NOTIFY_COOLDOWN_MS): a player being farmed must not receive
+  /// twenty emails, and the free mail tier is 300 a day for the entire game.
+  notifyRaids   Boolean   @default(true)
+  /// When the last such notification actually went out. The cooldown IS this
+  /// column: the send is a guarded UPDATE with a `lt` on it, so two concurrent
+  /// raids cannot both slip through the window.
+  notifiedAt    DateTime?
   bannedAt      DateTime?
   /// When a ban lifts by itself; null while `bannedAt` is set means permanent.
   /// A ban is live only while `bannedAt != null && (bannedUntil == null ||
@@ -133,6 +146,11 @@ model GameConfig {
 enum MiniGameType {
   FIND_BALL
   CRACK_SAFE
+  /// מפת האוצר — a grid with one buried cell; every dig comes back with how
+  /// close it was. See src/lib/game/minigame.ts.
+  TREASURE_MAP
+  /// חידה — an admin-authored question with a text answer.
+  RIDDLE
 }
 
 /// An admin-authored mini-game event (find-the-ball / crack-the-safe). When
@@ -435,6 +453,41 @@ model Empire {
   /// that they are in the room. See DISCORD_JOIN_DIAMONDS for why the purse is
   /// deliberately small.
   discordJoinedAt     DateTime?
+  /// The empire that brought this player into the game, named by the player
+  /// themselves from /game/referrals while they were still small (see
+  /// src/lib/game/referral.ts). Null for everybody who arrived on their own.
+  ///
+  /// A self-relation rather than a join table: it is at most one row per empire,
+  /// it is set once and never changed, and "who did I bring in" is exactly the
+  /// reverse of it.
+  referredById        String?
+  /// When each side of the referral was collected. The two columns ARE the
+  /// receipts: each claim is a guarded UPDATE with its own column IS NULL in the
+  /// WHERE, so two simultaneous clicks can never both pay out, and no separate
+  /// table of claims is needed.
+  ///
+  /// They live on the **newcomer's** row, both of them, because a referral is a
+  /// fact about the newcomer: one referrer may have many, and hanging the
+  /// referrer's receipt off their own row would need a counter that says which
+  /// of the invitees it was for.
+  referralPaidAt      DateTime?
+  referrerPaidAt      DateTime?
+  /// The Jerusalem calendar day (see `gameDay` in lib/game/time.ts) whose
+  /// muster roll this empire has already signed, and how many days in a row it
+  /// has signed one. `streakDay` is the receipt: the claim is a guarded UPDATE
+  /// with `streakDay < today` in its WHERE, so two simultaneous clicks cannot
+  /// both pay out, and no separate table of claims is needed.
+  ///
+  /// 0 means "never claimed" — day 0 is 1970-01-01, so no live game can collide
+  /// with it. A day missed does not clear these on a schedule; the *next* claim
+  /// sees the gap and starts the count again. Nothing runs while the player is
+  /// away, which is the whole reason this is two integers rather than a job.
+  streakDay           Int       @default(0)
+  streakCount         Int       @default(0)
+  /// The longest run this empire has ever put together — kept when a streak
+  /// breaks, so the board has something to show for the twelve days that were
+  /// lost and the profile has a figure worth wearing.
+  streakBest          Int       @default(0)
   /// New-player shield: while this is in the future the empire cannot be
   /// attacked or spied. Set at registration; cleared early the moment the
   /// player launches their own first attack or spy (see attackEmpire/spyOnEmpire).
@@ -484,6 +537,18 @@ model Empire {
   /// that saves eight clicks is a different thing from a paid button that wins
   /// a battle, and only the first one is sold here.
   vipSince            DateTime?
+  /// The תואר this empire is wearing — a key from TITLES in
+  /// src/lib/game/titles.ts, or null for a player wearing none.
+  ///
+  /// Purely cosmetic: it appears under the name on the dossier and beside it in
+  /// the ladders, and it multiplies nothing. That is the whole reason it can be
+  /// sold for diamonds at all — see the note in titles.ts on why the only
+  /// completely safe thing to sell is something that changes nothing.
+  ///
+  /// A key that has fallen out of the catalog resolves to null on read
+  /// (`wornTitle`), so retiring a title needs no migration and leaves no raw
+  /// key printed on anybody's dossier.
+  title               String?
   /// The player's own words, shown on their dossier under the medal case. Free
   /// text up to BIO_MAX characters, written and rewritten from the profile page
   /// itself (see src/lib/game/profile.ts and saveEmpireBio).
@@ -533,6 +598,8 @@ model Empire {
 
   spyReportsSent     SpyReport[]         @relation("SpyAttacker")
   spyReportsReceived SpyReport[]         @relation("SpyDefender")
+  sabotageSent       SabotageReport[]    @relation("SabotageAttacker")
+  sabotageReceived   SabotageReport[]    @relation("SabotageDefender")
   battlesAttacked    BattleReport[]      @relation("BattleAttacker")
   battlesDefended    BattleReport[]      @relation("BattleDefender")
   messages           Message[]           @relation("MessageInbox")
@@ -554,6 +621,13 @@ model Empire {
   bossBattles        BossBattle[]
   achievements       EmpireAchievement[]
   gloryAwards        EmpireGloryAward[]
+  monuments          EmpireMonument[]
+  titles             EmpireTitle[]
+  worldBossStrikes   WorldBossStrike[]
+  arenaEntries       ArenaEntry[]
+  referredBy         Empire?             @relation("Referral", fields: [referredById], references: [id], onDelete: SetNull)
+  referred           Empire[]            @relation("Referral")
+  missionBoards      MissionBoard[]
   heroQuest          HeroQuest?
   bot                EmpireBot?
 
@@ -575,6 +649,8 @@ model Empire {
   @@index([isStaff, generalPower])
   @@index([isStaff, spyPower])
   @@index([isStaff, cities, militaryPower])
+  /// "Who did I bring in" — the referrals page's only read.
+  @@index([referredById])
 }
 
 /// The garrison a bot empire is rebuilt to — one row per `Empire.isBot`.
@@ -685,6 +761,289 @@ model EmpireGloryAward {
   // scans on every base-screen load. Ordering by awardedAt makes each record a
   // one-row index read.
   @@index([key, awardedAt])
+}
+
+/// A monument raised in the capital — the endgame's gold sink.
+///
+/// One row per monument an empire has founded; a monument nobody has built has
+/// no row, which is why the read side defaults a missing key to level 0 rather
+/// than seeding five rows per empire.
+///
+/// `key` is a plain string rather than an enum for the reason
+/// EmpireAchievement.key is one: adding or retiring a monument is a code
+/// change, not a migration, and a key that falls out of the catalog is ignored
+/// on read. See src/lib/game/monuments.ts — and note the rule stated there that
+/// no monument may touch combat power.
+model EmpireMonument {
+  id       String @id @default(cuid())
+  empireId String
+  key      String
+  /// 1..MONUMENT_MAX_LEVEL. A row exists only once the monument is founded, so
+  /// this is never 0.
+  level    Int    @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  empire Empire @relation(fields: [empireId], references: [id], onDelete: Cascade)
+
+  // Also serves "this empire's monuments", which is the only read.
+  @@unique([empireId, key])
+}
+
+/// A **bought** title's receipt.
+///
+/// Earned titles deliberately have no row here: their condition is re-derived
+/// on every read from the same lifetime-counters snapshot the achievements
+/// ladder uses, so adding one needs no backfill and retiring one leaves nothing
+/// behind. Only a purchase is recorded, because only a purchase is a fact about
+/// money rather than a fact about play.
+///
+/// Buying is permanent and separate from wearing: an empire owns every title it
+/// has paid for and wears at most one (`Empire.title`), so a player can change
+/// their mind without paying again.
+model EmpireTitle {
+  id       String @id @default(cuid())
+  empireId String
+  /// Key from TITLES in src/lib/game/titles.ts. A plain string for the reason
+  /// EmpireAchievement.key is one; unknown keys are ignored on read.
+  key      String
+  /// Diamonds actually paid, frozen at purchase. Kept so a later retune of the
+  /// price does not rewrite history in the admin's ledger view.
+  paid     Int    @default(0)
+
+  boughtAt DateTime @default(now())
+
+  empire Empire @relation(fields: [empireId], references: [id], onDelete: Cascade)
+
+  // The receipt IS the guard: the purchase inserts unconditionally and lets
+  // this constraint drop a double-click, so nobody can be charged twice for one
+  // title. Also serves "which titles does this empire own".
+  @@unique([empireId, key])
+}
+
+/// מפלצת העולם — one enemy the whole server fights at once.
+///
+/// A **fixture, not an event**: exactly one row per Jerusalem week, created
+/// lazily the first time anybody opens the arena that week. There is no admin
+/// button and no scheduler — which boss appears is a pure function of the week
+/// (see rollWorldBoss), so every player computes the same answer with no writer
+/// and the unique index below drops whichever concurrent first-load loses.
+model WorldBoss {
+  id   String @id @default(cuid())
+  /// Jerusalem week index — see `gameWeek` in lib/game/time.ts.
+  week Int    @unique
+  /// Catalog key from WORLD_BOSSES. Ignored on read if it falls out.
+  key  String
+
+  /// Frozen at spawn from the empire count, never recomputed: a boss that grew
+  /// because somebody registered on Thursday would punish the server for
+  /// growing. See worldBossMaxHp.
+  maxHp Float
+  /// Remaining health. Driven to zero by guarded decrements — the strike that
+  /// takes it to 0 is the one that stamps `defeatedAt`, so the kill is a
+  /// transition rather than a comparison and exactly one striker can win it.
+  hp    Float
+
+  defeatedAt DateTime?
+  /// The empire that landed the killing blow. Not a relation: the empire may be
+  /// deleted at a season restart while the row is still being read, and a
+  /// dangling name is a better outcome than a cascade that erases the kill.
+  slayerId   String?
+  slayerName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  strikes WorldBossStrike[]
+}
+
+/// One empire's running total against one world boss.
+///
+/// A real counter rather than a derived figure, for the reason the guild
+/// contract is one: the alternative is summing a row per blow across the whole
+/// server on every page load. Both columns only ever rise.
+model WorldBossStrike {
+  id       String @id @default(cuid())
+  bossId   String
+  empireId String
+
+  /// Damage this empire has dealt in total.
+  damage Float @default(0)
+  /// Blows landed — capped at WORLD_BOSS_MAX_STRIKES, which is what stops the
+  /// board from being a copy of the power ladder.
+  hits   Int   @default(0)
+
+  /// The spoils have been collected. The flag IS the receipt: the claim is a
+  /// guarded UPDATE with `claimed = false` in its WHERE, so two simultaneous
+  /// clicks cannot both pay out.
+  claimed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  boss   WorldBoss @relation(fields: [bossId], references: [id], onDelete: Cascade)
+  empire Empire    @relation(fields: [empireId], references: [id], onDelete: Cascade)
+
+  @@unique([bossId, empireId])
+  /// The damage board: "this boss's strikers, hardest first".
+  @@index([bossId, damage])
+}
+
+/// הזירה — the weekly tournament, one per city tier.
+///
+/// Fought by the system rather than by players, like the guild war: entrants
+/// register during the week, and when the week turns over the whole card is
+/// resolved at once — every entrant against every other, exactly once.
+///
+/// A **fixture, not an event**: the row is created lazily on the first look of
+/// the week, and which duels happen is a pure function of who entered (see
+/// resolveArena), so there is no bracket to hold and nothing half-finished to
+/// repair if an account is deleted mid-week.
+model Arena {
+  id   String @id @default(cuid())
+  /// Jerusalem week index — see `gameWeek` in lib/game/time.ts.
+  week Int
+  /// City tier. Combat never crosses one anywhere else in the game, and a
+  /// tournament that ignored that would be won by the largest empire forever.
+  tier Int
+
+  /// Stamped by the resolution. The transition — not the clock — is what makes
+  /// the table final, and the guarded UPDATE that sets it filters on
+  /// `resolvedAt IS NULL`, so a card cannot be fought twice.
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries ArenaEntry[]
+
+  @@unique([week, tier])
+}
+
+/// One empire's entry in one arena, and its record once the card is fought.
+model ArenaEntry {
+  id       String @id @default(cuid())
+  arenaId  String
+  empireId String
+
+  /// Military power at the moment of resolution, frozen onto the row. Read live
+  /// rather than at registration on purpose: an empire that grew during the week
+  /// should fight with the army it actually has, and freezing at sign-up would
+  /// reward entering early over playing.
+  power  Float @default(0)
+  wins   Int   @default(0)
+  losses Int   @default(0)
+  /// 1-based placing; 0 until the card is resolved.
+  place  Int   @default(0)
+
+  /// The spoils have been collected. The flag IS the receipt — a guarded UPDATE
+  /// with `claimed = false` in its WHERE.
+  claimed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  arena  Arena  @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  empire Empire @relation(fields: [empireId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, empireId])
+  /// The table: "this arena's entrants, best first".
+  @@index([arenaId, place])
+}
+
+enum MissionScope {
+  DAY
+  WEEK
+}
+
+/// One player's mission board for one period — the daily three and the weekly
+/// three (see src/lib/game/missions.ts).
+///
+/// The row holds no counters. Progress on a mission is `now − baseline`, where
+/// `baseline` is the same lifetime-stats snapshot the achievements ladder is
+/// evaluated against, frozen the first time the board was opened this period.
+/// That is what makes the whole feature possible without instrumenting a single
+/// gameplay action: attacking, spying, training and banking all already move
+/// counters the snapshot query reads, so a mission is a *difference* rather than
+/// a tally somebody has to remember to increment.
+///
+/// The consequence to know: a board that is first opened late in the day
+/// baselines late, so only what happens *after* that counts. That is deliberate
+/// — the alternative is a board that pays out for a morning the player never
+/// spent on it — and it is why the board is created on the first read of the
+/// day (see openMissionBoard) rather than on the first claim.
+model MissionBoard {
+  id       String       @id @default(cuid())
+  empireId String
+  scope    MissionScope
+  /// The period this board belongs to: a Jerusalem day index for DAY, a
+  /// Jerusalem week index for WEEK (see `gameDay` / `gameWeek`).
+  period   Int
+
+  /// Catalog keys rolled for this board, in display order. Rolled
+  /// deterministically from (empireId, scope, period) — see rollMissions — so
+  /// two requests racing to open the same board write the same three missions
+  /// and the unique index below can drop the loser harmlessly.
+  missions String[]
+  /// Keys already collected from this board. A claim appends under a guard on
+  /// the array's own contents, so a double tap cannot pay twice.
+  claimed  String[]
+
+  /// The counters as they stood when the board opened. Shape: MissionBaseline
+  /// in src/lib/game/missions.ts — a plain flat object of numbers, read back
+  /// defensively (a key the catalog has since added simply reads as 0).
+  baseline Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  empire Empire @relation(fields: [empireId], references: [id], onDelete: Cascade)
+
+  @@unique([empireId, scope, period])
+}
+
+/// The guild's shared daily goal — one row per guild per Jerusalem day.
+///
+/// Unlike a mission board this one *is* a counter, and it has to be: the
+/// baseline trick works because a single empire's lifetime totals are one cheap
+/// query, and summing that over every member on every page load is not. Members
+/// contribute by claiming their own daily missions — each claim credits the
+/// contract (see claimMission) — so the increment rides a path that is already
+/// transactional, already guarded and already once-per-mission.
+model GuildContract {
+  id      String @id @default(cuid())
+  guildId String
+  /// Jerusalem day index — the same clock the personal board runs on.
+  day     Int
+
+  /// Catalog key from GUILD_CONTRACTS, rolled deterministically from
+  /// (guildId, day) so every member sees the same contract without a writer.
+  key     String
+  /// Missions the guild's members have completed today, against `goal`.
+  progress Int @default(0)
+  /// Frozen at creation from the guild's member count: a contract that grew
+  /// harder because somebody joined at 23:00 would be a punishment for
+  /// recruiting. See guildContractGoal.
+  goal    Int
+
+  /// Set the moment `progress` first reaches `goal`. The transition — not the
+  /// comparison — is what pays every member, and it happens exactly once
+  /// because the guarded UPDATE that stamps it also filters on `completedAt IS
+  /// NULL`.
+  completedAt DateTime?
+
+  /// Empire ids already paid for this contract. Members who join after it
+  /// completed are not owed anything, and a member who was paid cannot be paid
+  /// again by re-opening the page.
+  paid    String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, day])
 }
 
 /// Per-empire season-pass state. Exactly one row per empire, reset in place on
@@ -891,15 +1250,28 @@ model Guild {
   /// Member capacity = 1 + level, so a fresh guild (level 1) holds 2 members.
   capacityLevel Int      @default(1)
   /// Guild aid level — each level adds 1% of the guild's total military power
-  /// as flat combat power for every member in battle, up to 10%. Guilds have no
-  /// treasury: whoever wants the upgrade pays for it from their own gold.
+  /// as flat combat power for every member in battle, up to 10%. Paid out of
+  /// the treasury below by a leader or deputy.
   aidLevel      Int      @default(0)
+  /// אוצר הברית — gold the members have donated, and the only thing the guild's
+  /// two ladders are bought with.
+  ///
+  /// Both ladders used to be paid out of whichever member happened to want the
+  /// upgrade, which made every guild improvement one person's charity and gave
+  /// nobody else a reason to care. A treasury turns the same two ladders into a
+  /// shared project: everyone can put gold in, the leadership decides what it
+  /// buys, and the board shows who carried the guild.
+  ///
+  /// A Float, matching `Empire.gold` — the two are transferred between each
+  /// other and a type mismatch would round somebody's donation.
+  treasury      Float    @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  members GuildMember[]
-  spells  GuildSpell[]
-  invites GuildInvite[]
+  members   GuildMember[]
+  spells    GuildSpell[]
+  invites   GuildInvite[]
+  contracts GuildContract[]
 }
 
 /// A standing invitation for one guildless empire to join one guild.
@@ -932,6 +1304,18 @@ model GuildMember {
   guildId   String
   empireId  String    @unique
   role      GuildRole @default(MEMBER)
+  /// Lifetime gold this member has put into the treasury.
+  ///
+  /// The socially load-bearing number, and the reason it is stored rather than
+  /// derived from a ledger: what a guild actually argues about is who carried
+  /// it, and that question has to be answerable on the guild screen without a
+  /// scan. It only ever rises, and it is deliberately NOT reduced when the
+  /// treasury is spent — it records what this member gave, not what is left.
+  ///
+  /// Resets to zero on leaving, along with the row itself. A member who leaves
+  /// and rejoins starts their contribution again, which is the honest reading:
+  /// they are contributing to the guild they are in now.
+  donated   Float     @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -1181,6 +1565,16 @@ model Hero {
   /// later — applied lazily by applyPendingUpdates — or instantly for diamonds.
   /// While dead he grants **no** bonuses at all (see heroBonuses).
   diedAt              DateTime?
+  /// רסיסי ציוד — the forge's currency, earned by dismantling gear and spent on
+  /// commissioning a slot or tempering a piece (see src/lib/game/forge.ts).
+  ///
+  /// On the hero rather than the empire because it is gear, and because it must
+  /// survive a prestige: a reset takes the level back to 1 and leaves the bag
+  /// alone, so taking the shards would be taking gear the player still holds.
+  ///
+  /// Deliberately flat-valued (a פשוט is one shard from any decade) — the note
+  /// in forge.ts explains why a decade-scaled shard has an arbitrage in it.
+  shards              Int       @default(0)
   /// The season in which the diamond points-reset was last used (once/season).
   pointsResetSeasonId String?
   createdAt           DateTime  @default(now())
@@ -1483,6 +1877,63 @@ model SpyReport {
   // Reports/base pages query "my spies sent" and "spies against me" newest-first;
   // the empire profile looks up the latest spy on a target. Unindexed these scan
   // the whole (ever-growing) report table.
+  @@index([attackerEmpireId, createdAt])
+  @@index([defenderEmpireId, createdAt])
+}
+
+enum SabotageKind {
+  BURN_STORES
+  STEAL_PLANS
+  SPIKE_WELLS
+}
+
+/// חבלה — a spy mission that breaks something instead of looking at it.
+///
+/// Kept apart from SpyReport rather than folded into it with a `kind` column.
+/// The two are read by different screens and carry different facts: a spy report
+/// is a *dossier*, frozen and re-readable, while this is a *receipt* for damage
+/// done. Sharing a table would have meant every column of each being nullable
+/// for the other, on a model the reports page already reads on every visit.
+///
+/// The rule this table exists to keep honest, stated at length in
+/// src/lib/game/sabotage.ts: sabotage never touches soldiers, weapons or power.
+/// It takes stores, gold and mine slaves — the economy, which regrows, and which
+/// the defender can see was taken.
+model SabotageReport {
+  id               String       @id @default(cuid())
+  attackerEmpireId String
+  defenderEmpireId String
+  kind             SabotageKind
+  success          Boolean
+
+  /// Both sides' intelligence power at resolution. A sabotage mission needs a
+  /// clear margin rather than a bare win (SABOTAGE_INTEL_MARGIN), and storing
+  /// both figures is what lets the report say why it failed.
+  attackerIntel Float
+  defenderIntel Float
+
+  turnsSpent Int
+  /// Spies committed — lost outright on a failed mission.
+  spiesSpent Int
+  /// Spies actually lost. Zero on success; `spiesSpent` on failure, less
+  /// whatever the attacker turned out not to have.
+  spiesLost  Int   @default(0)
+
+  /// What the mission took, by kind. Only the columns its own mission uses are
+  /// ever non-zero, which is why they are plain defaulted numbers rather than
+  /// a JSON blob: the reports list sums them without parsing anything.
+  goldTaken  Float @default(0)
+  woodBurned Float @default(0)
+  ironBurned Float @default(0)
+  stoneBurned Float @default(0)
+  slavesKilled Int  @default(0)
+
+  createdAt DateTime @default(now())
+
+  attacker Empire @relation("SabotageAttacker", fields: [attackerEmpireId], references: [id], onDelete: Cascade)
+  defender Empire @relation("SabotageDefender", fields: [defenderEmpireId], references: [id], onDelete: Cascade)
+
+  /// The two reads this table gets: "my missions" and "what was done to me".
   @@index([attackerEmpireId, createdAt])
   @@index([defenderEmpireId, createdAt])
 }

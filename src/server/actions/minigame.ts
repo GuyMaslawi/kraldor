@@ -13,6 +13,10 @@ import {
   publicConfig,
   parseHistory,
   scoreCode,
+  digBand,
+  riddleSolved,
+  DIG_BAND_LABEL,
+  RIDDLE_ANSWER_MAX,
   HISTORY_LIMIT,
   MAX_LIVE_MINIGAMES,
   PRIZE_FIELDS,
@@ -53,6 +57,8 @@ function toState(
     prizeText: prizeText(t, event),
     cups: pub.cups,
     digits: pub.digits,
+    size: pub.size,
+    question: pub.question,
     history: parseHistory(entry?.guesses),
     attempts,
     maxAttempts: event.maxAttempts,
@@ -344,12 +350,25 @@ export async function submitMiniGameGuess(
       // limited attempts.
       const code = typeof cfg.code === "string" ? cfg.code : "";
       const cups = pub.cups ?? 0;
+      const size = pub.size ?? 0;
+      const word = typeof cfg.word === "string" ? cfg.word : "";
       const valid =
         event.type === "CRACK_SAFE"
           ? code.length > 0 &&
             guess.length === code.length &&
             /^[0-9]+$/.test(guess)
-          : /^[0-9]{1,2}$/.test(guess) && Number(guess) < cups;
+          : event.type === "TREASURE_MAP"
+            ? // A cell index inside the grid. Two digits is enough for the 7×7
+              // ceiling (48), and bounding the string before the number keeps a
+              // 40-digit submission from ever reaching Number().
+              size > 0 && /^[0-9]{1,2}$/.test(guess) && Number(guess) < size * size
+            : event.type === "RIDDLE"
+              ? // Length only. The *content* cannot be validated without the
+                // answer, and rejecting a wrong answer here rather than scoring
+                // it would tell the player they had typed something impossible
+                // — and would hand back the attempt they should have spent.
+                word.length > 0 && guess.length > 0 && guess.length <= RIDDLE_ANSWER_MAX
+              : /^[0-9]{1,2}$/.test(guess) && Number(guess) < cups;
       if (!valid) {
         return { state: null, feedback: t("בחר ניחוש תקין"), tone: "error" as const };
       }
@@ -439,6 +458,21 @@ export async function submitMiniGameGuess(
                 )
                 .join(" · "),
             });
+      } else if (event.type === "TREASURE_MAP") {
+        // The band is the whole game, and it is computed here, from the secret,
+        // for the same reason the safe's marks are: a dig with no reading tells
+        // the player nothing, and a client that could compute it would have to
+        // have been handed the answer.
+        const pick = Number(guess);
+        const answer = Number(cfg.answer);
+        const band = digBand(pick, answer, size);
+        correct = band === "found";
+        row = { kind: "dig", pick, band };
+        feedback = correct ? "" : t("🗺️ {band}", { band: t(DIG_BAND_LABEL[band]) });
+      } else if (event.type === "RIDDLE") {
+        correct = riddleSolved(guess, word);
+        row = { kind: "word", word: guess, hit: correct };
+        feedback = t("❓ לא זו התשובה…");
       } else {
         correct = Number(guess) === Number(cfg.answer);
         row = { kind: "cup", pick: Number(guess), hit: correct };

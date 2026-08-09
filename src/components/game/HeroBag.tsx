@@ -146,6 +146,21 @@ export function HeroBag({
                 {t("בחירה")}
               </button>
             ))}
+          {/* The forge sits beside the catalog rather than in the sidebar: it
+              is only ever wanted with gear in hand, and this is where the gear
+              is. See src/lib/game/forge.ts. */}
+          <Tip
+            tip={t("נפחייה: פרק ציוד לרסיסים, הזמן פריט למשבצת שחסרה לך, ולטש פריט קיים")}
+            side="bottom"
+          >
+            <Link
+              href="/game/hero/forge"
+              prefetch={false}
+              className="btn btn-ghost px-2.5 py-1 text-xs"
+            >
+              {t("נפחייה")}
+            </Link>
+          </Tip>
           <Tip
             tip={t("הקטלוג המלא: כל החפצים הקיימים במשחק, מרמה 1 עד 100 בכל הדרגות")}
             side="bottom"

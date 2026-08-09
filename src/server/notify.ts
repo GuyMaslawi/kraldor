@@ -1,0 +1,165 @@
+import "server-only";
+import { prisma } from "@/lib/prisma";
+import { appBaseUrl, isMailLive, sendMail } from "@/server/mailer";
+import { logError } from "@/server/errorLog";
+
+/**
+ * "Somebody raided you while you were out."
+ *
+ * The game already tells a defender everything: the battle report, the inbox
+ * alert, the live toast. Every one of those requires the player to be looking
+ * at the game — which is precisely the state they are not in when it matters.
+ * This is the one message that reaches somebody who has closed the tab.
+ *
+ * ## Three rules, and all three are about restraint
+ *
+ * 1. **It never blocks and never rolls back.** Every caller fires this
+ *    *outside* its transaction and does not await the result for correctness.
+ *    A mail provider having a bad minute must not cost a player their battle.
+ * 2. **It is rationed hard.** One message per player per NOTIFY_COOLDOWN_MS,
+ *    enforced by a guarded UPDATE rather than a read — a player being farmed
+ *    would otherwise get twenty emails in an hour, and the free mail tier is
+ *    300 a day for the whole game.
+ * 3. **It says nothing worth stealing.** No figures, no numbers, no names of
+ *    what was taken — just that something happened and a link to the game.
+ *    Mail is the least private channel the game has, and a raid report in an
+ *    inbox is a raid report in whoever's hands the inbox is in.
+ */
+
+/**
+ * The quiet period between notifications, per player.
+ *
+ * Six hours. Long enough that a night of being farmed is one email, short
+ * enough that a player raided on Monday and again on Wednesday hears about
+ * both. Deliberately not per-*event*: the question a notification answers is
+ * "is anything happening", and the second raid of an evening does not change
+ * the answer.
+ */
+export const NOTIFY_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
+/** What happened, in the only three flavours worth an email. */
+export type NotifyKind = "raid" | "sabotage" | "spy";
+
+/** Subject and body per kind. Deliberately free of figures — see rule 3. */
+const COPY: Record<NotifyKind, { subject: string; line: string }> = {
+  raid: {
+    subject: "קראלדור — תקפו את האימפריה שלך",
+    line: "צבא זר פרץ את ההגנות שלך בזמן שלא היית. הדוח המלא מחכה לך במשחק.",
+  },
+  sabotage: {
+    subject: "קראלדור — חבלה בשטחך",
+    line: "מישהו שלח תא חבלה לאימפריה שלך. הפרטים מחכים לך בהיסטוריה.",
+  },
+  spy: {
+    subject: "קראלדור — תפסו מרגל בשטחך",
+    line: "כוחות הביטחון שלך תפסו מרגל זר. מישהו מתעניין בך.",
+  },
+};
+
+/**
+ * Claim the right to notify this player, then send.
+ *
+ * The claim is the interesting half. It is a single guarded UPDATE that
+ * *both* tests every condition and stamps the cooldown — verified email, not
+ * banned, opted in, and outside the quiet period — so two raids landing at the
+ * same instant produce exactly one email. A read-then-send would produce two.
+ *
+ * Returns whether a message actually went out, which is only ever used by
+ * tests and by the console fallback; no caller may branch on it, because a
+ * caller that cares whether the mail arrived is a caller that is waiting for
+ * it.
+ */
+export async function notifyPlayer(
+  empireId: string,
+  kind: NotifyKind
+): Promise<boolean> {
+  try {
+    const empire = await prisma.empire.findUnique({
+      where: { id: empireId },
+      select: {
+        name: true,
+        // A garrison bot has no owner to write to, and a staff empire is not
+        // playing. Neither should ever cost a send from the daily quota.
+        isBot: true,
+        isStaff: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            emailVerified: true,
+            notifyRaids: true,
+            notifiedAt: true,
+            bannedAt: true,
+          },
+        },
+      },
+    });
+    if (!empire || empire.isBot || empire.isStaff) return false;
+
+    const user = empire.user;
+    // Every one of these is re-tested inside the claim below; this early exit
+    // only saves the write.
+    if (!user?.email || !user.emailVerified || !user.notifyRaids) return false;
+    if (user.bannedAt !== null) return false;
+
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - NOTIFY_COOLDOWN_MS);
+
+    // The claim. `OR` on the timestamp rather than a plain `lt`, because a
+    // player who has never been notified has `null` there and `lt` matches no
+    // null in SQL — which would have meant nobody ever received a first one.
+    const claimed = await prisma.user.updateMany({
+      where: {
+        id: user.id,
+        notifyRaids: true,
+        bannedAt: null,
+        emailVerified: { not: null },
+        OR: [{ notifiedAt: null }, { notifiedAt: { lt: cutoff } }],
+      },
+      data: { notifiedAt: now },
+    });
+    if (claimed.count === 0) return false;
+
+    const copy = COPY[kind];
+    const url = `${appBaseUrl()}/game/reports`;
+    const text = `${copy.line}\n\n${url}\n\nלביטול ההתראות: הגדרות > התראות`;
+
+    // Kept to one paragraph and one link on purpose. A notification is an
+    // invitation back to the game, not a substitute for opening it — and the
+    // less it says, the less an inbox can leak.
+    const html = `<div style="font-family:system-ui,sans-serif;line-height:1.7;max-width:32rem">
+<h2 style="margin:0 0 .5rem;color:#c4a032">${copy.subject}</h2>
+<p style="margin:0 0 1rem">${copy.line}</p>
+<p style="margin:0 0 1.25rem"><a href="${url}" style="background:#c4a032;color:#111;padding:.6rem 1.1rem;border-radius:.5rem;text-decoration:none;font-weight:700">לפתיחת המשחק</a></p>
+<p style="margin:0;font-size:.8rem;color:#888">לביטול ההתראות: הגדרות ← התראות</p>
+</div>`;
+
+    if (!isMailLive()) {
+      // No provider configured — the mailer logs instead of sending, which is
+      // what makes the whole flow exercisable in development. The claim above
+      // still ran, so the cooldown behaves identically either way.
+      return sendMail({ to: user.email, subject: copy.subject, html, text });
+    }
+    return await sendMail({ to: user.email, subject: copy.subject, html, text });
+  } catch (err) {
+    // Never thrown to a caller: this runs beside a battle that has already
+    // committed, and a mail failure must not surface as a failed attack.
+    await logError("notify.notifyPlayer", err);
+    return false;
+  }
+}
+
+/**
+ * Fire a notification without waiting for it.
+ *
+ * The shape every caller uses. Written out rather than left to each call site
+ * because a floating promise is exactly the kind of thing a linter or a later
+ * reader "tidies" into an await — and awaiting it would put a mail provider's
+ * latency inside a player's attack.
+ */
+export function notifyPlayerInBackground(
+  empireId: string,
+  kind: NotifyKind
+): void {
+  void notifyPlayer(empireId, kind);
+}

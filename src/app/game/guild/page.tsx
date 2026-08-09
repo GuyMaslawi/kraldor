@@ -30,6 +30,10 @@ import { GuildAddMemberForm } from "@/components/game/GuildAddMemberForm";
 import { GuildShopCard } from "@/components/game/GuildShopCard";
 import { GuildCapacityCard } from "@/components/game/GuildCapacityCard";
 import { GuildAidCard } from "@/components/game/GuildAidCard";
+import {
+  GuildTreasuryCard,
+  type GuildContributor,
+} from "@/components/game/GuildTreasuryCard";
 import { GuildMemberActions } from "@/components/game/GuildMemberActions";
 import { GuildLeaveButton } from "@/components/game/GuildLeaveButton";
 
@@ -411,6 +415,20 @@ export default async function GuildPage() {
       a.createdAt.getTime() - b.createdAt.getTime()
   );
 
+  // The contribution board, derived from the roster this page has already
+  // loaded rather than queried again. Only members who have actually given
+  // appear: a list of zeroes names everybody who has not donated, which is a
+  // wall of shame nobody asked for and the wrong tone for a guild screen.
+  const contributors: GuildContributor[] = members
+    .filter((m) => m.donated > 0)
+    .sort((a, b) => b.donated - a.donated)
+    .map((m) => ({
+      empireId: m.empire.id,
+      empireName: m.empire.name,
+      donated: m.donated,
+      isMe: m.empire.id === empire.id,
+    }));
+
   // The viewer's active spell buffs, keyed by type.
   const now = new Date();
   const activeBuffs = await prisma.guildSpellBuff.findMany({
@@ -526,7 +544,14 @@ export default async function GuildPage() {
         </div>
       </div>
 
-      {/* -------- gold upgrades, paid personally (no guild bank) -------- */}
+      {/* -------- the treasury: donations in, guild upgrades out -------- */}
+      <GuildTreasuryCard
+        treasury={guild.treasury}
+        availableGold={availableGold}
+        contributors={contributors}
+      />
+
+      {/* -------- gold upgrades, bought from the treasury -------- */}
       <div className="panel rounded-xl p-4">
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <h2 className="flex items-center gap-2 text-base font-bold tracking-wide text-gold-bright">
@@ -534,13 +559,14 @@ export default async function GuildPage() {
             שדרוגי זהב הברית
           </h2>
           <span className="nums flex items-center gap-1 rounded-full border border-gold/40 bg-panel-inset px-3 py-1 text-xs font-bold text-gold-bright" dir="ltr">
-            {formatNumber(availableGold)}{" "}
+            {formatNumber(Math.floor(guild.treasury))}{" "}
             <Icon name="gold" size={13} className="text-gold-bright" />
           </span>
         </div>
         <p className="mb-4 text-xs text-zinc-500">
-          לברית אין בנק — שדרוגים לכל הברית משולמים מ
-          <span className="font-semibold text-gold-dim">הזהב הזמין שלך</span>, לא מיהלומים.
+          שני הסולמות האלה משולמים מ
+          <span className="font-semibold text-gold-dim">אוצר הברית</span> — מנהיג או
+          סגן קונים, וכל החברים נהנים.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -552,7 +578,7 @@ export default async function GuildPage() {
                 ? null
                 : capacityUpgradeCostGold(guild.capacityLevel)
             }
-            availableGold={availableGold}
+            treasury={guild.treasury}
             mayUpgrade={isLeadership}
           />
           <GuildAidCard
@@ -562,7 +588,8 @@ export default async function GuildPage() {
                 ? null
                 : aidUpgradeCostGold(guild.aidLevel)
             }
-            availableGold={availableGold}
+            treasury={guild.treasury}
+            mayUpgrade={isLeadership}
           />
         </div>
       </div>

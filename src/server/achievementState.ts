@@ -416,6 +416,28 @@ const NO_STATS: AchievementStats = {
   isRankOne: false,
 };
 
+/** The collected keys for one empire, memoised per request. */
+const getClaimedKeysCached = cache((empireId: string) =>
+  getClaimedKeys(prisma, empireId)
+);
+
+/**
+ * The counters snapshot for one empire, memoised per request.
+ *
+ * Exported because the achievements ladder is no longer its only reader: the
+ * mission board measures its goals as differences against this same snapshot
+ * (see lib/game/missions.ts), and on the daily screen both land in one request.
+ * Memoising here is what keeps that one query rather than two of the heaviest
+ * reads in the app.
+ *
+ * Callers must have already authorised access to `empireId` — this does no auth
+ * of its own.
+ */
+export const getEmpireStats = cache(
+  async (empireId: string): Promise<AchievementStats | null> =>
+    gatherAchievementStats(prisma, empireId, await getClaimedKeysCached(empireId))
+);
+
 /**
  * The full ladder for one empire. Callers must have already authorised access
  * to `empireId` — this does no auth of its own.
@@ -426,15 +448,17 @@ const NO_STATS: AchievementStats = {
  */
 export const getAchievementsState = cache(
   async (empireId: string): Promise<AchievementsState | null> => {
-    const claimedKeys = await getClaimedKeys(prisma, empireId);
+    const claimedKeys = await getClaimedKeysCached(empireId);
 
     // Nothing left to earn — skip the snapshot entirely. This is the steady
-    // state for a finished account, so it is worth the branch.
+    // state for a finished account, so it is worth the branch. Note this is a
+    // short-circuit on *this* ladder only: a daily board in the same request
+    // still asks getEmpireStats for the snapshot it needs.
     if (claimedKeys.size >= ACHIEVEMENTS.length) {
       return buildAchievementsState(NO_STATS, claimedKeys);
     }
 
-    const stats = await gatherAchievementStats(prisma, empireId, claimedKeys);
+    const stats = await getEmpireStats(empireId);
     if (!stats) return null;
     return buildAchievementsState(stats, claimedKeys);
   }

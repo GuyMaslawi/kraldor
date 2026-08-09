@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { formatDate } from "@/lib/game/format";
 import { logout } from "@/server/actions/auth";
 import { AccountSecurity } from "@/components/game/AccountSecurity";
+import { NotifySettings } from "@/components/game/NotifySettings";
 import { getI18n, getT } from "@/i18n/server";
 
 export async function generateMetadata() {
@@ -26,6 +27,13 @@ export default async function SettingsPage() {
     (await prisma.user.count({
       where: { id: empire.userId, passwordHash: { not: null } },
     })) > 0;
+
+  // The one preference this screen owns that lives on the *user* rather than
+  // the empire — see setRaidNotifications for why.
+  const account = await prisma.user.findUnique({
+    where: { id: empire.userId },
+    select: { notifyRaids: true },
+  });
 
   return (
     <div className="space-y-6">
@@ -78,7 +86,11 @@ export default async function SettingsPage() {
           <AccountSecurity hasPassword={hasPassword} />
         </div>
 
-        <div className="panel-gold cog-panel rounded-xl p-4" style={{ "--i": 3 } as CSSProperties}>
+        <div className="panel cog-panel rounded-xl p-4" style={{ "--i": 3 } as CSSProperties}>
+          <NotifySettings enabled={account?.notifyRaids ?? true} />
+        </div>
+
+        <div className="panel-gold cog-panel rounded-xl p-4" style={{ "--i": 4 } as CSSProperties}>
           <CardTitle icon="🚪">{t("התנתקות")}</CardTitle>
           <p className="mb-4 text-sm text-zinc-400">
             {t("התנתקות מהחשבון במכשיר הזה. ההתקדמות שלך נשמרת.")}

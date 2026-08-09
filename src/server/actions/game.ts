@@ -49,6 +49,13 @@ import { getActiveGuildBuffPct } from "@/lib/game/guildBuffs";
 import { getGuildAidBonus } from "@/lib/game/guildAid";
 import { sharedGuild } from "@/lib/game/guildAllies";
 import { getActiveShields, getShopDiscountPct } from "@/lib/game/diamondEffects";
+import {
+  BURNABLE,
+  SABOTAGE_BY_KIND,
+  isSabotageKind,
+  sabotageAmount,
+  sabotageSucceeds,
+} from "@/lib/game/sabotage";
 import { applyShopDiscount } from "@/lib/game/diamondShop";
 import { getActivePotionKinds, grantPotion } from "@/lib/game/potionEffects";
 import { POTION_DOUBLE, rollPotionDrop } from "@/lib/game/potions";
@@ -78,6 +85,7 @@ import {
 import type { ActiveEmpireUpgradeType } from "@/lib/game/constants";
 import { getT, type T } from "@/i18n/server";
 import { logError } from "@/server/errorLog";
+import { notifyPlayerInBackground } from "@/server/notify";
 import { syncEmpirePower } from "@/server/empirePower";
 
 export interface ActionState {
@@ -734,7 +742,9 @@ export async function spyOnEmpire(
   if (!parsed.success) return { error: t("יעד לא תקין") };
   const { targetEmpireId } = parsed.data;
 
-  let outcome: { error: string } | { reportId: string };
+  // `caught` rides along so the notification below fires only for a mission
+  // the defender can actually see — see the note where it is read.
+  let outcome: { error: string } | { reportId: string; caught: boolean };
   try {
     const empireId = await requireOwnEmpireId();
     if (empireId === targetEmpireId) {
@@ -870,10 +880,16 @@ export async function spyOnEmpire(
       // The mission ran — go to the full result page whether it succeeded
       // or the spy was caught. Either way it cost turns, so it earns pass XP.
       await awardSeasonPassXp(tx, empireId, "spy");
-      return { reportId: report.id };
+      return { reportId: report.id, caught: !success };
     });
 
     revalidateGame();
+    // Only a *caught* spy. A successful mission stays invisible to its target
+    // by design (see ReportsTabs), and emailing about one would hand over the
+    // one fact the whole mechanic is built to withhold.
+    if (!("error" in outcome) && outcome.caught) {
+      notifyPlayerInBackground(targetEmpireId, "spy");
+    }
   } catch (err) {
     await logError("game.spyOnEmpire", err);
     return { error: t("אירעה שגיאה, נסה שוב") };
@@ -882,6 +898,283 @@ export async function spyOnEmpire(
   if ("error" in outcome) return outcome;
   // redirect() throws NEXT_REDIRECT — must run outside the try/catch above.
   redirect(`/game/spy/${outcome.reportId}`);
+}
+
+/* ------------------------------ sabotage ------------------------------ */
+
+const sabotageSchema = z.object({
+  targetEmpireId: z.string().min(1),
+  kind: z.string().refine(isSabotageKind),
+});
+
+/**
+ * חבלה — a spy mission that breaks something instead of looking at it.
+ *
+ * Deliberately written here rather than in a module of its own, and reusing
+ * `spendTurns`, `targetBlockedReason` and `dropOwnShield` directly. Those three
+ * are the single choke point every offensive action in the game passes through
+ * — staff, new-player shields and bans are enforced in exactly one place — and
+ * a second offensive action that reimplemented them would be a second place for
+ * that enforcement to drift. They are not exported for the same reason: this is
+ * a `"use server"` module, so an exported async function is a public endpoint.
+ *
+ * What makes this a *different* action rather than a flag on `spyOnEmpire`:
+ *
+ *  - it resolves on a **margin** rather than a bare win (SABOTAGE_INTEL_MARGIN),
+ *    because destroying property on a hair's-breadth advantage would make every
+ *    marginal spy lead a licence to strip a rival;
+ *  - it honours the **paid shields**, which a scouting mission has no reason to;
+ *  - it commits several spies and loses all of them on failure, where a scout
+ *    loses one.
+ *
+ * And the rule it must never break, stated at length in lib/game/sabotage.ts:
+ * it touches stores, gold and mine slaves, and never soldiers, weapons or
+ * power. `syncEmpirePower` is still called after a slave kill — mine slaves
+ * carry no power, so it can never move a figure, and calling it anyway means
+ * the house rule ("every army mutation re-syncs") has no exceptions a later
+ * reader has to know about.
+ */
+export async function sabotageEmpire(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const t = await getT();
+  const parsed = sabotageSchema.safeParse({
+    targetEmpireId: formData.get("targetEmpireId"),
+    kind: formData.get("kind"),
+  });
+  if (!parsed.success) return { error: t("משימת חבלה לא תקינה") };
+  const { targetEmpireId } = parsed.data;
+  const mission = SABOTAGE_BY_KIND.get(parsed.data.kind)!;
+
+  try {
+    const empireId = await requireOwnEmpireId();
+    if (empireId === targetEmpireId) {
+      return { error: t("לא ניתן לחבל באימפריה שלך") };
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const attacker = await applyPendingUpdates(empireId, tx);
+      const notEnoughSpies = {
+        error: t("נדרשים {count} מרגלים למשימה הזו.", { count: mission.spies }),
+      };
+      if (!attacker.army || attacker.army.spies < mission.spies) {
+        return notEnoughSpies;
+      }
+      if (attacker.turns < mission.turns) {
+        return {
+          error: t("המשימה עולה {turns} תורות.", { turns: mission.turns }),
+        };
+      }
+
+      const defender = await applyPendingUpdates(targetEmpireId, tx).catch(
+        () => null
+      );
+      if (!defender) return { error: t("האימפריה המבוקשת לא נמצאה") };
+
+      // Same city tier only — the rule every offensive action in the game keeps.
+      if (defender.cities !== attacker.cities) {
+        return { error: t("לא ניתן לחבל באימפריה שאינה בעיר שלך.") };
+      }
+
+      const now = new Date();
+      const blocked = await targetBlockedReason(tx, defender, now, t);
+      if (blocked) return { error: blocked };
+
+      // The paid shields block sabotage exactly as they block plunder. A player
+      // who bought protection for their resources has bought it against every
+      // way of losing them, or the purchase is a lie. Checked *before* the turns
+      // are spent: unlike an intelligence failure, this is not a mission that
+      // went wrong — it is one that was never possible, and the player could not
+      // have known.
+      const shields = await getActiveShields(targetEmpireId, tx, now);
+      if (shields[mission.shield]) {
+        return {
+          error: t("על {target} יש מגן פעיל — המשימה הזו לא תעבור.", {
+            target: defender.name,
+          }),
+        };
+      }
+
+      // Everything is possible — the mission launches, so it costs turns
+      // whether it succeeds or the cell is caught.
+      if (!(await spendTurns(tx, empireId, mission.turns))) {
+        return {
+          error: t("המשימה עולה {turns} תורות.", { turns: mission.turns }),
+        };
+      }
+      await dropOwnShield(tx, empireId, attacker, now);
+
+      // The same intelligence comparison a scouting mission runs, against a
+      // higher bar. Nothing new is invented here: sabotage is the existing spy
+      // system with a different verb.
+      const attackerIntelLevel =
+        attacker.upgrades.find((u) => u.type === "INTELLIGENCE")?.level ?? 1;
+      const defenderIntelLevel =
+        defender.upgrades.find((u) => u.type === "INTELLIGENCE")?.level ?? 1;
+      const attackerIntel = getEmpireIntelPower(
+        attacker.army,
+        attacker.weapons,
+        attackerIntelLevel,
+        heroBonuses(attacker.hero).totalPct.spy
+      );
+      const defenderIntel = getEmpireIntelPower(
+        defender.army,
+        defender.weapons,
+        defenderIntelLevel
+      );
+      const success = sabotageSucceeds(attackerIntel, defenderIntel);
+
+      const taken = {
+        goldTaken: 0,
+        woodBurned: 0,
+        ironBurned: 0,
+        stoneBurned: 0,
+        slavesKilled: 0,
+      };
+
+      if (success) {
+        if (mission.kind === "STEAL_PLANS") {
+          // Guarded on the exact amount: the defender's balance may have moved
+          // since the snapshot above, and a decrement that is not covered would
+          // drive them negative. Nothing is credited unless something was taken.
+          const amount = sabotageAmount(defender.gold, mission.share);
+          if (amount > 0) {
+            const robbed = await tx.empire.updateMany({
+              where: { id: targetEmpireId, gold: { gte: amount } },
+              data: { gold: { decrement: amount } },
+            });
+            if (robbed.count > 0) {
+              await tx.empire.update({
+                where: { id: empireId },
+                data: { gold: { increment: amount } },
+              });
+              taken.goldTaken = amount;
+            }
+          }
+        } else if (mission.kind === "BURN_STORES") {
+          // The *protected* stock in the warehouses — the pool plunder cannot
+          // reach, which is the whole point of the mission. Gold is deliberately
+          // not burnable: STEAL_PLANS already covers gold, from the available
+          // balance, and two missions that both hit gold would be one mission.
+          for (const resource of BURNABLE) {
+            // The warehouse enum is the resource key in upper case; asserted
+            // rather than inferred so a new StorableResource that has no
+            // warehouse fails to compile instead of silently never matching.
+            const type = resource.toUpperCase() as ResourceStorageType;
+            const store = defender.storages.find((row) => row.resourceType === type);
+            if (!store) continue;
+            const amount = sabotageAmount(store.storedAmount, mission.share);
+            if (amount <= 0) continue;
+            const burned = await tx.resourceStorage.updateMany({
+              where: { id: store.id, storedAmount: { gte: amount } },
+              data: { storedAmount: { decrement: amount } },
+            });
+            if (burned.count === 0) continue;
+            if (resource === "wood") taken.woodBurned = amount;
+            if (resource === "iron") taken.ironBurned = amount;
+            if (resource === "stone") taken.stoneBurned = amount;
+          }
+        } else {
+          // Mine slaves, not soldiers. They carry no combat power, so this
+          // slows the target's mines without touching the ladder — see the
+          // header of lib/game/sabotage.ts.
+          const amount = sabotageAmount(
+            defender.army?.mineSlaves ?? 0,
+            mission.share
+          );
+          if (amount > 0) {
+            const killed = await tx.army.updateMany({
+              where: { empireId: targetEmpireId, mineSlaves: { gte: amount } },
+              data: { mineSlaves: { decrement: amount } },
+            });
+            if (killed.count > 0) {
+              taken.slavesKilled = amount;
+              // Cannot move a figure — mine slaves carry no power — but the
+              // house rule has no exceptions.
+              await syncEmpirePower(tx, targetEmpireId);
+            }
+          }
+        }
+      }
+
+      // A failed mission loses the whole cell. Guarded so concurrent failures
+      // can never drive the spy count negative, and the report records what was
+      // actually lost rather than what was committed.
+      let spiesLost = 0;
+      if (!success) {
+        const lost = await tx.army.updateMany({
+          where: { empireId, spies: { gte: mission.spies } },
+          data: { spies: { decrement: mission.spies } },
+        });
+        if (lost.count > 0) {
+          spiesLost = mission.spies;
+          await syncEmpirePower(tx, empireId);
+        }
+      }
+
+      const report = await tx.sabotageReport.create({
+        data: {
+          attackerEmpireId: empireId,
+          defenderEmpireId: targetEmpireId,
+          kind: mission.kind,
+          success,
+          attackerIntel,
+          defenderIntel,
+          turnsSpent: mission.turns,
+          spiesSpent: mission.spies,
+          spiesLost,
+          ...taken,
+        },
+      });
+
+      // The defender always hears about it. A successful scout stays invisible
+      // to its target on purpose; a mission that *destroyed* something cannot,
+      // or a player would watch their warehouses empty with no explanation.
+      await tx.message.create({
+        data: {
+          empireId: targetEmpireId,
+          kind: "SPY",
+          title: success ? "💥 חבלה בשטחך!" : "🕵️ תא חבלה נתפס בשטחך!",
+          body: success
+            ? t('{attacker} ביצע "{mission}" נגדך. בדוק את ההיסטוריה לפרטים.', {
+                attacker: attacker.name,
+                mission: t(mission.name),
+              })
+            : t("כוחות הביטחון שלך תפסו תא חבלה של {attacker} לפני שהספיק לפעול.", {
+                attacker: attacker.name,
+              }),
+        },
+      });
+
+      await awardSeasonPassXp(tx, empireId, "spy");
+
+      return {
+        reportId: report.id,
+        success: success
+          ? t('"{mission}" הצליחה נגד {target}.', {
+              mission: t(mission.name),
+              target: defender.name,
+            })
+          : t('"{mission}" נכשלה — התא נתפס ו-{spies} מרגלים אבדו.', {
+              mission: t(mission.name),
+              spies: spiesLost,
+            }),
+      };
+    });
+
+    revalidateGame();
+    // Same shape as the raid notification: outside the transaction, never
+    // awaited. Fired whether the cell got in or was caught — both are somebody
+    // taking an interest in you, and the defender is told about both in-game.
+    if (!("error" in result)) {
+      notifyPlayerInBackground(targetEmpireId, "sabotage");
+    }
+    return result;
+  } catch (err) {
+    await logError("game.sabotageEmpire", err);
+    return { error: t("אירעה שגיאה, נסה שוב") };
+  }
 }
 
 /* ------------------------------ attack ------------------------------ */
@@ -897,7 +1190,9 @@ export async function attackEmpire(
   if (!parsed.success) return { error: t("יעד לא תקין") };
   const { targetEmpireId } = parsed.data;
 
-  let outcome: { error: string } | { reportId: string };
+  // `breached` rides along so the notification below can fire only for a
+  // defence that actually fell — see the note where it is read.
+  let outcome: { error: string } | { reportId: string; breached: boolean };
   try {
     const empireId = await requireOwnEmpireId();
     if (empireId === targetEmpireId) {
@@ -1408,10 +1703,19 @@ export async function attackEmpire(
       // XP is paid for launching the attack, win or lose; the turns are spent
       // regardless and the pass should not punish a failed raid.
       await awardSeasonPassXp(tx, empireId, "attack");
-      return { reportId: report.id };
+      return { reportId: report.id, breached: attackerWins };
     });
 
     revalidateGame();
+    // Outside the transaction, and deliberately not awaited: the battle has
+    // already committed, and a mail provider having a bad minute must not cost
+    // the attacker their raid. Only a *breach* is worth an email — a defence
+    // that held is good news the player can find at their leisure. See
+    // server/notify.ts for the cooldown that keeps a farmed player from
+    // receiving twenty of these.
+    if (!("error" in outcome) && outcome.breached) {
+      notifyPlayerInBackground(targetEmpireId, "raid");
+    }
   } catch (err) {
     await logError("game.attackEmpire", err);
     return { error: t("אירעה שגיאה, נסה שוב") };

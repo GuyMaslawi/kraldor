@@ -49,6 +49,14 @@ export type MonumentEffect =
   | "interest"
   | "wheelSpins";
 
+/**
+ * The silhouette a monument is drawn with on the build site. Each name maps to
+ * one `.vil-<shape>` block in globals.css, which sets the footprint width and
+ * the height each level adds — so a column is thin and towering, a hall is wide
+ * and squat, and five buildings never read as the same box five times.
+ */
+export type MonumentShape = "column" | "tower" | "gate" | "hall" | "wheel";
+
 export interface MonumentDefinition {
   /** Stable key persisted in EmpireMonument.key — never reuse or rename one. */
   key: string;
@@ -61,7 +69,23 @@ export interface MonumentDefinition {
   effect: MonumentEffect;
   /** Accent as an `R G B` triple, so a card can tint from one token. */
   accent: string;
+  /** How it is drawn on the build site. */
+  shape: MonumentShape;
+  /**
+   * The top-left tile of its 2×2 plot on the build site grid. The five sit in a
+   * quincunx — four corners and the middle — which is the only arrangement that
+   * leaves a full ring of road between every pair, so no plot's click target
+   * ever overlaps its neighbour's. See VILLAGE_SIZE.
+   */
+  plot: { c: number; r: number };
 }
+
+/**
+ * The build site is VILLAGE_SIZE² tiles. Roads run down columns and rows 2 and
+ * 5, which is what carves the eight-by-eight into the five plots below plus
+ * four grass verges — change either number and that layout stops lining up.
+ */
+export const VILLAGE_SIZE = 8;
 
 /** Levels a monument can be raised to. The twelfth is the last. */
 export const MONUMENT_MAX_LEVEL = 12;
@@ -88,6 +112,8 @@ export const MONUMENTS: readonly MonumentDefinition[] = [
     icon: "mine",
     effect: "mines",
     accent: "196 120 60",
+    shape: "column",
+    plot: { c: 0, r: 0 },
   },
   {
     key: "clock_tower",
@@ -97,6 +123,8 @@ export const MONUMENTS: readonly MonumentDefinition[] = [
     icon: "turns",
     effect: "turns",
     accent: "150 168 224",
+    shape: "tower",
+    plot: { c: 6, r: 0 },
   },
   {
     key: "victory_gate",
@@ -106,6 +134,8 @@ export const MONUMENTS: readonly MonumentDefinition[] = [
     icon: "citizens",
     effect: "citizens",
     accent: "205 150 70",
+    shape: "gate",
+    plot: { c: 3, r: 3 },
   },
   {
     key: "vault_hall",
@@ -115,6 +145,8 @@ export const MONUMENTS: readonly MonumentDefinition[] = [
     icon: "bank",
     effect: "interest",
     accent: "228 195 90",
+    shape: "hall",
+    plot: { c: 0, r: 6 },
   },
   {
     key: "sky_wheel",
@@ -124,6 +156,8 @@ export const MONUMENTS: readonly MonumentDefinition[] = [
     icon: "wheel",
     effect: "wheelSpins",
     accent: "150 96 232",
+    shape: "wheel",
+    plot: { c: 6, r: 6 },
   },
 ];
 
@@ -234,6 +268,8 @@ export interface MonumentView {
   effectLabel: string;
   icon: IconName;
   accent: string;
+  shape: MonumentShape;
+  plot: { c: number; r: number };
   level: number;
   maxLevel: number;
   /** The percentage it pays right now. */
@@ -272,6 +308,8 @@ export function buildMonumentsState(
       effectLabel: definition.effectLabel,
       icon: definition.icon,
       accent: definition.accent,
+      shape: definition.shape,
+      plot: definition.plot,
       level,
       maxLevel: MONUMENT_MAX_LEVEL,
       pct: monumentPct(level),

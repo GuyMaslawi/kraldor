@@ -7,7 +7,7 @@ import { getT } from "@/i18n/server";
 
 export async function generateMetadata() {
   const t = await getT();
-  return { title: t("מונומנטים | KRALDOR") };
+  return { title: t("מבנים | KRALDOR") };
 }
 
 /**
@@ -25,7 +25,7 @@ export default async function MonumentsPage() {
   return (
     <div className="space-y-6">
       <SectionHeading
-        title={t("מונומנטים")}
+        title={t("מבנים")}
         ornament={<Icon name="crown" size={20} className="text-crimson" />}
       />
 
@@ -33,7 +33,7 @@ export default async function MonumentsPage() {
         <Monuments state={state} />
       ) : (
         <p className="panel rounded-xl p-5 text-sm text-zinc-400">
-          {t("המונומנטים אינם זמינים כרגע. נסה לרענן.")}
+          {t("המבנים אינם זמינים כרגע. נסה לרענן.")}
         </p>
       )}
     </div>

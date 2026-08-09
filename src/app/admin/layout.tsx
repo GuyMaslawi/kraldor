@@ -4,15 +4,20 @@ import { requireAdmin } from "@/lib/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { OrnateFrame } from "@/components/ui/OrnateFrame";
 import { countWaitingSupport } from "@/server/actions/support";
+import { countHeldReferrals } from "@/server/referralQueue";
 
 export const metadata = { title: "ניהול | קראלדור" };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const admin = await requireAdmin();
-  // One count, on every admin screen: a player waiting at the door is the one
-  // thing in here that goes stale by the minute, and the admin who is on some
-  // other page is exactly who needs telling.
-  const waitingSupport = await countWaitingSupport();
+  // Two counts, on every admin screen: the things in here that are somebody
+  // waiting on a person rather than on a clock, and the admin who is on some
+  // other page is exactly who needs telling. Both are indexed counts over a
+  // handful of rows.
+  const [waitingSupport, heldReferrals] = await Promise.all([
+    countWaitingSupport(),
+    countHeldReferrals(),
+  ]);
 
   return (
     <div dir="rtl" className="min-h-screen">
@@ -34,7 +39,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             ← חזרה למשחק
           </Link>
 
-          <AdminNav waitingSupport={waitingSupport} />
+          <AdminNav waitingSupport={waitingSupport} heldReferrals={heldReferrals} />
         </aside>
 
         <main className="min-w-0 flex-1">

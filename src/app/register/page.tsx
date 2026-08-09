@@ -3,6 +3,7 @@ import { getSessionUserId } from "@/lib/auth";
 import { requireOpenSeason } from "@/server/seasonGuard";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { RegisterForm } from "@/components/auth/RegisterForm";
+import { readPendingReferral, resolveReferralCode } from "@/server/referralGuard";
 import { getT } from "@/i18n/server";
 
 export async function generateMetadata() {
@@ -16,9 +17,19 @@ export default async function RegisterPage() {
   // Signing up reopens with the next season — see seasonGuard.
   await requireOpenSeason();
   if (await getSessionUserId()) redirect("/game/base");
+
+  // The invite the visitor arrived on, if any. `/r/<code>` deliberately says
+  // nothing about whether a code was real (see the note there) — this line is
+  // where a working link finally announces itself, to the one person who has it.
+  //
+  // Read only. The link is attached after the empire exists; nothing is written
+  // here, which is just as well, since a page render cannot set cookies anyway.
+  const code = await readPendingReferral();
+  const inviter = code ? await resolveReferralCode(code) : null;
+
   return (
     <AuthShell wide>
-      <RegisterForm />
+      <RegisterForm invitedBy={inviter?.empireName ?? null} />
     </AuthShell>
   );
 }

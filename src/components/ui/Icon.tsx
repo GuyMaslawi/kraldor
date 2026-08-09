@@ -8,7 +8,7 @@ import {
   GiRollingDices, GiShoppingBag, GiPresent, GiSparkles,
   GiHeartInside, GiHealthPotion, GiCompass, GiTalk,
   GiPadlock, GiPadlockOpen, GiCheckMark, GiLaurelCrown,
-  GiWorld,
+  GiWorld, GiLinkedRings, GiShare,
 } from "react-icons/gi";
 // The one glyph that is a *brand*, not a game-art silhouette: the community
 // channel is Discord, and a hand-picked sword or scroll standing in for it
@@ -31,6 +31,8 @@ export type IconName =
   | "achievements" | "reports" | "messages" | "settings" | "logout"
   | "crown" | "dice" | "wheel" | "shop" | "gift" | "spark" | "heart" | "potion"
   | "quest" | "chat" | "discord" | "language"
+  /* the invite link and the buttons that send it on */
+  | "link" | "share"
   /* status glyphs — these replace the 🔒 / ✅ emoji that had crept into the
      reward ladders, which render differently on every platform and cannot take
      a design token's color. */
@@ -97,6 +99,8 @@ const GLYPHS: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> = {
   unlocked: GiPadlockOpen,
   check: GiCheckMark,
   laurel: GiLaurelCrown,
+  link: GiLinkedRings,
+  share: GiShare,
 };
 
 export function Icon({

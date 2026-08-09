@@ -14,10 +14,17 @@ import {
   type MonumentsState,
 } from "@/lib/game/monuments";
 import { raiseMonument } from "@/server/actions/monuments";
+import { MonumentVillage } from "@/components/game/MonumentVillage";
 import { useT } from "@/i18n/client";
 
 /**
  * /game/monuments — the capital's skyline.
+ *
+ * The screen opens on the ground the monuments stand on (MonumentVillage — an
+ * isometric build site where each one grows with its level), and the cards
+ * below are where the gold is actually spent. Every lot on the site is an
+ * anchor to its own card, so there is exactly one place to buy a level; the
+ * site shows state, it never changes it.
  *
  * One card per monument, each carrying the two numbers that decide whether it
  * is worth raising: what it pays now and what the next level costs. The screen
@@ -34,10 +41,10 @@ export function Monuments({ state }: { state: MonumentsState }) {
           <div>
             <h2 className="flex items-center gap-2 text-base font-black tracking-wide text-gold-bright">
               <Icon name="crown" size={20} className="text-crimson-bright" />
-              {t("מונומנטים של הבירה")}
+              {t("מבני הבירה")}
             </h2>
             <p className="mt-1 max-w-2xl text-xs leading-relaxed text-zinc-400">
-              {t("מבנים שנבנים פעם אחת ועומדים עד סוף העונה. כל רמה מוסיפה {pct}% לאחד ממקורות ההכנסה של האימפריה — ואף מונומנט אינו נוגע בכוח הקרב.", {
+              {t("מבנים שנבנים פעם אחת ועומדים עד סוף העונה. כל רמה מוסיפה {pct}% לאחד ממקורות ההכנסה של האימפריה — ואף מבנה אינו נוגע בכוח הקרב.", {
                 pct: MONUMENT_PCT_PER_LEVEL,
               })}
             </p>
@@ -55,6 +62,8 @@ export function Monuments({ state }: { state: MonumentsState }) {
           </Tip>
         </div>
       </section>
+
+      <MonumentVillage monuments={state.monuments} />
 
       <ul className="grid gap-4 lg:grid-cols-2">
         {state.monuments.map((monument, index) => (
@@ -83,10 +92,11 @@ function MonumentCard({
 
   return (
     <li
+      id={`mono-${monument.key}`}
       style={
         { "--accent": monument.accent, "--i": index + 1 } as CSSProperties
       }
-      className="mono-card panel rounded-2xl p-4"
+      className="mono-card panel scroll-mt-24 rounded-2xl p-4"
     >
       <span className="mono-glow" aria-hidden />
 

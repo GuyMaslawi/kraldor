@@ -44,6 +44,20 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
+/**
+ * A client address unique to this run — `nameReferrer` is throttled per IP, and
+ * the limiter counts in Postgres, so its buckets outlive the test run. See the
+ * longer note in tests/db/referralGuard.test.ts.
+ */
+const { RUN_IP } = vi.hoisted(() => ({
+  RUN_IP: `test-${Math.random().toString(36).slice(2)}`,
+}));
+
+vi.mock("@/lib/rateLimit", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/rateLimit")>();
+  return { ...real, clientIp: async () => RUN_IP };
+});
+
 const { collectJoinerReward, collectReferrerReward, nameReferrer } = await import(
   "@/server/actions/referral"
 );

@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/admin/monitor", label: "ניטור", icon: "📡" },
   { href: "/admin/support", label: "תמיכה", icon: "🛟" },
   { href: "/admin/users", label: "שחקנים", icon: "👥" },
+  { href: "/admin/referrals", label: "הזמנות חברים", icon: "🎁" },
   { href: "/admin/bots", label: "בוטים", icon: "🤖" },
   { href: "/admin/broadcast", label: "שידור ומתנות", icon: "📣" },
   { href: "/admin/minigame", label: "מיני-משחק", icon: "🎯" },
@@ -28,9 +29,21 @@ export function AdminNav({
    * because the support screen itself does.
    */
   waitingSupport = 0,
+  /**
+   * Referrals held for a decision. The other thing in here that is somebody
+   * waiting on you — two players cannot collect a purse until this is cleared —
+   * and, unlike support, they were never told to expect an answer, so nothing
+   * else would ever prompt the admin to look.
+   */
+  heldReferrals = 0,
 }: {
   waitingSupport?: number;
+  heldReferrals?: number;
 }) {
+  const badges: Record<string, number> = {
+    "/admin/support": waitingSupport,
+    "/admin/referrals": heldReferrals,
+  };
   const pathname = usePathname();
   return (
     <nav className="-mx-1 flex flex-row gap-1 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
@@ -38,6 +51,7 @@ export function AdminNav({
         const active = link.exact
           ? pathname === link.href
           : pathname.startsWith(link.href);
+        const badge = badges[link.href] ?? 0;
         return (
           <Link
             key={link.href}
@@ -50,9 +64,9 @@ export function AdminNav({
           >
             <span className="flex items-center gap-1.5 whitespace-nowrap">
               {link.label}
-              {link.href === "/admin/support" && waitingSupport > 0 && (
+              {badge > 0 && (
                 <span className="min-w-5 rounded-full bg-red-600 px-1.5 py-px text-center text-[10px] font-black text-white">
-                  {waitingSupport > 99 ? "99+" : waitingSupport}
+                  {badge > 99 ? "99+" : badge}
                 </span>
               )}
             </span>

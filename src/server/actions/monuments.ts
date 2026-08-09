@@ -21,7 +21,7 @@ import { logError } from "@/server/errorLog";
 import { getT } from "@/i18n/server";
 
 /**
- * מונומנטים — founding one and raising it.
+ * מבנים — founding one and raising it.
  *
  * A single action does both, because they are the same act: a monument that has
  * no row is at level 0, and "raise it from 0" is "found it". Splitting them
@@ -65,9 +65,9 @@ export async function raiseMonument(
 ): Promise<ActionState> {
   const t = await getT();
   const parsed = raiseSchema.safeParse({ key: formData.get("key") });
-  if (!parsed.success) return { error: t("מונומנט לא תקין") };
+  if (!parsed.success) return { error: t("מבנה לא תקין") };
   const definition = MONUMENT_BY_KEY.get(parsed.data.key);
-  if (!definition) return { error: t("מונומנט לא תקין") };
+  if (!definition) return { error: t("מבנה לא תקין") };
 
   try {
     const empireId = await requireOwnEmpireId();
@@ -124,7 +124,7 @@ export async function raiseMonument(
             where: { id: empireId },
             data: { gold: { increment: cost } },
           });
-          return { error: t("המונומנט השתנה בינתיים — נסה שוב.") };
+          return { error: t("המבנה השתנה בינתיים — נסה שוב.") };
         }
       } else {
         try {
@@ -136,7 +136,7 @@ export async function raiseMonument(
           // this throw causes — the trap documented in the 2026-07-27 audit is
           // that the violation has *already* aborted the transaction, so a
           // refund written here would never run. See server/uniqueRace.ts.
-          throw new UniqueRaceLost(t("המונומנט השתנה בינתיים — נסה שוב."));
+          throw new UniqueRaceLost(t("המבנה השתנה בינתיים — נסה שוב."));
         }
       }
 

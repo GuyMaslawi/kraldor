@@ -213,10 +213,12 @@ import {
   WORLD_BOSS_STRIKE_TURNS,
 } from "@/lib/game/worldBoss";
 import {
+  REFERRAL_BURST_LIMIT,
   REFERRAL_GOAL_CITIES,
   REFERRAL_JOINER_PURSE,
   REFERRAL_NAME_MAX_CITIES,
   REFERRAL_REFERRER_PURSE,
+  REFERRAL_SEASON_CAP,
 } from "@/lib/game/referral";
 import { TITLES, TITLE_PARAMS } from "@/lib/game/titles";
 import {
@@ -304,7 +306,7 @@ const SECTIONS = {
   army: { id: "army", title: "צבא ואזרחים", sub: "the army", icon: "army" },
   weapons: { id: "weapons", title: "מפעל הנשק", sub: "the foundry", icon: "factory" },
   upgrades: { id: "upgrades", title: "שדרוגי אימפריה", sub: "upgrades", icon: "upgrades" },
-  monuments: { id: "monuments", title: "מונומנטים", sub: "monuments", icon: "stone" },
+  monuments: { id: "monuments", title: "מבנים", sub: "monuments", icon: "stone" },
   battle: { id: "battle", title: "קרב", sub: "war", icon: "attack" },
   spy: { id: "spy", title: "ריגול", sub: "espionage", icon: "spy" },
   sabotage: { id: "sabotage", title: "חבלה", sub: "sabotage", icon: "unlocked" },
@@ -1523,9 +1525,9 @@ export async function GuideContent({
             {/* ============================ 12 monuments ============================ */}
             <GuideSection meta={SECTIONS.monuments} index={INDEX.monuments}>
               <Lead>
-                בשליש האחרון של עונה השדרוגים נגמרים והזהב ממשיך להיערם. מונומנט הוא
+                בשליש האחרון של עונה השדרוגים נגמרים והזהב ממשיך להיערם. מבנה הוא
                 התשובה לזה, והוא הסוג היחיד של תשובה שמחזיק לנצח:{" "}
-                <b>בור זהב שמשלם באחוזים</b>. חמישה מונומנטים,{" "}
+                <b>בור זהב שמשלם באחוזים</b>. חמישה מבנים,{" "}
                 <b className="nums">{MONUMENT_MAX_LEVEL}</b> רמות לכל אחד,{" "}
                 <b className="nums">+{MONUMENT_PCT_PER_LEVEL}%</b> לרמה.
               </Lead>
@@ -1553,7 +1555,7 @@ export async function GuideContent({
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Fact
                   icon="stone"
-                  label="רמות בכל מונומנט"
+                  label="רמות בכל מבנה"
                   value={MONUMENT_MAX_LEVEL}
                   hint={`+${MONUMENT_PCT_PER_LEVEL}% לרמה`}
                 />
@@ -1597,7 +1599,7 @@ export async function GuideContent({
                 legend={[
                   {
                     term: "המחיר גיאומטרי, התשואה קווית",
-                    desc: "כל רמה עולה פי שניים בערך מקודמתה ומשלמת בדיוק אותן שתי נקודות אחוז — לכן מונומנט אף פעם לא מחזיר את עצמו מהר יותר משהוא עולה.",
+                    desc: "כל רמה עולה פי שניים בערך מקודמתה ומשלמת בדיוק אותן שתי נקודות אחוז — לכן מבנה אף פעם לא מחזיר את עצמו מהר יותר משהוא עולה.",
                   },
                   {
                     term: "אבל הוא גם לא מתיישן",
@@ -1637,8 +1639,8 @@ export async function GuideContent({
                 </table>
               </TableWrap>
 
-              <Note tone="gold" icon="attack" title="אף מונומנט לא נוגע בקרב">
-                לא בתקיפה, לא בהגנה ולא בריגול. מונומנט קונה <b>הכנסה</b> — מכרות,
+              <Note tone="gold" icon="attack" title="אף מבנה לא נוגע בקרב">
+                לא בתקיפה, לא בהגנה ולא בריגול. מבנה קונה <b>הכנסה</b> — מכרות,
                 תורות, אזרחים, ריבית וסיבובי גלגל — והקריאה הישרה של זה היא שזהב קנה לך
                 עוד זהב, לא ניצחון. דוח הקרב מפרט כל מרכיב של חישוב הכוח, ומודיפייר
                 שהיה מסתתר מחוץ לדוח היה הופך אותו לשקר.
@@ -3388,12 +3390,13 @@ export async function GuideContent({
             {/* ============================ 27 referrals ============================ */}
             <GuideSection meta={SECTIONS.referrals} index={INDEX.referrals}>
               <Lead>
-                <b>שם האימפריה שלך הוא הקוד.</b> אין מה לייצר ואין מה להעתיק — חבר
-                שנרשם נכנס ל
+                <b>לכל שחקן יש קישור הזמנה משלו.</b> הוא נמצא ב
                 <Link href={gameHref("/game/referrals")} className="text-gold underline">
                   דף ההזמנות
                 </Link>{" "}
-                ורושם את השם שלך. שני הצדדים מקבלים את הפרס רק כשהחדש מגיע ל־
+                — שולחים אותו, ומי שנרשם דרכו נקשר אליך לבד. אין מה למלא בטופס ההרשמה.
+                מי שקיבל רק את הקוד או את שם האימפריה יכול לרשום אותו ידנית באותו עמוד,
+                כל עוד הוא בתחילת הדרך. שני הצדדים מקבלים את הפרס רק כשהחדש מגיע ל־
                 <b className="nums">{REFERRAL_GOAL_CITIES}</b> ערים — כלומר כששחקן אמיתי
                 נשאר, לא כשנפתח חשבון.
               </Lead>
@@ -3405,8 +3408,8 @@ export async function GuideContent({
                   </p>
                   <Purse rewards={REFERRAL_REFERRER_PURSE} />
                   <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
-                    החצי הגדול, בלי הגבלה על מספר המוזמנים. נגבה בנפרד לכל מוזמן שהגיע
-                    ליעד.
+                    החצי הגדול, ונגבה בנפרד לכל מוזמן שהגיע ליעד — עד{" "}
+                    <b className="nums">{REFERRAL_SEASON_CAP}</b> פרסי הזמנה בעונה.
                   </p>
                 </div>
                 <div className="panel-gold rounded-xl p-4">
@@ -3438,7 +3441,7 @@ export async function GuideContent({
                   },
                   {
                     term: "לא בעיגול ולא לצוות",
-                    desc: "אי אפשר לרשום מישהו שכבר רשם אותך, ואי אפשר לרשום חשבון צוות או חשבון מוצב.",
+                    desc: "אי אפשר לרשום מישהו שכבר רשם אותך — גם לא דרך שרשרת ארוכה יותר — ואי אפשר לרשום חשבון צוות או חשבון מוצב.",
                   },
                   {
                     term: "היעד נמדד חי",
@@ -3446,10 +3449,24 @@ export async function GuideContent({
                   },
                   {
                     term: "עונה חדשה, קשר חדש",
-                    desc: "איפוס עונה מוחק ובונה מחדש כל אימפריה, ולכן הקשר לא שורד אותו. הקריאה הנכונה של זה: להחזיר חבר שנטש בדיוק לעונה החדשה זו בדיוק ההתנהגות ששווה לשלם עליה שוב.",
+                    desc: "איפוס עונה מוחק ובונה מחדש כל אימפריה, ולכן הקשר לא שורד אותו. הקישור עצמו כן שורד — הוא שייך לחשבון, לא לאימפריה. הקריאה הנכונה של זה: להחזיר חבר שנטש בדיוק לעונה החדשה זו בדיוק ההתנהגות ששווה לשלם עליה שוב.",
                   },
                 ]}
               />
+
+              <Note tone="red" icon="shield" title="חשבון שני שלך הוא לא חבר">
+                הזמנה משלמת יהלומים, ולכן היא נבדקת. שני חשבונות שהם בבירור אותו אדם —
+                אותה תיבת דואר (כולל תעלולי נקודות ו־<span dir="ltr">+תווית</span>{" "}
+                בג׳ימייל), או שניהם נכנסו למשחק מאותו דפדפן — לא נקשרים בכלל, והפרס פשוט
+                לא נוצר.
+                <br />
+                דברים שרק <b>נראים</b> חשודים מטופלים אחרת בכוונה. שני שחקנים מאותה כתובת
+                IP הם לרוב אחים, שותפים לדירה, משרד או פשוט אותה רשת סלולרית — וזה גם
+                המקרה הכי נפוץ של הזמנה אמיתית. במצב כזה הקישור נוצר וההתקדמות נספרת, אבל
+                הפרס ממתין לאישור אנושי לפני שהוא משולם. אותו דבר קורה ליותר מ־
+                <b className="nums">{REFERRAL_BURST_LIMIT}</b> מוזמנים ביממה אחת, או
+                כששני הצדדים מתחילים לתקוף ולרגל אחד את השני.
+              </Note>
             </GuideSection>
 
             {/* ============================ 28 titles ============================ */}

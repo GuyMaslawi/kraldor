@@ -12,13 +12,36 @@ import { HeroClassPicker } from "@/components/auth/HeroClassPicker";
 import { SupportPrompt } from "@/components/support/SupportPrompt";
 import { useT } from "@/i18n/client";
 
-export function RegisterForm() {
+export function RegisterForm({
+  /**
+   * The empire whose invite link brought this visitor here, if any.
+   *
+   * A banner rather than a form field, and read-only, because the link is not
+   * something the registrant chooses: it was resolved from the cookie `/r/<code>`
+   * parked, and it is attached server-side once the empire exists. An editable
+   * "who invited you" input would be a fifth field on the most abandoned screen
+   * in any game, and one anybody could put any name into.
+   */
+  invitedBy = null,
+}: {
+  invitedBy?: string | null;
+}) {
   const [state, action] = useActionState<AuthState, FormData>(register, {});
 
   const t = useT();
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-zinc-100">{t("הקמת אימפריה חדשה")}</h2>
+      {invitedBy && (
+        <p className="flex items-center gap-2 rounded-xl border border-gold/45 bg-gold/8 px-3 py-2 text-sm text-bone/90">
+          <Icon name="gift" size={16} className="shrink-0 text-crimson-bright" />
+          <span>
+            {t("הוזמנת על ידי {name}. שניכם תקבלו פרס כשתגיע ל-3 ערים.", {
+              name: invitedBy,
+            })}
+          </span>
+        </p>
+      )}
       <GoogleSignInButton />
       <AuthDivider />
       <form action={action} className="space-y-4">

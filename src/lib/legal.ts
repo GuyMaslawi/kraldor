@@ -134,7 +134,9 @@ export function getLegalOperator(): LegalOperator {
 export const LEGAL_UPDATED = {
   terms: "2026-07-31",
   refund: "2026-07-31",
-  privacy: "2026-08-01",
+  // 2026-08-09: the browser-id cookie behind the referral self-invite check, and
+  // the full cookie list that came with it.
+  privacy: "2026-08-09",
 } as const;
 
 /** "31 ביולי 2026" / "31 July 2026" — the date as the policy pages print it. */

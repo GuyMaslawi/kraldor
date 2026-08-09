@@ -2768,6 +2768,11 @@ export const EN: Record<string, string> = {
   /* composing a message                                                 */
   /* ------------------------------------------------------------------ */
   "הודעה חדשה": "New message",
+  /* the mail trigger — short in the dossier's action row, spelled out when it
+     stands alone; "ללא עלות" is its caption where the others show turn costs */
+  "הודעה": "Message",
+  "שלח הודעה": "Send a message",
+  "ללא עלות": "Free",
   "נמען": "Recipient",
   "נמענים": "Recipients",
   "הסרת {name}": "Remove {name}",
@@ -3698,16 +3703,18 @@ export const EN: Record<string, string> = {
   "הפריט השתנה בינתיים — נסה שוב.": "The piece changed in the meantime — try again.",
 
   /* ------------------------------------------------------------------ */
-  /* מונומנטים — the capital's skyline                                    */
+  /* מבנים — the capital's skyline                                    */
   /* ------------------------------------------------------------------ */
 
-  "מונומנטים": "Monuments",
-  "מונומנטים | KRALDOR": "Monuments | KRALDOR",
-  "מונומנטים של הבירה": "Monuments of the capital",
-  "המונומנטים אינם זמינים כרגע. נסה לרענן.":
-    "Monuments are unavailable right now. Try refreshing.",
-  "מבנים שנבנים פעם אחת ועומדים עד סוף העונה. כל רמה מוסיפה {pct}% לאחד ממקורות ההכנסה של האימפריה — ואף מונומנט אינו נוגע בכוח הקרב.":
-    "Structures raised once and standing until the season ends. Every level adds {pct}% to one of the empire's sources of income — and no monument touches combat power.",
+  "מבנים": "Buildings",
+  "מבנים | KRALDOR": "Buildings | KRALDOR",
+  "מבני הבירה": "Buildings of the capital",
+  "אתר הבנייה של הבירה": "The capital's build site",
+  "{monument} — רמה {level} מתוך {max}": "{monument} — level {level} of {max}",
+  "המבנים אינם זמינים כרגע. נסה לרענן.":
+    "Buildings are unavailable right now. Try refreshing.",
+  "מבנים שנבנים פעם אחת ועומדים עד סוף העונה. כל רמה מוסיפה {pct}% לאחד ממקורות ההכנסה של האימפריה — ואף מבנה אינו נוגע בכוח הקרב.":
+    "Structures raised once and standing until the season ends. Every level adds {pct}% to one of the empire's sources of income — and no building touches combat power.",
   "רמות שהועלו מתוך כל הרמות האפשריות": "Levels raised out of every level on offer",
   "רמות": "levels",
   "רמה {level}/{max}": "Level {level}/{max}",
@@ -3715,14 +3722,14 @@ export const EN: Record<string, string> = {
   "הרם רמה": "Raise a level",
   "בונה…": "Building…",
   "במלוא גובהו": "At its full height",
-  "מונומנט לא תקין": "Invalid monument",
+  "מבנה לא תקין": "Invalid building",
   "{monument} עומד במלוא גובהו.": "{monument} stands at its full height.",
   "הרמה הבאה של {monument} עולה {gold} זהב.":
     "The next level of {monument} costs {gold} gold.",
   "{monument} הועלה לרמה {level} — {effect}.":
     "{monument} raised to level {level} — {effect}.",
-  "המונומנט השתנה בינתיים — נסה שוב.":
-    "The monument changed in the meantime — try again.",
+  "המבנה השתנה בינתיים — נסה שוב.":
+    "The building changed in the meantime — try again.",
 
   /* the five, and what each of them does */
   "עמוד הפועלים": "The Labourers' Column",
@@ -3966,38 +3973,62 @@ export const EN: Record<string, string> = {
   "הזמן חבר": "Invite a friend",
   "העמוד אינו זמין כרגע. נסה לרענן.":
     "This page is unavailable right now. Try refreshing.",
-  "שם האימפריה שלך הוא הקוד. מי שמצטרף מציין אותו בעמוד הזה אצלו, וכששניכם — כשהוא מגיע ל-{goal} ערים — כל אחד מכם אוסף את חלקו. אין פרס על הרשמה בלבד: זה מה שהופך את זה למשהו ששווה לעשות.":
-    "Your empire's name is the code. Whoever joins names it on this page of their own, and once they reach {goal} cities you each collect your half. Nothing is paid for a signup alone — that is exactly what makes this worth doing.",
+  "שלח את הקישור שלך. מי שנרשם דרכו נקשר אליך אוטומטית, וכשהוא מגיע ל-{goal} ערים כל אחד מכם אוסף את חלקו. אין פרס על הרשמה בלבד: זה מה שהופך את זה למשהו ששווה לעשות.":
+    "Send your link. Anyone who signs up through it is linked to you automatically, and once they reach {goal} cities you each collect your half. Nothing is paid for a signup alone — that is exactly what makes this worth doing.",
   "העתק": "Copy",
+  "העתק קישור": "Copy link",
+  "שתף": "Share",
+  "או תן לו את הקוד:": "Or give them the code:",
   "הועתק!": "Copied!",
   "על כל חבר:": "Per friend:",
+  "נאספו {paid} מתוך {cap} הזמנות לעונה הזו.":
+    "{paid} of {cap} invites collected this season.",
+  "בוא לשחק איתי בקראלדור — הקם אימפריה, כבוש ערים ותפוס מקום בטבלה: {link}":
+    "Come play KRALDOR with me — build an empire, take cities and climb the ladder: {link}",
+
+  /* the review, as the players see it */
+  "ההזמנה הזו ממתינה לבדיקה של הצוות. הפרס נשמר עד שתאושר.":
+    "This invite is waiting on a staff check. The reward is held until it is approved.",
+  "ההזמנה הזו ממתינה לבדיקה של הצוות. הפרס יישמר עד שתאושר.":
+    "This invite is waiting on a staff check. The reward will be held until it is approved.",
+  "ההזמנה הזו לא אושרה. אם לדעתך זו טעות, פנה לתמיכה.":
+    "This invite was not approved. If you think that is a mistake, contact support.",
+  "בבדיקה": "Under review",
+  "לא אושר": "Not approved",
 
   /* who brought me */
   "מי הזמין אותך": "Who invited you",
   "הצטרפת דרך {name}.": "You joined through {name}.",
   "ההתקדמות שלך": "Your progress",
-  "מישהו הביא אותך לכאן? רשום את שם האימפריה שלו. אפשר פעם אחת בלבד, ורק בתחילת הדרך.":
-    "Did somebody bring you here? Name their empire. Once only, and only early on.",
-  "שם האימפריה שהזמינה אותך": "The empire that invited you",
+  "הגעת דרך קישור? הקישור נקשר לבד בהרשמה. אם מישהו נתן לך רק קוד או שם אימפריה — רשום אותו כאן. אפשר פעם אחת בלבד, ורק בתחילת הדרך.":
+    "Arrived through a link? It attaches itself at signup. If somebody gave you only a code or an empire name, enter it here. Once only, and only early on.",
+  "קוד הזמנה או שם האימפריה שהזמינה אותך":
+    "Invite code, or the name of the empire that invited you",
   "רשום": "Register",
   "רושם...": "Registering…",
   "נפתח ב-{goal} ערים": "Opens at {goal} cities",
+  "הוזמנת על ידי {name}. שניכם תקבלו פרס כשתגיע ל-3 ערים.":
+    "You were invited by {name}. You will both be rewarded when you reach 3 cities.",
 
   /* who I brought */
   "החברים שהבאת": "The friends you brought",
-  "עדיין לא הבאת אף אחד. שלח את שם האימפריה שלך לחבר.":
-    "You have not brought anyone in yet. Send a friend your empire's name.",
+  "עדיין לא הבאת אף אחד. שלח את הקישור שלך לחבר.":
+    "You have not brought anyone in yet. Send a friend your link.",
   "ממתין ל-{goal} ערים": "Waiting for {goal} cities",
 
   /* the actions */
-  "שם אימפריה לא תקין": "Invalid empire name",
+  "קוד או שם אימפריה לא תקינים": "Invalid code or empire name",
   "אימפריה לא תקינה": "Invalid empire",
   "כבר ציינת מי הזמין אותך.": "You have already named who invited you.",
   "אפשר לציין מזמין רק בתחילת הדרך, עד {max} ערים.":
     "You can only name an inviter early on, up to {max} cities.",
-  "אי אפשר להזמין את עצמך.": "You cannot invite yourself.",
-  "אי אפשר להזמין זה את זה.": "You cannot invite each other.",
-  "לא נמצאה אימפריה בשם הזה.": "No empire by that name was found.",
+  "אי אפשר לקשר את שני החשבונות האלה.": "These two accounts cannot be linked.",
+  "לא נמצאה אימפריה עם הקוד או השם הזה.":
+    "No empire was found with that code or name.",
+  // "יותר מדי נסיונות. נסה שוב מאוחר יותר." — the throttle on this field reuses
+  // the entry the auth screens already carry; a second copy is a TS1117 error.
+  "הגעת לתקרת ההזמנות לעונה הזו ({cap}).":
+    "You have reached this season's invite ceiling ({cap}).",
   "{referrer} רשום כמי שהזמין אותך. שניכם תקבלו פרס כשתגיע ל-{goal} ערים.":
     "{referrer} is recorded as your inviter. You will both be rewarded when you reach {goal} cities.",
   "לא ציינת מי הזמין אותך.": "You have not named who invited you.",

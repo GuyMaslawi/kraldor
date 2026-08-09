@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 import { createSession, destroySession, getSessionUserId } from "@/lib/auth";
 import { banNotice, isBanned } from "@/lib/ban";
 import { clientIp, clientIpForStorage, rateLimit } from "@/lib/rateLimit";
+import { rememberDevice } from "@/lib/device";
+import { consumePendingReferral } from "@/server/referralGuard";
 import { verifyGoogleIdToken } from "@/lib/google";
 import { newEmpireData } from "@/lib/game/createEmpire";
 import { getTunables } from "@/lib/game/config";
@@ -215,8 +217,9 @@ async function createEmpireForUser(
     getTunables(),
     prisma.user.findUnique({ where: { id: userId }, select: { role: true } }),
   ]);
+  let empireId: string;
   try {
-    await prisma.empire.create({
+    const empire = await prisma.empire.create({
       data: newEmpireData(
         userId,
         empireName,
@@ -225,13 +228,21 @@ async function createEmpireForUser(
         heroClass,
         owner?.role === "ADMIN"
       ),
+      select: { id: true },
     });
+    empireId = empire.id;
   } catch (e) {
     if (e && typeof e === "object" && (e as { code?: string }).code === "P2002") {
       return { error: t("שם האימפריה כבר תפוס, בחר שם אחר") };
     }
     return { error: t("אירעה שגיאה ביצירת האימפריה, נסה שוב") };
   }
+
+  // The Google path reaches an empire two screens after the invite link was
+  // clicked — sign-in, then onboarding — which is exactly why the code travels
+  // in a cookie rather than a query string. This is the first moment there is
+  // anything to attach it to.
+  await consumePendingReferral(empireId);
   return null;
 }
 
@@ -329,12 +340,13 @@ export async function register(
   const signupIp = await clientIpForStorage();
 
   let user;
+  let empireId: string;
   try {
-    user = await prisma.$transaction(async (tx) => {
+    const founded = await prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
         data: { email, passwordHash, name, signupIp, lastLoginIp: signupIp },
       });
-      await tx.empire.create({
+      const empire = await tx.empire.create({
         data: newEmpireData(
           created.id,
           empireName,
@@ -342,9 +354,12 @@ export async function register(
           tunables.starting,
           heroClass
         ),
+        select: { id: true },
       });
-      return created;
+      return { created, empireId: empire.id };
     });
+    user = founded.created;
+    empireId = founded.empireId;
   } catch (e) {
     // The pre-checks above are not atomic with the insert; a concurrent signup
     // can still trip the unique constraints on User.email / Empire.name. Map the
@@ -356,6 +371,18 @@ export async function register(
     }
     return { error: t("אירעה שגיאה בהרשמה, נסה שוב") };
   }
+
+  // Record the browser this account was created in — the backbone of the
+  // self-invite check on הזמנת חבר (see src/lib/device.ts). It has to happen
+  // here, before the referral below: the attach asks whether this browser has
+  // ever been the *referrer's*, which is a question about the sightings that
+  // already exist, and answering it after adding one is the same answer.
+  await rememberDevice(user.id);
+
+  // Attach the invite link the visitor arrived on, if any. Best-effort by
+  // design: a refused or missing referral is a missing bonus, never a failed
+  // registration — the account and the empire already exist by this line.
+  await consumePendingReferral(empireId);
 
   // Best-effort: a mail hiccup must not undo a completed registration. The
   // user lands on /verify-email either way and can resend from there.
@@ -513,6 +540,11 @@ export async function login(
       ...(rehash ? { passwordHash: rehash } : {}),
     },
   });
+
+  // Every successful sign-in records the browser it came from. This is the path
+  // that catches the farmer who registers an alt in a fresh profile and then
+  // signs into it from their usual one — see src/lib/device.ts.
+  await rememberDevice(user.id);
 
   await createSession(user.id, user.tokenVersion);
   redirect("/game/base");
@@ -752,6 +784,10 @@ export async function googleSignIn(credential: string): Promise<AuthState> {
     where: { id: user.id },
     data: { lastLoginIp: googleIp },
   });
+
+  // Google is a full account-creation and login path, so it records the browser
+  // for the same reason register and login do.
+  await rememberDevice(user.id);
 
   await createSession(user.id, user.tokenVersion);
 

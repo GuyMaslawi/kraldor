@@ -10,7 +10,7 @@ import { FormMessage } from "@/components/ui/FormMessage";
 import { PlayerLink } from "@/components/ui/PlayerLink";
 import { formatCompact } from "@/lib/game/format";
 import { REWARD_ICON, REWARD_LABEL, type Reward } from "@/lib/game/rewards";
-import type { ReferralState } from "@/lib/game/referral";
+import type { ReferralState, ReferralStanding } from "@/lib/game/referral";
 import {
   collectJoinerReward,
   collectReferrerReward,
@@ -20,7 +20,7 @@ import type { ActionState } from "@/server/actions/game";
 import { useT } from "@/i18n/client";
 
 /**
- * /game/referrals — your code, who you brought in, and who brought you.
+ * /game/referrals — your link, who you brought in, and who brought you.
  *
  * The page has one job the copy has to do rather than the layout: make it
  * obvious that nothing is paid for a *signup*. Both halves are gated on the
@@ -28,6 +28,12 @@ import { useT } from "@/i18n/client";
  * expecting a bounty per account should leave understanding why there is not
  * one — otherwise the first thing they try is the thing the design is built to
  * make pointless.
+ *
+ * The second thing it must not do is explain the fraud checks. A referral that
+ * is held for review says so, in one line, with no reason: naming the signal
+ * would turn this screen into a place to test the checks against, and the
+ * honest player whose brother plays too could do nothing with the detail
+ * anyway. See src/server/referralGuard.ts.
  */
 export function ReferralBoard({ state }: { state: ReferralState }) {
   const t = useT();
@@ -60,24 +66,56 @@ function RewardChips({ rewards }: { rewards: readonly Reward[] }) {
   );
 }
 
-/* ------------------------------ the code ------------------------------ */
+/**
+ * "Waiting on a check" / "not approved", and nothing more specific.
+ *
+ * One component so the wording cannot drift between the two sides of a
+ * referral: the newcomer and the referrer must be told the same thing about the
+ * same link, or the first thing they do is compare screens and conclude one of
+ * them is being cheated.
+ */
+function StandingNote({ standing }: { standing: ReferralStanding }) {
+  const t = useT();
+  if (standing === "ok") return null;
+  const held = standing === "held";
+  return (
+    <p
+      className={`mt-2 rounded-lg border px-3 py-2 text-xs leading-relaxed ${
+        held
+          ? "border-amber-700/50 bg-amber-950/25 text-amber-200/90"
+          : "border-red-900/50 bg-red-950/25 text-red-200/90"
+      }`}
+    >
+      {held
+        ? t("ההזמנה הזו ממתינה לבדיקה של הצוות. הפרס נשמר עד שתאושר.")
+        : t("ההזמנה הזו לא אושרה. אם לדעתך זו טעות, פנה לתמיכה.")}
+    </p>
+  );
+}
+
+/* ------------------------------ the link ------------------------------ */
 
 function CodeCard({ state }: { state: ReferralState }) {
   const t = useT();
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"link" | "code" | null>(null);
 
-  const copy = () => {
+  const copy = (what: "link" | "code") => {
+    const text = what === "link" ? state.link : state.code;
     // navigator.clipboard is absent over plain HTTP and inside some in-app
-    // browsers. The name is on screen either way, so a failure is a silent
+    // browsers. Both values are on screen either way, so a failure is a silent
     // no-op rather than an error the player has to dismiss.
-    void navigator.clipboard?.writeText(state.code).then(
+    void navigator.clipboard?.writeText(text).then(
       () => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2_000);
+        setCopied(what);
+        setTimeout(() => setCopied(null), 2_000);
       },
       () => {}
     );
   };
+
+  const pitch = t("בוא לשחק איתי בקראלדור — הקם אימפריה, כבוש ערים ותפוס מקום בטבלה: {link}", {
+    link: state.link,
+  });
 
   return (
     <section className="panel-gold rounded-2xl p-4 sm:p-5">
@@ -86,28 +124,68 @@ function CodeCard({ state }: { state: ReferralState }) {
         {t("הזמן חבר")}
       </h2>
       <p className="mt-1 max-w-2xl text-xs leading-relaxed text-zinc-400">
-        {t("שם האימפריה שלך הוא הקוד. מי שמצטרף מציין אותו בעמוד הזה אצלו, וכששניכם — כשהוא מגיע ל-{goal} ערים — כל אחד מכם אוסף את חלקו. אין פרס על הרשמה בלבד: זה מה שהופך את זה למשהו ששווה לעשות.", {
+        {t("שלח את הקישור שלך. מי שנרשם דרכו נקשר אליך אוטומטית, וכשהוא מגיע ל-{goal} ערים כל אחד מכם אוסף את חלקו. אין פרס על הרשמה בלבד: זה מה שהופך את זה למשהו ששווה לעשות.", {
           goal: state.goalCities,
         })}
       </p>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <span className="flex items-center gap-2 rounded-xl border border-gold/50 bg-black/40 px-4 py-2">
-          <Icon name="crown" size={16} className="text-crimson-bright" />
-          <span className="text-lg font-black text-gold-bright">{state.code}</span>
+      {/* The link is the product of this screen, so it gets the whole row and an
+          LTR box of its own — a URL laid out RTL is unreadable, and it breaks
+          mid-path on a phone if it is not allowed to overflow-scroll. */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span
+          className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto rounded-xl border border-gold/50 bg-black/40 px-3 py-2"
+          dir="ltr"
+        >
+          <Icon name="link" size={15} className="shrink-0 text-crimson-bright" />
+          <span className="whitespace-nowrap text-sm font-bold text-gold-bright">
+            {state.link}
+          </span>
         </span>
         <button
           type="button"
-          onClick={copy}
-          className="btn btn-ghost px-3 py-1.5 text-xs"
+          onClick={() => copy("link")}
+          className="btn btn-gold shrink-0 px-3 py-2 text-xs"
         >
-          {copied ? t("הועתק!") : t("העתק")}
+          {copied === "link" ? t("הועתק!") : t("העתק קישור")}
         </button>
-        <span className="flex items-center gap-2 text-xs text-zinc-500">
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent(pitch)}`}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="btn btn-ghost shrink-0 gap-1.5 px-3 py-2 text-xs"
+        >
+          <Icon name="share" size={13} />
+          {t("שתף")}
+        </a>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+        <span className="flex items-center gap-2">
+          {t("או תן לו את הקוד:")}
+          <button
+            type="button"
+            onClick={() => copy("code")}
+            className="rounded border border-border-subtle bg-black/30 px-2 py-0.5 font-black tracking-[0.2em] text-bone/90 hover:text-gold-bright"
+            dir="ltr"
+          >
+            {copied === "code" ? t("הועתק!") : state.code}
+          </button>
+        </span>
+        <span className="flex items-center gap-2">
           {t("על כל חבר:")}
           <RewardChips rewards={state.referrerReward} />
         </span>
       </div>
+
+      {state.paidThisSeason > 0 && (
+        <p className="mt-2 text-[11px] nums text-zinc-500" dir="rtl">
+          {t("נאספו {paid} מתוך {cap} הזמנות לעונה הזו.", {
+            paid: state.paidThisSeason,
+            cap: state.seasonCap,
+          })}
+        </p>
+      )}
     </section>
   );
 }
@@ -175,12 +253,14 @@ function JoinerCard({ state }: { state: ReferralState }) {
               >
                 {pending ? t("אוסף…") : t("אסוף")}
               </button>
-            ) : (
+            ) : state.standing === "ok" ? (
               <span className="text-xs text-zinc-500">
                 {t("נפתח ב-{goal} ערים", { goal: state.goalCities })}
               </span>
-            )}
+            ) : null}
           </div>
+
+          <StandingNote standing={state.standing} />
 
           <div className="mt-3">
             <FormMessage error={message.error} success={message.success} />
@@ -189,14 +269,14 @@ function JoinerCard({ state }: { state: ReferralState }) {
       ) : (
         <>
           <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-            {t("מישהו הביא אותך לכאן? רשום את שם האימפריה שלו. אפשר פעם אחת בלבד, ורק בתחילת הדרך.")}
+            {t("הגעת דרך קישור? הקישור נקשר לבד בהרשמה. אם מישהו נתן לך רק קוד או שם אימפריה — רשום אותו כאן. אפשר פעם אחת בלבד, ורק בתחילת הדרך.")}
           </p>
           <form action={nameAction} className="mt-3 flex flex-wrap items-end gap-2">
             <label className="min-w-[12rem] flex-1">
               <span className="mb-1 block text-[11px] font-bold text-zinc-400">
-                {t("שם האימפריה שהזמינה אותך")}
+                {t("קוד הזמנה או שם האימפריה שהזמינה אותך")}
               </span>
-              <Input name="name" type="text" maxLength={30} autoComplete="off" />
+              <Input name="name" type="text" maxLength={64} autoComplete="off" />
             </label>
             <SubmitButton className="btn btn-dark" pendingText={t("רושם...")}>
               {t("רשום")}
@@ -229,7 +309,7 @@ function InviteeList({ state }: { state: ReferralState }) {
 
       {state.invitees.length === 0 ? (
         <p className="mt-3 rounded-lg border border-border-subtle bg-black/25 px-3 py-3 text-sm text-zinc-500">
-          {t("עדיין לא הבאת אף אחד. שלח את שם האימפריה שלך לחבר.")}
+          {t("עדיין לא הבאת אף אחד. שלח את הקישור שלך לחבר.")}
         </p>
       ) : (
         <ul className="mt-3 space-y-2">
@@ -258,15 +338,18 @@ function InviteeRow({
     collectReferrerReward,
     {}
   );
+  const blocked = invitee.standing !== "ok";
 
   return (
     <li
       className={`rounded-xl border p-3 ${
         invitee.claimed
           ? "border-emerald-800/40 bg-emerald-950/20"
-          : invitee.earned
-            ? "border-gold/60 bg-gold/8"
-            : "border-border-subtle bg-black/25"
+          : blocked
+            ? "border-border-subtle bg-black/25"
+            : invitee.earned
+              ? "border-gold/60 bg-gold/8"
+              : "border-border-subtle bg-black/25"
       }`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -286,6 +369,14 @@ function InviteeRow({
             <Icon name="check" size={14} />
             {t("נאסף")}
           </span>
+        ) : blocked ? (
+          <span
+            className={`text-[11px] font-bold ${
+              invitee.standing === "held" ? "text-amber-300/90" : "text-red-300/80"
+            }`}
+          >
+            {invitee.standing === "held" ? t("בבדיקה") : t("לא אושר")}
+          </span>
         ) : invitee.earned ? (
           <form action={action}>
             <input type="hidden" name="empireId" value={invitee.empireId} />
@@ -303,6 +394,8 @@ function InviteeRow({
           </span>
         )}
       </div>
+
+      <StandingNote standing={invitee.standing} />
 
       {(state.error || state.success) && (
         <div className="mt-2">

@@ -10,6 +10,10 @@ import { cityFullName, cityName } from "@/lib/game/cities";
 import { MAX_CITIES } from "@/lib/game/constants";
 import { Tip } from "@/components/ui/Tip";
 import { RankActions } from "@/components/game/RankActions";
+import {
+  RANK_ACTION_BUTTON_BASE,
+  RANK_ACTION_MESSAGE_STYLE,
+} from "@/lib/game/actionButtonStyles";
 import { SabotagePanel } from "@/components/game/SabotagePanel";
 import { SABOTAGE_MISSIONS, type SabotageOption } from "@/lib/game/sabotage";
 import { MessageCompose } from "@/components/game/MessageCompose";
@@ -417,6 +421,13 @@ export default async function EmpireProfilePage({
                       targetEmpireId={empire.id}
                       currentTurns={myEmpire.turns}
                       attackBlockedReason={allied ? "בן ברית — אין תקיפה" : null}
+                      messageAction={
+                        <MessageCompose
+                          lockedRecipient={{ id: empire.id, name: empire.name }}
+                          triggerLabel="הודעה"
+                          triggerClassName={`${RANK_ACTION_BUTTON_BASE} ${RANK_ACTION_MESSAGE_STYLE}`}
+                        />
+                      }
                     />
                     {/* The third verb. Allied empires keep the raid block but
                         not this one on purpose: a guild's own members can still
@@ -443,10 +454,16 @@ export default async function EmpireProfilePage({
                   </p>
                 )}
 
-                <MessageCompose
-                  lockedRecipient={{ id: empire.id, name: empire.name }}
-                  triggerLabel="שלח הודעה"
-                />
+                {/* When there is a war row the mail trigger lives inside it,
+                    beside spying. Without one it is the only verb on the page,
+                    so it stands on its own — same green skin either way. */}
+                {!canEngage && (
+                  <MessageCompose
+                    lockedRecipient={{ id: empire.id, name: empire.name }}
+                    triggerLabel="שלח הודעה"
+                    triggerClassName={`${RANK_ACTION_BUTTON_BASE} ${RANK_ACTION_MESSAGE_STYLE} sm:w-56`}
+                  />
+                )}
               </div>
             )}
           </div>

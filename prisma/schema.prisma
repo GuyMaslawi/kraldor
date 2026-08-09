@@ -104,15 +104,62 @@ model User {
   /// read (dev, or a direct connection); nulls never cluster — see clientIp.
   signupIp      String?
   lastLoginIp   String?
+  /// This player's invite code — the tail of the link they hand out (see
+  /// `referralLink` in src/lib/game/referral.ts). Minted on the account's first
+  /// registration or first visit to the referrals screen, never rotated.
+  ///
+  /// It lives on the **User**, not the Empire, for one reason: a season restart
+  /// deletes and re-creates every empire, and a link posted in a Discord channel
+  /// has to keep working across that. Twelve characters of CSPRNG out of a
+  /// 32-symbol alphabet is 60 bits — the code is not guessable, so `/r/<code>`
+  /// is not an enumeration oracle for who plays here.
+  referralCode  String?   @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   empire             Empire?
   verificationTokens EmailVerificationToken[]
+  devices            DeviceAccount[]
 
   /// The alt-cluster lookups: group accounts by the address they share.
   @@index([signupIp])
   @@index([lastLoginIp])
+}
+
+/// One (browser, account) pair the game has seen — the backbone of the
+/// self-invite check on הזמנת חבר.
+///
+/// A long-lived first-party cookie (`kraldor_device`, see src/lib/device.ts)
+/// carries an opaque random id, and every sign-in and registration records the
+/// account it was used for. Two accounts that share a row here have been signed
+/// into from the same browser profile, which is a far sharper signal than a
+/// shared IP: an address is a household, a dorm or a carrier's NAT, but a
+/// browser profile is one person. That is why a device match is allowed to
+/// *refuse* a referral outright where a shared address only holds it for review
+/// (see src/server/referralGuard.ts).
+///
+/// What it deliberately is not is a fingerprint. Nothing is derived from the
+/// machine — no canvas, no fonts, no user-agent hashing — so clearing cookies
+/// clears it, which is the honest trade: a farmer who works in incognito is not
+/// caught by this, and no innocent player is caught by it either.
+model DeviceAccount {
+  id       String @id @default(cuid())
+  /// The cookie's opaque value. Not a user id and not derived from one, so a
+  /// row here says "this browser signed into that account" and nothing else.
+  deviceId String
+  userId   String
+
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// One row per pair — the sighting is an upsert on this key, so a player who
+  /// signs in daily leaves one row, not one per session.
+  @@unique([deviceId, userId])
+  /// "Which accounts has this browser been?" — the self-invite check.
+  @@index([deviceId])
+  @@index([userId])
 }
 
 /// One outstanding "confirm your email" link.
@@ -342,12 +389,12 @@ model SeasonChampion {
   /// Diamonds credited for this place when the season was sealed — the amount
   /// actually paid, not the amount the table says today, so a later change to
   /// SEASON_PRIZES never rewrites what a past champion received.
-  prizeDiamonds Int @default(0)
+  prizeDiamonds Int       @default(0)
   /// When the prize hit the account. Null means unpaid: a row archived by the
   /// admin's "save standings" pass (which does not end the season), a champion
   /// whose empire was already gone, or a season that closed before prizes
   /// existed. It is also the guard that makes the payout idempotent.
-  prizePaidAt DateTime?
+  prizePaidAt   DateTime?
 
   createdAt DateTime @default(now())
 
@@ -393,13 +440,13 @@ model SeasonBoardEntry {
   rank Int
 
   /// Empire dossier breadcrumb. Null on guild rows — a guild has no profile.
-  empireId String?
+  empireId   String?
   /// Empire name, or guild name on a GUILD row.
-  name String
+  name       String
   /// Owner's display name at archiving time, for empire rows.
   playerName String?
   /// Secondary line: "4 ערים" for POWER, "12 חברים" for GUILD.
-  note String?
+  note       String?
 
   /// What the board ranks by, floored: power, spy power, summed guild power.
   value Float
@@ -412,28 +459,28 @@ model SeasonBoardEntry {
 }
 
 model Empire {
-  id                  String    @id @default(cuid())
-  userId              String    @unique
+  id                  String         @id @default(cuid())
+  userId              String         @unique
   seasonId            String?
-  name                String    @unique
-  level               Int       @default(1)
-  gold                Float     @default(2000)
-  wood                Float     @default(1500)
-  iron                Float     @default(1000)
-  stone               Float     @default(1000)
-  diamonds            Float     @default(10)
-  citizens            Int       @default(50)
+  name                String         @unique
+  level               Int            @default(1)
+  gold                Float          @default(2000)
+  wood                Float          @default(1500)
+  iron                Float          @default(1000)
+  stone               Float          @default(1000)
+  diamonds            Float          @default(10)
+  citizens            Int            @default(50)
   /// Cities the empire holds (1..MAX_CITIES). Each city adds 100 to the
   /// citizen capacity, so ten cities ceiling the population at 1,000.
-  cities              Int       @default(1)
-  turns               Int       @default(0)
+  cities              Int            @default(1)
+  turns               Int            @default(0)
   /// Remaining wheel-of-fortune spins. Consumed on each spin, topped up on
   /// every daily update (capped) — see WHEEL_DAILY_SPINS / WHEEL_SPINS_CAP.
-  wheelSpins          Int       @default(4)
-  lastRegularUpdateAt DateTime  @default(now())
-  lastDailyUpdateAt   DateTime  @default(now())
+  wheelSpins          Int            @default(4)
+  lastRegularUpdateAt DateTime       @default(now())
+  lastDailyUpdateAt   DateTime       @default(now())
   /// Last time the player opened the reports page — drives the "new reports" badge.
-  reportsSeenAt       DateTime  @default(now())
+  reportsSeenAt       DateTime       @default(now())
   /// Heartbeat behind the chat's online dot. Stamped by the chat poll every
   /// PRESENCE_TOUCH_MS at most (a guarded updateMany that usually matches no
   /// row), so "online" means a browser actually had the game open in the last
@@ -453,14 +500,49 @@ model Empire {
   /// that they are in the room. See DISCORD_JOIN_DIAMONDS for why the purse is
   /// deliberately small.
   discordJoinedAt     DateTime?
-  /// The empire that brought this player into the game, named by the player
-  /// themselves from /game/referrals while they were still small (see
-  /// src/lib/game/referral.ts). Null for everybody who arrived on their own.
+  /// The empire that brought this player into the game — attached either by the
+  /// invite link they arrived on (`/r/<code>`, the usual way) or typed in by
+  /// hand from /game/referrals while they were still small. See
+  /// src/lib/game/referral.ts. Null for everybody who arrived on their own.
   ///
   /// A self-relation rather than a join table: it is at most one row per empire,
   /// it is set once and never changed, and "who did I bring in" is exactly the
   /// reverse of it.
   referredById        String?
+  /// When the link was attached. Distinct from `createdAt`, which is when the
+  /// empire was founded: a player may arrive on their own and name a referrer
+  /// on their second evening. The burst check (several invitees attached to one
+  /// referrer inside a day) reads this and nothing else.
+  referredAt          DateTime?
+  /// How the link was attached — `"link"` for an invite URL, `"name"` for a code
+  /// or empire name typed into the referrals screen. Kept for the admin review:
+  /// a hand-typed link between two accounts on one device reads differently from
+  /// a stranger clicking a URL.
+  referralVia         String?
+  /// Whether this referral may be paid, and why not. `OK` is the ordinary case
+  /// — nothing suspicious, both halves collectable the moment the newcomer hits
+  /// REFERRAL_GOAL_CITIES. Anything else is decided in /admin/referrals.
+  ///
+  /// The column gates the *payout*, never the link itself: a held referral still
+  /// shows on both screens with its progress, because the overwhelmingly common
+  /// cause of a hold is two real players behind one address (a household, a
+  /// dorm, a carrier NAT) and telling them the friendship was rejected would be
+  /// both wrong and unappealable. See src/server/referralGuard.ts.
+  referralReview      ReferralReview @default(OK)
+  /// The signals that fired, as `ReferralFlag` keys (src/lib/game/referral.ts).
+  /// Recorded when the link is attached and re-derived at every payout attempt,
+  /// so the admin queue shows what is true now rather than what was true on the
+  /// day two strangers happened to share a coffee-shop IP.
+  ///
+  /// Defaulted to the empty array in SQL, not merely left to Prisma: a NULL
+  /// scalar list is not an empty one, and array predicates against it match
+  /// nothing rather than matching "no flags".
+  referralFlags       String[]       @default([])
+  referralReviewedAt  DateTime?
+  /// The admin who cleared or killed it — a `User.id`, not a relation: this is
+  /// an audit stamp beside the one in AdminAuditLog, not a graph edge, and a
+  /// deleted admin must not cascade a player's referral away.
+  referralReviewedBy  String?
   /// When each side of the referral was collected. The two columns ARE the
   /// receipts: each claim is a guarded UPDATE with its own column IS NULL in the
   /// WHERE, so two simultaneous clicks can never both pay out, and no separate
@@ -482,12 +564,12 @@ model Empire {
   /// with it. A day missed does not clear these on a schedule; the *next* claim
   /// sees the gap and starts the count again. Nothing runs while the player is
   /// away, which is the whole reason this is two integers rather than a job.
-  streakDay           Int       @default(0)
-  streakCount         Int       @default(0)
+  streakDay           Int            @default(0)
+  streakCount         Int            @default(0)
   /// The longest run this empire has ever put together — kept when a streak
   /// breaks, so the board has something to show for the twelve days that were
   /// lost and the profile has a figure worth wearing.
-  streakBest          Int       @default(0)
+  streakBest          Int            @default(0)
   /// New-player shield: while this is in the future the empire cannot be
   /// attacked or spied. Set at registration; cleared early the moment the
   /// player launches their own first attack or spy (see attackEmpire/spyOnEmpire).
@@ -506,7 +588,7 @@ model Empire {
   /// by syncStaffFlag(), which is called from the two places a role can change
   /// (the admin role editor and scripts/grant-admin.ts); a drifted flag is
   /// repaired by re-running either.
-  isStaff             Boolean   @default(false)
+  isStaff             Boolean        @default(false)
   /// Garrison empire: nobody owns it. An admin plants it in a city tier so the
   /// players who live there — often one player alone in a high city — have
   /// something to raid and spy. It is a real empire in every respect the battle
@@ -524,7 +606,7 @@ model Empire {
   /// the boards are indexed `ORDER BY … LIMIT` and a relation filter would turn
   /// each of them into a join. The `EmpireBot` row beside it holds the garrison
   /// this empire is rebuilt to; deleting the empire cascades it away.
-  isBot               Boolean   @default(false)
+  isBot               Boolean        @default(false)
   /// When this empire bought VIP (חותם המלוכה) — null for everyone else. The
   /// column IS the entitlement: it is bought once for VIP_COST diamonds and
   /// never expires, so there is no timer to read anywhere and `vipSince != null`
@@ -578,9 +660,9 @@ model Empire {
   /// `syncEmpirePower`, and `applyPendingUpdates` re-derives them on every
   /// settle from data it has already loaded, so drift self-heals on the owner's
   /// next page load.
-  militaryPower       Float     @default(0)
-  generalPower        Float     @default(0)
-  spyPower            Float     @default(0)
+  militaryPower       Float          @default(0)
+  generalPower        Float          @default(0)
+  spyPower            Float          @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -651,6 +733,24 @@ model Empire {
   @@index([isStaff, cities, militaryPower])
   /// "Who did I bring in" — the referrals page's only read.
   @@index([referredById])
+  /// The admin review queue: the handful of held referrals, newest first.
+  @@index([referralReview, referredAt])
+}
+
+/// Whether a referral may be paid — see `Empire.referralReview`.
+enum ReferralReview {
+  /// Nothing suspicious. Both halves pay on reaching the goal.
+  OK
+  /// A signal fired. The link stands and the progress is shown, but neither
+  /// half pays until an admin looks. This is the *only* thing a soft signal
+  /// (shared address, a burst of invitees, combat between the pair) does.
+  HELD
+  /// An admin looked and it is a real friendship. Pays like OK, and stays
+  /// APPROVED so a later re-derivation of the flags cannot re-hold it.
+  APPROVED
+  /// An admin looked and it is a farm. Never pays, and cannot be re-opened by
+  /// the players — only by an admin changing their mind.
+  REJECTED
 }
 
 /// The garrison a bot empire is rebuilt to — one row per `Empire.isBot`.
@@ -1019,13 +1119,13 @@ model GuildContract {
 
   /// Catalog key from GUILD_CONTRACTS, rolled deterministically from
   /// (guildId, day) so every member sees the same contract without a writer.
-  key     String
+  key      String
   /// Missions the guild's members have completed today, against `goal`.
-  progress Int @default(0)
+  progress Int    @default(0)
   /// Frozen at creation from the guild's member count: a contract that grew
   /// harder because somebody joined at 23:00 would be a punishment for
   /// recruiting. See guildContractGoal.
-  goal    Int
+  goal     Int
 
   /// Set the moment `progress` first reaches `goal`. The transition — not the
   /// comparison — is what pays every member, and it happens exactly once
@@ -1036,7 +1136,7 @@ model GuildContract {
   /// Empire ids already paid for this contract. Members who join after it
   /// completed are not owed anything, and a member who was paid cannot be paid
   /// again by re-opening the page.
-  paid    String[]
+  paid String[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1917,16 +2017,16 @@ model SabotageReport {
   spiesSpent Int
   /// Spies actually lost. Zero on success; `spiesSpent` on failure, less
   /// whatever the attacker turned out not to have.
-  spiesLost  Int   @default(0)
+  spiesLost  Int @default(0)
 
   /// What the mission took, by kind. Only the columns its own mission uses are
   /// ever non-zero, which is why they are plain defaulted numbers rather than
   /// a JSON blob: the reports list sums them without parsing anything.
-  goldTaken  Float @default(0)
-  woodBurned Float @default(0)
-  ironBurned Float @default(0)
-  stoneBurned Float @default(0)
-  slavesKilled Int  @default(0)
+  goldTaken    Float @default(0)
+  woodBurned   Float @default(0)
+  ironBurned   Float @default(0)
+  stoneBurned  Float @default(0)
+  slavesKilled Int   @default(0)
 
   createdAt DateTime @default(now())
 
@@ -2343,10 +2443,10 @@ model ChatMessage {
 model ChatTyping {
   /// Who is typing. Primary key, so a player has exactly one marker no matter
   /// how many conversations they switch between.
-  empireId String @id
+  empireId   String   @id
   /// Denormalised for the same reason as on ChatMessage: the indicator names
   /// the typist, and a join for a value this ephemeral is not worth it.
-  name     String
+  name       String
   /// Null = the public room; otherwise the conversation being typed into. Only
   /// that partner is ever shown the marker.
   toEmpireId String?
@@ -2434,7 +2534,7 @@ model SupportThread {
   /// The account behind the visit, when there is one. No FK — see the note
   /// above. Written on every message, because a visitor who signs in mid-chat
   /// (or whose session is what is broken) is worth knowing about.
-  userId    String?
+  userId     String?
   /// Their empire's name at the time of writing, when they have one. Purely so
   /// staff can recognise a player without a lookup.
   empireName String?
@@ -2450,7 +2550,7 @@ model SupportThread {
   status SupportStatus @default(OPEN)
 
   /// Last line either side wrote — the inbox sorts on it.
-  lastMessageAt DateTime @default(now())
+  lastMessageAt DateTime  @default(now())
   /// When staff last read the thread, and when the visitor last did. Each side's
   /// unread badge is "messages from the other side, newer than this".
   staffReadAt   DateTime?
@@ -2475,9 +2575,9 @@ model SupportMessage {
 
   /// Which side wrote it. A boolean rather than an author id because that is
   /// the only distinction either reader cares about: "us" or "them".
-  fromStaff Boolean @default(false)
+  fromStaff  Boolean @default(false)
   /// Which admin answered, for the audit trail. No FK, same reason as above.
-  staffId   String?
+  staffId    String?
   /// The name shown on the line — the admin's, or the visitor's if they gave
   /// one. Denormalised like ChatMessage.senderName, and for the same reason.
   authorName String

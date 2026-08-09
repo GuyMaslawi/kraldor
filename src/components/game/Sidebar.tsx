@@ -33,6 +33,17 @@ type NavItem = {
   badgeText?: string;
 };
 
+/**
+ * One cluster of the command board. The nav is a *grid of tiles* rather than a
+ * list of rows, and this is why: twenty-one rows at 38px each is 840px of nav,
+ * against roughly 610px of room under the hero card on a 900px screen — so the
+ * last four entries lived permanently below a fold, in the one component that
+ * is supposed to make every screen reachable. Three tiles to a row turns those
+ * twenty-one rows into nine, and the four headings below cost less height than
+ * the scrollbar they replace.
+ */
+type NavGroup = { label: string; items: NavItem[] };
+
 export type SidebarProps = {
   empireName: string;
   heroClass: string;
@@ -185,9 +196,9 @@ export function MobileMenu(props: SidebarProps) {
     };
   }, [open]);
 
-  // Open onto the row the player is standing on. With seventeen entries the
-  // current screen is often below the fold, and a drawer that opens on a list
-  // with no visible "you are here" reads as the wrong list.
+  // Open onto the tile the player is standing on. The grid fits the whole board
+  // on one screen, so this is now belt-and-braces — a very short phone with the
+  // hero card on top can still push the last cluster under the fold.
   useEffect(() => {
     if (!open) return;
     scrollRef.current
@@ -335,8 +346,9 @@ function SidebarContent({
   pathname,
 }: SidebarProps & { pathname: string }) {
   const t = useT();
-  // One flat list — no section headings. History lives in the top command bar
-  // (see InboxNav), so it deliberately has no entry here.
+  // Four clusters of tiles — see NavGroup for why this stopped being a flat
+  // list. History lives in the top command bar (see InboxNav), so it
+  // deliberately has no entry here.
   //
   // Every row below renders with `prefetch={false}`, which is not the usual
   // advice and is deliberate. Next prefetches a <Link> the moment it enters the
@@ -355,94 +367,120 @@ function SidebarContent({
   //
   // The navigation still feels instant without it: every /game route has a
   // loading.tsx, so the skeleton paints immediately on click.
-  const navItems: NavItem[] = [
-    { href: "/game/base", label: t("בסיס"), icon: "base" },
-    // Second row, directly under the base — the daily board is the first thing
-    // a returning player should be able to clear, and a row buried at the
-    // bottom of seventeen entries is a row nobody opens on the day they were
-    // most likely to sign the roll.
+  const navGroups: NavGroup[] = [
     {
-      href: "/game/daily",
-      label: t("לוח היום"),
-      icon: "quest",
-      badge: dailyWaiting,
-      badgeTone: "attention",
+      // The four screens a returning player touches before anything else, in
+      // the order they touch them.
+      // Same four words the achievement categories use — אימפריה / מלחמה /
+      // כלכלה / תהילה — so the nav and the goal list carve the game up the
+      // same way, and all four are already in the dictionary.
+      label: t("אימפריה"),
+      items: [
+        { href: "/game/base", label: t("בסיס"), icon: "base" },
+        // Second tile, directly beside the base — the daily board is the first
+        // thing a returning player should be able to clear, and an entry buried
+        // at the bottom of twenty-one is one nobody opens on the day they were
+        // most likely to sign the roll.
+        {
+          href: "/game/daily",
+          label: t("לוח היום"),
+          icon: "quest",
+          badge: dailyWaiting,
+          badgeTone: "attention",
+        },
+        {
+          href: "/game/hero",
+          label: t("גיבור"),
+          icon: "hero",
+          // A returned hero is one thing to collect, so it wears the same gold
+          // "1" the achievements tile does rather than inventing a second
+          // dialect of badge for a count that is only ever 0 or 1.
+          badge: heroQuestReady ? 1 : 0,
+          badgeTone: "attention",
+        },
+        { href: "/game/upgrades", label: t("שדרוגים"), icon: "upgrades" },
+      ],
     },
     {
-      href: "/game/hero",
-      label: t("גיבור"),
-      icon: "hero",
-      // A returned hero is one thing to collect, so it wears the same gold
-      // "1" the achievements row does rather than inventing a second dialect
-      // of badge for a count that is only ever 0 or 1.
-      badge: heroQuestReady ? 1 : 0,
-      badgeTone: "attention",
+      label: t("מלחמה"),
+      items: [
+        { href: "/game/rankings", label: t("דירוג"), icon: "rankings" },
+        // Beside the ladder rather than deeper in the war block: the world boss
+        // is the one fixture where the whole server is on the same side, and it
+        // is read as a standing rather than as a raid.
+        { href: "/game/worldboss", label: t("מפלצת העולם"), icon: "attack" },
+        // Beside the world boss: both are fixtures the system fights on a
+        // clock, and both answer a question the ladder cannot.
+        { href: "/game/arena", label: t("הזירה"), icon: "crown" },
+        // The prize hall is deliberately absent: it rides in the top command
+        // bar beside the inbox (see InboxNav), where the season's stakes are
+        // visible from every screen rather than only from an open nav.
+        { href: "/game/weapons", label: t("מפעל"), icon: "factory" },
+        { href: "/game/army", label: t("ניהול"), icon: "army", badge: recruits },
+        { href: "/game/guild", label: t("ברית"), icon: "guild" },
+        // Guild-only, and hidden rather than disabled: a locked door on the nav
+        // for a screen a guildless player can do nothing with is just noise.
+        // The page enforces the same rule itself — see /game/war.
+        ...(inGuild
+          ? [
+              {
+                href: "/game/war",
+                label: t("מלחמת בריתות"),
+                icon: "attack" as IconName,
+                badge: guildWarLive ? 1 : 0,
+                badgeText: t("חי"),
+                badgeTone: "attention" as const,
+              },
+            ]
+          : []),
+      ],
     },
-    { href: "/game/rankings", label: t("דירוג"), icon: "rankings" },
-    // Beside the ladder rather than in the war block: the world boss is the one
-    // fixture where the whole server is on the same side, and it is read as a
-    // standing rather than as a raid.
-    { href: "/game/worldboss", label: t("מפלצת העולם"), icon: "attack" },
-    // Beside the world boss: both are fixtures the system fights on a clock,
-    // and both answer a question the ladder cannot.
-    { href: "/game/arena", label: t("הזירה"), icon: "crown" },
-    // The prize hall is deliberately absent: it rides in the top command bar
-    // beside the inbox (see InboxNav), where the season's stakes are visible
-    // from every screen rather than only from an open nav list.
-    { href: "/game/weapons", label: t("מפעל"), icon: "factory" },
-    { href: "/game/army", label: t("ניהול"), icon: "army", badge: recruits },
-    // Idle mine slaves read exactly like waiting recruits on the row above:
-    // a neutral count of something sitting unused, not an alert.
     {
-      href: "/game/production",
-      label: t("מכונות"),
-      icon: "mine",
-      badge: freeMineSlaves,
+      // Everything that makes or holds money. Buildings sit here rather than
+      // beside the upgrades they resemble, because what they buy is income —
+      // and the tile grid can say that with a neighbour instead of a comment.
+      label: t("כלכלה"),
+      items: [
+        // Idle mine slaves read exactly like waiting recruits on the army tile:
+        // a neutral count of something sitting unused, not an alert.
+        {
+          href: "/game/production",
+          label: t("מכונות"),
+          icon: "mine",
+          badge: freeMineSlaves,
+        },
+        { href: "/game/monuments", label: t("מבנים"), icon: "crown" },
+        { href: "/game/storage", label: t("מחסנים"), icon: "storage" },
+        { href: "/game/bank", label: t("בנק"), icon: "bank" },
+        { href: "/game/diamonds", label: t("יהלומים"), icon: "diamond" },
+      ],
     },
-    { href: "/game/guild", label: t("ברית"), icon: "guild" },
-    // Guild-only, and hidden rather than disabled: a locked door on the nav for
-    // a screen a guildless player can do nothing with is just noise. The page
-    // enforces the same rule itself — see /game/war.
-    ...(inGuild
-      ? [
-          {
-            href: "/game/war",
-            label: t("מלחמת בריתות"),
-            icon: "attack" as IconName,
-            badge: guildWarLive ? 1 : 0,
-            badgeText: t("חי"),
-            badgeTone: "attention" as const,
-          },
-        ]
-      : []),
-    { href: "/game/diamonds", label: t("יהלומים"), icon: "diamond" },
-    { href: "/game/bank", label: t("בנק"), icon: "bank" },
-    { href: "/game/storage", label: t("מחסנים"), icon: "storage" },
     {
-      href: "/game/achievements",
-      label: t("הישגים"),
-      icon: "achievements",
-      badge: collectableAchievements,
-      badgeTone: "attention",
+      label: t("תהילה"),
+      items: [
+        {
+          href: "/game/achievements",
+          label: t("הישגים"),
+          icon: "achievements",
+          badge: collectableAchievements,
+          badgeTone: "attention",
+        },
+        // Beside the achievements rather than the shop: most of the shelf is
+        // earned rather than bought, and a title filed under "things to buy"
+        // would teach the wrong thing about the eight that cannot be.
+        { href: "/game/titles", label: t("תארים"), icon: "laurel" },
+        { href: "/game/guide", label: t("מדריך"), icon: "reports" },
+        // Points at the game's own community page rather than straight out to
+        // Discord: the invite may not exist yet, the page works either way, and
+        // a player who lands there also gets the house rules and the welcome
+        // purse.
+        { href: "/game/community", label: t("קהילה"), icon: "discord" },
+        // Beside the community rather than near the shop: bringing a friend in
+        // is a social act, and filing it under "ways to get diamonds" would
+        // frame the one growth loop the game has as a bounty scheme.
+        { href: "/game/referrals", label: t("הזמנת חברים"), icon: "gift" },
+      ],
     },
-    { href: "/game/upgrades", label: t("שדרוגים"), icon: "upgrades" },
-    // Under the upgrades, because that is what a monument is at a larger
-    // scale — and because a player only looks for one once the upgrade ladder
-    // has stopped taking their gold.
-    { href: "/game/monuments", label: t("מונומנטים"), icon: "crown" },
-    // Beside the achievements rather than the shop: most of the shelf is earned
-    // rather than bought, and a title filed under "things to buy" would teach
-    // the wrong thing about the eight that cannot be.
-    { href: "/game/titles", label: t("תארים"), icon: "laurel" },
-    { href: "/game/guide", label: t("מדריך"), icon: "reports" },
-    // Points at the game's own community page rather than straight out to
-    // Discord: the invite may not exist yet, the page works either way, and a
-    // player who lands there also gets the house rules and the welcome purse.
-    { href: "/game/community", label: t("קהילה"), icon: "discord" },
-    // Beside the community rather than near the shop: bringing a friend in is a
-    // social act, and filing it under "ways to get diamonds" would frame the
-    // one growth loop the game has as a bounty scheme.
-    { href: "/game/referrals", label: t("הזמנת חברים"), icon: "gift" },
   ];
 
   const xpPct = heroXpMax > 0 ? Math.round((heroXp / heroXpMax) * 100) : 0;
@@ -615,64 +653,91 @@ function SidebarContent({
         )}
       </div>
 
-      {/* nav sections */}
-      <nav>
-        <ul className="flex flex-col gap-0.5">
-          {navItems.map((item) => {
-            const active = pathname.startsWith(item.href);
-            const hasBadge = item.badge != null && item.badge > 0;
-            // Only an actionable badge pulses the row, and never while the
-            // player is already standing on that page.
-            const calling = hasBadge && item.badgeTone === "attention" && !active;
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  // Prefetch off — see the note above `navItems`. Every row here
-                  // is in the viewport at all times, so the default would fire a
-                  // request per row on every render.
-                  prefetch={false}
-                  // Names the current screen for a screen reader, and is what
-                  // the mobile drawer scrolls to when it opens.
-                  aria-current={active ? "page" : undefined}
-                  className={`group flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
-                    active
-                      ? "bg-gold/12 text-gold-bright shadow-[inset_3px_0_0_var(--gold)]"
-                      : calling
-                        ? "nav-glow-gold text-gold-bright hover:text-gold-bright"
-                        : "text-zinc-300 hover:bg-white/5 hover:text-zinc-100"
-                  }`}
-                >
-                  <span className="flex items-center gap-2.5">
-                    {item.label}
-                    {hasBadge && (
-                      <span
-                        className={`rounded px-1.5 text-[10px] font-bold nums ${
-                          item.badgeTone === "attention"
-                            ? "bg-gold font-black text-black"
-                            : "bg-black/40 text-zinc-400"
-                        }`}
-                      >
-                        {item.badgeText ?? formatCompact(item.badge!)}
+      {/* The command board: four clusters, three tiles to a row. */}
+      <nav className="flex flex-col gap-2.5">
+        {navGroups.map((group) => (
+          <div key={group.label}>
+            {/* The heading and a rule running off it to the trailing edge —
+                enough to separate the clusters at a glance without spending a
+                full row of height on each one. */}
+            <p className="mb-1 flex items-center gap-2 px-0.5">
+              <span className="whitespace-nowrap text-[9px] font-black tracking-[0.2em] text-bone-dim/80">
+                {group.label}
+              </span>
+              {/* Strongest where it leaves the heading and gone by the far
+                  edge — a full rule across the column reads as a divider
+                  between two halves of the nav rather than as a label. */}
+              <span className="h-px flex-1 bg-gradient-to-l from-border-gold-strong/60 to-transparent" />
+            </p>
+            {/* Tiles in one row stretch to the tallest of them (grid's default
+                alignment), so a two-line label like מפלצת העולם sets the row's
+                height instead of leaving its neighbours ragged. */}
+            <ul className="grid grid-cols-3 gap-1">
+              {group.items.map((item) => {
+                const active = pathname.startsWith(item.href);
+                const hasBadge = item.badge != null && item.badge > 0;
+                // Only an actionable badge pulses the tile, and never while the
+                // player is already standing on that page.
+                const calling = hasBadge && item.badgeTone === "attention" && !active;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      // Prefetch off — see the note above `navGroups`. Every
+                      // tile here is in the viewport at all times, so the
+                      // default would fire a request per tile on every render.
+                      prefetch={false}
+                      // Names the current screen for a screen reader, and is
+                      // what the mobile drawer scrolls to when it opens.
+                      aria-current={active ? "page" : undefined}
+                      // The label wraps to two lines inside the tile, so the
+                      // full name is also on the element itself for the cases
+                      // where a translation outgrows the box.
+                      title={item.label}
+                      className={`group relative flex h-full flex-col items-center justify-start gap-1 rounded-md border px-1 py-1.5 text-center transition-colors ${
+                        active
+                          ? "border-gold/60 bg-gold/12 text-gold-bright"
+                          : calling
+                            ? "nav-glow-gold border-gold/40 text-gold-bright"
+                            : "border-border-subtle/70 bg-black/30 text-zinc-300 hover:border-gold/40 hover:bg-white/5 hover:text-zinc-100"
+                      }`}
+                    >
+                      <Icon
+                        name={item.icon}
+                        size={18}
+                        className={
+                          active
+                            ? "text-crimson-bright"
+                            : calling
+                              ? "text-gold-bright"
+                              : "text-bone-dim opacity-90 group-hover:text-bone"
+                        }
+                      />
+                      <span className="text-[10px] font-bold leading-[1.15]">
+                        {item.label}
                       </span>
-                    )}
-                  </span>
-                  <Icon
-                    name={item.icon}
-                    size={20}
-                    className={
-                      active
-                        ? "text-crimson-bright"
-                        : calling
-                          ? "text-gold-bright"
-                          : "text-bone-dim opacity-90 group-hover:text-bone"
-                    }
-                  />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                      {hasBadge && (
+                        // Corner pip rather than a chip beside the label: the
+                        // tile has no room for a second thing on the text line,
+                        // and the leading corner is empty on every tile because
+                        // the icon is centred.
+                        <span
+                          className={`absolute top-1 start-1 rounded px-1 text-[9px] font-bold nums ${
+                            item.badgeTone === "attention"
+                              ? "bg-gold font-black text-black"
+                              : "bg-black/60 text-zinc-400"
+                          }`}
+                        >
+                          {item.badgeText ?? formatCompact(item.badge!)}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
     </>
   );

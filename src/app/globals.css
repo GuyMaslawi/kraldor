@@ -10164,57 +10164,37 @@ body {
 }
 
 /* ============================================================================
-   כניסה עם Google — the skinned button (prefix: gauth-)
+   כניסה עם Google — the framed button (prefix: gauth-)
    Markup: src/components/auth/GoogleSignInButton.tsx
 
-   Google's own button is the click target and it is invisible; everything here
-   paints on top of it with `pointer-events: none`. So:
+   THE ONE RULE: nothing here may cover Google's button.
 
-     - NOTHING here may set a width, a height or a padding on .gauth. The
-       wrapper takes its box from the real GIS button inside it, which is what
-       guarantees the painted button and the clickable area are the same
-       rectangle. Size it and the two drift apart, leaving a border you can
-       click through or an edge that does nothing.
-     - Hover and focus are styled from the wrapper, because the element the
-       pointer is actually over is the transparent button, and the element that
-       takes keyboard focus is inside it.
+   In production GIS renders its button as an iframe on accounts.google.com and
+   drives the sign-in through FedCM, which refuses to act for a button the page
+   has hidden or painted over — federated sign-in UI that a site can obscure is
+   precisely what FedCM exists to stop. A skin over this button (we shipped one)
+   does not degrade: the button goes completely dead, silently, in production
+   only. The long note in GoogleSignInButton.tsx has the full account.
+
+   So the game's gold is spent on the *frame*: a rim, a lit edge and a glow that
+   live in the wrapper's own padding, outside the button's rectangle. Hover and
+   focus are styled from the wrapper because the element the pointer is over,
+   and the element that takes focus, are both inside Google's iframe and out of
+   our reach.
    ========================================================================== */
 
 .gauth {
   position: relative;
   display: inline-block;
+  /* The frame's whole width. Everything of ours is drawn in here, which is
+     what keeps it clear of the button. */
+  padding: 3px;
   border-radius: 0.75rem;
   isolation: isolate;
-}
-
-/* The real Google button: present, focusable, clickable, invisible. Not
-   `visibility: hidden` and not `opacity: 0` on a parent — either would take the
-   click with it or, worse, keep it and hide the focus. */
-.gauth-real {
-  opacity: 0;
-  border-radius: inherit;
-  overflow: hidden;
-}
-
-/* The face. Obsidian with a warm gold rim and a lit top edge — the same
-   material as .ornate-shell, at button scale. */
-.gauth-skin {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
-  border-radius: inherit;
-  overflow: hidden;
-  pointer-events: none;
   border: 1px solid rgba(196, 160, 50, 0.45);
-  background:
-    linear-gradient(180deg, rgba(38, 32, 22, 0.92), rgba(14, 12, 16, 0.96));
+  background: linear-gradient(180deg, rgba(38, 32, 22, 0.92), rgba(14, 12, 16, 0.96));
   box-shadow:
     inset 0 1px 0 rgba(228, 195, 90, 0.18),
-    inset 0 -14px 24px -20px rgba(196, 160, 50, 0.55),
     0 6px 18px -10px rgba(0, 0, 0, 0.9);
   transition:
     border-color 0.18s ease-out,
@@ -10223,70 +10203,32 @@ body {
     transform 0.18s ease-out;
 }
 
-/* The mark sits in its own dark medallion so the four colours read as a seal
-   rather than as a sticker on the metal. */
-.gauth-glyph {
-  display: grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 999px;
-  background: radial-gradient(circle at 40% 32%, #1e1b24, #0a0910);
-  box-shadow:
-    inset 0 0 0 1px rgba(214, 201, 173, 0.16),
-    0 2px 8px -3px rgba(0, 0, 0, 0.9);
+/* Google's button: visible, unobstructed, and the only thing on this screen
+   that can start a Google sign-in. It carries its own accessible name and its
+   own focus ring, both from inside the iframe. */
+.gauth-real {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  /* GIS reports its height a beat after the iframe lands; without this the
+     frame collapses to a gold sliver for that beat. */
+  min-height: 40px;
 }
 
-.gauth-label {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--bone-bright);
-  white-space: nowrap;
-}
-
-/* A gleam that crosses the face on hover only. Idle it is parked off the left
-   edge — this button is one of two ways in, not the headline. */
-.gauth-gleam {
-  position: absolute;
-  top: -60%;
-  bottom: -60%;
-  left: 0;
-  width: 30%;
-  pointer-events: none;
-  filter: blur(6px);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 245, 215, 0.14) 50%,
-    transparent
-  );
-  transform: translate3d(-260%, 0, 0) rotate(10deg);
-}
-
-.gauth:hover .gauth-skin {
+.gauth:hover {
   border-color: rgba(228, 195, 90, 0.75);
-  background: linear-gradient(180deg, rgba(52, 43, 26, 0.95), rgba(18, 15, 19, 0.97));
   box-shadow:
     inset 0 1px 0 rgba(228, 195, 90, 0.28),
-    inset 0 -14px 24px -18px rgba(196, 160, 50, 0.7),
     0 10px 26px -12px rgba(0, 0, 0, 0.95),
     0 0 20px -6px rgba(196, 160, 50, 0.35);
   transform: translateY(-1px);
 }
-.gauth:hover .gauth-gleam {
-  animation: gauth-gleam-run 0.85s ease-out;
-}
-@keyframes gauth-gleam-run {
-  to { transform: translate3d(420%, 0, 0) rotate(10deg); }
-}
-.gauth:active .gauth-skin {
+.gauth:active {
   transform: translateY(0);
 }
 
-/* The invisible button is what actually takes focus, so the ring has to be
-   drawn from here or a keyboard visitor loses their place entirely. */
-.gauth:focus-within .gauth-skin {
+/* The focused element is inside a cross-origin iframe, so its ring cannot be
+   reached from here; the frame grows one of its own instead. */
+.gauth:focus-within {
   border-color: var(--gold-bright);
   box-shadow:
     inset 0 1px 0 rgba(228, 195, 90, 0.28),
@@ -10294,16 +10236,16 @@ body {
     0 10px 26px -12px rgba(0, 0, 0, 0.95);
 }
 
-/* Submitting: the token is with the server and the button is spent. */
-.gauth[data-pending] .gauth-skin {
-  opacity: 0.72;
-}
-.gauth[data-pending] .gauth-label {
-  color: var(--bone-dim);
+/* Submitting: the token is with the server. The frame dims; the button itself
+   is left alone, because dimming it is exactly the thing that broke it. */
+.gauth[data-pending] {
+  border-color: rgba(196, 160, 50, 0.3);
+  box-shadow: none;
 }
 
-/* Before GIS has rendered there is nothing underneath to click. A slow sweep
-   over the face says "waking up" without moving the layout. */
+/* Before GIS has rendered there is nothing underneath to click, so this one is
+   safe to lay over the whole frame — it is unmounted the moment there is a
+   button to obscure. A slow sweep says "waking up" without moving the layout. */
 .gauth-wait {
   position: absolute;
   inset: 0;
@@ -10354,16 +10296,15 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gauth-skin,
-  .gauth-gleam,
+  .gauth,
   .gauth-wait {
     transition: none;
     animation: none;
   }
-  .gauth:hover .gauth-skin {
+  .gauth:hover {
     transform: none;
   }
-  /* The sweep is the whole of it; parked it is a bright smear across the face. */
+  /* The sweep is the whole of it; parked it is a bright smear across the frame. */
   .gauth-wait {
     display: none;
   }

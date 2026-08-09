@@ -117,7 +117,8 @@ export const EN: Record<string, string> = {
   "עדיין אין לך אימפריה?": "No empire yet?",
   "הירשם עכשיו": "Create one",
   "או": "or",
-  "המשך עם Google": "Continue with Google",
+  // Google renders its button's own wording, in the locale it is handed — the
+  // label is not ours to translate. Only what we put around it is.
   "מתחבר עם Google...": "Signing in with Google…",
   "התחברות Google נכשלה, נסה שוב": "Google sign-in failed — please try again",
   "הצטרפו לקהילה בדיסקורד": "Join the community on Discord",

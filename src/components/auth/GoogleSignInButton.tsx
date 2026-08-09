@@ -11,6 +11,10 @@ const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 /** Google Identity Services will not render a button wider than this. */
 const MAX_WIDTH = 400;
 const MIN_WIDTH = 200;
+/** The gold frame around the button — `.gauth`'s padding and border, both
+ *  sides. The button is asked for the width that is left inside it, or the
+ *  frame is the thing that overflows the panel. */
+const FRAME = 8;
 
 // Minimal shape of the pieces of the Google Identity Services SDK we touch.
 interface GsiCredentialResponse {
@@ -31,56 +35,42 @@ interface GsiClient {
   };
 }
 
-/** The official four-colour mark. Google's own dark button puts it straight on
- *  black, which is why it needs no white tile here either. */
-function GoogleG({ size = 18 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden focusable="false">
-      <path
-        fill="#4285F4"
-        d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"
-      />
-      <path
-        fill="#34A853"
-        d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"
-      />
-      <path
-        fill="#EA4335"
-        d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"
-      />
-    </svg>
-  );
-}
-
 /**
- * "Continue with Google", in the game's own obsidian-and-gold, backed by Google
- * Identity Services.
+ * "Continue with Google", backed by Google Identity Services.
  *
- * ## Why there are two buttons stacked
+ * ## Do not paint anything over this button. It stops working.
  *
- * GIS only hands out an ID token through a button *it* renders — there is no
- * "give me the credential" call to wire to a button of ours, and the OAuth code
- * flow that would allow one needs a client secret and a token exchange this app
- * has no reason to grow. So the real GIS button is still the click target; it
- * is simply transparent, and our own skin is painted over it with
- * `pointer-events: none` so every click, tap and Enter lands on Google's button
- * underneath. Hover and focus are styled from the wrapper (`:hover`,
- * `:focus-within`), which is what keeps the invisible button's keyboard focus
- * visible.
+ * This component briefly rendered GIS's button at `opacity: 0` with a skin of
+ * our own on top of it (`pointer-events: none`, so the clicks still landed on
+ * Google's button underneath). It looked right and it was completely dead: the
+ * button rendered, the pointer went to the right element, and clicking it did
+ * nothing at all — no request, no popup, no console error.
  *
- * Two consequences worth knowing before editing:
- *  - **The wrapper is sized by the GIS button, not the other way round.** The
- *    skin is `inset-0` over it, so the painted button and the clickable area
- *    can never drift apart — no dead border, no click that misses.
- *  - GIS takes its width in pixels and caps it at 400, so the width is measured
- *    from the host element and the button re-rendered when that changes.
+ * The reason is that in production GIS does not render a button into our DOM at
+ * all. Once the origin is authorised it renders an **iframe** on
+ * accounts.google.com (`/gsi/button?...&is_fedcm_supported=true`) and the sign
+ * -in is driven from inside it by FedCM. Sign-in UI that a page can position,
+ * hide or cover is the exact attack FedCM exists to end, so a click arriving at
+ * a button that cannot be seen buys nothing. The whole trick only ever appeared
+ * to be plausible in development, where the origin is *not* authorised, GIS
+ * falls back to rendering plain DOM, and there is no FedCM in the picture.
  *
- * The mark, the wording and the proportions follow Google's branding rules; the
- * surface is ours.
+ * (The origin, the client id and the permission delegation are all fine — the
+ * same FedCM call made from a real, visible button of ours opens Chrome's
+ * account chooser normally.)
+ *
+ * So Google's button is the button. Everything of ours — the gold rim, the lit
+ * edge, the glow — is drawn *around* it by the wrapper, never across it, and
+ * the wrapper must stay clear of the button's own rectangle. See the `gauth-`
+ * block in globals.css, which says the same thing from the other side.
+ *
+ * If the game's own obsidian-and-gold surface is ever wanted here, the
+ * supported route is the OAuth 2.0 code flow (`google.accounts.oauth2
+ * .initCodeClient`), which any button of ours may call — it needs a client
+ * secret and a server-side code exchange, which is the price of the skin.
+ *
+ * GIS takes its width in pixels and caps it at 400, so the width is measured
+ * from the host element and the button re-rendered when that changes.
  *
  * Renders nothing when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is unset, so the page
  * still works before Google is configured.
@@ -132,7 +122,12 @@ export function GoogleSignInButton() {
     if (!host) return;
     const measure = () =>
       setWidth(
-        Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(host.clientWidth)))
+        // MAX_WIDTH is the ceiling for the whole block, frame included, so it
+        // still ends level with the divider under it.
+        Math.max(
+          MIN_WIDTH,
+          Math.min(MAX_WIDTH, Math.round(host.clientWidth)) - FRAME
+        )
       );
     measure();
     const observer = new ResizeObserver(measure);
@@ -175,26 +170,23 @@ export function GoogleSignInButton() {
       />
       <div ref={hostRef} className="flex justify-center">
         <div className="gauth" data-pending={pending || undefined}>
-          {/* The real button: full size, fully transparent, and the only thing
-              on this screen that can actually start a Google sign-in. */}
+          {/* Google's own button, visible and unobstructed. Nothing may be
+              drawn on top of this element — see the note above. */}
           <div ref={btnRef} className="gauth-real" />
-          {/* The skin. aria-hidden and click-through: the button underneath
-              already carries the accessible name. */}
-          <span aria-hidden className="gauth-skin">
-            <span className="gauth-glyph">
-              <GoogleG />
-            </span>
-            <span className="gauth-label">
-              {pending ? t("מתחבר עם Google...") : t("המשך עם Google")}
-            </span>
-            <span className="gauth-gleam" />
-          </span>
-          {/* Until GIS has rendered there is nothing to click, and a button
-              that looks ready but is not is worse than one that is visibly
-              waking up. */}
+          {/* Until GIS has rendered there is nothing here to click, and an
+              empty gap is worse than a frame that is visibly waking up. This is
+              the one overlay allowed, and only because it is gone by the time
+              there is a button under it. */}
           {!ready && <span aria-hidden className="gauth-wait" />}
         </div>
       </div>
+      {/* The pending line lives under the button rather than on it, for the
+          same reason: the button's face belongs to Google. */}
+      {pending && (
+        <p className="text-center text-xs text-bone-dim">
+          {t("מתחבר עם Google...")}
+        </p>
+      )}
       <FormMessage error={error} />
     </div>
   );

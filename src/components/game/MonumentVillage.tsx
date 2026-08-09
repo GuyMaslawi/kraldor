@@ -12,11 +12,16 @@ import { useT } from "@/i18n/client";
  * אתר הבנייה — the capital's build site.
  *
  * The five monuments used to be five cards with a progress bar, and a progress
- * bar is a poor way to say "this thing is half-built". So the screen now opens
- * on the ground itself: an eight-by-eight isometric plot of grass, dirt and
- * road, with each monument standing on its own 2×2 lot and **growing with its
- * level** — bare stakes at 0, scaffolded stone through the middle, and only at
- * 12 does it get its crown and its banner.
+ * bar is a poor way to say "this thing is half-built". So the screen is the
+ * ground itself: an eight-by-eight isometric plot of grass, dirt and road, with
+ * each monument standing on its own 2×2 lot and **growing with its level** —
+ * bare stakes at 0, scaffolded stone through the middle, and only at 12 does it
+ * get its crown and its banner.
+ *
+ * A lot is a **button**, not an anchor. It used to jump to a card further down
+ * the page, which meant every purchase cost the player a scroll down and a
+ * scroll back up; now the lot opens the monument's own dialog over the field
+ * (see Monuments.tsx), so the site is the only place the screen ever is.
  *
  * ## Why clip-path and not 3D transforms
  *
@@ -38,9 +43,13 @@ import { useT } from "@/i18n/client";
  * same pair: `z-index: c + r` puts a lot in front of everything behind it, and
  * that is the only depth sorting this scene needs.
  *
- * Everything here is presentational — the levels, the costs and the buying all
- * still live on the cards below (see Monuments.tsx). A lot is an anchor to its
- * own card, so the scene never becomes a second, divergent place to spend gold.
+ * ## One light, and everything obeys it
+ *
+ * The moon sits at the top right of the sky, which is why every right-hand wall
+ * is the lit one, every left-hand wall is in shade, and every building throws
+ * its shadow down and to the left along the grid's `+r` axis. That single
+ * decision is what makes a pile of clipped rectangles read as a place — break
+ * it in one piece and the whole field goes flat.
  */
 
 const N = VILLAGE_SIZE;
@@ -59,6 +68,15 @@ const TREES: readonly { c: number; r: number; s: number }[] = [
   { c: 7, r: 3, s: 1 },
   { c: 4, r: 6, s: 1 },
   { c: 3, r: 7, s: 0 },
+];
+
+/** Lamp posts down the two roads — the only light source at ground level, and
+ * what stops the crossroads from reading as an empty gap between the lots. */
+const LAMPS: readonly { c: number; r: number }[] = [
+  { c: 2, r: 2 },
+  { c: 5, r: 2 },
+  { c: 2, r: 5 },
+  { c: 5, r: 5 },
 ];
 
 type TileKind = "grass" | "road" | "dirt";
@@ -95,18 +113,22 @@ function buildTiles(monuments: readonly MonumentView[]) {
 
 export function MonumentVillage({
   monuments,
+  onOpen,
 }: {
   monuments: readonly MonumentView[];
+  /** Opens a monument's dialog. The scene shows state; it never changes it. */
+  onOpen: (key: string) => void;
 }) {
   const t = useT();
   const tiles = buildTiles(monuments);
 
-  // A <nav>, not a labelled <div role="img">: the five lots are real in-page
-  // links, and `role="img"` would have made the whole subtree presentational —
-  // leaving five focusable elements inside a region assistive tech is told to
-  // treat as a single picture.
+  // A <nav>, not a labelled <div role="img">: the five lots are real controls,
+  // and `role="img"` would have made the whole subtree presentational — leaving
+  // five focusable elements inside a region assistive tech is told to treat as
+  // a single picture.
   return (
     <nav className="vil-stage" aria-label={t("אתר הבנייה של הבירה")}>
+      <span className="vil-sky" aria-hidden />
       <div className="vil-field">
         <span className="vil-soil" aria-hidden />
 
@@ -128,8 +150,19 @@ export function MonumentVillage({
           />
         ))}
 
+        {LAMPS.map((lamp) => (
+          <span
+            key={`l${lamp.c},${lamp.r}`}
+            aria-hidden
+            className="vil-lamp"
+            style={{ "--c": lamp.c, "--r": lamp.r } as CSSProperties}
+          >
+            <i />
+          </span>
+        ))}
+
         {monuments.map((monument) => (
-          <Lot key={monument.key} monument={monument} />
+          <Lot key={monument.key} monument={monument} onOpen={onOpen} />
         ))}
       </div>
     </nav>
@@ -138,7 +171,13 @@ export function MonumentVillage({
 
 /* --------------------------- one monument's lot --------------------------- */
 
-function Lot({ monument }: { monument: MonumentView }) {
+function Lot({
+  monument,
+  onOpen,
+}: {
+  monument: MonumentView;
+  onOpen: (key: string) => void;
+}) {
   const t = useT();
   const level = monument.level;
   const done = level >= MONUMENT_MAX_LEVEL;
@@ -146,18 +185,29 @@ function Lot({ monument }: { monument: MonumentView }) {
   // Scaffolding stands for exactly as long as the thing is unfinished, which
   // here means "not at 12" — that is the whole visual grammar of the screen.
   const building = level > 0 && !done;
-  // The two crowning pieces that only appear past a threshold. The plaque hangs
-  // off the top of the silhouette, so it has to be told when they are there —
-  // the CSS cannot see a conditionally-rendered child.
+  // The pieces that only appear past a threshold. The plaque hangs off the top
+  // of the silhouette, so it has to be told when they are there — the CSS
+  // cannot see a conditionally-rendered child.
+  const roofed = monument.shape === "tower" && level >= 5;
   const spired = monument.shape === "tower" && level >= 8;
   const lofted = monument.shape === "hall" && level >= 7;
+  const crowned = monument.shape === "column" && level >= 10;
+
+  const flags =
+    (done ? " is-done" : "") +
+    (roofed ? " is-roofed" : "") +
+    (spired ? " is-spired" : "") +
+    (lofted ? " is-lofted" : "") +
+    (crowned ? " is-crowned" : "") +
+    // "You can raise this right now" is the one piece of state the field says
+    // out loud, because it is the only one that asks the player to act.
+    (monument.affordable ? " is-ready" : "");
 
   return (
-    <a
-      href={`#mono-${monument.key}`}
-      className={`vil-lot vil-${monument.shape}${done ? " is-done" : ""}${
-        spired ? " is-spired" : ""
-      }${lofted ? " is-lofted" : ""}`}
+    <button
+      type="button"
+      onClick={() => onOpen(monument.key)}
+      className={`vil-lot vil-${monument.shape}${flags}`}
       style={
         {
           "--c": monument.plot.c,
@@ -172,6 +222,7 @@ function Lot({ monument }: { monument: MonumentView }) {
         max: MONUMENT_MAX_LEVEL,
       })}
     >
+      <span className="vil-plot" aria-hidden />
       <span className="vil-shadow" aria-hidden />
 
       {empty ? (
@@ -206,7 +257,7 @@ function Lot({ monument }: { monument: MonumentView }) {
           {level}/{MONUMENT_MAX_LEVEL}
         </span>
       </span>
-    </a>
+    </button>
   );
 }
 
@@ -230,7 +281,22 @@ function Box({ className }: { className: string }) {
   );
 }
 
-/** A column, a tower or a hall: a plinth, the shaft, and a crown of some kind. */
+/**
+ * A hipped roof: four planes meeting at a point, of which the camera sees
+ * exactly two, and those two tile the whole silhouette — so two triangles are
+ * the entire roof. `--rw` is the eaves' width, `--rise` how far the apex sits
+ * above them, `--ry` where the eaves land on the wall below.
+ */
+function Roof({ className }: { className: string }) {
+  return (
+    <span className={`vil-roof ${className}`}>
+      <i className="vil-roof-r" />
+      <i className="vil-roof-l" />
+    </span>
+  );
+}
+
+/** A column, a tower or a hall: a stepped base, the shaft, and a crown. */
 function Block({
   shape,
   level,
@@ -238,29 +304,54 @@ function Block({
   shape: "column" | "tower" | "hall";
   level: number;
 }) {
+  // The hall is roofed from its first level, so it needs its cornice from the
+  // first level too. On the other two the cap is a crown, and below level 5 a
+  // crown sits on the plinth and reads as a lid.
+  const capped = shape === "hall" || level >= 5;
+
   return (
     <>
+      <Box className="vil-step" />
       <Box className="vil-plinth" />
-      <Box className="vil-shaft" />
-      {/* The cap only appears once there is a shaft worth capping — below level
-          5 it would sit on the plinth and read as a lid, not a capital. */}
-      {level >= 5 && <Box className="vil-cap" />}
-      {shape === "tower" && level >= 4 && <span className="vil-clock" />}
-      {shape === "tower" && level >= 8 && <span className="vil-spire" />}
-      {shape === "hall" && level >= 7 && <Box className="vil-loft" />}
+      {/* `vil-lit` is what puts windows on a wall — the column has none, being
+          solid stone, and that is most of what tells it apart from the tower. */}
+      <Box className={`vil-shaft${shape === "column" ? "" : " vil-lit"}`} />
       {shape === "column" && level >= 3 && <span className="vil-flutes" />}
+      {capped && <Box className="vil-cap" />}
+      {shape === "tower" && level >= 4 && <span className="vil-clock" />}
+      {shape === "hall" && <Roof className="vil-roof-hall" />}
+      {/* The lantern goes on *after* the main roof: it replaces its tip. */}
+      {shape === "hall" && level >= 7 && (
+        <>
+          <Box className="vil-loft" />
+          <Roof className="vil-roof-loft" />
+        </>
+      )}
+      {shape === "tower" && level >= 5 && <Roof className="vil-roof-tower" />}
+      {shape === "tower" && level >= 8 && <span className="vil-spire" />}
+      {shape === "column" && level >= 10 && (
+        <span className="vil-statue">
+          <i />
+          <i />
+        </span>
+      )}
     </>
   );
 }
 
-/** The victory gate: two piers and the lintel that bridges them. */
+/** The victory gate: two piers, the passage between them, and the lintel. */
 function Gate({ level }: { level: number }) {
   return (
     <>
+      <Box className="vil-gate-base" />
+      {/* Far pier first, then what stands between them, then the near pier:
+          DOM order is the depth sort inside a lot. */}
       <Box className="vil-pier vil-pier-a" />
+      {level >= 2 && <span className="vil-arch" />}
       <Box className="vil-pier vil-pier-b" />
       {/* Nothing spans the piers until they are tall enough to be spanned. */}
       {level >= 3 && <Box className="vil-lintel" />}
+      {level >= 6 && <span className="vil-keystone" />}
       {level >= 9 && <span className="vil-banner" />}
     </>
   );
@@ -270,11 +361,13 @@ function Gate({ level }: { level: number }) {
 function Wheel({ level }: { level: number }) {
   return (
     <>
+      <Box className="vil-step" />
       <Box className="vil-plinth" />
       <Box className="vil-shaft" />
       {level >= 2 && (
         <span className="vil-ring">
           <span className="vil-ring-spin">
+            <i />
             <i />
             <i />
             <i />

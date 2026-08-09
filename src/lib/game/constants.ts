@@ -45,6 +45,33 @@ export type StorableResource = "gold" | "wood" | "iron" | "stone";
  */
 export const COLUMN_INT_MAX = 1_000_000_000; // 1e9
 
+/**
+ * Ceiling on any resource balance the game keeps in a Prisma `Float` column —
+ * the five empire balances, the bank, a warehouse, a guild treasury. 999P, the
+ * top of the unit ladder `formatNumber` can print (see lib/game/format.ts).
+ *
+ * Unlike {@link COLUMN_INT_MAX} this is a *game rule*, not a database limit.
+ * Postgres `double precision` reaches ~1.8e308, so nothing overflows below it.
+ * What does happen is a precision cliff: a double represents whole numbers
+ * exactly only up to 2^53 (~9,007T), and at this ceiling consecutive
+ * representable values are 131,072 apart. A balance up here is therefore a
+ * figure whose bottom six digits are noise — small credits and debits round away
+ * entirely. That is acceptable for a ceiling nobody is meant to sit at, and it
+ * is the reason the ceiling exists at all rather than being left open.
+ *
+ * Enforced in the database by a `BEFORE INSERT OR UPDATE` trigger on each table
+ * that holds one (migration `20260810000000_resource_ceiling`), not at the ~30
+ * call sites that credit a balance. Those are all `{ increment }` expressions
+ * evaluated by Postgres, several inside guarded `updateMany` claims whose whole
+ * point is that the read and the write are a single statement — clamping in
+ * TypeScript would mean reading the balance first, which is exactly the
+ * stale-snapshot race those guards exist to close, and any credit site added
+ * later would silently opt out. The trigger saturates rather than raising, so a
+ * payout landing on the ceiling still commits instead of aborting its
+ * transaction. Change this value and the migration has to change with it.
+ */
+export const RESOURCE_MAX = 999e18; // 999P
+
 /* ------------------------------ update cadence ------------------------------ */
 
 export const GAME_TIMEZONE = "Asia/Jerusalem";

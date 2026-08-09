@@ -7,10 +7,24 @@ import { LOCALE_TAG, type Locale } from "@/i18n/locale";
  */
 const nf = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
-// Suffixes for large numbers: million, billion, trillion, quadrillion, quintillion.
+/**
+ * Suffixes for large numbers: million, billion, trillion, and the two rungs
+ * above it.
+ *
+ * The top two are single letters — `Q` and `P` — rather than the textbook `Qa`
+ * and `Qi` for quadrillion/quintillion. Every figure in this game is printed
+ * into a tile, a ranking row or a battle report where the column is already
+ * tight, and a two-letter suffix is the one thing on the ladder that changes
+ * width. The pair also reads badly at a glance: `Qa` and `Qi` differ by a single
+ * character in the position a reader scans last, so a quadrillion and a
+ * quintillion — a thousand-fold apart — look the same in peripheral vision.
+ *
+ * The ladder stops at `P` on purpose: {@link RESOURCE_MAX} is 999P, so no
+ * balance in the game can outgrow the last rung.
+ */
 const UNITS = [
-  { value: 1e18, suffix: "Qi" },
-  { value: 1e15, suffix: "Qa" },
+  { value: 1e18, suffix: "P" },
+  { value: 1e15, suffix: "Q" },
   { value: 1e12, suffix: "T" },
   { value: 1e9, suffix: "B" },
   { value: 1e6, suffix: "M" },
@@ -83,6 +97,8 @@ export function formatBonus(value: number): string {
 }
 
 const SHORT_UNITS: [number, string][] = [
+  [1e18, "P"],
+  [1e15, "Q"],
   [1e12, "T"],
   [1e9, "B"],
   [1e6, "M"],
@@ -93,6 +109,11 @@ const SHORT_UNITS: [number, string][] = [
  * Compact money formatting for dense table cells. Mirrors `formatNumber` but
  * keeps three significant digits at every magnitude, which is what the weapon
  * and item ladders need once they run past a billion.
+ *
+ * It carries the same top two rungs as `UNITS`. It used to stop at `T`, which
+ * was invisible while nothing could exceed a trillion and became wrong the
+ * moment {@link RESOURCE_MAX} was raised: `findIndex` simply picked the largest
+ * unit it had, so a balance at the ceiling printed as "999000000T".
  *
  * The unit is chosen *after* rounding, for the same reason `formatNumber` does
  * it (see `withUnit` above): at three significant digits 999.6B rounds to a

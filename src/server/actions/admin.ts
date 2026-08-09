@@ -63,10 +63,12 @@ import {
   EMPIRE_UPGRADE_META,
   MAX_CITIES,
   MINE_MAX_LEVEL,
+  RESOURCE_MAX,
   empireUpgradeMaxLevel,
   isProductionBuilding,
   type ActiveEmpireUpgradeType,
 } from "@/lib/game/constants";
+import { formatNumber } from "@/lib/game/format";
 import { POTION_STACK_CAP } from "@/lib/game/potions";
 import { BOT_BATCH_MAX, BOT_SOLDIERS } from "@/lib/game/bots";
 import { applyPendingUpdates } from "@/lib/game/updates";
@@ -158,10 +160,19 @@ function toErr(e: unknown): AdminActionState {
 }
 
 // Upper bound for any admin-entered number. Prevents a fat-fingered or hostile
-// value (e.g. 1e308) from overflowing a column or corrupting the economy; it
-// sits well above any legitimate resource total. Applied symmetrically so
+// value (e.g. 1e308) from reaching a column at all. Applied symmetrically so
 // negative inputs are bounded too (callers still Math.max(0, …) where needed).
-const ADMIN_NUM_MAX = 1_000_000_000_000; // 1e12
+//
+// It is the game's resource ceiling, because the resources are the only fields
+// this bound actually decides: every other `num()` caller clamps again to its
+// own ladder immediately afterwards (clampLevel for cities/hero level/tiers,
+// POTION_STACK_CAP for potions, SEASON_PASS_XP_MAX for pass XP, xpToNextLevel
+// for hero XP), so widening this cannot loosen any of them.
+//
+// The database holds the same line independently — see RESOURCE_MAX — so a
+// balance cannot exceed it through normal play either. This is only what the
+// form will carry.
+const ADMIN_NUM_MAX = RESOURCE_MAX; // 999P
 
 function clampNum(n: number): number {
   return Math.max(-ADMIN_NUM_MAX, Math.min(ADMIN_NUM_MAX, n));
@@ -718,14 +729,20 @@ export async function updateEmpireCore(
       summary: `עודכנו נתוני ליבה של ${name}`,
     });
     revalidateEmpire(userId);
-    // The int4 ceiling is far lower than the one the resource fields accept, so
-    // a clamped turns/citizens value must not look like it saved as typed.
-    const clamped = INT_CORE_FIELDS.filter(
-      ([key]) => num(formData, key) > ADMIN_INT_MAX
-    ).map(([, label]) => label);
+    // A clamped field must never look like it saved as typed. Both ceilings are
+    // reported, and they are different numbers: the int4 columns stop a billion
+    // short of int4's max, the resource columns at the game's RESOURCE_MAX.
+    //
+    // Compared against the *raw* form value rather than what `num`/`intNum`
+    // returned, because those already clamped — the evidence that a ceiling bit
+    // is gone by the time they return.
+    const notes = [
+      ...clampNotes(formData, INT_CORE_FIELDS, ADMIN_INT_MAX),
+      ...clampNotes(formData, FLOAT_CORE_FIELDS, ADMIN_NUM_MAX),
+    ];
     return {
-      success: clamped.length
-        ? `נתוני האימפריה עודכנו — ${clamped.join(", ")} הוגבלו למקסימום ${ADMIN_INT_MAX.toLocaleString("he-IL")}`
+      success: notes.length
+        ? `נתוני האימפריה עודכנו — ${notes.join("; ")}`
         : "נתוני האימפריה עודכנו",
     };
   } catch (e) {
@@ -740,6 +757,35 @@ const INT_CORE_FIELDS = [
   ["turns", "תורות"],
   ["wheelSpins", "סיבובי גלגל"],
 ] as const;
+
+/** Core empire fields backed by a `Float` column, with their Hebrew labels. */
+const FLOAT_CORE_FIELDS = [
+  ["gold", "זהב"],
+  ["wood", "עץ"],
+  ["iron", "ברזל"],
+  ["stone", "אבן"],
+  ["diamonds", "יהלומים"],
+] as const;
+
+/**
+ * One "these fields were capped at N" sentence, or nothing if none were.
+ *
+ * Reads the submitted string directly instead of going through `num`: the whole
+ * point is to notice a value the parsers would silently pull down, and they have
+ * already done so by the time they return. A field that is absent or unparseable
+ * is not reported — `num` throws on those long before this runs.
+ */
+function clampNotes(
+  formData: FormData,
+  fields: ReadonlyArray<readonly [string, string]>,
+  max: number
+): string[] {
+  const hit = fields
+    .filter(([key]) => Number(formData.get(key)) > max)
+    .map(([, label]) => label);
+  if (hit.length === 0) return [];
+  return [`${hit.join(", ")} הוגבלו למקסימום ${formatNumber(max)}`];
+}
 
 /** Set the army counts. */
 export async function updateArmy(

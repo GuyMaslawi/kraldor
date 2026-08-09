@@ -3718,6 +3718,12 @@ export const EN: Record<string, string> = {
   "רמות שהועלו מתוך כל הרמות האפשריות": "Levels raised out of every level on offer",
   "רמות": "levels",
   "רמה {level}/{max}": "Level {level}/{max}",
+  "לחץ על מבנה במפה כדי לבנות או לשדרג אותו.":
+    "Tap a building on the map to raise or upgrade it.",
+  "אחרי הבנייה": "After building",
+  "עלות הרמה הבאה": "Next level costs",
+  "עלות הייסוד": "Founding costs",
+  "חסרים {gold} זהב": "{gold} gold short",
   "ייסד": "Found it",
   "הרם רמה": "Raise a level",
   "בונה…": "Building…",

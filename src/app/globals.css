@@ -10775,28 +10775,16 @@ body {
 /* /game/monuments — the capital's skyline                             */
 /* ------------------------------------------------------------------ */
 
-/* Each card carries its monument's accent as `--accent` (an `R G B` triple set
-   from the catalog), so one rule paints five different buildings. The scene is
-   deliberately still: these are stone, and a skyline that shimmers reads as a
-   mirage rather than as something permanent. */
+/* Each surface carries its monument's accent as `--accent` (an `R G B` triple
+   set from the catalog), so one rule paints five different buildings. The five
+   cards this block used to dress are gone — a lot on the build site opens the
+   monument's dialog instead — and what is left is the chrome that dialog and
+   its chips share. */
 
-.mono-card {
-  position: relative;
-  overflow: hidden;
-  animation: mono-card-in 0.4s ease-out backwards;
-  animation-delay: calc(var(--i, 1) * 60ms);
-}
-
-@keyframes mono-card-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-
-/* One shaft of the monument's own colour, anchored behind its sigil and bled
-   past the card's edge. Radial rather than a box-shadow so it can escape the
-   border without repainting it. */
+/* One shaft of the monument's own colour, bled past the dialog's edge. Radial
+   rather than a box-shadow so it can escape the border without repainting it.
+   Its parent must be positioned and clipping — in the dialog that is the panel
+   itself, which is `relative` and scrolls. */
 .mono-glow {
   position: absolute;
   inset: -50% 40% auto -20%;
@@ -10810,6 +10798,55 @@ body {
   );
 }
 
+/* The ladder as twelve rungs rather than one bar, because every rung is a
+   separate purchase and the player should be able to count what is left. */
+.mono-pips {
+  display: flex;
+  gap: 3px;
+}
+
+.mono-pips > span {
+  flex: 1;
+  height: 7px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.07);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.45);
+}
+
+.mono-pips > span.is-on {
+  background: linear-gradient(180deg, rgb(var(--accent)), rgb(var(--accent) / 0.5));
+  box-shadow: 0 0 8px rgb(var(--accent) / 0.45);
+}
+
+/* The chip row under the field: the same five, as targets a thumb can hit. */
+.mono-chip {
+  border: 1px solid rgb(var(--accent) / 0.28);
+  background: linear-gradient(180deg, rgb(var(--accent) / 0.07), rgb(0 0 0 / 0.3));
+  transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
+}
+
+.mono-chip:hover,
+.mono-chip:focus-visible {
+  border-color: rgb(var(--accent) / 0.7);
+  transform: translateY(-1px);
+}
+
+/* One dot, and only when the next level is already paid for. */
+.mono-chip-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: rgb(110 231 183);
+  box-shadow: 0 0 8px rgb(110 231 183 / 0.9);
+  animation: mono-ready 2.2s ease-in-out infinite;
+}
+
+@keyframes mono-ready {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
 /* The sigil tile picks up the accent for its border, its ink and its light —
    the only place on the card where the colour is fully saturated, so the eye
    lands there first. */
@@ -10820,17 +10857,14 @@ body {
   box-shadow: inset 0 0 14px rgb(var(--accent) / 0.18);
 }
 
-/* Arriving from a lot on the build site. `:target` is the whole mechanism —
-   the lot is a plain anchor, so the jump and the highlight both work with no
-   JavaScript and survive a shared or reloaded URL. */
-.mono-card:target {
-  border-color: rgb(var(--accent) / 0.75);
-  box-shadow: 0 0 0 1px rgb(var(--accent) / 0.4), 0 0 26px rgb(var(--accent) / 0.2);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .mono-card {
+  .mono-chip-dot {
     animation: none;
+    opacity: 1;
+  }
+  .mono-chip:hover,
+  .mono-chip:focus-visible {
+    transform: none;
   }
 }
 
@@ -11173,14 +11207,25 @@ body {
    scene rescales for a phone by changing those two numbers and nothing else.
    See MonumentVillage.tsx for why this is clip-path and not preserve-3d.
 
-   The stone is still — that was always the rule here, and it still is. The only
-   two things that move are the ones that are *supposed* to: a lot that is being
-   built keeps a lit brazier, and the sky wheel turns, because its lore says it
+   ## One light
+
+   The moon sits at the top right of the sky. Everything below obeys it: right
+   walls are lit, left walls are in shade, roofs are brighter on their right
+   plane, and every building throws its shadow to the left and slightly down.
+   Break that in one piece and the whole field goes flat — so if you add a
+   silhouette, light it from the right.
+
+   ## What moves
+
+   The stone is still, and that was always the rule here. The only things that
+   move are the ones that are supposed to: a lot being built keeps a lit
+   brazier, the lamps at the crossroads flicker, a lot whose next level is
+   already paid for glows, and the sky wheel turns because its lore says it
    never stops. */
 
 .vil-stage {
-  --tw: 72px;
-  --th: 36px;
+  --tw: 76px;
+  --th: 38px;
   --n: 8;
   position: relative;
   display: flex;
@@ -11188,13 +11233,49 @@ body {
   justify-content: center;
   overflow: hidden;
   /* Top padding is set by the tallest thing on the field: the column at 12,
-     plus its capital and its plaque, standing on the back-most lot. */
-  padding: calc(var(--th) * 4.6) 0 calc(var(--th) * 1.4);
+     with its statue and its plaque, standing on the back-most lot. The `+20px`
+     is that plaque — it is text, so it does not scale with the tiles. */
+  padding: calc(var(--th) * 4.5 + 20px) 0 calc(var(--th) * 1.4);
   border-radius: 1rem;
   background:
-    radial-gradient(75% 60% at 50% 8%, rgb(126 96 52 / 0.20), transparent 70%),
+    radial-gradient(75% 60% at 50% 8%, rgb(126 96 52 / 0.18), transparent 70%),
     radial-gradient(120% 85% at 50% 108%, rgb(58 44 28 / 0.5), transparent 72%),
-    linear-gradient(180deg, rgb(19 17 15), rgb(11 10 10));
+    linear-gradient(180deg, rgb(14 14 20), rgb(11 10 10) 55%, rgb(9 8 8));
+}
+
+/* The moon, its halo, and a handful of stars — fixed positions, because the
+   markup is server-rendered and `Math.random()` would make the two disagree.
+   The moon is the scene's only justification for where the light comes from. */
+.vil-sky {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 85% 11%, rgb(255 247 224 / 0.95) 0 8px,
+      rgb(255 242 210 / 0.18) 11px, rgb(255 236 190 / 0.05) 26px, transparent 60px),
+    radial-gradient(circle at 11% 13%, rgb(255 255 255 / 0.55) 0 1px, transparent 2px),
+    radial-gradient(circle at 24% 7%, rgb(255 255 255 / 0.35) 0 1px, transparent 2px),
+    radial-gradient(circle at 38% 16%, rgb(255 255 255 / 0.5) 0 1px, transparent 2px),
+    radial-gradient(circle at 52% 6%, rgb(255 255 255 / 0.3) 0 1px, transparent 2px),
+    radial-gradient(circle at 63% 18%, rgb(255 255 255 / 0.45) 0 1px, transparent 2px),
+    radial-gradient(circle at 71% 5%, rgb(255 255 255 / 0.3) 0 1px, transparent 2px),
+    radial-gradient(circle at 93% 24%, rgb(255 255 255 / 0.4) 0 1px, transparent 2px),
+    radial-gradient(circle at 5% 28%, rgb(255 255 255 / 0.28) 0 1px, transparent 2px);
+}
+
+/* Night haze over the whole plate, drawn above every lot (z-index 20 clears the
+   highest lot's 4 + c + r) so the far corners of the field sink into the dark
+   instead of ending at a hard rectangle. */
+.vil-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 70px rgb(0 0 0 / 0.6),
+    inset 0 -34px 46px rgb(0 0 0 / 0.45);
 }
 
 .vil-field {
@@ -11206,7 +11287,7 @@ body {
 /* The plateau's cut edge. Without it the ground reads as a decal lying on the
    panel rather than as a slab of earth with buildings standing on it. */
 .vil-soil {
-  --soil: calc(var(--th) * 0.9);
+  --soil: calc(var(--th) * 1.05);
   position: absolute;
   left: 0;
   top: 0;
@@ -11220,7 +11301,12 @@ body {
     50% calc(var(--th) * var(--n) + var(--soil)),
     0 calc(var(--th) * var(--n) / 2 + var(--soil))
   );
-  background: linear-gradient(180deg, rgb(72 53 35), rgb(34 25 17));
+  /* Lit from the right like everything else: the right half of the cut face
+     catches the moon, the left half does not. */
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 0.35) 50%, transparent 50%),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.13) 0 1px, transparent 1px 7px),
+    linear-gradient(180deg, rgb(78 58 38), rgb(30 22 15));
 }
 
 /* -------------------------------- ground -------------------------------- */
@@ -11238,25 +11324,55 @@ body {
 }
 
 /* The tile's colour is the inset diamond, not the tile — the sliver of dark
-   left showing around it is what draws the seams between them. */
+   left showing around it is what draws the seams between them. Each kind also
+   carries a scatter of small marks, which is the cheapest thing that stops a
+   flat fill from reading as painted cardboard. */
 .vil-tile::after {
   content: "";
   position: absolute;
   inset: 0;
   clip-path: polygon(50% 5%, 95% 50%, 50% 95%, 5% 50%);
+  background-repeat: repeat;
 }
 
-.vil-grass::after { background: rgb(78 108 54); }
-.vil-grass.vil-s1::after { background: rgb(88 119 58); }
-.vil-grass.vil-s2::after { background: rgb(68 97 49); }
+.vil-grass::after {
+  background-color: rgb(74 104 52);
+  background-image:
+    radial-gradient(closest-side, rgb(104 138 63 / 0.5) 0 30%, transparent 40%),
+    radial-gradient(closest-side, rgb(38 62 28 / 0.4) 0 28%, transparent 38%);
+  background-size:
+    calc(var(--tw) * 0.115) calc(var(--tw) * 0.07),
+    calc(var(--tw) * 0.09) calc(var(--tw) * 0.055);
+  background-position: 0 0, calc(var(--tw) * 0.05) calc(var(--tw) * 0.035);
+}
+.vil-grass.vil-s1::after { background-color: rgb(84 115 56); }
+.vil-grass.vil-s2::after { background-color: rgb(64 92 47); }
 
-.vil-road::after { background: rgb(124 106 80); }
-.vil-road.vil-s1::after { background: rgb(133 114 86); }
-.vil-road.vil-s2::after { background: rgb(115 98 74); }
+/* Cobbles. Small, close-packed, and darker in the joints — a road is the one
+   surface on the field the eye expects to be made of pieces. */
+.vil-road::after {
+  background-color: rgb(120 103 78);
+  background-image:
+    radial-gradient(closest-side, rgb(255 240 210 / 0.09) 0 38%, transparent 46%),
+    radial-gradient(closest-side, rgb(0 0 0 / 0.26) 0 44%, transparent 52%);
+  background-size:
+    calc(var(--tw) * 0.135) calc(var(--tw) * 0.08),
+    calc(var(--tw) * 0.135) calc(var(--tw) * 0.08);
+  background-position: 0 0, calc(var(--tw) * 0.067) calc(var(--tw) * 0.04);
+}
+.vil-road.vil-s1::after { background-color: rgb(130 112 85); }
+.vil-road.vil-s2::after { background-color: rgb(112 96 72); }
 
-.vil-dirt::after { background: rgb(112 84 56); }
-.vil-dirt.vil-s1::after { background: rgb(120 90 60); }
-.vil-dirt.vil-s2::after { background: rgb(104 78 52); }
+/* Turned earth: rutted, not speckled. */
+.vil-dirt::after {
+  background-color: rgb(110 83 55);
+  background-image:
+    repeating-linear-gradient(26.57deg, rgb(0 0 0 / 0.12) 0 1px, transparent 1px calc(var(--tw) * 0.09)),
+    radial-gradient(closest-side, rgb(0 0 0 / 0.16) 0 26%, transparent 34%);
+  background-size: auto, calc(var(--tw) * 0.115) calc(var(--tw) * 0.072);
+}
+.vil-dirt.vil-s1::after { background-color: rgb(119 89 59); }
+.vil-dirt.vil-s2::after { background-color: rgb(102 77 51); }
 
 /* --------------------------------- trees --------------------------------- */
 
@@ -11279,7 +11395,7 @@ body {
   width: calc(var(--tw) * 0.06);
   height: calc(var(--th) * 0.5);
   transform: translate(-50%, -50%);
-  background: rgb(66 46 30);
+  background: linear-gradient(90deg, rgb(48 33 21) 50%, rgb(78 55 35) 50%);
 }
 
 /* Canopy: one diamond, split light/dark down the middle by a hard-stop
@@ -11294,23 +11410,84 @@ body {
   height: calc(var(--tw) * 0.44);
   clip-path: polygon(50% 0, 100% 58%, 50% 100%, 0 58%);
   transform: translate(-50%, calc(-50% - var(--th) * 0.42));
-  background: linear-gradient(90deg, rgb(38 68 34) 50%, rgb(66 108 46) 50%);
+  background: linear-gradient(90deg, rgb(34 62 31) 50%, rgb(70 112 48) 50%);
 }
 
 .vil-tree-1::after {
   width: calc(var(--tw) * 0.32);
   height: calc(var(--tw) * 0.36);
-  background: linear-gradient(90deg, rgb(44 74 38) 50%, rgb(78 120 52) 50%);
+  background: linear-gradient(90deg, rgb(40 70 35) 50%, rgb(82 124 54) 50%);
+}
+
+/* --------------------------------- lamps --------------------------------- */
+
+/* The crossroads at night. Four posts, and the pool of light each one throws —
+   the only thing between the lots that is not bare ground. */
+.vil-lamp {
+  position: absolute;
+  width: var(--tw);
+  height: var(--th);
+  left: calc((var(--c) - var(--r) + var(--n) - 1) * var(--tw) / 2);
+  top: calc((var(--c) + var(--r)) * var(--th) / 2);
+  z-index: calc(4 + var(--c) + var(--r));
+  pointer-events: none;
+}
+
+/* The pool on the ground, under the post rather than over it. */
+.vil-lamp::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--tw) * 0.9);
+  height: calc(var(--th) * 0.9);
+  transform: translate(-50%, -50%);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background: radial-gradient(50% 50% at 50% 50%, rgb(255 190 110 / 0.22), transparent 72%);
+}
+
+.vil-lamp > i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: calc(var(--th) * 1.15);
+  transform: translate(-50%, -100%);
+  background: linear-gradient(180deg, rgb(104 92 74), rgb(38 32 25));
+}
+
+.vil-lamp::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--th) * 0.24);
+  height: calc(var(--th) * 0.3);
+  border-radius: 2px 2px 1px 1px;
+  transform: translate(-50%, calc(-100% - var(--th) * 1.06));
+  background: linear-gradient(180deg, rgb(255 226 168), rgb(255 176 84));
+  box-shadow: 0 0 9px rgb(255 190 110 / 0.8), 0 0 20px rgb(255 160 60 / 0.35);
+  animation: vil-flicker 4.5s ease-in-out infinite;
+}
+
+@keyframes vil-flicker {
+  0%, 100% { opacity: 0.85; }
+  42% { opacity: 1; }
+  57% { opacity: 0.72; }
 }
 
 /* ---------------------------------- lots ---------------------------------- */
 
 /* A 2×2 block's bounding box: left = (c - r + n - 2) · tw/2, and it is always
    2tw × 2th. z-index from (c + r) is the whole depth sort — a lot in front is
-   nearer the camera, and nearer the camera is later in paint order. */
+   nearer the camera, and nearer the camera is later in paint order.
+   It is a <button>: the lot opens the monument's dialog. */
 .vil-lot {
-  --plh: calc(var(--th) * 0.3);
+  --sth: calc(var(--th) * 0.14);
+  --plh: calc(var(--th) * 0.42);
   --lh: calc(var(--th) * var(--hf) * var(--lv));
+  /* Everything standing on the lot, for the cast shadow's length. */
+  --bh: calc(var(--plh) + var(--lh));
   --f: 0.5;
   position: absolute;
   width: calc(var(--tw) * 2);
@@ -11318,6 +11495,48 @@ body {
   left: calc((var(--c) - var(--r) + var(--n) - 2) * var(--tw) / 2);
   top: calc((var(--c) + var(--r)) * var(--th) / 2);
   z-index: calc(4 + var(--c) + var(--r));
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* The footprint, lit on hover — the lot's whole click target, made visible. */
+.vil-plot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--tw) * 1.88);
+  height: calc(var(--th) * 1.88);
+  transform: translate(-50%, -50%);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background: rgb(var(--accent) / 0);
+  transition: background-color 0.18s ease;
+  pointer-events: none;
+}
+
+.vil-lot:hover .vil-plot,
+.vil-lot:focus-visible .vil-plot {
+  background: rgb(var(--accent) / 0.22);
+}
+
+/* "The next level is already paid for" — the one piece of state the field says
+   out loud, because it is the only one that asks the player to act. On its own
+   layer so it cannot fight the hover fill for the same property. */
+.vil-lot.is-ready .vil-plot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(var(--accent) / 0.2);
+  animation: vil-ready 2.6s ease-in-out infinite;
+}
+
+@keyframes vil-ready {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
 }
 
 .vil-build {
@@ -11335,17 +11554,33 @@ body {
   outline: none;
 }
 
-/* The pool of shade a building sits in — it is what stops it from looking like
-   a sticker floating above the dirt. */
+/* Two shadows, because a building casts two: the pool of contact shade under
+   it, and the streak thrown away from the moon. The streak runs left and a
+   little down — the ground direction opposite a light high on the right — and
+   grows with `--bh`, so a monument's shadow lengthens as it is raised. */
 .vil-shadow {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(var(--tw) * 1.5);
-  height: calc(var(--th) * 1.5);
+  width: calc(var(--tw) * 1.4);
+  height: calc(var(--th) * 1.4);
   transform: translate(-50%, -50%);
-  background: radial-gradient(50% 50% at 50% 50%, rgb(0 0 0 / 0.55), transparent 70%);
+  background: radial-gradient(50% 50% at 50% 50%, rgb(0 0 0 / 0.6), transparent 70%);
   pointer-events: none;
+}
+
+.vil-shadow::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--tw) * 0.34 + var(--bh) * 1.1);
+  height: calc(var(--tw) * 0.36);
+  border-radius: 50%;
+  transform-origin: 0 50%;
+  transform: translateY(-50%) rotate(168deg);
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.25) 55%, transparent);
+  filter: blur(3px);
 }
 
 /* ------------------------------- the box -------------------------------- */
@@ -11358,6 +11593,9 @@ body {
   --h: var(--lh);
   --y: 0px;
   --bd: calc(var(--bw) / 2);
+  --face-t: rgb(196 184 163);
+  --face-r: rgb(132 121 104);
+  --face-l: rgb(80 73 63);
   position: absolute;
   left: 50%;
   top: 50%;
@@ -11380,7 +11618,7 @@ body {
     0 calc((1 - var(--f)) * var(--bd))
   );
   background: linear-gradient(rgb(var(--accent) / 0.22), rgb(var(--accent) / 0.12)),
-    rgb(190 178 158);
+    var(--face-t);
 }
 
 .vil-r {
@@ -11391,7 +11629,7 @@ body {
     100% calc(100% - (1 - var(--f)) * var(--bd))
   );
   background: linear-gradient(rgb(var(--accent) / 0.2), rgb(var(--accent) / 0.1)),
-    rgb(130 119 102);
+    var(--face-r);
 }
 
 .vil-l {
@@ -11402,13 +11640,14 @@ body {
     0 calc(100% - var(--f) * var(--bd))
   );
   background: linear-gradient(rgb(var(--accent) / 0.16), rgb(var(--accent) / 0.08)),
-    rgb(84 76 65);
+    var(--face-l);
 }
 
 /* Courses of stone. The bands must follow the wall's own top edge, which slopes
    at atan(0.5) = 26.57° — rising to the right on the right face and falling to
    the right on the left face, hence the two signs. Get the sign wrong and the
-   masonry visibly runs uphill through the wall. */
+   masonry visibly runs uphill through the wall. The second layer breaks each
+   course into blocks, which is what turns a striped wall into a built one. */
 .vil-r::after,
 .vil-l::after {
   content: "";
@@ -11417,27 +11656,83 @@ body {
 }
 
 .vil-r::after {
-  background: repeating-linear-gradient(
-    -26.57deg,
-    rgb(0 0 0 / 0.14) 0 1px,
-    transparent 1px calc(var(--th) * 0.3)
-  );
+  background:
+    repeating-linear-gradient(
+      -26.57deg,
+      rgb(0 0 0 / 0.18) 0 1px,
+      transparent 1px calc(var(--th) * 0.3)
+    ),
+    repeating-linear-gradient(
+      63.43deg,
+      rgb(0 0 0 / 0.09) 0 1px,
+      transparent 1px calc(var(--th) * 0.52)
+    );
 }
 
 .vil-l::after {
-  background: repeating-linear-gradient(
-    26.57deg,
-    rgb(0 0 0 / 0.16) 0 1px,
-    transparent 1px calc(var(--th) * 0.3)
+  background:
+    repeating-linear-gradient(
+      26.57deg,
+      rgb(0 0 0 / 0.2) 0 1px,
+      transparent 1px calc(var(--th) * 0.3)
+    ),
+    repeating-linear-gradient(
+      -63.43deg,
+      rgb(0 0 0 / 0.11) 0 1px,
+      transparent 1px calc(var(--th) * 0.52)
+    );
+}
+
+/* ------------------------------- windows ------------------------------- */
+
+/* Lit windows are the single strongest cue that a silhouette is a building and
+   not a block, and at night they are most of what the eye reads. They are laid
+   out on an upright grid inside a layer skewed onto the wall's own plane, which
+   is what makes the rows climb with the masonry instead of cutting across it.
+   Only walls carrying `vil-lit` get them: the column is solid stone, and that
+   is most of what tells it apart from the tower. */
+.vil-lit .vil-r::before,
+.vil-lit .vil-l::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--th) * -1) 0;
+  background-image: radial-gradient(
+    closest-side,
+    rgb(255 216 146 / 0.92) 0 30%,
+    rgb(255 172 74 / 0.22) 48%,
+    transparent 58%
   );
+  background-size: calc(var(--tw) * 0.135) calc(var(--tw) * 0.175);
+}
+
+.vil-lit .vil-r::before {
+  transform: skewY(-26.57deg);
+}
+
+/* The shaded wall keeps its windows, but dimmer: a lit window on a dark face
+   should not be as bright as one facing the moon. */
+.vil-lit .vil-l::before {
+  transform: skewY(26.57deg);
+  opacity: 0.55;
 }
 
 /* ------------------------------ the pieces ------------------------------ */
 
+/* The base is two courses, not one: a wide flat step and the plinth standing on
+   it. A single block meets the ground in one hard line, and nothing real does. */
+.vil-step {
+  --bw: calc(var(--pw) + var(--tw) * 0.2);
+  --h: var(--sth);
+  --y: 0px;
+  --face-t: rgb(178 166 147);
+  --face-r: rgb(118 108 93);
+  --face-l: rgb(70 64 55);
+}
+
 .vil-plinth {
   --bw: var(--pw);
-  --h: var(--plh);
-  --y: 0px;
+  --h: calc(var(--plh) - var(--sth));
+  --y: var(--sth);
 }
 
 .vil-shaft {
@@ -11452,11 +11747,97 @@ body {
   --y: calc(var(--plh) + var(--lh));
 }
 
+/* --------------------------------- roofs --------------------------------- */
+
+/* A hipped roof is four planes meeting at a **ridge**, of which the camera sees
+   exactly two: the long plane over the near-left eave, and the hip triangle
+   that closes the near-right end. Those two tile the whole visible silhouette,
+   so two shapes are the entire roof.
+ *
+ * The ridge is what makes a long building read as a building. Collapse it to a
+ * point — which is what a plain pyramid is — and the hall comes out a circus
+ * tent. Its half-length falls out of `--f` alone: the footprint is `f` long by
+ * `1 - f` deep, so the ridge is `2f - 1` of the diagonal, and at f = 0.5 that is
+ * zero and the two shapes degrade into the pyramid a square tower wants. One
+ * rule, both roofs.
+ *
+ * `--rw` is the eaves' width, `--rise` how far the ridge sits above them, and
+ * `--ry` where the eaves land on the wall below. Everything crowning a roof is
+ * placed from `--eaves + --apex`, and `--apex` is `--rise`. */
+.vil-roof {
+  --rd: calc(var(--rw) / 2);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--rw);
+  height: calc(var(--rd) + var(--rise));
+  transform: translate(-50%, calc(-100% + var(--rd) / 2 - var(--ry)));
+  pointer-events: none;
+}
+
+.vil-roof > i {
+  position: absolute;
+  inset: 0;
+}
+
+/* The hip, over the near-right eave — the plane the moon is on. */
+.vil-roof-r {
+  clip-path: polygon(
+    100% calc(var(--rise) + var(--f) * var(--rd)),
+    calc(var(--f) * 100%) calc(var(--rise) + var(--rd)),
+    calc(var(--f) * 100%) calc(var(--f) * var(--rd))
+  );
+  background: linear-gradient(rgb(var(--accent) / 0.26), rgb(var(--accent) / 0.1)),
+    rgb(112 116 128);
+}
+
+/* The long plane, over the near-left eave: four corners, of which the last two
+   are the ridge. It faces away from the moon, so it is the shaded one — but not
+   so dark that the hall, which is nearly all this plane, turns into a hole. */
+.vil-roof-l {
+  clip-path: polygon(
+    0 calc(var(--rise) + (1 - var(--f)) * var(--rd)),
+    calc(var(--f) * 100%) calc(var(--rise) + var(--rd)),
+    calc(var(--f) * 100%) calc(var(--f) * var(--rd)),
+    calc((1 - var(--f)) * 100%) calc((1 - var(--f)) * var(--rd))
+  );
+  background: linear-gradient(rgb(var(--accent) / 0.18), rgb(var(--accent) / 0.06)),
+    rgb(72 76 87);
+}
+
+/* Courses of tile, parallel to the eaves — which slope at the same 26.57° the
+   walls do, because they run along the same two ground axes. */
+.vil-roof-r::after,
+.vil-roof-l::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.vil-roof-r::after {
+  background: repeating-linear-gradient(
+    -26.57deg,
+    rgb(0 0 0 / 0.24) 0 1px,
+    transparent 1px calc(var(--th) * 0.22)
+  );
+}
+
+.vil-roof-l::after {
+  background: repeating-linear-gradient(
+    26.57deg,
+    rgb(0 0 0 / 0.26) 0 1px,
+    transparent 1px calc(var(--th) * 0.22)
+  );
+}
+
 /* --------------------------- the five silhouettes --------------------------- */
 
 /* `--hf` is how much height one level buys, in tile-heights. It is the number
    that decides whether a monument towers or squats, and the five are spread on
-   purpose: at level 12 the column is roughly two and a half times the hall. */
+   purpose: at level 12 the column is roughly two and a half times the hall.
+   `--eaves` is where a roofed silhouette's walls stop, and `--apex` how far its
+   roof rises above that — the two numbers everything crowning it is placed
+   from, including the plaque. */
 
 .vil-column {
   --hf: 0.27;
@@ -11470,6 +11851,16 @@ body {
   --sw: calc(var(--tw) * 0.78);
   --pw: calc(var(--tw) * 1.02);
   --cw: calc(var(--tw) * 0.92);
+  --eaves: calc(var(--plh) + var(--lh) + var(--th) * 0.34);
+  --rw-main: calc(var(--tw) * 0.98);
+  --rise-main: calc(var(--th) * 1.35);
+  --apex: var(--rise-main);
+}
+
+.vil-roof-tower {
+  --rw: var(--rw-main);
+  --rise: var(--rise-main);
+  --ry: var(--eaves);
 }
 
 /* Long and shallow in plan — a/(a+b) = 0.72, so roughly 2.5 tiles by 1. This is
@@ -11481,6 +11872,16 @@ body {
   --sw: calc(var(--tw) * 1.64);
   --pw: calc(var(--tw) * 1.86);
   --cw: calc(var(--tw) * 1.74);
+  --eaves: calc(var(--plh) + var(--lh) + var(--th) * 0.34);
+  --rw-main: calc(var(--sw) * 1.08);
+  --rise-main: calc(var(--th) * 0.85);
+  --apex: var(--rise-main);
+}
+
+.vil-roof-hall {
+  --rw: var(--rw-main);
+  --rise: var(--rise-main);
+  --ry: var(--eaves);
 }
 
 .vil-gate {
@@ -11507,17 +11908,60 @@ body {
   transform: translate(-50%, calc(-100% - var(--plh)));
   background: linear-gradient(
     90deg,
-    transparent 22%,
+    transparent 18%,
+    rgb(0 0 0 / 0.14) 18% 20%,
     rgb(255 255 255 / 0.07) 22% 26%,
-    transparent 26% 60%,
+    transparent 26% 40%,
+    rgb(0 0 0 / 0.12) 40% 42%,
+    transparent 42% 58%,
     rgb(255 255 255 / 0.09) 60% 64%,
-    transparent 64%
+    rgb(0 0 0 / 0.1) 64% 66%,
+    transparent 66%
   );
   pointer-events: none;
 }
 
+/* The figure that goes up last. Head and robe, lit from the right like every
+   other thing on the field. */
+.vil-statue {
+  --head: calc(var(--tw) * 0.1);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--tw) * 0.26);
+  height: calc(var(--tw) * 0.42);
+  transform: translate(-50%, calc(-100% - var(--plh) - var(--lh) - var(--th) * 0.34));
+  pointer-events: none;
+}
+
+.vil-statue > i:nth-child(1) {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: var(--head);
+  height: var(--head);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, rgb(150 142 128) 50%, rgb(218 209 190) 50%);
+}
+
+/* The robe, starting inside the head so the two read as one figure and not as a
+   ball hovering over a cone. */
+.vil-statue > i:nth-child(2) {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: calc(var(--tw) * 0.24);
+  height: calc(100% - var(--head) * 0.75);
+  transform: translateX(-50%);
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+  background: linear-gradient(90deg, rgb(142 134 121) 50%, rgb(210 201 182) 50%);
+}
+
 /* The clock, skewed onto the right wall's plane — a circle drawn on that face
-   is an ellipse on screen, and skewY by the wall's own slope is exactly it. */
+   is an ellipse on screen, and skewY by the wall's own slope is exactly it.
+   It rides at 62% of the shaft, so it climbs with the tower instead of sitting
+   at its foot. */
 .vil-clock {
   position: absolute;
   left: 50%;
@@ -11525,10 +11969,10 @@ body {
   width: calc(var(--tw) * 0.22);
   height: calc(var(--tw) * 0.22);
   border-radius: 50%;
-  transform: translate(calc(-50% + var(--tw) * 0.16), calc(-100% - var(--plh) - var(--lh) * 0.06))
+  transform: translate(calc(-50% + var(--tw) * 0.16), calc(-100% - var(--plh) - var(--lh) * 0.62))
     skewY(-26.57deg);
-  background: rgb(238 232 214);
-  border: 1px solid rgb(70 62 50);
+  background: radial-gradient(60% 60% at 40% 34%, rgb(255 252 240), rgb(226 216 192));
+  border: 1px solid rgb(64 56 45);
   box-shadow: 0 0 10px rgb(var(--accent) / 0.5);
 }
 
@@ -11542,23 +11986,34 @@ body {
   background: rgb(60 52 42);
 }
 
-/* The tower's spire: a triangle, sitting on the cap. */
+/* The tower's spire, standing on the roof's apex. */
 .vil-spire {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(var(--tw) * 0.42);
-  height: calc(var(--th) * 1.1);
+  width: calc(var(--tw) * 0.34);
+  height: calc(var(--th) * 1.35);
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
-  transform: translate(-50%, calc(-100% - var(--plh) - var(--lh) - var(--th) * 0.3));
-  background: linear-gradient(90deg, rgb(var(--accent) / 0.9) 50%, rgb(var(--accent) / 0.55) 50%);
+  transform: translate(-50%, calc(-100% - var(--eaves) - var(--apex) + var(--th) * 0.12));
+  background: linear-gradient(90deg, rgb(var(--accent) / 0.75) 50%, rgb(var(--accent)) 50%);
+  filter: drop-shadow(0 0 6px rgb(var(--accent) / 0.4));
 }
 
-/* The hall's second storey. */
+/* The hall's lantern: a cupola that replaces the tip of the main roof, with a
+   little hipped roof of its own. Square in plan even though the hall is not,
+   hence the local `--f`. */
 .vil-loft {
-  --bw: calc(var(--sw) * 0.56);
-  --h: calc(var(--th) * 0.5);
-  --y: calc(var(--plh) + var(--lh) + var(--th) * 0.34);
+  --f: 0.5;
+  --bw: calc(var(--sw) * 0.4);
+  --h: calc(var(--th) * 0.45);
+  --y: calc(var(--eaves) + var(--apex) - var(--th) * 0.3);
+}
+
+.vil-roof-loft {
+  --f: 0.5;
+  --rw: calc(var(--sw) * 0.46);
+  --rise: calc(var(--th) * 0.4);
+  --ry: calc(var(--eaves) + var(--apex) + var(--th) * 0.15);
 }
 
 /* ------------------------------- the gate ------------------------------- */
@@ -11568,6 +12023,18 @@ body {
    and DOM order puts it in front. */
 .vil-pier {
   --bw: var(--sw);
+}
+
+/* One slab under both piers. The gate is the only silhouette with no plinth of
+   its own, and without this it stands on the dirt like a prop. */
+.vil-gate-base {
+  --f: 0.8;
+  --bw: calc(var(--tw) * 1.05);
+  --h: calc(var(--th) * 0.13);
+  --y: 0px;
+  --face-t: rgb(178 166 147);
+  --face-r: rgb(118 108 93);
+  --face-l: rgb(70 64 55);
 }
 
 .vil-pier-a {
@@ -11580,6 +12047,21 @@ body {
   --oy: calc(var(--th) * 0.3);
 }
 
+/* The passage. It lies in the plane the two piers share, which is the +c axis —
+   the same plane a left-hand wall sits in, hence the +26.57° skew. Without it
+   the gate is two posts and a beam with daylight behind them. */
+.vil-arch {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--tw) * 0.48);
+  height: calc(var(--lh) * 0.88);
+  transform: translate(-50%, -100%) skewY(26.57deg);
+  border-radius: calc(var(--tw) * 0.24) calc(var(--tw) * 0.24) 0 0;
+  background: linear-gradient(180deg, rgb(20 16 12), rgb(6 5 4));
+  box-shadow: inset 0 5px 9px rgb(0 0 0 / 0.85), 0 0 14px rgb(var(--accent) / 0.18);
+}
+
 /* `--y` is the piers' height, not the piers' height *plus a plinth*: the gate is
    the one silhouette with no plinth under it, so borrowing the shared
    `--plh + --lh` here left the beam hanging a plinth's worth above them. */
@@ -11590,19 +12072,40 @@ body {
   --y: var(--lh);
 }
 
-/* Hangs from the lintel's underside, on the near face. Narrow and long, and lit
-   only faintly — at banner width plus a strong glow it read as a torch burning
-   in the archway rather than as cloth. */
-.vil-banner {
+/* The wedge at the crown of the arch — small, but it is what says the beam
+   above is masonry and not a plank. */
+.vil-keystone {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(var(--tw) * 0.14);
-  height: calc(var(--th) * 1.15);
-  clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
-  transform: translate(calc(-50% + var(--tw) * 0.05), calc(-100% - var(--lh) + var(--th) * 0.42))
-    skewY(-26.57deg);
-  background: linear-gradient(180deg, rgb(var(--accent) / 0.95), rgb(var(--accent) / 0.55));
+  width: calc(var(--tw) * 0.15);
+  height: calc(var(--th) * 0.52);
+  clip-path: polygon(0 0, 100% 0, 80% 100%, 20% 100%);
+  transform: translate(-50%, calc(-100% - var(--lh) + var(--th) * 0.04)) skewY(26.57deg);
+  background: linear-gradient(180deg, rgb(var(--accent) / 0.5), rgb(0 0 0 / 0.25)),
+    rgb(158 146 127);
+}
+
+/* Hangs from the lintel's underside, on the near face. Narrow and long, and lit
+   only faintly — at banner width plus a strong glow it read as a torch burning
+   in the archway rather than as cloth.
+   `-100% - lh + its own height` is what puts its *top* on the beam: hang it
+   from the beam's top edge instead and the cloth flies above the gate. */
+.vil-banner {
+  --bnh: calc(var(--th) * 1.25);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--tw) * 0.085);
+  height: var(--bnh);
+  clip-path: polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%);
+  /* +26.57°, the same plane the arch and the keystone lie in: the cloth hangs
+     in the gateway, which is the plane the two piers share. */
+  transform: translate(calc(-50% + var(--tw) * 0.04), calc(-100% - var(--lh) + var(--bnh) - var(--th) * 0.06))
+    skewY(26.57deg);
+  background:
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.14) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, rgb(var(--accent) / 0.95), rgb(var(--accent) / 0.5));
   box-shadow: 0 0 5px rgb(var(--accent) / 0.3);
 }
 
@@ -11632,6 +12135,28 @@ body {
   animation: vil-wheel-turn 34s linear infinite;
 }
 
+/* The hub, and the inner ring the spokes cross. */
+.vil-ring-spin::before {
+  content: "";
+  position: absolute;
+  inset: 26%;
+  border-radius: 50%;
+  border: 1px solid rgb(var(--accent) / 0.4);
+}
+
+.vil-ring-spin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16%;
+  height: 16%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgb(var(--accent) / 0.9);
+  box-shadow: 0 0 10px rgb(var(--accent) / 0.7);
+}
+
 .vil-ring-spin > i {
   position: absolute;
   left: 50%;
@@ -11643,8 +12168,9 @@ body {
   transform-origin: 50% 50%;
 }
 
-.vil-ring-spin > i:nth-child(2) { transform: rotate(60deg); }
-.vil-ring-spin > i:nth-child(3) { transform: rotate(120deg); }
+.vil-ring-spin > i:nth-child(2) { transform: rotate(45deg); }
+.vil-ring-spin > i:nth-child(3) { transform: rotate(90deg); }
+.vil-ring-spin > i:nth-child(4) { transform: rotate(135deg); }
 
 @keyframes vil-wheel-turn {
   to { transform: rotate(360deg); }
@@ -11654,12 +12180,15 @@ body {
 
 /* Scaffolding stands for as long as the monument is not at 12 — two poles up
    the near faces and a plank across them, in timber rather than stone so the
-   eye separates "being built" from "built" at a glance. */
+   eye separates "being built" from "built" at a glance.
+   The width is capped: on the hall, which is nearly two tiles wide and barely
+   one tall, poles at the full footprint put the plank so far apart that it read
+   as a wire strung across the field. */
 .vil-scaffold {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(var(--sw) + var(--tw) * 0.08);
+  width: min(calc(var(--sw) + var(--tw) * 0.08), calc(var(--tw) * 0.95));
   height: calc(var(--lh) + var(--plh));
   transform: translate(-50%, -100%);
   pointer-events: none;
@@ -11763,16 +12292,20 @@ body {
 /* -------------------------------- plaque -------------------------------- */
 
 /* `--top` is where each silhouette actually ends — the plaque cannot be placed
-   from `--lh` alone, because a cap, a spire, a loft and a wheel all add height
-   above the shaft and they add different amounts.
+   from `--lh` alone, because a cap, a roof, a spire, a statue and a wheel all
+   add height above the shaft and they add different amounts.
    The pieces that only appear past a level threshold get their own modifier
-   (`is-spired`, `is-lofted`), because reserving their height unconditionally
-   leaves the plaque floating a spire's worth above an unspired tower. */
+   (`is-roofed`, `is-spired`, `is-lofted`, `is-crowned`), because reserving their
+   height unconditionally leaves the plaque floating a spire's worth above an
+   unspired tower. Order matters: each modifier must come after the bare rule it
+   overrides. */
 .vil-column { --top: calc(var(--plh) + var(--lh) + var(--th) * 0.6); }
+.vil-column.is-crowned { --top: calc(var(--plh) + var(--lh) + var(--th) * 1.5); }
 .vil-tower { --top: calc(var(--plh) + var(--lh) + var(--th) * 0.6); }
-.vil-tower.is-spired { --top: calc(var(--plh) + var(--lh) + var(--th) * 1.55); }
-.vil-hall { --top: calc(var(--plh) + var(--lh) + var(--th) * 0.6); }
-.vil-hall.is-lofted { --top: calc(var(--plh) + var(--lh) + var(--th) * 1.05); }
+.vil-tower.is-roofed { --top: calc(var(--eaves) + var(--apex) + var(--th) * 0.35); }
+.vil-tower.is-spired { --top: calc(var(--eaves) + var(--apex) + var(--th) * 1.5); }
+.vil-hall { --top: calc(var(--eaves) + var(--apex) + var(--th) * 0.35); }
+.vil-hall.is-lofted { --top: calc(var(--eaves) + var(--apex) + var(--th) * 0.9); }
 .vil-gate { --top: calc(var(--lh) + var(--th) * 0.85); }
 .vil-wheel { --top: calc(var(--plh) + var(--lh) + var(--tw) * 1.02); }
 
@@ -11813,17 +12346,19 @@ body {
 /* -------------------------------- phones -------------------------------- */
 
 @media (max-width: 900px) {
-  .vil-stage { --tw: 54px; --th: 27px; }
+  .vil-stage { --tw: 56px; --th: 28px; }
 }
 
 @media (max-width: 640px) {
-  .vil-stage { --tw: 36px; --th: 18px; }
+  .vil-stage { --tw: 38px; --th: 19px; }
   .vil-plaque { font-size: 8px; padding: 0 0.25rem; gap: 0.2rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .vil-ring-spin,
-  .vil-scaffold::after {
+  .vil-scaffold::after,
+  .vil-lamp::after,
+  .vil-lot.is-ready .vil-plot::after {
     animation: none;
   }
   .vil-build {

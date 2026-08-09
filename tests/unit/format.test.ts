@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCompact, formatNumber } from "@/lib/game/format";
+import { RESOURCE_MAX } from "@/lib/game/constants";
+import { formatCompact, formatNumber, formatShort } from "@/lib/game/format";
 
 describe("formatNumber", () => {
   it("prints each unit", () => {
@@ -9,8 +10,24 @@ describe("formatNumber", () => {
     expect(formatNumber(1_500_000)).toBe("1.5M");
     expect(formatNumber(2_000_000_000)).toBe("2B");
     expect(formatNumber(1e12)).toBe("1T");
-    expect(formatNumber(1e15)).toBe("1Qa");
-    expect(formatNumber(1e18)).toBe("1Qi");
+    expect(formatNumber(1e15)).toBe("1Q");
+    expect(formatNumber(1e18)).toBe("1P");
+  });
+
+  // The ceiling has to print inside the ladder, not spill past its top rung —
+  // "999000000T" was what formatShort did before it grew the same two units.
+  it("prints the resource ceiling as the top of the ladder", () => {
+    expect(formatNumber(RESOURCE_MAX)).toBe("999P");
+    expect(formatCompact(RESOURCE_MAX)).toBe("999P");
+    expect(formatShort(RESOURCE_MAX)).toBe("999P");
+  });
+
+  // 999P is exactly representable as a double (it carries a factor of 2^18,
+  // above the 2^17 spacing at that magnitude), so the ceiling itself never
+  // drifts even though values just below it do.
+  it("keeps the ceiling exact as a double", () => {
+    expect(RESOURCE_MAX).toBe(999e18);
+    expect(Number(BigInt(RESOURCE_MAX))).toBe(RESOURCE_MAX);
   });
 
   it("climbs a unit when rounding fills the mantissa", () => {

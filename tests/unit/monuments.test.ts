@@ -16,6 +16,7 @@ import {
   zeroMonumentBonuses,
 } from "@/lib/game/monuments";
 import { UPGRADE_COST_AT_LEVEL_100 } from "@/lib/game/hero";
+import { mineProductionBreakdown } from "@/lib/game/resources";
 
 describe("the monument catalog", () => {
   it("has unique keys", () => {
@@ -214,5 +215,58 @@ describe("buildMonumentsState", () => {
       { key: MONUMENTS[1].key, level: 4 },
     ]);
     expect(state.built).toBe(7);
+  });
+});
+
+/**
+ * The bug this pins: every monument settles correctly in `applyPendingUpdates`,
+ * but the screens that quote the player a figure — the mine cards, the bank's
+ * "current rate" — computed it themselves from the upgrade level alone. The
+ * effect was real and the readout said it wasn't, which reads to a player as a
+ * monument that does nothing.
+ */
+describe("the readouts include the monument", () => {
+  it("puts עמוד הפועלים in the mine breakdown, and in the total", () => {
+    const params = {
+      level: 10,
+      assignedSlaves: 100,
+      cities: 2,
+      heroResourcesPct: 20,
+      guildResourcesPct: 10,
+      diamondBoostPct: 0,
+      heroItemFlat: 0,
+    };
+    const without = mineProductionBreakdown({ ...params, monumentMinesPct: 0 });
+    const with12 = mineProductionBreakdown({
+      ...params,
+      monumentMinesPct: monumentPct(MONUMENT_MAX_LEVEL),
+    });
+
+    expect(without.lines.some((l) => l.key === "monument")).toBe(false);
+    const line = with12.lines.find((l) => l.key === "monument")!;
+    expect(line.pct).toBe(24);
+    // The whole multiplier chain is commutative, so the monument is worth its
+    // flat +24% of the total however decorated the empire already is.
+    expect(with12.total).toBeCloseTo(without.total * 1.24, 6);
+    expect(line.amount).toBeCloseTo(without.total * 0.24, 6);
+  });
+
+  it("keeps the diamond boost's incremental line correct behind it", () => {
+    const params = {
+      level: 10,
+      assignedSlaves: 100,
+      cities: 1,
+      heroResourcesPct: 0,
+      guildResourcesPct: 0,
+      diamondBoostPct: 50,
+      heroItemFlat: 0,
+      monumentMinesPct: 24,
+    };
+    const breakdown = mineProductionBreakdown(params);
+    // Every line sums back to the total — the incremental attribution is only
+    // honest if nothing is double-counted or dropped between two of them.
+    const summed =
+      breakdown.base + breakdown.lines.reduce((sum, l) => sum + l.amount, 0);
+    expect(summed).toBeCloseTo(breakdown.total, 6);
   });
 });

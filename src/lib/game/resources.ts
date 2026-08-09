@@ -2,6 +2,7 @@ import type { Building } from "@prisma/client";
 import type { TranslateParams } from "@/i18n/translate";
 import { BUILDING_META, mineProductionPerTick } from "./constants";
 import { bonusMultiplier } from "./hero";
+import { monumentMultiplier } from "./monuments";
 
 /** Resources produced by a mine per regular (5-minute) update. */
 export function productionPerTick(building: Building): number {
@@ -12,7 +13,7 @@ export function productionPerTick(building: Building): number {
 
 /** One active bonus contributing to a mine's real production. */
 export interface ProductionBonusLine {
-  key: "cities" | "hero" | "guild-spell" | "diamond-boost";
+  key: "cities" | "hero" | "guild-spell" | "monument" | "diamond-boost";
   /** Translation source — render as `t(label, labelParams)`. */
   label: string;
   /** Fills the `{placeholders}` in `label`. */
@@ -35,8 +36,9 @@ export interface MineProductionBreakdown {
 /**
  * The real per-update production of one mine, decomposed into the base and each
  * active bonus. Mirrors the settlement math in `applyPendingUpdates` exactly
- * (hero resource points × guild resources spell × diamond boost, then the flat
- * relic amount on top), so the number shown here equals what the game clock
+ * (hero resource points × guild resources spell × עמוד הפועלים × diamond boost,
+ * then the flat relic amount on top), so the number shown here equals what the
+ * game clock
  * actually credits. The percentage bonuses compound, so each line reports its
  * *incremental* contribution (applied in the same order the clock uses).
  */
@@ -51,6 +53,8 @@ export function mineProductionBreakdown(params: {
   guildResourcesPct: number;
   /** Active diamond resource boost for this resource, as a percent. */
   diamondBoostPct: number;
+  /** עמוד הפועלים, as a percent — see monumentBonuses().mines. */
+  monumentMinesPct: number;
   /** Flat resources per update from an equipped relic covering this resource. */
   heroItemFlat: number;
 }): MineProductionBreakdown {
@@ -97,13 +101,26 @@ export function mineProductionBreakdown(params: {
     });
   }
 
-  const afterDiamond = afterGuild * bonusMultiplier(params.diamondBoostPct);
-  if (params.diamondBoostPct > 0 && afterDiamond - afterGuild > 0) {
+  // עמוד הפועלים sits between the guild spell and the diamond boost, the same
+  // slot it occupies in the clock's multiplier chain — the product is the same
+  // wherever it goes, but the *incremental* amount each line reports is not.
+  const afterMonument = afterGuild * monumentMultiplier(params.monumentMinesPct);
+  if (params.monumentMinesPct > 0 && afterMonument - afterGuild > 0) {
+    lines.push({
+      key: "monument",
+      label: "עמוד הפועלים",
+      pct: params.monumentMinesPct,
+      amount: afterMonument - afterGuild,
+    });
+  }
+
+  const afterDiamond = afterMonument * bonusMultiplier(params.diamondBoostPct);
+  if (params.diamondBoostPct > 0 && afterDiamond - afterMonument > 0) {
     lines.push({
       key: "diamond-boost",
       label: "בוסט יהלומים",
       pct: params.diamondBoostPct,
-      amount: afterDiamond - afterGuild,
+      amount: afterDiamond - afterMonument,
     });
   }
 

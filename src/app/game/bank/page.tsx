@@ -7,6 +7,7 @@ import {
   allowedDepositsPerDailyPeriod,
   bankInterestRate,
 } from "@/lib/game/constants";
+import { monumentBonuses, monumentMultiplier } from "@/lib/game/monuments";
 import { formatGameTime, nextDailyUpdate } from "@/lib/game/time";
 import { formatDate, formatNumber } from "@/lib/game/format";
 import { isVip } from "@/lib/game/vip";
@@ -34,6 +35,12 @@ const TRANSACTION_META: Record<
   INTEREST: { label: "ריבית", icon: "📈", sign: "+", color: "text-gold" },
 };
 
+/** A rate as a percent, to at most one decimal — "6%", "7.4%", never "7.44%". */
+function formatRate(rate: number): string {
+  const pct = rate * 100;
+  return `${Number(pct.toFixed(1))}%`;
+}
+
 export default async function BankPage() {
   const empire = await requireEmpire();
   const { t, locale } = await getI18n();
@@ -49,9 +56,17 @@ export default async function BankPage() {
   const depositLevel =
     empire.upgrades.find((u) => u.type === "BANK_DEPOSIT_COUNT")?.level ?? 1;
 
-  const rate = bankInterestRate(interestLevel);
-  // Whole percents: the ladder is 1% a rung, so decimals were always zeros.
-  const ratePercent = `${Math.round(rate * 100)}%`;
+  // בית הגנזים multiplies the rate the upgrade bought — the same product
+  // `applyPendingUpdates` credits at the daily update. Read here rather than
+  // recomputed: what this card promises has to be what the clock pays, or the
+  // monument looks like it does nothing (which is exactly how it looked).
+  const monumentInterestPct = monumentBonuses(empire.monuments).interest;
+  const baseRate = bankInterestRate(interestLevel);
+  const rate = baseRate * monumentMultiplier(monumentInterestPct);
+  // The upgrade ladder is 1% a rung, so its own rate is always whole — but the
+  // monument multiplies it into fractions (6% × 1.24 = 7.44%), and rounding
+  // those to whole percents is what would hide a level or two of בית הגנזים.
+  const ratePercent = formatRate(rate);
   const nextInterest = Math.floor(bankGold * rate);
 
   const allowedDeposits = allowedDepositsPerDailyPeriod(depositLevel);
@@ -146,6 +161,18 @@ export default async function BankPage() {
                   {ratePercent}
                 </span>
               </p>
+              {/* Only when it is actually earning something: the line exists to
+                  prove the monument is in the number above, and a "+0%" row
+                  would be noise on every screen that has not built it. */}
+              {monumentInterestPct > 0 && (
+                <p className="text-xs text-gold-dim">
+                  {t("כולל {monument} — {base} +{pct}%", {
+                    monument: t("בית הגנזים"),
+                    base: formatRate(baseRate),
+                    pct: monumentInterestPct,
+                  })}
+                </p>
+              )}
               <p className="text-sm text-zinc-300">
                 {t("הפקדות זמינות להיום:")}{" "}
                 <span className="nums font-bold text-gold-bright" dir="ltr">

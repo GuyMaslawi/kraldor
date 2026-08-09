@@ -639,10 +639,12 @@ function FullDossier({
                 count: Math.max(0, intel.bank.depositsAllowed - intel.bank.depositsUsed),
               })}
             />
+            {/* One decimal: בית הגנזים multiplies the ladder's whole percent
+                into a fraction, and rounding it away hides the monument. */}
             <Tile
               icon="upgrades"
               label={t("ריבית יומית")}
-              value={`${Math.round(intel.bank.interestPct)}%`}
+              value={`${Number(intel.bank.interestPct.toFixed(1))}%`}
               tone="text-emerald-400"
             />
           </div>

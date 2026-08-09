@@ -27,6 +27,7 @@ import {
   storageCapacityForLevel,
 } from "./constants";
 import { SHIELDS, type ShieldKey } from "./diamondShop";
+import { monumentBonuses, monumentMultiplier } from "./monuments";
 
 /**
  * The spy dossier — everything one successful mission brings home.
@@ -251,10 +252,16 @@ export function buildSpyIntel(
           depositsAllowed: allowedDepositsPerDailyPeriod(
             empire.upgrades.find((u) => u.type === "BANK_DEPOSIT_COUNT")?.level ?? 1
           ),
+          // The rate the target's clock actually compounds at — בית הגנזים
+          // included. A report is a claim about what the spy saw, so quoting
+          // the bare upgrade ladder would understate an empire that built the
+          // monument, in the one place a rival looks to size up its economy.
           interestPct:
             bankInterestRate(
               empire.upgrades.find((u) => u.type === "BANK_DAILY_INTEREST")?.level ?? 1
-            ) * 100,
+            ) *
+            monumentMultiplier(monumentBonuses(empire.monuments).interest) *
+            100,
         }
       : null,
 

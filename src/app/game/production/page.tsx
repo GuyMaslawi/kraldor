@@ -12,6 +12,7 @@ import { formatNumber } from "@/lib/game/format";
 import { heroBonuses, resourceProductionPct } from "@/lib/game/hero";
 import { getActiveGuildBuffPct } from "@/lib/game/guildBuffs";
 import { getActiveResourceBoosts } from "@/lib/game/diamondEffects";
+import { monumentBonuses } from "@/lib/game/monuments";
 import { mineProductionBreakdown } from "@/lib/game/resources";
 import { isVip } from "@/lib/game/vip";
 import { MineCard } from "@/components/game/MineCard";
@@ -59,6 +60,7 @@ export default async function ProductionPage() {
   // Same bonus inputs the game clock uses when settling production, so the
   // breakdown shown on each card matches what actually gets credited.
   const heroBonus = heroBonuses(empire.hero);
+  const monuments = monumentBonuses(empire.monuments);
   const [guildResourcesPct, resourceBoosts] = await Promise.all([
     getActiveGuildBuffPct(empire.id, "RESOURCES"),
     getActiveResourceBoosts(empire.id),
@@ -138,6 +140,7 @@ export default async function ProductionPage() {
             heroResourcesPct: resourceProductionPct(heroBonus),
             guildResourcesPct,
             diamondBoostPct: resourceBoosts[resource],
+            monumentMinesPct: monuments.mines,
             heroItemFlat: heroBonus.itemsFlatByResource[resource],
           });
           return (

@@ -1334,6 +1334,7 @@ export const EN: Record<string, string> = {
   "תשואה יומית": "Daily Yield",
   "זהב/יום": "gold/day",
   "ריבית נוכחית:": "Current rate:",
+  "כולל {monument} — {base} +{pct}%": "Includes {monument} — {base} +{pct}%",
   "הפקדות זמינות להיום:": "Deposits left today:",
   "העדכון היומי הבא:": "Next daily update:",
   "שדרוגי בנק": "Bank Upgrades",

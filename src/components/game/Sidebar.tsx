@@ -713,7 +713,7 @@ function SidebarContent({
                               : "text-bone-dim opacity-90 group-hover:text-bone"
                         }
                       />
-                      <span className="text-[10px] font-bold leading-[1.15]">
+                      <span className="text-[12px] font-bold leading-[1.15]">
                         {item.label}
                       </span>
                       {hasBadge && (

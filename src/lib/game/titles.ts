@@ -154,7 +154,7 @@ export const TITLES: readonly TitleDefinition[] = [
   {
     key: "warlord",
     label: "מצביא הדורות",
-    hint: "העלה את הגיבור לרמה אפקטיבית 150 ומעלה",
+    hint: "אפס את הגיבור פעם אחת, ואז טפס שוב עד רמה 50",
     kind: "earned",
     accent: "62 200 140",
     price: 0,

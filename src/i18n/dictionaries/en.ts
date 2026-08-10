@@ -3843,8 +3843,8 @@ export const EN: Record<string, string> = {
   "האגדה": "The Legend",
   "זכה בחמישה פריטים בדרגת נדירות אגדי": "Win five items of legendary rarity",
   "מצביא הדורות": "Warlord of Ages",
-  "העלה את הגיבור לרמה אפקטיבית 150 ומעלה":
-    "Take your hero to an effective level of 150 or more",
+  "אפס את הגיבור פעם אחת, ואז טפס שוב עד רמה 50":
+    "Reset your hero once, then climb back to level 50",
 
   /* the shop shelf — boasts, not feats */
   "בעל המאה": "The Moneyed",

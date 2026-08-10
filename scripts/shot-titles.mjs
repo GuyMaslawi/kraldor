@@ -10,9 +10,9 @@
 // wearing before — including null. The restore runs in a finally block, so a
 // crash mid-shoot still leaves the database as it found it.
 //
-// It deliberately covers one of each kind: an earned title that breathes
-// (`emperor`), a plain earned one, and a bought one — the three treatments the
-// styling has to keep apart at a glance.
+// It deliberately covers one of each treatment the styling has to keep apart at
+// a glance: an אגדי that breathes (`reborn`), a נדיר that burns a little
+// brighter (`emperor`), a plain רגיל, and a flat bought one.
 import fs from "node:fs";
 import { PrismaClient } from "@prisma/client";
 import { SignJWT } from "jose";
@@ -31,9 +31,9 @@ const OUT = process.argv[2] ?? "/tmp/titles";
 const BASE = process.env.SHOT_BASE ?? "http://localhost:3000";
 fs.mkdirSync(OUT, { recursive: true });
 
-// One breathing earned title, one flat earned one, one bought — in that order,
-// so the top of the ladder is the interesting row.
-const DRESS = ["emperor", "warlord", "raider", "rich", "shadow", "gambler"];
+// One of each tier — a breathing אגדי, a נדיר, a plain רגיל — then a bought
+// one, in that order, so the top of the ladder is the interesting row.
+const DRESS = ["reborn", "emperor", "raider", "rich", "shadow", "gambler"];
 
 const empires = await prisma.empire.findMany({
   where: { user: { is: {} }, isStaff: false },

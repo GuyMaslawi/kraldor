@@ -3800,14 +3800,23 @@ export const EN: Record<string, string> = {
   "התואר מופיע לצד שמך בכל מקום שבו משווים בין שחקנים: בתיק השחקן, בסולם העיר ובטבלאות המובילים, ברשימת חברי הברית, בזירה, בלוח המלחמה, בפודיום העונה ובשיאי העולם. הוא לא מוסיף כוח, לא משאבים ולא הגנה — הוא רק שלך.":
     "Your title appears beside your name everywhere players are compared: your dossier, the city ladder and the leaderboards, your guild roster, the arena, the war board, the season podium and the world records. It adds no power, no resources and no protection — it is simply yours.",
   "נדיר": "Rare",
+  "רגיל": "Common",
+  /* "אגדי" is the item-rarity word, already in the dictionary above — the tiers
+     deliberately reuse the vocabulary players learned from hero gear. */
+  "אפשר להשיג אותם כבר בשבועות הראשונים של המשחק.":
+    "You can get these in your first few weeks of playing.",
+  "צריך לשחק הרבה בשביל אלה. לא לכל אחד יש אותם.":
+    "These take a lot of playing. Not everyone has them.",
+  "הכי קשים במשחק. רק מעטים מגיעים אליהם בכל עונה.":
+    "The hardest in the game. Only a few players reach them each season.",
   "הושגו {earned} · נרכשו {owned}": "{earned} earned · {owned} bought",
   "ללא תואר": "No title",
   "ענוד": "Wear",
   "עונד…": "Wearing…",
   "נעול": "Locked",
   "תארים שמושגים במשחק": "Titles earned in play",
-  "אי אפשר לקנות אותם בשום מחיר. זה בדיוק מה שנותן להם ערך.":
-    "They cannot be bought at any price. That is exactly what makes them worth anything.",
+  "אי אפשר לקנות אותם בשום מחיר — רק לשחק ולהשיג. הם מסודרים לפי דרגת קושי: ככל שהדרגה גבוהה יותר, כך קשה יותר להשיג את התואר.":
+    "They cannot be bought at any price — you play for them. They are sorted by difficulty: the higher the grade, the harder the title is to get.",
   "חנות התארים": "The title shop",
   "נרכשים ביהלומים, ואינם מתיימרים להיות הישג. מי שקורא את הדירוג יידע להבדיל.":
     "Bought with diamonds, and making no claim to be an achievement. Anyone reading the ladder will know the difference.",
@@ -3825,26 +3834,43 @@ export const EN: Record<string, string> = {
   "עדיין לא עמדת בתנאי של התואר הזה: {hint}":
     "You have not met that title's condition yet: {hint}",
 
-  /* the earned shelf */
+  /* the earned shelf — common */
   "הפושט": "The Raider",
-  "נצח ב-250 תקיפות": "Win 250 attacks",
+  "נצח ב-{wins} תקיפות על שחקנים אחרים":
+    "Win {wins} attacks on other players",
   "צל המלך": "The King's Shadow",
-  "חזור עם 200 דוחות ריגול מוצלחים": "Come back with 200 successful spy reports",
+  "שלח מרגלים וחזור עם {reports} דוחות ריגול מוצלחים":
+    "Send spies and come back with {reports} successful reports",
   "החומה": "The Wall",
-  "הדוף 100 תקיפות על האימפריה שלך": "Repel 100 attacks on your empire",
-  "מפיל הכתרים": "Crownbreaker",
-  "הפל את הבוסים של כל {cities} דרגות הערים":
-    "Fell the bosses of all {cities} city tiers",
-  "הקיסר": "The Emperor",
-  "החזק את כל {cities} הערים בו-זמנית": "Hold all {cities} cities at once",
-  "בן האלמוות": "The Deathless",
-  "אפס את הגיבור שלוש פעמים לאחר שהגיע לשיא":
-    "Reset your hero three times after reaching the cap",
+  "הגן על האימפריה שלך ונצח ב-{defenses} תקיפות של אחרים עליך":
+    "Defend your empire and win {defenses} battles against attackers",
+  "הוותיק": "The Veteran",
+  "העלה את הגיבור שלך לרמה {heroLevel}": "Take your hero to level {heroLevel}",
+
+  /* the earned shelf — rare */
+  "צייד הבוסים": "The Boss Hunter",
+  "נצח את הבוס של {bosses} דרגות ערים שונות":
+    "Beat the boss of {bosses} different city tiers",
   "האגדה": "The Legend",
-  "זכה בחמישה פריטים בדרגת נדירות אגדי": "Win five items of legendary rarity",
+  "אסוף {legendaryItems} פריטים בדרגת אגדי לגיבור שלך":
+    "Collect {legendaryItems} legendary items for your hero",
   "מצביא הדורות": "Warlord of Ages",
-  "אפס את הגיבור פעם אחת, ואז טפס שוב עד רמה 50":
-    "Reset your hero once, then climb back to level 50",
+  "הגע עם הגיבור לרמה {cap}, אפס אותו, וטפס שוב עד רמה {warlordLevel}":
+    "Take your hero to level {cap}, reset it, then climb back to level {warlordLevel}",
+  "הקיסר": "The Emperor",
+  "הגע לעיר האחרונה והחזק את כל {cities} הערים":
+    "Reach the last city and hold all {cities} of them",
+
+  /* the earned shelf — legendary */
+  "מפיל הכתרים": "Crownbreaker",
+  "נצח את הבוס של כל {allBosses} דרגות הערים — בלי לפספס אף אחד":
+    "Beat the boss of all {allBosses} city tiers — without missing one",
+  "בן האלמוות": "The Deathless",
+  "הגע עם הגיבור לרמה {cap} ואפס אותו — {resets} פעמים":
+    "Take your hero to level {cap} and reset it — {resets} times",
+  "אימת הממלכות": "Dread of Kingdoms",
+  "נצח ב-{greatWins} תקיפות על שחקנים אחרים":
+    "Win {greatWins} attacks on other players",
 
   /* the shop shelf — boasts, not feats */
   "בעל המאה": "The Moneyed",

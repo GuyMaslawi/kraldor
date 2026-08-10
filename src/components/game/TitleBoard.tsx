@@ -1,11 +1,19 @@
 "use client";
 
 import { useActionState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { FormMessage } from "@/components/ui/FormMessage";
 import { formatNumber } from "@/lib/game/format";
-import { TITLE_PARAMS, type TitleView, type TitlesState } from "@/lib/game/titles";
+import {
+  TIER_BLURB,
+  TIER_LABEL,
+  TITLE_PARAMS,
+  TITLE_TIERS,
+  type TitleTier,
+  type TitleView,
+  type TitlesState,
+} from "@/lib/game/titles";
 import { buyTitle, wearTitle } from "@/server/actions/titles";
 import { useT } from "@/i18n/client";
 
@@ -47,16 +55,38 @@ export function TitleBoard({ state }: { state: TitlesState }) {
 
       <Shelf
         title={t("תארים שמושגים במשחק")}
-        blurb={t("אי אפשר לקנות אותם בשום מחיר. זה בדיוק מה שנותן להם ערך.")}
-        titles={earned}
-      />
+        blurb={t(
+          "אי אפשר לקנות אותם בשום מחיר — רק לשחק ולהשיג. הם מסודרים לפי דרגת קושי: ככל שהדרגה גבוהה יותר, כך קשה יותר להשיג את התואר."
+        )}
+      >
+        {/* Split by tier rather than shown as one grid with a badge on each
+            card. The tier is a promise that the requirements get harder as you
+            go down the shelf, and a reader only believes that promise if the
+            easy ones are physically above the hard ones. */}
+        {TITLE_TIERS.map((tier) => {
+          const group = earned.filter((entry) => entry.tier === tier);
+          if (group.length === 0) return null;
+          return (
+            <div key={tier} className="mt-4 first:mt-3">
+              <p className="flex flex-wrap items-baseline gap-2">
+                <TierBadge tier={tier} />
+                <span className="text-[11px] text-zinc-500">
+                  {t(TIER_BLURB[tier])}
+                </span>
+              </p>
+              <TitleGrid titles={group} />
+            </div>
+          );
+        })}
+      </Shelf>
 
       <Shelf
         title={t("חנות התארים")}
         blurb={t("נרכשים ביהלומים, ואינם מתיימרים להיות הישג. מי שקורא את הדירוג יידע להבדיל.")}
-        titles={bought}
         diamonds={state.diamonds}
-      />
+      >
+        <TitleGrid titles={bought} diamonds={state.diamonds} />
+      </Shelf>
     </div>
   );
 }
@@ -64,14 +94,14 @@ export function TitleBoard({ state }: { state: TitlesState }) {
 function Shelf({
   title,
   blurb,
-  titles,
   diamonds,
+  children,
 }: {
   title: string;
   blurb: string;
-  titles: TitleView[];
   /** Present only on the shop shelf. */
   diamonds?: number;
+  children: ReactNode;
 }) {
   return (
     <section className="panel rounded-2xl p-4 sm:p-5">
@@ -88,13 +118,44 @@ function Shelf({
         )}
       </h3>
       <p className="mt-1 text-xs leading-relaxed text-zinc-400">{blurb}</p>
-
-      <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {titles.map((entry) => (
-          <TitleCard key={entry.key} entry={entry} diamonds={diamonds} />
-        ))}
-      </ul>
+      {children}
     </section>
+  );
+}
+
+function TitleGrid({
+  titles,
+  diamonds,
+}: {
+  titles: TitleView[];
+  diamonds?: number;
+}) {
+  return (
+    <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {titles.map((entry) => (
+        <TitleCard key={entry.key} entry={entry} diamonds={diamonds} />
+      ))}
+    </ul>
+  );
+}
+
+/** The one word that says how hard a shelf — or a single card — is. */
+const TIER_CHIP: Record<TitleTier, string> = {
+  common: "border-zinc-600/60 bg-black/30 text-zinc-300",
+  rare: "border-sky-400/50 bg-sky-500/10 text-sky-300",
+  legendary: "border-amber-400/60 bg-amber-500/10 text-amber-300",
+};
+
+function TierBadge({ tier }: { tier: TitleTier }) {
+  const t = useT();
+  return (
+    <span
+      // The glow is killed explicitly: text-shadow inherits, and the badge sits
+      // *inside* `.title-name`, which is either glowing or breathing.
+      className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-black [text-shadow:none] ${TIER_CHIP[tier]}`}
+    >
+      {t(TIER_LABEL[tier])}
+    </span>
   );
 }
 
@@ -127,18 +188,18 @@ function TitleCard({
     >
       {/* Drawn with the same two data-attributes the title carries beside a name
           (see WornTitle.tsx), so the card is a true preview: what a player picks
-          off this shelf is exactly what the rankings will show. */}
-      <p className="title-name font-black" data-kind={entry.kind}>
+          off this shelf is exactly what the rankings will show — including the
+          אגדי breath. */}
+      <p
+        className="title-name flex flex-wrap items-baseline gap-2 font-black"
+        data-kind={entry.kind}
+        data-tier={entry.tier ?? undefined}
+      >
         {t(entry.label)}
-        {entry.rare && (
-          <span
-            className="title-worn-inline ms-2 align-middle text-[10px]"
-            data-kind="earned"
-            data-rare="1"
-          >
-            {t("נדיר")}
-          </span>
-        )}
+        {/* Repeated on the card even though the group above already says it:
+            a card is what gets looked at once a player is choosing between two
+            of them, and the heading has scrolled away by then. */}
+        {entry.tier && <TierBadge tier={entry.tier} />}
       </p>
       <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-500">
         {t(entry.hint, TITLE_PARAMS)}

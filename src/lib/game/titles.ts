@@ -1,5 +1,5 @@
 import type { AchievementStats } from "./achievements";
-import { effectiveHeroLevel } from "./hero";
+import { HERO_MAX_LEVEL, effectiveHeroLevel } from "./hero";
 import { MAX_CITIES } from "./constants";
 
 /**
@@ -38,6 +38,45 @@ import { MAX_CITIES } from "./constants";
 /** How a title is come by. */
 export type TitleKind = "earned" | "bought";
 
+/**
+ * How hard an earned title is — the three words the game already uses for the
+ * rarity of a hero item, reused here so a player does not have to learn a second
+ * vocabulary.
+ *
+ * The tier is not decoration. It is a *promise about the condition*, and the
+ * catalog below is ordered by it: every רגיל is easier than every נדיר, and
+ * every נדיר is easier than every אגדי. The shelf used to break that promise —
+ * "אפס את הגיבור פעם אחת ואז טפס עד רמה 50" was marked rare while "אפס את
+ * הגיבור שלוש פעמים", which is twice as much of the same climb, was not — and a
+ * badge that contradicts the requirement beside it is worse than no badge.
+ *
+ * Where a tier sits against the achievements ladder, since both read the same
+ * counters and the two must not collide:
+ * - **רגיל** — a rung or two above the middle of the matching achievement chain.
+ *   Reachable in the first weeks; there should always be something to wear.
+ * - **נדיר** — at the top end of that chain, or on a counter with no chain that
+ *   only a settled player moves at all (a legendary drop is 1% of a won attack).
+ * - **אגדי** — beyond the whole chain, or a feat with no chain at all.
+ */
+export type TitleTier = "common" | "rare" | "legendary";
+
+/** Ascending difficulty — the order the shelf is drawn in. */
+export const TITLE_TIERS: readonly TitleTier[] = ["common", "rare", "legendary"];
+
+/** The tier as the player reads it. Source strings; run through `t()`. */
+export const TIER_LABEL: Record<TitleTier, string> = {
+  common: "רגיל",
+  rare: "נדיר",
+  legendary: "אגדי",
+};
+
+/** One line under each tier heading, in the plainest words available. */
+export const TIER_BLURB: Record<TitleTier, string> = {
+  common: "אפשר להשיג אותם כבר בשבועות הראשונים של המשחק.",
+  rare: "צריך לשחק הרבה בשביל אלה. לא לכל אחד יש אותם.",
+  legendary: "הכי קשים במשחק. רק מעטים מגיעים אליהם בכל עונה.",
+};
+
 export interface TitleDefinition {
   /** Stable key stored in Empire.title / EmpireTitle.key. Never rename one. */
   key: string;
@@ -46,27 +85,16 @@ export interface TitleDefinition {
   /** One line saying how it is come by, shown on the selection screen. */
   hint: string;
   kind: TitleKind;
+  /**
+   * How hard it is — earned only. A bought title has no tier at all rather than
+   * a `common` one: a purchase is not a rung on a difficulty ladder, and giving
+   * it the easiest word on that ladder would still be placing it on it.
+   */
+  tier?: TitleTier;
   /** Accent as an `R G B` triple — the title is drawn in its own colour. */
   accent: string;
   /** Diamonds, for a bought title; 0 for an earned one. */
   price: number;
-  /**
-   * The handful that are allowed to *move* — a slow breath of their own accent
-   * wherever the title is drawn (`.title-worn-inline[data-rare="1"]`).
-   *
-   * Deliberately a flag on three titles rather than a property of `earned`. The
-   * game already has exactly one animated name — `.staff-name`, molten gold with
-   * a highlight travelling across it — and its whole job is to say "this account
-   * is the house". A second animated treatment on eight of fourteen titles would
-   * put motion on most of the rankings and take that signal apart. Three, at the
-   * far end of the earned shelf, stay rare enough to mean something; the pulse is
-   * also a *glow* rather than a metallic sweep and is drawn in the title's own
-   * colour, so it never reads as the gold one.
-   *
-   * Never set on a bought title. That is the line the whole feature rests on: the
-   * one thing diamonds must not buy here is the appearance of a feat.
-   */
-  rare?: boolean;
   /**
    * The condition, for an earned title. Absent on a bought one, which is what
    * `titleUnlocked` tests rather than testing `kind` — a bought title with a
@@ -77,89 +105,166 @@ export interface TitleDefinition {
 }
 
 /**
- * The catalog. Earned first, in roughly the order a player reaches them, then
- * the bought ones.
+ * Every number a condition is measured against, in one place.
+ *
+ * They are also the `{placeholders}` of the wording (see `TITLE_PARAMS`), so a
+ * retune moves the requirement and the sentence describing it together — and,
+ * because the Hebrew source string is the translation key, retuning a goal no
+ * longer orphans its English line the way a hard-coded "250" did.
+ */
+export const TITLE_GOALS = {
+  /* common */
+  wins: 100,
+  reports: 150,
+  defenses: 75,
+  heroLevel: 50,
+  /* rare */
+  bosses: 5,
+  legendaryItems: 5,
+  warlordLevel: 50,
+  cities: MAX_CITIES,
+  /* legendary */
+  allBosses: MAX_CITIES,
+  resets: 3,
+  greatWins: 1_000,
+  /* shared wording */
+  cap: HERO_MAX_LEVEL,
+} as const;
+
+/** The effective hero level `warlord` really tests: one full climb, then some. */
+const WARLORD_EFFECTIVE_LEVEL = HERO_MAX_LEVEL + TITLE_GOALS.warlordLevel;
+
+/**
+ * The catalog. Earned first — **ordered by tier, easiest first**, which is the
+ * order the shelf and the guide table draw them in — then the bought ones.
  *
  * Earned conditions are deliberately set *above* the equivalent achievement
  * rung: a title should be rarer than the reward ladder, or the rankings turn
  * into a wall of identical epithets.
+ *
+ * Every condition is also **monotonic** — it reads a lifetime counter or the
+ * effective hero level, never a balance that can fall. A title is only re-tested
+ * at the moment it is put on, so one that could stop being true would be a word
+ * the wearer keeps and the shelf refuses to hand back. (`emperor` reads the city
+ * tier, which is climbed and never lost.)
  */
 export const TITLES: readonly TitleDefinition[] = [
-  /* ---- earned ---- */
+  /* ---- earned · רגיל: the first weeks ---- */
   {
     key: "raider",
     label: "הפושט",
-    hint: "נצח ב-250 תקיפות",
+    hint: "נצח ב-{wins} תקיפות על שחקנים אחרים",
     kind: "earned",
+    tier: "common",
     accent: "196 92 48",
     price: 0,
-    condition: (s) => s.attackWins >= 250,
+    condition: (s) => s.attackWins >= TITLE_GOALS.wins,
   },
   {
     key: "shadow",
     label: "צל המלך",
-    hint: "חזור עם 200 דוחות ריגול מוצלחים",
+    hint: "שלח מרגלים וחזור עם {reports} דוחות ריגול מוצלחים",
     kind: "earned",
+    tier: "common",
     accent: "150 96 232",
     price: 0,
-    condition: (s) => s.spySuccesses >= 200,
+    condition: (s) => s.spySuccesses >= TITLE_GOALS.reports,
   },
   {
     key: "wall",
     label: "החומה",
-    hint: "הדוף 100 תקיפות על האימפריה שלך",
+    hint: "הגן על האימפריה שלך ונצח ב-{defenses} תקיפות של אחרים עליך",
     kind: "earned",
+    tier: "common",
     accent: "150 168 190",
     price: 0,
-    condition: (s) => s.defenseWins >= 100,
+    condition: (s) => s.defenseWins >= TITLE_GOALS.defenses,
   },
   {
-    key: "tyrant_slayer",
-    label: "מפיל הכתרים",
-    hint: "הפל את הבוסים של כל {cities} דרגות הערים",
+    key: "veteran",
+    label: "הוותיק",
+    hint: "העלה את הגיבור שלך לרמה {heroLevel}",
     kind: "earned",
-    accent: "232 82 82",
+    tier: "common",
+    accent: "168 204 112",
     price: 0,
-    rare: true,
-    condition: (s) => s.distinctBossesBeaten >= MAX_CITIES,
+    condition: (s) =>
+      effectiveHeroLevel(s.heroLevel, s.heroResets) >= TITLE_GOALS.heroLevel,
   },
+
+  /* ---- earned · נדיר: for players who already know the game ---- */
   {
-    key: "emperor",
-    label: "הקיסר",
-    hint: "החזק את כל {cities} הערים בו-זמנית",
+    key: "boss_hunter",
+    label: "צייד הבוסים",
+    hint: "נצח את הבוס של {bosses} דרגות ערים שונות",
     kind: "earned",
-    accent: "228 195 90",
+    tier: "rare",
+    accent: "120 200 220",
     price: 0,
-    rare: true,
-    condition: (s) => s.cities >= MAX_CITIES,
-  },
-  {
-    key: "reborn",
-    label: "בן האלמוות",
-    hint: "אפס את הגיבור שלוש פעמים לאחר שהגיע לשיא",
-    kind: "earned",
-    accent: "96 156 224",
-    price: 0,
-    condition: (s) => s.heroResets >= 3,
+    condition: (s) => s.distinctBossesBeaten >= TITLE_GOALS.bosses,
   },
   {
     key: "legend",
     label: "האגדה",
-    hint: "זכה בחמישה פריטים בדרגת נדירות אגדי",
+    hint: "אסוף {legendaryItems} פריטים בדרגת אגדי לגיבור שלך",
     kind: "earned",
+    tier: "rare",
     accent: "255 176 60",
     price: 0,
-    condition: (s) => s.legendaryItems >= 5,
+    condition: (s) => s.legendaryItems >= TITLE_GOALS.legendaryItems,
   },
   {
     key: "warlord",
     label: "מצביא הדורות",
-    hint: "אפס את הגיבור פעם אחת, ואז טפס שוב עד רמה 50",
+    hint: "הגע עם הגיבור לרמה {cap}, אפס אותו, וטפס שוב עד רמה {warlordLevel}",
     kind: "earned",
+    tier: "rare",
     accent: "62 200 140",
     price: 0,
-    rare: true,
-    condition: (s) => effectiveHeroLevel(s.heroLevel, s.heroResets) >= 150,
+    condition: (s) =>
+      effectiveHeroLevel(s.heroLevel, s.heroResets) >= WARLORD_EFFECTIVE_LEVEL,
+  },
+  {
+    key: "emperor",
+    label: "הקיסר",
+    hint: "הגע לעיר האחרונה והחזק את כל {cities} הערים",
+    kind: "earned",
+    tier: "rare",
+    accent: "228 195 90",
+    price: 0,
+    condition: (s) => s.cities >= TITLE_GOALS.cities,
+  },
+
+  /* ---- earned · אגדי: a handful of players a season ---- */
+  {
+    key: "tyrant_slayer",
+    label: "מפיל הכתרים",
+    hint: "נצח את הבוס של כל {allBosses} דרגות הערים — בלי לפספס אף אחד",
+    kind: "earned",
+    tier: "legendary",
+    accent: "232 82 82",
+    price: 0,
+    condition: (s) => s.distinctBossesBeaten >= TITLE_GOALS.allBosses,
+  },
+  {
+    key: "reborn",
+    label: "בן האלמוות",
+    hint: "הגע עם הגיבור לרמה {cap} ואפס אותו — {resets} פעמים",
+    kind: "earned",
+    tier: "legendary",
+    accent: "96 156 224",
+    price: 0,
+    condition: (s) => s.heroResets >= TITLE_GOALS.resets,
+  },
+  {
+    key: "scourge",
+    label: "אימת הממלכות",
+    hint: "נצח ב-{greatWins} תקיפות על שחקנים אחרים",
+    kind: "earned",
+    tier: "legendary",
+    accent: "244 96 160",
+    price: 0,
+    condition: (s) => s.attackWins >= TITLE_GOALS.greatWins,
   },
 
   /* ---- bought: boasts, not feats ---- */
@@ -215,8 +320,35 @@ export const TITLES: readonly TitleDefinition[] = [
 
 export const TITLE_BY_KEY = new Map(TITLES.map((t) => [t.key, t]));
 
-/** Placeholders shared by the wording of the earned conditions. */
-export const TITLE_PARAMS = { cities: MAX_CITIES } as const;
+/**
+ * Placeholders shared by the wording of the earned conditions — every goal,
+ * already grouped ("1,000" rather than "1000"). Grouping happens here and not in
+ * `TITLE_GOALS` because a condition compares numbers and a sentence prints
+ * digits, and the achievements ladder writes its goals the same way.
+ */
+export const TITLE_PARAMS: Record<string, string> = Object.fromEntries(
+  Object.entries(TITLE_GOALS).map(([name, goal]) => [
+    name,
+    goal.toLocaleString("en-US"),
+  ])
+);
+
+/**
+ * Which tier is allowed to *move* — a slow breath of its own accent wherever
+ * the title is drawn (`[data-tier="legendary"]` in globals.css).
+ *
+ * The game already has exactly one animated name — `.staff-name`, molten gold
+ * with a highlight travelling across it — and its whole job is to say "this
+ * account is the house". Motion on most of the shelf would take that signal
+ * apart, so it stops at the three אגדי titles; the pulse is also a *glow* rather
+ * than a metallic sweep and is drawn in the title's own colour, so it never
+ * reads as the gold one.
+ *
+ * Never reachable by a bought title, which carries no tier at all. That is the
+ * line the whole feature rests on: the one thing diamonds must not buy here is
+ * the appearance of a feat.
+ */
+export const ANIMATED_TIER: TitleTier = "legendary";
 
 /**
  * Whether an empire may currently wear a title.
@@ -241,9 +373,10 @@ export interface TitleView {
   label: string;
   hint: string;
   kind: TitleKind;
+  /** Earned only — null on a bought title, which sits on no difficulty ladder. */
+  tier: TitleTier | null;
   accent: string;
   price: number;
-  rare: boolean;
   unlocked: boolean;
   /** Bought and owned — the shop shows it as owned rather than for sale. */
   owned: boolean;
@@ -273,9 +406,9 @@ export function buildTitlesState(
       label: definition.label,
       hint: definition.hint,
       kind: definition.kind,
+      tier: definition.tier ?? null,
       accent: definition.accent,
       price: definition.price,
-      rare: definition.rare === true,
       unlocked,
       owned: definition.kind === "bought" && ownedKeys.has(definition.key),
       worn: worn === definition.key,

@@ -220,7 +220,7 @@ import {
   REFERRAL_REFERRER_PURSE,
   REFERRAL_SEASON_CAP,
 } from "@/lib/game/referral";
-import { TITLES, TITLE_PARAMS } from "@/lib/game/titles";
+import { TIER_LABEL, TITLES, TITLE_PARAMS } from "@/lib/game/titles";
 import {
   SEASON_PASS_PREMIUM_PRICE,
   SEASON_PASS_TIER_COUNT,
@@ -3481,7 +3481,9 @@ export async function GuideContent({
                 <b className="nums">{TITLES.filter((title) => title.kind === "earned").length}</b>{" "}
                 <b>נצברים</b> ולא נמכרים בשום מחיר, ו־
                 <b className="nums">{TITLES.filter((title) => title.kind === "bought").length}</b>{" "}
-                <b>נקנים</b> וכתובים כהתרברבות ולא כהישג.
+                <b>נקנים</b> וכתובים כהתרברבות ולא כהישג. הנצברים מסודרים בשלוש דרגות
+                קושי — <b>רגיל</b>, <b>נדיר</b> ו<b>אגדי</b> — ובכל דרגה הדרישה גדולה
+                יותר מזו שמעליה בטבלה.
               </Lead>
 
               <TableWrap>
@@ -3489,6 +3491,7 @@ export async function GuideContent({
                   <thead>
                     <tr>
                       <th>תואר</th>
+                      <th>דרגה</th>
                       <th>איך משיגים</th>
                       <th>מחיר</th>
                     </tr>
@@ -3499,10 +3502,13 @@ export async function GuideContent({
                         <td
                           className="title-worn-inline whitespace-nowrap font-black"
                           data-kind={title.kind}
-                          data-rare={title.rare ? "1" : undefined}
+                          data-tier={title.tier}
                           style={{ "--accent": title.accent } as CSSProperties}
                         >
                           {title.label}
+                        </td>
+                        <td className="whitespace-nowrap text-zinc-400">
+                          {title.tier ? TIER_LABEL[title.tier] : "—"}
                         </td>
                         <td className="text-zinc-400">
                           {fillParams(title.hint, TITLE_PARAMS)}
@@ -3525,7 +3531,8 @@ export async function GuideContent({
                   התנאים שלו נבדקים מחדש בכל טעינה מול אותם מוני חיים שההישגים והמשימות
                   קוראים — אין מה למלא ואין מה לגבות. הם מכוונים <b>גבוה יותר</b> מדרגת
                   ההישג המקבילה, כי תואר צריך להיות נדיר יותר מסולם הפרסים או שהדירוג
-                  הופך לקיר של אותה כותרת.
+                  הופך לקיר של אותה כותרת: <b>רגיל</b> יושב מעל אמצע סולם ההישגים,{" "}
+                  <b>נדיר</b> בקצה העליון שלו, ו<b>אגדי</b> מעבר לסולם כולו.
                 </Note>
                 <Note tone="purple" icon="crown" title="עונדים אחד בכל פעם">
                   אפשר להחזיק כמה שרוצים ולענוד אחד. תואר שהוסר מהמשחק פשוט מפסיק
@@ -3539,11 +3546,12 @@ export async function GuideContent({
                 </Note>
                 <Note tone="red" icon="spark" title="נצבר זוהר, נקנה לא">
                   תואר נצבר נמשך בהילה משלו וקנוי נצבע בצבע שטוח בלבד, כדי שמי שקורא
-                  דירוג יבדיל בלי להכיר את הקטלוג. שלושת הנצברים הקשים ביותר{" "}
+                  דירוג יבדיל בלי להכיר את הקטלוג. נדיר בוער חזק יותר מרגיל, ושלושת
+                  האגדיים{" "}
                   <span
                     className="title-worn-inline"
                     data-kind="earned"
-                    data-rare="1"
+                    data-tier="legendary"
                     style={{ "--accent": "228 195 90" } as CSSProperties}
                   >
                     נושמים

@@ -10925,7 +10925,18 @@ body {
   text-shadow: none;
 }
 
-/* The three at the far end of the earned shelf, breathing their own colour.
+/* נדיר: the same ink, held a little brighter. The step from רגיל has to be
+   visible beside a name without a legend to read it against, and small enough
+   that it never competes with the אגדי breath below. */
+.title-worn-inline[data-tier="rare"],
+.title-name[data-tier="rare"] {
+  text-shadow:
+    0 0 12px rgb(var(--accent) / 0.6),
+    0 0 22px rgb(var(--accent) / 0.22);
+}
+
+/* אגדי: the three at the far end of the earned shelf, breathing their own
+   colour.
 
    A glow that swells rather than a highlight that travels, and always in the
    title's accent — `.staff-name` owns the travelling-metal treatment and it has
@@ -10934,7 +10945,8 @@ body {
    second cycle at a shallow amplitude: on a ten-row ladder this should read as
    something the eye returns to, not as something demanding it. */
 @media (prefers-reduced-motion: no-preference) {
-  .title-worn-inline[data-rare="1"] {
+  .title-worn-inline[data-tier="legendary"],
+  .title-name[data-tier="legendary"] {
     animation: title-rare-breathe 5s ease-in-out infinite;
   }
 }

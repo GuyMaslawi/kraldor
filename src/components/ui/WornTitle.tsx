@@ -62,7 +62,10 @@ export function WornTitle({
       // one is flat colour: quiet enough not to shame a purchase, decisive
       // enough that the rankings never lie about which is which.
       data-kind={title.kind}
-      data-rare={title.rare ? "1" : undefined}
+      // The difficulty tier, which only an earned title carries: נדיר burns a
+      // little brighter than רגיל and אגדי breathes. See ANIMATED_TIER for why
+      // the motion stops there.
+      data-tier={title.tier}
       style={{ "--accent": title.accent } as CSSProperties}
       className={`title-worn-inline shrink-0 text-xs font-black ${className}`}
     >

@@ -2,6 +2,7 @@ import "server-only";
 import type { DiamondEffectKind, Prisma } from "@prisma/client";
 import { bankInterestRate, type StorableResource } from "@/lib/game/constants";
 import { cityName } from "@/lib/game/cities";
+import { monumentBonuses, monumentMultiplier } from "@/lib/game/monuments";
 import type { T } from "@/i18n/translate";
 import {
   BANK_INTEREST_COOLDOWN_MS,
@@ -308,6 +309,7 @@ export async function castTurnPackage(
 export interface BankInterestEmpire {
   bankAccount: { id: string; goldBalance: number } | null;
   upgrades: { type: string; level: number }[];
+  monuments?: readonly { key: string; level: number }[] | null;
 }
 
 /** Pay one interest instalment into the bank on the spot. */
@@ -332,7 +334,14 @@ export async function castBankInterest(
 
   const interestLevel =
     empire.upgrades.find((u) => u.type === "BANK_DAILY_INTEREST")?.level ?? 1;
-  const interest = Math.floor(bank.goldBalance * bankInterestRate(interestLevel));
+  // The spell sells "one interest payment" — so it has to be the payment the
+  // clock would make, בית הגנזים included. Paying the bare ladder rate here
+  // made the monument silently worthless to anyone who bought the spell.
+  const interest = Math.floor(
+    bank.goldBalance *
+      bankInterestRate(interestLevel) *
+      monumentMultiplier(monumentBonuses(empire.monuments).interest)
+  );
   if (interest <= 0) return { error: ctx.t("הריבית הנוכחית אפסית") };
 
   if (!(await paid(ctx, BANK_INTEREST_SPELL_COST))) {

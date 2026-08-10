@@ -35,10 +35,18 @@ const TRANSACTION_META: Record<
   INTEREST: { label: "ריבית", icon: "📈", sign: "+", color: "text-gold" },
 };
 
-/** A rate as a percent, to at most one decimal — "6%", "7.4%", never "7.44%". */
+/**
+ * A rate as a percent — "6%", "7.44%", "1.24%".
+ *
+ * Two decimals rather than one: the monument multiplies a whole-percent rung
+ * into fractions, and at the bottom of the ladder one decimal *erases* it —
+ * 1% × 1.24 rounds to "1.2%", which reads as a rounding artefact rather than
+ * as the monument working. Trailing zeros are dropped, so a plain rung with no
+ * monument still prints "6%".
+ */
 function formatRate(rate: number): string {
   const pct = rate * 100;
-  return `${Number(pct.toFixed(1))}%`;
+  return `${Number(pct.toFixed(2))}%`;
 }
 
 export default async function BankPage() {
@@ -62,11 +70,16 @@ export default async function BankPage() {
   // monument looks like it does nothing (which is exactly how it looked).
   const monumentInterestPct = monumentBonuses(empire.monuments).interest;
   const baseRate = bankInterestRate(interestLevel);
-  const rate = baseRate * monumentMultiplier(monumentInterestPct);
+  const interestFactor = monumentMultiplier(monumentInterestPct);
+  const rate = baseRate * interestFactor;
   // The upgrade ladder is 1% a rung, so its own rate is always whole — but the
   // monument multiplies it into fractions (6% × 1.24 = 7.44%), and rounding
   // those to whole percents is what would hide a level or two of בית הגנזים.
   const ratePercent = formatRate(rate);
+  // Exactly what the next daily update will credit — the same floor the clock
+  // takes in `applyPendingUpdates`. Deliberately *not* a per-day figure: an
+  // update fires twice a day, so a day's yield would be this compounded twice,
+  // and the card names the payment rather than summing the day.
   const nextInterest = Math.floor(bankGold * rate);
 
   const allowedDeposits = allowedDepositsPerDailyPeriod(depositLevel);
@@ -117,13 +130,20 @@ export default async function BankPage() {
             <Card variant="gold" className="space-y-3">
               <h3 className="flex items-center gap-2 text-sm font-bold tracking-wide text-gold-bright">
                 <Icon name="upgrades" size={18} className="text-crimson" />
-                {t("תשואה יומית")}
+                {t("תשואה")}
               </h3>
+              {/* One number, and the sentence that says exactly which payment it
+                  is. The heading used to read "תשואה יומית" over the *next
+                  update's* interest — and an update fires twice a day, so the
+                  card promised a day and quoted half of one. */}
               <p className="nums text-2xl font-black text-emerald-400">
                 <span dir="ltr">+{formatNumber(nextInterest)}</span>
                 <span className="mr-1 text-sm font-semibold text-emerald-400/70">
-                  {t("זהב/יום")}
+                  {t("זהב")}
                 </span>
+              </p>
+              <p className="text-xs text-zinc-400">
+                {t("ריבית בעדכון היומי הבא")}
               </p>
 
               {/* compounding curve — draws itself in, purely decorative */}
@@ -155,22 +175,47 @@ export default async function BankPage() {
               </svg>
 
               <div className="rule-gold" />
-              <p className="text-sm text-zinc-300">
-                {t("ריבית נוכחית:")}{" "}
-                <span className="nums font-bold text-gold" dir="ltr">
-                  {ratePercent}
-                </span>
-              </p>
-              {/* Only when it is actually earning something: the line exists to
-                  prove the monument is in the number above, and a "+0%" row
-                  would be noise on every screen that has not built it. */}
-              {monumentInterestPct > 0 && (
-                <p className="text-xs text-gold-dim">
-                  {t("כולל {monument} — {base} +{pct}%", {
-                    monument: t("בית הגנזים"),
-                    base: formatRate(baseRate),
-                    pct: monumentInterestPct,
-                  })}
+              {/* The rate as a sum with its working shown, not as a claim: the
+                  rung's own percent, the monument's factor, and the product the
+                  daily update actually pays. The old line quoted the product and
+                  footnoted "1% +24%" underneath, which reads as 25% — the whole
+                  confusion is that the monument multiplies, so it is printed as
+                  a ×factor beside the +% the monument page promises.
+                  Without a monument there is nothing to work out, and the three
+                  rows collapse back into the one line they came from. */}
+              {monumentInterestPct > 0 ? (
+                <div className="space-y-1 rounded-lg border border-gold/15 bg-black/20 p-2">
+                  <p className="flex items-baseline justify-between gap-2 text-sm text-zinc-300">
+                    <span>{t("ריבית:")}</span>
+                    <span className="nums font-bold text-gold" dir="ltr">
+                      {formatRate(baseRate)}
+                    </span>
+                  </p>
+                  <p className="flex items-baseline justify-between gap-2 text-xs text-gold-dim">
+                    <span>
+                      {t("בית הגנזים")}{" "}
+                      <span className="nums" dir="ltr">
+                        (+{monumentInterestPct}%)
+                      </span>
+                    </span>
+                    <span className="nums font-bold" dir="ltr">
+                      ×{interestFactor.toFixed(2)}
+                    </span>
+                  </p>
+                  <div className="rule-gold" />
+                  <p className="flex items-baseline justify-between gap-2 text-sm text-zinc-300">
+                    <span>{t("ריבית סופית:")}</span>
+                    <span className="nums font-bold text-gold-bright" dir="ltr">
+                      {ratePercent}
+                    </span>
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-300">
+                  {t("ריבית:")}{" "}
+                  <span className="nums font-bold text-gold" dir="ltr">
+                    {ratePercent}
+                  </span>
                 </p>
               )}
               <p className="text-sm text-zinc-300">

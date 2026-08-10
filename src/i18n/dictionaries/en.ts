@@ -1331,10 +1331,9 @@ export const EN: Record<string, string> = {
   /* the bank                                                            */
   /* ------------------------------------------------------------------ */
   "בנק | קראלדור": "Bank | Kraldor",
-  "תשואה יומית": "Daily Yield",
-  "זהב/יום": "gold/day",
-  "ריבית נוכחית:": "Current rate:",
-  "כולל {monument} — {base} +{pct}%": "Includes {monument} — {base} +{pct}%",
+  "תשואה": "Yield",
+  "ריבית בעדכון היומי הבא": "Interest at the next daily update",
+  "ריבית סופית:": "Final rate:",
   "הפקדות זמינות להיום:": "Deposits left today:",
   "העדכון היומי הבא:": "Next daily update:",
   "שדרוגי בנק": "Bank Upgrades",

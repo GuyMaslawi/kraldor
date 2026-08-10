@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
 import { bankInterestRate } from "@/lib/game/constants";
+import { monumentBonuses, monumentMultiplier } from "@/lib/game/monuments";
 import { DiamondShop } from "@/components/game/DiamondShop";
 import { DiamondsHeader } from "@/components/game/DiamondsHeader";
 import { VipCard } from "@/components/game/VipCard";
@@ -83,7 +84,13 @@ export default async function DiamondsPage() {
   const bankBalance = empire.bankAccount?.goldBalance ?? 0;
   const interestLevel =
     empire.upgrades.find((u) => u.type === "BANK_DAILY_INTEREST")?.level ?? 1;
-  const interestPreview = Math.floor(bankBalance * bankInterestRate(interestLevel));
+  // Same product `castBankInterest` pays — בית הגנזים included, or the card
+  // quotes one number and the spell credits a bigger one.
+  const interestPreview = Math.floor(
+    bankBalance *
+      bankInterestRate(interestLevel) *
+      monumentMultiplier(monumentBonuses(empire.monuments).interest)
+  );
   const bankEffect = byKind.get("BANK_INTEREST");
   const bankReadyAt =
     bankEffect?.readyAt != null && bankEffect.readyAt > now

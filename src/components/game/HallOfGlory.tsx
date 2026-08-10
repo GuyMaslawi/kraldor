@@ -9,7 +9,7 @@ import { useT } from "@/i18n/client";
 import type { GloryView } from "@/lib/game/achievements";
 
 /**
- * שיאי העולם — the world-records board at the top of the base screen.
+ * שיאי העולם — the world-records hall at the top of the base screen.
  *
  * Five capstones, each pinned to one of the game's real ceilings (all ten
  * cities, citizen intake maxed, hero at 100, mines at 250, every weapon model).
@@ -17,68 +17,90 @@ import type { GloryView } from "@/lib/game/achievements";
  * shows the reader's own standing against it.
  *
  * These are decorations, not rewards: there is deliberately no collect button
- * anywhere on this board. A medal lights up because the condition is met, and
- * the wording follows — "הושג", never "אסוף". The reward ladder that *is*
- * collected lives on its own screen.
+ * anywhere on this board. A niche lights up because the condition is met, and
+ * the wording follows — never "אסוף". The reward ladder that *is* collected
+ * lives on its own screen.
  *
- * The two readings are drawn in two different places on purpose: the record
- * holder is a line of text with a crown, the reader's own progress is the ring
- * around the medal and the bar under the name. So the board says "here is what
- * has been conquered, and here is how far you are" without either one having to
- * be read out of the other.
+ * ## It is a room, not a list
+ *
+ * Each capstone is an **arched alcove cut into the wall**: a relic lit by a
+ * shaft of light, the ceiling itself engraved under it as a figure and a noun
+ * (10 ערים, 250 רמת מכרה), and a plaque bolted underneath naming whoever got
+ * there first. That is the whole card — the sentence version of the goal and
+ * the mechanic behind it live in the hover caption and are read out to screen
+ * readers, but they are not on the wall. Five taglines, five names, five
+ * progress fractions and five record lines was a page of prose where the
+ * subject is five numbers.
+ *
+ * ## Three readings, three places, no overlap
+ *
+ * - **The world**: who holds the record — the plaque, and only the plaque. An
+ *   unheld record leaves the plaque unengraved rather than blank, because
+ *   "nobody has done this yet" is the most interesting thing the hall can say.
+ * - **The reader**: their own progress — the gold light rising inside the
+ *   alcove to `--glory-p` of its height, plus one small fraction at the floor.
+ *   Never written out anywhere else.
+ * - **The ceiling itself**: the engraved figure, which is the same for everyone
+ *   and never moves.
  *
  * Presentational: the server has already resolved progress, goals, earned state
  * and the record holder. The only thing this component decides is how it moves.
  *
- * Motion runs in three registers, loudest first — a capstone whose record the
- * reader *holds* breathes and throws sparks, one they have merely earned glows
- * quietly, and a locked one *fills* (ring and bar rise from empty on the first
- * paint, numbers roll) so progress reads as movement toward something. An
- * unreached record gets its own small pulse: it is the only state that is an
- * invitation rather than a result.
+ * Motion runs in three registers, loudest first — an alcove whose record the
+ * reader *holds* wears a crown at the keystone, breathes and throws sparks; one
+ * they have merely earned holds a lit relic; and an unreached one *fills* (the
+ * tide and the counter rise from empty on the first paint) so progress reads as
+ * movement toward something. An unclaimed plaque gets its own small pulse: it
+ * is the only state that is an invitation rather than a result.
  */
 
-/** Where the sparks sit around a crowned medal, in degrees + delay. */
+/** Where the sparks sit around a crowned relic, in degrees + delay. */
 const SPARKS = [
   { angle: -28, delay: "0s" },
   { angle: 96, delay: "0.9s" },
   { angle: 212, delay: "1.7s" },
 ];
 
-function GloryCard({ item, index }: { item: GloryView; index: number }) {
+function GloryNiche({ item, index }: { item: GloryView; index: number }) {
   const t = useT();
   const painted = useAfterFirstPaint();
   const crowned = item.record?.isMe === true;
   const won = item.unlocked;
   const open = item.record === null;
 
-  // Both the ring and the bar read this one number. Held at 0 until the first
-  // frame has committed, so the fill animates in from empty instead of being
-  // painted already full — see useAfterFirstPaint.
+  // The tide and the counter read this one number. Held at 0 until the first
+  // frame has committed, so the alcove fills from empty instead of being
+  // painted full — see useAfterFirstPaint.
   const pct = item.goal > 0 ? Math.min(1, item.progress / item.goal) : 0;
   const fill = painted ? pct : 0;
 
   // The counter rolls to the live figure. A capstone already earned shows a
-  // ribbon instead: it is pinned to full either way, and rolling "10 / 10" on a
-  // medal earned weeks ago is noise.
+  // check instead: it is pinned to full either way, and rolling "10 / 10" on a
+  // ceiling reached weeks ago is noise.
   const rolled = useCountUp(won ? 0 : Math.round(item.progress));
-
-  const state = crowned ? "is-crowned" : won ? "is-won" : "is-locked";
 
   return (
     <li
-      className={`glory-card ${state} ${open ? "is-open" : ""}`}
-      style={{ "--i": index } as React.CSSProperties}
+      className={`glory-niche ${crowned ? "is-crowned" : ""} ${
+        won ? "is-won" : ""
+      } ${open ? "is-open" : ""} ${pct <= 0 ? "is-dry" : ""}`}
+      style={{ "--i": index, "--glory-p": fill } as React.CSSProperties}
     >
-      <div className="glory-medal-wrap">
-        <span
-          className="glory-medal"
-          style={{ "--glory-p": fill } as React.CSSProperties}
-          aria-hidden
-        >
-          <span className="glory-medal-face">
-            <Icon name={item.icon} size={30} />
-          </span>
+      {/* The keystone at the apex of the arch — a plain lozenge, or the crown
+          itself once the reader's own name is on the plaque below. */}
+      <span
+        className={`glory-keystone ${crowned ? "is-crowned" : ""}`}
+        aria-hidden
+      >
+        {crowned && <Icon name="crown" size={11} />}
+      </span>
+
+      <div className="glory-arch">
+        <span className="glory-beam" aria-hidden />
+        <span className="glory-tide" aria-hidden />
+
+        <span className="glory-relic" aria-hidden>
+          <Icon name={item.icon} size={30} />
           {crowned &&
             SPARKS.map((s) => (
               <span
@@ -90,58 +112,67 @@ function GloryCard({ item, index }: { item: GloryView; index: number }) {
               />
             ))}
         </span>
-        {won && (
-          <span className="glory-check" aria-hidden>
-            <Icon name="crown" size={13} />
-          </span>
-        )}
-      </div>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <h3 className="glory-name">{t(item.name, item.params)}</h3>
+        {/* The ceiling, engraved. The number is never written in a dictionary —
+            it is the goal itself, so retuning one moves the engraving with it. */}
+        <p className="glory-figure nums" dir="ltr">
+          {formatCompact(item.goal)}
+        </p>
+        <p className="glory-unit">{t(item.unit)}</p>
+
+        {/* The reader's own standing, small, at the floor of the alcove. */}
+        <span className="glory-tally" dir="ltr">
           {won ? (
-            <span className="glory-ribbon">{crowned ? t("השיא שלך") : t("הושג")}</span>
+            <span className="glory-done" aria-label={t("הושג")}>
+              <Icon name="check" size={11} />
+            </span>
           ) : (
-            <span className="nums shrink-0 text-[11px] text-zinc-500" dir="ltr">
+            <span className="nums">
               {formatCompact(rolled)} / {formatCompact(item.goal)}
             </span>
           )}
-        </div>
-        <p className="glory-tagline">{t(item.tagline, item.params)}</p>
-
-        {/* The reader's own progress. Stays on an earned card too — full and
-            gold, it is the row of light that separates them from the rest. */}
-        <span className="glory-bar" aria-hidden>
-          <span style={{ transform: `scaleX(${fill})` }} />
         </span>
 
-        {/* The record itself. An open one is named as open rather than left
-            blank: "nobody has done this yet" is the most interesting thing the
-            board can say, and a blank row says nothing at all. */}
+        {/* The sentence version, kept off the wall: revealed on hover or when
+            the plaque's link takes focus, and always present for a reader who
+            is listening rather than looking. */}
+        <span className="glory-caption">
+          <strong>{t(item.name, item.params)}</strong>
+          <span>{t(item.tagline, item.params)}</span>
+          {item.record && (
+            <span className="nums glory-caption-date" dir="ltr">
+              {item.record.awardedLabel}
+            </span>
+          )}
+        </span>
+      </div>
+
+      {/* The plaque: the world's half of the reading, and the only place a
+          record holder is named. */}
+      <div className="glory-plaque">
         {item.record ? (
-          <p className="glory-record">
-            <Icon name="crown" size={12} className="shrink-0" />
-            <span className="shrink-0 text-zinc-600">{t("ראשון בעולם:")}</span>
+          <>
+            {/* No crown beside the name, deliberately: every engraved plaque in
+                the hall is a world record, so the mark would be on all of them
+                — and at the narrow end of the hall it was the icon and its gap
+                that pushed a perfectly short name onto a second line. The crown
+                is reserved for the keystone, where it means "yours". */}
             <Link
               href={`/game/empires/${item.record.empireId}`}
               className="glory-holder"
             >
               {item.record.empireName}
             </Link>
-            {/* Seven rows in the whole case, each naming the first player in the
-                world to do a thing. If a תואר is worth showing anywhere, it is
-                on the line that already says "ראשון בעולם". */}
-            <WornTitle titleKey={item.record.title} />
-            <span className="nums mr-auto shrink-0 text-zinc-600" dir="ltr">
-              {item.record.awardedLabel}
-            </span>
-          </p>
+            {/* Five plaques in the whole hall, each naming the first player in
+                the world to do a thing. If a תואר is worth showing anywhere, it
+                is here. */}
+            <WornTitle titleKey={item.record.title} className="glory-worn" />
+          </>
         ) : (
-          <p className="glory-record is-open">
-            <Icon name="spark" size={12} className="shrink-0" />
-            {t("השיא עדיין פנוי — אף אחד לא הגיע לכאן")}
-          </p>
+          <span className="glory-vacant">
+            <Icon name="spark" size={11} className="shrink-0" />
+            {t("עדיין פנוי")}
+          </span>
         )}
       </div>
     </li>
@@ -163,41 +194,40 @@ export function HallOfGlory({
   return (
     <div className={`glory-board ${taken > 0 ? "is-lit" : ""}`}>
       <div className="glory-head">
-        <div className="min-w-0">
-          <h2 className="glory-title">
-            <Icon name="achievements" size={20} className="text-gold-bright" />
-            {t("שיאי העולם")}
-          </h2>
-          <p className="mt-0.5 text-xs text-zinc-500">
-            {t("שיאי המשחק ומי כבש אותם ראשון — מכל השחקנים בעולם")}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-5">
-          <div className="text-center">
-            <p className="nums text-2xl font-black text-gold-bright" dir="ltr">
+        <h2 className="glory-title">
+          <span className="glory-rule" aria-hidden />
+          <span>{t("שיאי העולם")}</span>
+          <span className="glory-rule" aria-hidden />
+        </h2>
+        <p className="glory-sub">
+          {t("שיאי המשחק ומי כבש אותם ראשון — מכל השחקנים בעולם")}
+        </p>
+        <div className="glory-tallies">
+          <span className="glory-count">
+            <b className="nums" dir="ltr">
               {rolledTaken}
-              <span className="text-base text-gold-dim">/{items.length}</span>
-            </p>
-            <p className="text-[10px] text-zinc-500">{t("שיאים שנכבשו")}</p>
-          </div>
-          <div className="text-center">
-            <p className="nums text-2xl font-black text-gold" dir="ltr">
+              <i>/{items.length}</i>
+            </b>
+            {t("שיאים שנכבשו")}
+          </span>
+          <span className="glory-count">
+            <b className="nums" dir="ltr">
               {mine}
-            </p>
-            <p className="text-[10px] text-zinc-500">{t("על שמך")}</p>
-          </div>
-          <div className="text-center">
-            <p className="nums text-2xl font-black text-bone-dim" dir="ltr">
+            </b>
+            {t("על שמך")}
+          </span>
+          <span className="glory-count">
+            <b className="nums" dir="ltr">
               {daysOnServer}
-            </p>
-            <p className="text-[10px] text-zinc-500">{t("ימי שרת")}</p>
-          </div>
+            </b>
+            {t("ימי שרת")}
+          </span>
         </div>
       </div>
 
-      <ul className="glory-grid">
+      <ul className="glory-hall">
         {items.map((item, i) => (
-          <GloryCard key={item.key} item={item} index={i} />
+          <GloryNiche key={item.key} item={item} index={i} />
         ))}
       </ul>
     </div>

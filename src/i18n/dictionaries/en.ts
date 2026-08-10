@@ -663,11 +663,8 @@ export const EN: Record<string, string> = {
   "שיאים שנכבשו": "records claimed",
   "על שמך": "in your name",
   "ימי שרת": "days on the server",
-  "השיא שלך": "Your record",
   "הושג": "Reached",
-  "ראשון בעולם:": "First in the world:",
-  "השיא עדיין פנוי — אף אחד לא הגיע לכאן":
-    "This record is still open — nobody has got here yet",
+  "עדיין פנוי": "Still open",
   "שיאי עולם": "World Records",
   "שיא עולם": "world record",
   "ראשון בעולם": "First in the world",
@@ -675,6 +672,13 @@ export const EN: Record<string, string> = {
     "Milestones you were the first in the world to reach",
   "הישגים שהאימפריה הזו הראשונה בעולם שהגיעה אליהם":
     "Milestones this empire was the first in the world to reach",
+
+  /* The noun engraved under each capstone's figure in the hall. "ערים" is not
+     here: the leaderboard column below already carries it. */
+  "אזרחים ביום": "citizens a day",
+  "רמת גיבור": "hero level",
+  "רמת מכרה": "mine level",
+  "דגמי נשק": "weapon models",
 
   /* the five capstones, as the records board names them */
   "להגיע לעיר 10": "Reach City 10",

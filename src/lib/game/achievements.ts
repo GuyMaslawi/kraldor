@@ -1147,6 +1147,36 @@ export const GLORY_TAGLINE: Record<string, string> = {
 };
 
 /**
+ * The noun engraved under each capstone's figure on the records hall.
+ *
+ * The hall draws a capstone as a number and a unit — **10 ערים**, **250 רמת
+ * מכרה** — with the sentence in GLORY_NAME kept for the hover caption and the
+ * screen reader. The figure itself is never written here: it is
+ * `formatCompact(goal)`, so retuning a ceiling moves the engraving with it and
+ * only the noun is a string anyone has to maintain.
+ */
+export const GLORY_UNIT: Record<string, string> = {
+  cities_10: "ערים",
+  [`citizenup_${CITIZEN_GROWTH_500}`]: "אזרחים ביום",
+  herolvl_100: "רמת גיבור",
+  minelvl_250: "רמת מכרה",
+  arsenal_90: "דגמי נשק",
+};
+
+/**
+ * Where the hall wants a different relic than the reward ladder.
+ *
+ * The ladder can afford to reuse an icon — its rows are read as a list, with
+ * the name right there. In the hall the relic is most of what a niche says, so
+ * the mine capstone and the arsenal capstone sharing the catalog's anvil made
+ * two of the five alcoves look like the same record twice.
+ */
+export const GLORY_ICON: Partial<Record<string, IconName>> = {
+  minelvl_250: "mine",
+  arsenal_90: "attack",
+};
+
+/**
  * Placeholders for the two taglines that quote a game ceiling.
  *
  * Kept beside the wording rather than baked into it so retuning MINE_MAX_LEVEL
@@ -1217,6 +1247,8 @@ const gloryDate = (locale: Locale) =>
 export interface GloryView extends AchievementView {
   /** The short epithet from GLORY_TAGLINE, falling back to the full hint. */
   tagline: string;
+  /** The noun engraved under the figure — "ערים", "רמת גיבור". See GLORY_UNIT. */
+  unit: string;
   /** First empire in the game to reach it; null while the record is open. */
   record: GloryRecord | null;
 }
@@ -1259,6 +1291,8 @@ export function selectGlory(
           : null),
         name: GLORY_NAME[key] ?? item.name,
         tagline: GLORY_TAGLINE[key] ?? item.hint,
+        unit: GLORY_UNIT[key] ?? "",
+        icon: GLORY_ICON[key] ?? item.icon,
         params: { ...item.params, ...GLORY_PARAMS[key] },
         record: held
           ? {
@@ -1343,7 +1377,9 @@ export function selectWorldMedals(
         name: MEDAL_NAME[key] ?? item.name,
         tagline: GLORY_TAGLINE[key] ?? item.hint,
         params: { ...item.params, ...GLORY_PARAMS[key] },
-        icon: item.icon,
+        // Same override as the hall: these are the same five records, and a
+        // dossier plate should carry the relic the wall carries.
+        icon: GLORY_ICON[key] ?? item.icon,
         earnedLabel: date.format(held.awardedAt),
       },
     ];

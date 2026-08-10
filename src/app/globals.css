@@ -5062,45 +5062,62 @@ body {
 }
 
 /* =========================================================================
-   HALL OF GLORY (/game/base) — the capstone showcase
-   Seven achievements pinned to the game's real ceilings. Replaced a strip of
-   five icons gated on `empire.level`, a column no gameplay path increments —
-   so every milestone on it read as locked, permanently, for every player.
+   שיאי העולם — THE HALL OF RECORDS (/game/base)
+   Prefix: glory-. Five capstones pinned to the game's real ceilings, drawn as
+   arched alcoves cut into a stone wall rather than as cards: a relic under a
+   shaft of light, the ceiling engraved beneath it as a figure and a noun, and
+   a plaque bolted under the arch naming the first empire in the game to get
+   there. It replaced a row of five text cards (name, tagline, fraction, bar,
+   record line) — five sentences about five numbers.
 
-   The board speaks in two registers on purpose: a locked capstone *fills*
-   (ring and bar rise from empty on first paint, numbers roll) so progress
-   reads as movement toward something; a won one *glows* (breathing aura,
-   sweeping sheen, orbiting sparks) so an earned medal is legible from across
-   the room. Everything decorative is silenced at the end of the block.
+   Three readings, three places, no overlap: the plaque is the world (who got
+   there first), the gold tide rising inside the alcove is the reader (their
+   own progress, `--glory-p`), and the engraved figure is the ceiling itself.
+   The sentence version of a capstone lives in `.glory-caption`, revealed on
+   hover/focus — it is in the DOM for screen readers, not on the wall.
+
+   The hall speaks in two registers: an unreached alcove *fills* (the tide and
+   the counter rise from empty on first paint) so progress reads as movement
+   toward something; a held one *glows* (lit relic, breathing beam, crowned
+   keystone, orbiting sparks) so a record is legible from across the room.
+   Everything decorative is silenced at the end of the block.
    ========================================================================= */
 
-/* The medal's fill fraction, 0..1. Registered so the conic-gradient ring can
-   be transitioned at all — an unregistered custom property is a raw token and
+/* The alcove's fill fraction, 0..1. Registered so the tide's height can be
+   transitioned at all — an unregistered custom property is a raw token and
    swaps instantly. Deliberately NOT named `--p`: that one is already in use as
    a *length* by the warehouse silo, and registering it as <number> would make
    every `var(--p)` there invalid at computed-value time. */
 @property --glory-p {
   syntax: "<number>";
-  /* Must inherit: the ring is drawn on `.glory-medal::before` while the value
-     is set (and transitioned) on `.glory-medal` itself. A non-inheriting
-     registration leaves the pseudo-element reading the initial 0 forever, and
-     every ring renders empty. */
+  /* Must inherit: the tide is drawn on `.glory-tide` while the value is set
+     (and transitioned) on `.glory-niche`. A non-inheriting registration leaves
+     the child reading the initial 0 forever, and every alcove renders dry. */
   inherits: true;
   initial-value: 0;
 }
 
+/* --- the wall --- */
 .glory-board {
   position: relative;
+  /* The hall's own width is what the arches have to answer to: the game layout
+     spends a third of a laptop screen on the sidebar, so a viewport media query
+     would still think this is a wide board. See the @container rules below. */
+  container-type: inline-size;
   overflow: hidden;
   border-radius: 0.75rem;
   border: 1px solid var(--border-gold);
+  /* Faint ashlar courses under a warm wash from above: enough for the eye to
+     read "wall" behind the arches, not enough to become a texture. */
   background:
-    radial-gradient(120% 80% at 50% -20%, rgba(196, 160, 50, 0.12), transparent 60%),
-    linear-gradient(180deg, rgba(26, 25, 32, 0.92), rgba(13, 12, 16, 0.94));
-  padding: 1.25rem;
+    radial-gradient(130% 62% at 50% -12%, rgba(196, 160, 50, 0.13), transparent 62%),
+    repeating-linear-gradient(0deg, rgba(214, 201, 173, 0.022) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg, rgba(214, 201, 173, 0.016) 0 1px, transparent 1px 92px),
+    linear-gradient(180deg, #191821, #0e0d12 58%, #0a090d);
+  padding: 1.5rem 1.25rem 1.375rem;
 }
 
-/* A slow band of light crossing the board. Only once a medal has been won —
+/* A slow band of light crossing the wall. Only once a record has been taken —
    an empty hall should look cold. */
 .glory-board.is-lit::before {
   content: "";
@@ -5120,195 +5137,291 @@ body {
   50% { transform: translateX(30%); }
 }
 
+/* --- the inscription over the hall --- */
 .glory-head {
   position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid var(--border-subtle);
-  padding-bottom: 0.875rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.375rem;
+  text-align: center;
 }
 .glory-title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.875rem;
   font-size: 1.0625rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
+  color: var(--gold-bright);
+  text-shadow: 0 0 18px rgba(228, 195, 90, 0.22);
+}
+/* A rule running out to each side of the title, tipped with a lozenge at the
+   inner end. Mirrored rather than duplicated so the two are exact opposites. */
+.glory-rule {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 8rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-gold-strong));
+}
+.glory-rule:last-child { transform: scaleX(-1); }
+.glory-rule::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  height: 5px;
+  width: 5px;
+  margin-top: -2.5px;
+  background: var(--gold);
+  transform: rotate(45deg);
+}
+.glory-sub {
+  margin-top: 0.375rem;
+  font-size: 0.6875rem;
+  color: #7d7a72;
+}
+
+.glory-tallies {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 1.125rem;
+  margin-top: 0.75rem;
+}
+.glory-count {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  font-size: 0.625rem;
+  color: #7d7a72;
+}
+/* Logical, not left/right: the hairline between two tallies has to land on the
+   reading-order side on an RTL screen. */
+.glory-count + .glory-count {
+  border-inline-start: 1px solid var(--border-subtle);
+  padding-inline-start: 1.125rem;
+}
+.glory-count b {
+  font-size: 1.0625rem;
+  font-weight: 900;
   color: var(--gold-bright);
 }
-
-.glory-grid {
-  position: relative;
-  display: grid;
-  gap: 0.625rem;
-  grid-template-columns: 1fr;
-}
-/* The board runs the full content width at the top of the screen. Each card
-   carries a medal, two lines of text, a bar and the record line, so it needs
-   real width before a third column earns its place. */
-/* Five capstones into two or three columns always leaves a short last row, and
-   a hole in a bordered board reads as a bug. So the track is cut finer than the
-   card — 2n columns, each card spanning 2 — and the orphans on the last row
-   widen to share the space evenly instead of leaving one. The selectors are
-   written by count, not by index, so adding a sixth capstone needs no change:
-   `:nth-last-child(k):nth-child(cn+1)` only matches when the final row is short
-   by exactly one card, and `~` carries the widening to the rest of that row. */
-@media (min-width: 700px) {
-  .glory-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .glory-card { grid-column: span 2; }
-}
-/* odd count: the trailing card takes the whole row. Bounded above so it cannot
-   leak into the three-column track below, where the row is six units wide. */
-@media (min-width: 700px) and (max-width: 1239.98px) {
-  .glory-card:last-child:nth-child(2n + 1) { grid-column: span 4; }
-}
-@media (min-width: 1240px) {
-  .glory-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .glory-card { grid-column: span 2; }
-  /* two on the last row → half each */
-  .glory-card:nth-last-child(2):nth-child(3n + 1),
-  .glory-card:nth-last-child(2):nth-child(3n + 1) ~ .glory-card {
-    grid-column: span 3;
-  }
-  /* one on the last row → the whole row */
-  .glory-card:last-child:nth-child(3n + 1) { grid-column: span 6; }
+.glory-count b i {
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--gold-dim);
 }
 
-/* --- one capstone --- */
-.glory-card {
-  position: relative;
+/* --- the hall itself --- */
+/* Flex, not grid, for one reason: five arches never divide evenly into the
+   columns a narrow screen can hold, and a grid leaves the short last row
+   ragged against the wall's edge. Wrapped flex centres it, which is what a row
+   of arches should do anyway. The basis is small enough that all five stay on
+   one row down to the phone rail below — a wrapped row grows its arches to the
+   max-width while the full row above it does not, and two sizes of arch in one
+   hall is exactly what the shape cannot survive. */
+.glory-hall {
   display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  overflow: hidden;
-  border-radius: 0.625rem;
-  border: 1px solid var(--border-subtle);
-  background: var(--panel-inset);
-  padding: 0.875rem 0.9375rem;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-  animation: glory-card-in 0.5s cubic-bezier(0.34, 1.4, 0.64, 1) both;
-  animation-delay: calc(var(--i) * 70ms);
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem 0.75rem;
 }
-@keyframes glory-card-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+
+.glory-niche {
+  position: relative;
+  flex: 1 1 6.75rem;
+  min-width: 6.75rem;
+  max-width: 12.5rem;
+  transition:
+    --glory-p 1.2s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.25s;
+  animation: glory-rise 0.55s cubic-bezier(0.34, 1.35, 0.64, 1) both;
+  animation-delay: calc(var(--i) * 80ms);
+}
+@keyframes glory-rise {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
   to { opacity: 1; transform: none; }
 }
-.glory-card:hover { transform: translateY(-2px); }
+.glory-niche:hover { transform: translateY(-3px); }
 
-.glory-card.is-locked {
-  filter: saturate(0.55);
+/* The keystone at the apex. A lozenge normally; the crown itself when the
+   reader's own name is on the plaque below. */
+.glory-keystone {
+  position: absolute;
+  top: -0.4375rem;
+  left: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  height: 0.875rem;
+  width: 0.875rem;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #2b2822, #14131a);
+  box-shadow: 0 0 0 1px rgba(10, 9, 12, 0.9);
+  transform: translateX(-50%) rotate(45deg);
 }
-.glory-card.is-locked:hover {
-  border-color: var(--border-gold);
-  filter: saturate(0.8);
+/* Un-rotated for the crowned variant — the rotation is on the box, and a
+   tipped crown reads as a mistake. */
+.glory-keystone.is-crowned {
+  top: -0.5625rem;
+  height: 1.25rem;
+  width: 1.25rem;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #e4c35a, #8a6d1c);
+  color: #17130a;
+  transform: translateX(-50%);
+  animation: glory-seal 0.55s cubic-bezier(0.34, 1.7, 0.64, 1) both;
+  animation-delay: calc(var(--i) * 80ms + 0.3s);
+}
+@keyframes glory-seal {
+  from { opacity: 0; transform: translateX(-50%) scale(0.2) rotate(-40deg); }
+  to { opacity: 1; transform: translateX(-50%); }
+}
+.glory-niche.is-won .glory-keystone:not(.is-crowned) {
+  background: linear-gradient(135deg, #6a5219, #2a2109);
 }
 
-.glory-card.is-won,
-.glory-card.is-crowned {
-  border-color: var(--border-gold-strong);
-  background:
-    linear-gradient(100deg, rgba(68, 52, 19, 0.55), rgba(13, 12, 16, 0.95) 62%);
-  box-shadow: inset 0 0 34px -18px rgba(228, 195, 90, 1);
-}
-/* Holding the record is a louder thing than merely having earned the capstone,
-   so the crowned card gets the brighter frame and keeps the halo and sparks. */
-.glory-card.is-crowned {
-  border-color: rgba(228, 195, 90, 0.75);
-  background:
-    linear-gradient(100deg, rgba(96, 73, 24, 0.6), rgba(15, 13, 17, 0.95) 66%);
+/* --- the alcove --- */
+.glory-arch {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  height: 10.5rem;
+  padding: 0.75rem 0.5rem 1.5rem;
+  /* A dome over a shallow box: the vertical radius has to be given separately
+     or the top corners round into circles at this aspect ratio. */
+  border-radius: 50% 50% 0.375rem 0.375rem / 34% 34% 0.375rem 0.375rem;
+  border: 1px solid rgba(43, 40, 34, 0.95);
+  background: radial-gradient(92% 68% at 50% 6%, #1c1a24, #0a090c 78%);
   box-shadow:
-    inset 0 0 40px -16px rgba(228, 195, 90, 1),
-    0 0 26px -14px rgba(228, 195, 90, 0.85);
+    inset 0 16px 26px -14px rgba(0, 0, 0, 0.95),
+    inset 0 -24px 30px -22px rgba(0, 0, 0, 0.9),
+    0 8px 16px -12px #000;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
-/* The sheen that crosses an earned card, offset per card so the row does not
-   flash in unison. */
-.glory-card.is-won::after,
-.glory-card.is-crowned::after {
+.glory-niche.is-won .glory-arch {
+  border-color: var(--border-gold-strong);
+  box-shadow:
+    inset 0 16px 26px -14px rgba(0, 0, 0, 0.95),
+    inset 0 0 30px -14px rgba(228, 195, 90, 0.75),
+    0 8px 16px -12px #000;
+}
+.glory-niche.is-crowned .glory-arch {
+  border-color: rgba(228, 195, 90, 0.7);
+  box-shadow:
+    inset 0 16px 26px -14px rgba(0, 0, 0, 0.95),
+    inset 0 0 34px -12px rgba(228, 195, 90, 0.95),
+    0 0 26px -14px rgba(228, 195, 90, 0.8);
+}
+
+/* The floor of the alcove. Load-bearing, not decoration: the tide rises from
+   the same edge the fraction is written on, and at a low percentage the
+   waterline drew a gold line straight through the digits. The sill puts a dark
+   step in front of the light, which is also what makes the alcove read as
+   having depth rather than being a lit shape. */
+.glory-arch::after {
   content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 1;
+  height: 1.125rem;
+  pointer-events: none;
+  background: linear-gradient(0deg, rgba(6, 6, 8, 0.95) 40%, transparent);
+}
+
+/* The shaft of light falling into the alcove. Clipped to a cone rather than
+   faded, so it reads as a beam with edges and not as a gradient. */
+.glory-beam {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  clip-path: polygon(41% 0, 59% 0, 88% 100%, 12% 100%);
   background: linear-gradient(
-    75deg,
-    transparent 40%,
-    rgba(255, 240, 176, 0.13) 50%,
-    transparent 60%
+    180deg,
+    rgba(255, 240, 176, 0.18),
+    rgba(255, 240, 176, 0.04) 55%,
+    transparent 86%
   );
-  transform: translateX(-120%);
-  animation: glory-card-sheen 6.5s ease-in-out infinite;
-  animation-delay: calc(var(--i) * 520ms);
+  /* The clip gives the cone its edges; the blur takes the *hardness* off them.
+     Order matters — a filter applies after the clip, so this softens the beam
+     instead of bleeding it back into a rectangle. */
+  filter: blur(5px);
+  opacity: 0.5;
 }
-@keyframes glory-card-sheen {
-  0%, 62% { transform: translateX(-120%); }
-  86%, 100% { transform: translateX(120%); }
+.glory-niche.is-won .glory-beam { opacity: 0.85; }
+.glory-niche.is-crowned .glory-beam {
+  opacity: 1;
+  animation: glory-beam-breathe 4.5s ease-in-out infinite;
+}
+@keyframes glory-beam-breathe {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
 }
 
-/* --- the medal --- */
-.glory-medal-wrap {
-  position: relative;
-  flex-shrink: 0;
+/* The reader's own progress: gold light standing in the alcove, `--glory-p` of
+   the way up its wall, with a bright waterline at the top. Nowhere in the hall
+   is this number written out. */
+.glory-tide {
+  position: absolute;
+  inset-inline: 0;
+  /* Stands ON the sill, and measures from it: the fraction is written across
+     the bottom 1.125rem, so a tide measured from the floor of the box drew its
+     waterline through the digits at every low percentage. */
+  bottom: 1.125rem;
+  pointer-events: none;
+  height: calc(var(--glory-p) * (100% - 1.125rem));
+  background: linear-gradient(
+    0deg,
+    rgba(196, 160, 50, 0.32),
+    rgba(196, 160, 50, 0.09) 62%,
+    transparent
+  );
 }
-.glory-medal {
-  position: relative;
-  display: grid;
-  place-items: center;
-  height: 4rem;
-  width: 4rem;
-  border-radius: 9999px;
-  transition: --glory-p 1.1s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-/* The ring IS the progress read-out: gold up to --glory-p of the way round,
-   dead border for the rest. It lives on a pseudo-element so the whole arc can
-   be flipped — a conic-gradient only runs clockwise, and this is an RTL screen
-   where progress should leave the top going right-to-left, the way the text
-   beside it is read. Mirroring the layer rather than the element keeps the
-   glyph in the middle the right way round. */
-.glory-medal::before {
+.glory-tide::after {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  transform: scaleX(-1);
-  background: conic-gradient(
-    from 0deg,
-    var(--gold-bright) calc(var(--glory-p) * 360deg),
-    rgba(43, 40, 34, 0.9) 0
-  );
+  top: 0;
+  inset-inline: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-bright), transparent);
+  box-shadow: 0 0 9px 1px rgba(228, 195, 90, 0.45);
 }
-/* The dark disc that turns the gradient into a ring. */
-.glory-medal-face {
+/* Nothing achieved yet: the waterline would otherwise sit on the floor and
+   read as a fixture rather than as a level. */
+.glory-niche.is-dry .glory-tide { display: none; }
+
+/* --- what stands in the alcove --- */
+.glory-relic {
   position: relative;
   display: grid;
   place-items: center;
-  height: calc(100% - 7px);
-  width: calc(100% - 7px);
+  height: 3.25rem;
+  width: 3.25rem;
   border-radius: 9999px;
-  background: radial-gradient(circle at 50% 32%, #23201a, #0b0a0d 78%);
   color: var(--bone-dim);
-  transition: color 0.3s;
+  background: radial-gradient(circle at 50% 32%, rgba(45, 40, 28, 0.95), rgba(10, 9, 12, 0.92) 74%);
+  box-shadow: inset 0 0 0 1px rgba(228, 195, 90, 0.12), 0 5px 12px -7px #000;
+  transition: color 0.35s, box-shadow 0.35s;
 }
-.glory-card.is-won .glory-medal {
-  box-shadow: 0 0 0 1px rgba(228, 195, 90, 0.35);
+.glory-niche.is-won .glory-relic {
+  color: var(--gold-bright);
+  background: radial-gradient(circle at 50% 30%, #4b3a14, #100d08 80%);
+  box-shadow: inset 0 0 0 1px rgba(228, 195, 90, 0.45), 0 0 20px -6px rgba(228, 195, 90, 0.7);
 }
-.glory-card.is-crowned .glory-medal {
-  box-shadow: 0 0 0 1px rgba(228, 195, 90, 0.35);
-  animation: glory-halo 3.2s ease-in-out infinite;
+.glory-niche.is-crowned .glory-relic {
+  animation: glory-halo 3.4s ease-in-out infinite;
 }
 @keyframes glory-halo {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(228, 195, 90, 0.35), 0 0 14px -6px rgba(228, 195, 90, 0.7); }
-  50% { box-shadow: 0 0 0 1px rgba(228, 195, 90, 0.6), 0 0 30px -4px rgba(228, 195, 90, 0.95); }
-}
-.glory-card.is-won .glory-medal-face,
-.glory-card.is-crowned .glory-medal-face {
-  background: radial-gradient(circle at 50% 30%, #4b3a14, #100d08 80%);
-  color: var(--gold-bright);
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(228, 195, 90, 0.45), 0 0 16px -6px rgba(228, 195, 90, 0.7); }
+  50% { box-shadow: inset 0 0 0 1px rgba(228, 195, 90, 0.75), 0 0 32px -4px rgba(228, 195, 90, 0.95); }
 }
 
-/* Sparks orbiting a crowned medal — placed by angle, each on its own beat. */
+/* Sparks orbiting a crowned relic — placed by angle, each on its own beat. */
 .glory-spark {
   position: absolute;
   top: 50%;
@@ -5319,119 +5432,164 @@ body {
   border-radius: 9999px;
   background: #fff0b0;
   box-shadow: 0 0 8px 2px rgba(255, 240, 176, 0.8);
-  transform: rotate(var(--a)) translateY(-2.15rem);
+  transform: rotate(var(--a)) translateY(-1.9rem);
   animation: glory-spark 2.6s ease-in-out infinite;
   animation-delay: var(--d);
 }
 @keyframes glory-spark {
-  0%, 100% { opacity: 0; transform: rotate(var(--a)) translateY(-2.15rem) scale(0.4); }
-  45% { opacity: 1; transform: rotate(var(--a)) translateY(-2.35rem) scale(1); }
+  0%, 100% { opacity: 0; transform: rotate(var(--a)) translateY(-1.9rem) scale(0.4); }
+  45% { opacity: 1; transform: rotate(var(--a)) translateY(-2.1rem) scale(1); }
 }
 
-/* The crown that seals a won medal. */
-.glory-check {
+/* The ceiling, engraved. Gold leaf on a dark wall: a clipped gradient rather
+   than a flat colour, so the figure catches the light like the metal it is
+   pretending to be. */
+.glory-figure {
+  margin-top: 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(180deg, #fff3c6, var(--gold) 58%, #8a6d1c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.65));
+}
+/* The figure is the world's number, not the reader's, so it is never hidden —
+   only held back until they have reached it. */
+.glory-niche:not(.is-won) .glory-figure { filter: saturate(0.5) brightness(0.78); }
+
+.glory-unit {
+  margin-top: 0.25rem;
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  /* A no-op in Hebrew. In English it evens out the row: "ערים" borrows the
+     leaderboard's "Cities" from the dictionary while the other four nouns are
+     lowercase, and one capital in five reads as a mistake. */
+  text-transform: lowercase;
+  color: #8b8578;
+}
+
+.glory-tally {
   position: absolute;
-  bottom: -3px;
-  left: -3px;
-  display: grid;
-  place-items: center;
-  height: 1.375rem;
-  width: 1.375rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(228, 195, 90, 0.7);
-  background: linear-gradient(180deg, #e4c35a, #8a6d1c);
-  color: #17130a;
-  animation: glory-seal 0.55s cubic-bezier(0.34, 1.7, 0.64, 1) both;
-  animation-delay: calc(var(--i) * 70ms + 0.28s);
+  z-index: 2;
+  bottom: 0.375rem;
+  inset-inline: 0;
+  /* The span is `dir="ltr"` so the fraction reads 1 / 10 in every language —
+     which also makes it align to the line's start, so centre it explicitly. */
+  text-align: center;
+  font-size: 0.5625rem;
+  color: #6f6b62;
 }
-@keyframes glory-seal {
-  from { opacity: 0; transform: scale(0.2) rotate(-40deg); }
-  to { opacity: 1; transform: none; }
+.glory-niche.is-won .glory-tally { color: var(--gold-dim); }
+.glory-done {
+  display: inline-grid;
+  place-items: center;
+  color: var(--gold-bright);
 }
 
-/* --- the text column --- */
-/* Two lines, then ellipsis. These names are sentences — "להגיע לשדרוג של 500
-   אזרחים בעדכון יומי" — not the one-word accolades the reward ladder uses, and
-   a single nowrap line cut every one of them mid-word. */
-.glory-name {
+/* The sentence version of a capstone, kept off the wall. */
+.glory-caption {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 2rem 0.625rem 0.875rem;
+  text-align: center;
+  font-size: 0.625rem;
+  line-height: 1.45;
+  color: #a49c8a;
+  /* Nearly solid: at 0.9 the engraved figure showed through the tagline and
+     both readings turned to mud. The relic above it is what stays legible. */
+  background: linear-gradient(180deg, rgba(8, 8, 10, 0.93), rgba(8, 8, 10, 0.99));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s;
+}
+.glory-caption strong {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--gold-bright);
+}
+.glory-caption-date { color: #6f6b62; }
+.glory-niche:hover .glory-caption,
+.glory-niche:focus-within .glory-caption {
+  opacity: 1;
+}
+
+/* --- the plaque --- */
+/* Bolted to the wall under the arch. Bronze rather than brass: the name and
+   the תואר on it are gold-on-dark like every other player name in the game,
+   and a bright plate would have needed its own colour rules for both. */
+.glory-plaque {
+  position: relative;
+  display: flex;
+  min-height: 2.875rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.0625rem;
+  margin-top: 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(228, 195, 90, 0.22);
+  background: linear-gradient(180deg, rgba(40, 36, 27, 0.95), rgba(18, 17, 14, 0.95));
+  box-shadow: inset 0 1px 0 rgba(228, 195, 90, 0.14), 0 3px 8px -6px #000;
+  padding: 0.3125rem 0.5rem;
+  text-align: center;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+/* Two bolt heads. Decoration, but they are what makes it read as a plate
+   fixed to a wall rather than another card. */
+.glory-plaque::before,
+.glory-plaque::after {
+  content: "";
+  position: absolute;
+  top: 0.3125rem;
+  height: 3px;
+  width: 3px;
+  border-radius: 9999px;
+  background: rgba(228, 195, 90, 0.3);
+}
+.glory-plaque::before { left: 0.375rem; }
+.glory-plaque::after { right: 0.375rem; }
+
+.glory-niche.is-crowned .glory-plaque {
+  border-color: rgba(228, 195, 90, 0.6);
+  background: linear-gradient(180deg, #56420f, #241b06);
+  box-shadow: inset 0 1px 0 rgba(255, 240, 176, 0.3), 0 0 18px -10px rgba(228, 195, 90, 0.9);
+}
+/* Unclaimed: an unengraved plate, dashed like a blank still waiting for a
+   name. The only invitation on the wall, and the only thing that pulses. */
+/* Dashed in the wall's own metal rather than in the green of its lettering: a
+   green dashed rectangle reads as a form field waiting for a file. */
+.glory-niche.is-open .glory-plaque {
+  border-style: dashed;
+  border-color: rgba(228, 195, 90, 0.16);
+  background: linear-gradient(180deg, rgba(22, 22, 20, 0.9), rgba(12, 13, 12, 0.9));
+  box-shadow: none;
+}
+.glory-niche.is-open .glory-plaque::before,
+.glory-niche.is-open .glory-plaque::after { display: none; }
+
+/* Wraps to two lines rather than truncating. A plaque is 7rem wide at the
+   narrow end of the hall, where "Bedika56469" ellipsised to "…dika56469" — and
+   the name of the first empire in the world to do a thing is the one string on
+   this wall that must survive intact. */
+.glory-holder {
+  max-width: 100%;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   min-width: 0;
   overflow: hidden;
-  font-size: 0.875rem;
+  overflow-wrap: break-word;
+  font-size: 0.75rem;
   font-weight: 700;
-  line-height: 1.3;
-  color: var(--bone);
-}
-.glory-card.is-won .glory-name,
-.glory-card.is-crowned .glory-name { color: var(--gold-bright); }
-
-.glory-tagline {
-  margin-top: 0.125rem;
-  font-size: 0.6875rem;
-  line-height: 1.35;
-  color: #7d7a72;
-}
-
-.glory-ribbon {
-  flex-shrink: 0;
-  border-radius: 9999px;
-  border: 1px solid rgba(228, 195, 90, 0.55);
-  background: rgba(228, 195, 90, 0.14);
-  padding: 0 0.4375rem;
-  font-size: 0.625rem;
-  font-weight: 700;
-  color: var(--gold-bright);
-}
-
-.glory-bar {
-  display: block;
-  margin-top: 0.5rem;
-  height: 3px;
-  overflow: hidden;
-  border-radius: 9999px;
-  background: rgba(43, 40, 34, 0.9);
-}
-.glory-bar > span {
-  display: block;
-  height: 100%;
-  border-radius: 9999px;
-  /* RTL: the bar has to grow from the right edge, which is where the reader's
-     eye starts — scaleX from the default center origin grows both ways. */
-  transform-origin: right;
-  background: linear-gradient(90deg, var(--gold-deep), var(--gold-bright));
-  transition: transform 1.1s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-.glory-card.is-won .glory-bar > span,
-.glory-card.is-crowned .glory-bar > span {
-  background: linear-gradient(90deg, var(--gold), #fff0b0);
-}
-
-/* --- the record line: who got here first --- */
-/* Aligned to the first line, not to the box: the "still unclaimed" sentence is
-   long enough to wrap onto two lines on a phone, and centring left its icon
-   floating between them instead of beside the words it introduces. */
-.glory-record {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.3125rem;
-  margin-top: 0.4375rem;
-  border-top: 1px dashed rgba(43, 40, 34, 0.9);
-  padding-top: 0.375rem;
-  font-size: 0.6875rem;
-  line-height: 1.45;
-  color: var(--gold-dim);
-}
-.glory-record > svg {
-  margin-top: 0.1875rem;
-}
-.glory-holder {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 700;
+  line-height: 1.25;
   color: var(--bone);
   text-underline-offset: 3px;
 }
@@ -5439,11 +5597,20 @@ body {
   color: var(--gold-bright);
   text-decoration: underline;
 }
-.glory-card.is-crowned .glory-holder { color: var(--gold-bright); }
+.glory-niche.is-crowned .glory-holder { color: var(--gold-bright); }
+.glory-worn {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.5625rem;
+}
 
-/* An unclaimed record is the only line on the board that is an invitation
-   rather than a result, so it is the only one that pulses. */
-.glory-record.is-open {
+.glory-vacant {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
   color: var(--accent-green);
   animation: glory-open 2.8s ease-in-out infinite;
 }
@@ -5452,24 +5619,58 @@ body {
   50% { opacity: 1; }
 }
 
+/* On a phone the hall is walked through rather than seen at once: five arches
+   stacked would push the whole base screen down by three rows. The rail bleeds
+   to the board's edges so the arch at the fold is visibly cut off — which is
+   what tells the reader there is more of it. */
+/* A narrower hall keeps all five arches, so the arch itself has to give: at
+   this width the dome would otherwise be twice as tall as it is wide.
+   Keyed to the *board*, not the viewport — the sidebar takes a third of a
+   1024px screen, so the hall is already narrow while the viewport is not. */
+@container (max-width: 46rem) {
+  .glory-arch { height: 9.25rem; }
+  .glory-relic { height: 2.75rem; width: 2.75rem; }
+  .glory-figure { font-size: 1.5rem; }
+  .glory-holder { font-size: 0.6875rem; }
+}
+
+@media (max-width: 639.98px) {
+  .glory-hall {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    margin-inline: -1.25rem;
+    /* `overflow-x: auto` makes the block axis scroll-clipped too, so the room
+       for the keystone above the arch has to be padding inside the rail rather
+       than space above it. Paid back with the negative margin. */
+    margin-top: -0.75rem;
+    padding: 0.75rem 1.25rem 0.25rem;
+    scrollbar-width: none;
+  }
+  .glory-hall::-webkit-scrollbar { display: none; }
+  .glory-niche {
+    flex: 0 0 8.75rem;
+    max-width: none;
+    scroll-snap-align: center;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .glory-board.is-lit::before,
-  .glory-card,
-  .glory-card.is-won::after,
-  .glory-card.is-crowned::after,
-  .glory-card.is-crowned .glory-medal,
-  .glory-record.is-open,
+  .glory-niche,
+  .glory-keystone.is-crowned,
+  .glory-niche.is-crowned .glory-arch,
+  .glory-niche.is-crowned .glory-beam,
+  .glory-niche.is-crowned .glory-relic,
   .glory-spark,
-  .glory-check {
+  .glory-vacant {
     animation: none;
   }
-  .glory-card:hover { transform: none; }
-  .glory-medal { transition: none; }
-  .glory-bar > span { transition: none; }
-  /* The sheen and the sparks are pure decoration — without their animation
-     they would sit frozen mid-sweep, so take them out of the picture. */
-  .glory-card.is-won::after,
-  .glory-card.is-crowned::after,
+  .glory-niche:hover { transform: none; }
+  .glory-niche { transition: none; }
+  /* Pure decoration — without their animation the sparks would sit frozen
+     mid-orbit, so take them out of the picture. */
   .glory-spark { display: none; }
 }
 

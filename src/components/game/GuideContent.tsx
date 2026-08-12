@@ -90,6 +90,12 @@ import {
 } from "@/lib/game/hero";
 import { HERO_ITEM_SETS, heroItemArtPath } from "@/lib/game/heroSets";
 import {
+  FERVOR_CAP,
+  FERVOR_DECAY_MS,
+  FERVOR_MAX_HOT_ATTACKS,
+  FERVOR_TIERS,
+} from "@/lib/game/fervor";
+import {
   POTION_DROP_CHANCE,
   POTION_KINDS,
   POTION_META,
@@ -308,6 +314,7 @@ const SECTIONS = {
   upgrades: { id: "upgrades", title: "שדרוגי אימפריה", sub: "upgrades", icon: "upgrades" },
   monuments: { id: "monuments", title: "מבנים", sub: "monuments", icon: "stone" },
   battle: { id: "battle", title: "קרב", sub: "war", icon: "attack" },
+  fervor: { id: "fervor", title: "להט הקרב", sub: "battle fervor", icon: "spark" },
   spy: { id: "spy", title: "ריגול", sub: "espionage", icon: "spy" },
   sabotage: { id: "sabotage", title: "חבלה", sub: "sabotage", icon: "unlocked" },
   hero: { id: "hero", title: "הגיבור", sub: "the hero", icon: "hero" },
@@ -1768,7 +1775,119 @@ export async function GuideContent({
               </div>
             </GuideSection>
 
-            {/* ============================ 14 spy ============================ */}
+            {/* ========================== 14 fervor ========================== */}
+            <GuideSection meta={SECTIONS.fervor} index={INDEX.fervor}>
+              <Lead>
+                התורות שלך נצברות כרגיל גם כשאתה לא מחובר — זה לא משתנה, ולא ישתנה.
+                להט הקרב לא נותן לך יותר תורות; הוא קובע כמה כל תורה שאתה מוציא
+                <b> שווה</b>. כל פעולה שאתה עושה מחממת את המד, וכשהוא לוהט — הביזה
+                שאתה לוקח מאימפריה מובסת גדולה יותר.
+              </Lead>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="panel-gold rounded-xl p-4">
+                  <p className="mb-2 flex items-center gap-2 font-black text-gold-bright">
+                    <Icon name="spark" size={18} /> איך מחממים
+                  </p>
+                  <ul className="space-y-1.5 text-[0.8rem] text-zinc-300">
+                    <li>• כל פעולה מוסיפה נקודה — תקיפה, ריגול, שדרוג, אימון, מיני-משחק, גלגל, מסע</li>
+                    <li>
+                      • נקודה דועכת כל{" "}
+                      <b className="nums">{FERVOR_DECAY_MS / 60_000}</b> דקות
+                    </li>
+                    <li>
+                      • המד עוצר ב-<b className="nums">{FERVOR_CAP}</b> נקודות — אי אפשר
+                      לאגור חום להמשך היום
+                    </li>
+                  </ul>
+                  <p className="mt-2 text-[11px] text-zinc-500">
+                    לשבת עם החלון פתוח לא שווה כלום. רק פעולות מחממות.
+                  </p>
+                </div>
+
+                <div className="panel-gold rounded-xl p-4">
+                  <p className="mb-2 flex items-center gap-2 font-black text-gold-bright">
+                    <Icon name="gold" size={18} /> הדרגות
+                  </p>
+                  <ul className="space-y-1.5 text-[0.8rem] text-zinc-300">
+                    {FERVOR_TIERS.map((tier) => (
+                      <li key={tier.key}>
+                        • <b>{tier.label}</b> — מ-<span className="nums">{tier.min}</span>{" "}
+                        נקודות:{" "}
+                        <b className="nums text-amber-300" dir="ltr">
+                          ×{tier.mult}
+                        </b>{" "}
+                        ביזה
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-[11px] text-zinc-500">
+                    המד יושב בשורה העליונה, ליד שעון העדכון.
+                  </p>
+                </div>
+              </div>
+
+              <Formula
+                label="ביזה בתקיפה מנצחת"
+                expr={
+                  <>
+                    <N>{Math.round(tunables.battle.plunderRate * 100)}%</N>
+                    <O>×</O>
+                    <V>להט הקרב</V>
+                    <O>×</O>
+                    <V>שיקוי השפע</V>
+                    <O>×</O>
+                    <V>שעה שמחה</V>
+                    <O>=</O>
+                    <R>אחוז מהמשאבים הלא-מופקדים של המגן</R>
+                  </>
+                }
+                example={
+                  <>
+                    בלי להט תיקח{" "}
+                    <N>{Math.round(tunables.battle.plunderRate * 100)}%</N>. ב
+                    <b>שריפה</b> תיקח{" "}
+                    <N>
+                      {Math.round(
+                        tunables.battle.plunderRate *
+                          FERVOR_TIERS[FERVOR_TIERS.length - 1].mult *
+                          100
+                      )}
+                      %
+                    </N>{" "}
+                    — מאויב עם <N>10,000</N> זהב זה ההבדל בין{" "}
+                    <N>
+                      {(10_000 * tunables.battle.plunderRate).toLocaleString("en-US")}
+                    </N>{" "}
+                    ל-
+                    <N>
+                      {(
+                        10_000 *
+                        tunables.battle.plunderRate *
+                        FERVOR_TIERS[FERVOR_TIERS.length - 1].mult
+                      ).toLocaleString("en-US")}
+                    </N>
+                    . מה שבמחסן מוגן תמיד.
+                  </>
+                }
+              />
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Note tone="gold" icon="attack" title={`עד ${FERVOR_MAX_HOT_ATTACKS} תקיפות ביום`}>
+                  הלהט משלם על{" "}
+                  <b className="nums">{FERVOR_MAX_HOT_ATTACKS}</b> תקיפות מנצחות ביום,
+                  ולא יותר. אם לא הגעת למספר הזה — הוא לא נוגע בך בכלל, וכל פשיטה
+                  שלך לוהטת. תקיפה שהפסדת, או שלא הביאה כלום, לא מבזבזת מהמכסה.
+                </Note>
+                <Note tone="green" icon="turns" title="לא מפסידים כלום בהיעדרות">
+                  יצאת ליומיים? כל התורות ממתינות לך, עד האחרונה. להט הקרב לא לוקח
+                  ממך שום דבר שהיה לך — הוא רק מוסיף למי שנמצא כאן עכשיו. שחקן שנכנס
+                  פעם ביום מבצע בדיוק את אותן תקיפות.
+                </Note>
+              </div>
+            </GuideSection>
+
+            {/* ============================ 15 spy ============================ */}
             <GuideSection meta={SECTIONS.spy} index={INDEX.spy}>
               <Lead>
                 ריגול נפתר בדיוק כמו קרב — השוואת מספרים, בלי הגרלה. ההבדל: המגן מתגונן

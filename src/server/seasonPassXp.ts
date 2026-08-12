@@ -56,7 +56,21 @@ export async function awardSeasonPassXp(
   // One click, one point — never `units`. A max-out upgrade that awards five
   // levels of pass XP is still a single decision by a single present player,
   // and paying it five points would let one button jump two tiers.
-  await bumpFervor(tx, empireId, new Date());
+  //
+  // Inside the guard, not above it: this function promises never to take the
+  // caller's attack or upgrade down with it, and an unguarded write here would
+  // have made a fervor failure roll back the thing the player actually asked
+  // for. The catch is not the real defence though — a statement that throws
+  // inside the caller's transaction poisons it, and every statement after it
+  // fails too, so swallowing the error cannot save the action. That is why
+  // `bumpFervor` is written as one arithmetic UPDATE by primary key with every
+  // term clamped: it is built not to throw, and this is the belt to that
+  // braces.
+  try {
+    await bumpFervor(tx, empireId, new Date());
+  } catch {
+    // Presence is a side benefit. Never the reason an action failed.
+  }
 
   const amount = SEASON_PASS_XP[action] * units;
   const cycleStart = lastDailyUpdate(new Date());

@@ -1403,6 +1403,10 @@ export async function attackEmpire(
       // allowance exists to protect.
       const fervorHot = attackerWins && !resourceShielded && fervor.hot;
       const fervorPlunder = fervorHot ? fervorMultiplier(attackerFervor) : 1;
+      // Whether the boost is *charged* for is decided further down, against the
+      // haul that was actually taken — a rate applied to an empty treasury is
+      // still a rate of nothing, and a slot spent on it would be a slot stolen
+      // from the player for no benefit. See `fervorPaid`.
       const plunderRate = Math.min(
         1,
         PLUNDER_RATE *
@@ -1638,12 +1642,23 @@ export async function attackEmpire(
       }
 
       /* ---- להט הקרב: spend the day's slot, then credit the action ---- */
-      // The counter and the meter are written in that order and for different
-      // reasons. The slot is consumed only if this raid was actually paid at the
-      // boosted rate (`fervorHot`), and the day is stamped alongside it so a
-      // stale `fervorDay` rolls over here rather than in something that has to
-      // be running at midnight — the same trick the daily streak uses.
-      if (fervorHot) {
+      // A slot is charged only for a raid the boost actually paid for. Winning
+      // and unshielded is not enough: a defender who has already been drained
+      // to nothing hands over nothing, and `stolen` is clamped to his live
+      // balances a few lines above precisely because that is common. Charging
+      // the day's allowance for a haul of zero would take the boost away from
+      // the player without ever giving it to him — and the small, frequently
+      // raided pockets of the map are exactly where that would happen most.
+      //
+      // Read off the clamped figures, not the pre-clamp ones, so what was
+      // charged for is what was truly taken.
+      const fervorPaid =
+        fervorHot &&
+        stolen.gold + stolen.wood + stolen.iron + stolen.stone > 0;
+      // The day is stamped alongside the counter so a stale `fervorDay` rolls
+      // over here rather than in something that has to be running at midnight —
+      // the same trick the daily streak uses.
+      if (fervorPaid) {
         await tx.empire.update({
           where: { id: empireId },
           data: { fervorDay: gameDay(now), fervorHotAttacks: fervor.nextHot },
@@ -1696,9 +1711,10 @@ export async function attackEmpire(
           defenderResourceShielded: attackerWins && resourceShielded,
           defenderSoldierShielded: attackerWins && soldierShielded,
           // Null unless the meter actually moved this haul — see the column's
-          // note. `fervorHot` already carries "won, unshielded and inside the
-          // day's allowance", so there is nothing left to re-check here.
-          attackerFervorPct: fervorHot
+          // note. `fervorPaid` already carries "won, unshielded, inside the
+          // day's allowance and took something", so there is nothing left to
+          // re-check here.
+          attackerFervorPct: fervorPaid
             ? Math.round((fervorPlunder - 1) * 100)
             : null,
           ...(droppedItem

@@ -78,7 +78,33 @@ Verify once against a known address in production (log it, or read it back from
 a `RateLimitBucket` key) and set the env var if the default is wrong. Cheap to
 check, expensive to be wrong about.
 
-### 1.4 Finish the Grow connection · **waiting on Grow to approve the account, 08-09**
+### 1.4 Finish the Grow connection · **connected 08-12; one real charge still owed**
+
+**Status.** The credentials are set and deployed to production, and the live
+config was confirmed from outside: a POST to `/api/pay/grow/<secret>` answers 200
+while a wrong secret answers 404, and `growConfig()` returns non-null only when
+all three variables are valid — so that 200 proves the whole set is loaded and
+the store is off the mock provider. What it does *not* prove is that `userId` and
+`pageCode` are values Grow accepts; only a real `createPaymentProcess` will.
+
+**The account is shared with Allura** — same עוסק פטור, a second payment page
+("Kraldor diamonds") under the same merchant. Allura reaches Grow through a Make
+scenario and holds no API credentials; kraldor calls the Light API directly.
+Same account, different integration — do not assume a setting from one applies to
+the other. Two consequences that are not code: the עוסק פטור annual ceiling is
+now shared between subscription revenue and diamond sales, and the activity Grow
+underwrote was SaaS, not virtual game currency.
+
+**Still owed before `DIAMOND_PURCHASES_LIVE=true`:**
+
+1. In the panel, page → **עמוד תודה**, set the two URLs (below). The code sends
+   both per transaction, so this is a backstop, not the mechanism.
+2. One real ₪19.90 "ניצוץ" purchase as an admin — admins bypass the live gate, so
+   the store stays shut to players while this runs. Confirm the money in the
+   **Grow merchant dashboard**, not in the app: Grow's sandbox once reported a
+   fully successful payment for Allura with no money anywhere, which is why
+   sandbox was skipped entirely here.
+3. Answer the receipts question below.
 
 **The gateway is Grow**, sole and unambiguous: `getPaymentProvider()` selects it
 or falls back to the mock, and no other gateway exists anywhere in the tree. The
@@ -100,11 +126,28 @@ Set on Vercel (and in `.env` for local work — `npm run vercel:env` pushes them
 
 | Variable | Where it comes from |
 | --- | --- |
-| `GROW_USER_ID` | Grow panel — the business's id |
-| `GROW_PAGE_CODE` | Grow panel — the payment page's code |
+| `GROW_USER_ID` | Decoded from the payment link — see below |
+| `GROW_PAGE_CODE` | Decoded from the payment link — see below |
 | `GROW_CALLBACK_SECRET` | **You invent it.** `openssl rand -hex 24`; ≥24 chars, `[A-Za-z0-9]` only |
-| `GROW_ENV` | `sandbox` (default) → `production` when you go live |
+| `GROW_ENV` | `production` since 08-12. `sandbox` is the code default and was deliberately never used |
 | `GROW_PAYMENT_METHODS` | optional; default `1,6,13,14` = card, Bit, Apple Pay, Google Pay |
+
+**The panel never shows `userId` or `pageCode` as labelled fields.** Both are
+encoded in the link a payment page issues, which is the only place to read them:
+
+```
+grow.link/<base64 userId>-<pageCode>-<base64 linkId>
+```
+
+The page itself is a **עמוד קבוע**, not a לינק חד־פעמי (that is per-transaction,
+and is what Make creates for Allura). It is set to **סכום פתוח** because the
+server supplies `sum` per package — a closed amount would mean one page, and one
+`pageCode`, per price, re-created in the panel on every price change. The page's
+own "the customer fills in the amount" behaviour never reaches a player: they
+arrive on a process URL created with the amount already set, and
+`settleDiamondPurchase` refuses to credit a capture below the row's `priceIls`
+regardless. Payment options are **תשלום אחד**; never הוראת קבע, never J5 (an
+authorisation without capture leaves every purchase stuck PENDING).
 
 Then, in the Grow panel, set the callback (`notifyUrl`) to:
 

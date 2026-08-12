@@ -218,11 +218,17 @@ export default async function AdminPurchasesPage() {
                     </span>
                     {/* The gateway's own words for why a charge did not settle.
                         Without it a failed row is indistinguishable from an
-                        abandoned one, and the difference is the whole diagnosis. */}
+                        abandoned one, and the difference is the whole diagnosis.
+
+                        Wrapped rather than truncated: this text is the *only*
+                        copy of what the gateway said, it runs to 300 characters,
+                        and it is read exactly when something is broken. Hiding
+                        the tail behind a hover made the column useless on touch
+                        and useless in a screenshot — the two ways it actually
+                        gets read. A tall row on a failure is the right trade. */}
                     {p.failureReason && (
                       <span
-                        className="mt-1 block max-w-[22ch] truncate text-[10px] text-zinc-500"
-                        title={p.failureReason}
+                        className="mt-1 block max-w-[46ch] whitespace-pre-wrap break-words text-[10px] leading-relaxed text-zinc-500"
                         dir="auto"
                       >
                         {p.failureReason}

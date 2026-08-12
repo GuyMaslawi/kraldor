@@ -13,71 +13,74 @@ import type {
 
 /**
  * Grow (formerly Meshulam) — the Israeli gateway the diamond store settles
- * through. Written against Grow's "Light API": a hosted payment page plus a
- * server-to-server callback.
+ * through, reached through **Make** rather than through Grow's own API.
+ *
+ * ## Why Make is in the path at all
+ *
+ * Grow's direct "Light API" (`createPaymentProcess`) is a paid add-on that this
+ * account does not have. Without it every call comes back
+ * `{"status":0,"err":{"id":701,"message":"פרמטר קוד זיהוי אינו תקין: userId"}}` —
+ * not a misconfiguration with a value that would fix it, but a closed door:
+ * there is no `userId` to hold. Grow's Make app ships with its own connection
+ * and needs no such add-on, so a Make scenario is the way in. Allura settles
+ * through the same merchant account the same way.
  *
  * ## The flow, and where trust lives
  *
- * 1. `createOrder` POSTs `createPaymentProcess` and gets back a hosted page URL
- *    plus a `processId` / `processToken` pair. The buyer is redirected there.
+ * 1. `createOrder` POSTs the order to a Make scenario, which calls Grow's
+ *    "Create Payment Link" module and answers `{url, processId, processToken}`.
+ *    The buyer is redirected to `url`.
  * 2. The buyer pays on Grow's page (card / Bit / Apple Pay / Google Pay).
  * 3. Grow POSTs our callback and, separately, returns the browser to
  *    `successUrl`.
  * 4. **Neither of those may be believed.** Grow does not sign its callback, so
  *    the callback body is treated as a bare notification — it tells us *which*
  *    order to look at and nothing more. Both the callback and the browser
- *    return call {@link GrowProvider.captureOrder}, which asks Grow directly
- *    what the order is worth, and only that answer reaches
- *    `settleDiamondPurchase`.
+ *    return call {@link GrowProvider.captureOrder}, which asks Grow (through a
+ *    second scenario, "Get Payment Link Info") what the order is worth, and only
+ *    that answer reaches `settleDiamondPurchase`.
  *
  * That is the whole security model, and it is why the amount is never read out
  * of a request body: an unsigned callback is a public endpoint, and a public
  * endpoint that credits diamonds off its own `sum` field is a free diamond
- * printer for anyone who guesses the URL.
+ * printer for anyone who guesses the URL. **The verify scenario is therefore not
+ * optional**, which is the one way this differs from Allura's setup — there the
+ * callback only extends a subscription, so there is nothing worth forging.
  *
  * ## Configuration
  *
  * ```
- * GROW_USER_ID          Grow's id for the business        (from the Grow panel)
- * GROW_PAGE_CODE        Grow's id for the payment page    (from the Grow panel)
- * GROW_CALLBACK_SECRET  ≥24 chars, [A-Za-z0-9] only — the unguessable path
- *                       segment the callback arrives on. Generate with
- *                       `openssl rand -hex 24`. Never reuse another secret.
- * GROW_ENV              "sandbox" (default) | "production"
- * GROW_PAYMENT_METHODS  optional, comma-separated (default "1,6,13,14")
+ * MAKE_GROW_CREATE_LINK_WEBHOOK_URL   scenario 1 — Grow "Create Payment Link"
+ * MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL  scenario 2 — Grow "Get Payment Link Info"
+ * MAKE_GROW_APPROVE_WEBHOOK_URL       optional, scenario 3 — "Approve Transaction"
+ * MAKE_WEBHOOK_API_KEY                optional; sent as the `x-make-apikey`
+ *                                     header Make checks at its own edge
+ * GROW_CALLBACK_SECRET                >=24 chars, [A-Za-z0-9] only — the
+ *                                     unguessable path segment the callback
+ *                                     arrives on. `openssl rand -hex 24`.
+ * GROW_ENV                            "sandbox" (default) | "production"
  * ```
  *
- * The secret lives in the *path*, not a query string, because Grow rejects
- * "special characters" in `notifyUrl` — `?` and `=` included.
+ * The callback secret lives in the *path*, not a query string, because Grow
+ * rejects "special characters" in `notifyUrl` — `?` and `=` included.
  *
- * ## What to re-check against the panel before the first real charge
+ * Payment methods (card, Bit, wallets) are configured on the Grow module inside
+ * the Make scenario, not here: they are a property of the scenario, and a field
+ * we do not send is a field whose mapping cannot be got wrong.
  *
- * Grow's public docs pin down `createPaymentProcess` and the callback payload,
- * but leave the order-lookup parameters and the status-code table underspecified.
- * Both are marked below with `VERIFY:`. Everything unverified fails **closed** —
- * an unrecognised status is "not paid", so the worst case is a real payment
- * sitting PENDING in /admin/purchases, which is recoverable. The opposite
- * default is not.
+ * See `docs/payments-grow-make.md` for how the scenarios are built and the exact
+ * JSON each one must answer with.
  */
 
 /* --------------------------------- config --------------------------------- */
-
-const SANDBOX_BASE = "https://sandbox.meshulam.co.il/api/light/server/1.0";
-const PRODUCTION_BASE = "https://api.meshulam.co.il/api/light/server/1.0";
-
-/**
- * Payment methods offered on the hosted page: credit card, Bit, Apple Pay,
- * Google Pay. Bit and the wallets are half the reason Grow was chosen over a
- * card-only acquirer, so they are on by default rather than opt-in.
- */
-const DEFAULT_PAYMENT_METHODS = [1, 6, 13, 14];
 
 /**
  * Status codes that mean the money moved.
  *
  * VERIFY: taken from Grow's documented callback example (`statusCode: "2"`,
- * `status: "שולם"`). Confirm the full table in the panel before go-live —
- * anything not listed here is treated as unpaid.
+ * `status: "שולם"`). Anything not listed here is treated as unpaid, which leaves
+ * a real payment PENDING and visible in /admin/purchases — recoverable. The
+ * opposite default is not.
  */
 const PAID_STATUS_CODES = new Set(["2"]);
 
@@ -87,51 +90,55 @@ const SECRET_PATTERN = /^[A-Za-z0-9]{24,}$/;
 export type GrowEnv = "sandbox" | "production";
 
 export interface GrowConfig {
-  userId: string;
-  pageCode: string;
+  createLinkUrl: string;
+  paymentInfoUrl: string;
+  /** Empty when scenario 3 was not built — acknowledgement is best-effort. */
+  approveUrl: string;
+  /** Empty when the Make webhooks were left unauthenticated. */
+  apiKey: string;
   callbackSecret: string;
   env: GrowEnv;
-  paymentMethods: number[];
 }
 
 function readEnv(key: string): string {
   return process.env[key]?.trim() ?? "";
 }
 
+/**
+ * Which Grow connection the Make scenarios are pointed at.
+ *
+ * Unlike the direct API — where the sandbox was a different hostname and
+ * therefore self-evident — this is a *declaration*, not something observable
+ * from here: the connection lives inside Make and both look identical over the
+ * webhook. It still drives `isTestMode`, so leaving it unset keeps the store
+ * shut rather than quietly counting sandbox runs as revenue.
+ */
 function growEnv(): GrowEnv {
   return readEnv("GROW_ENV").toLowerCase() === "production" ? "production" : "sandbox";
-}
-
-function paymentMethods(): number[] {
-  const raw = readEnv("GROW_PAYMENT_METHODS");
-  if (!raw) return DEFAULT_PAYMENT_METHODS;
-  const parsed = raw
-    .split(",")
-    .map((part) => Number.parseInt(part.trim(), 10))
-    .filter((n) => Number.isInteger(n) && n > 0);
-  return parsed.length > 0 ? parsed : DEFAULT_PAYMENT_METHODS;
 }
 
 /**
  * Whether Grow is configured, and what is missing if it is not.
  *
  * `partial` is its own state on purpose. A deploy with two of the three
- * credentials set is a deploy that *meant* to take money and silently is not —
- * so it is surfaced by name in the admin's go-live blockers instead of being
- * flattened into "no provider configured".
+ * required values set is a deploy that *meant* to take money and silently is
+ * not — so it is surfaced by name in the admin's go-live blockers instead of
+ * being flattened into "no provider configured".
  */
 export function growConfigStatus():
   | { state: "unset"; missing: string[]; env: GrowEnv }
   | { state: "partial"; missing: string[]; env: GrowEnv }
   | { state: "ready"; missing: never[]; env: GrowEnv; config: GrowConfig } {
   const env = growEnv();
-  const userId = readEnv("GROW_USER_ID");
-  const pageCode = readEnv("GROW_PAGE_CODE");
+  const createLinkUrl = readEnv("MAKE_GROW_CREATE_LINK_WEBHOOK_URL");
+  const paymentInfoUrl = readEnv("MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL");
   const secret = readEnv("GROW_CALLBACK_SECRET");
 
   const missing: string[] = [];
-  if (!userId) missing.push("GROW_USER_ID");
-  if (!pageCode) missing.push("GROW_PAGE_CODE");
+  if (!createLinkUrl) missing.push("MAKE_GROW_CREATE_LINK_WEBHOOK_URL");
+  // Required, not optional. Without the verify scenario the only account of what
+  // a payment was worth is the unsigned callback body — see the module comment.
+  if (!paymentInfoUrl) missing.push("MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL");
   // A secret that exists but is too short or has URL-hostile characters is
   // *missing*, not merely weak: a guessable callback path is the one thing
   // standing between an unsigned public endpoint and a stranger, and Grow will
@@ -144,7 +151,14 @@ export function growConfigStatus():
     state: "ready",
     missing: [],
     env,
-    config: { userId, pageCode, callbackSecret: secret, env, paymentMethods: paymentMethods() },
+    config: {
+      createLinkUrl,
+      paymentInfoUrl,
+      approveUrl: readEnv("MAKE_GROW_APPROVE_WEBHOOK_URL"),
+      apiKey: readEnv("MAKE_WEBHOOK_API_KEY"),
+      callbackSecret: secret,
+      env,
+    },
   };
 }
 
@@ -174,52 +188,45 @@ export function growCallbackSecretMatches(candidate: string): boolean {
 
 /* ------------------------------- transport -------------------------------- */
 
-/** Grow's response envelope: `status` "1" on success, details under `data`. */
-interface GrowEnvelope {
-  status?: string | number;
-  err?: unknown;
-  data?: Record<string, unknown>;
-}
-
-type GrowCall =
+type MakeCall =
   | { ok: true; data: Record<string, unknown> }
   | { ok: false; reason: string };
 
-/** How long a Grow call may hang before the checkout gives up on it. */
-const REQUEST_TIMEOUT_MS = 15_000;
-
-function baseUrl(env: GrowEnv): string {
-  return env === "production" ? PRODUCTION_BASE : SANDBOX_BASE;
-}
+/** How long a scenario may hang before the checkout gives up on it. */
+const REQUEST_TIMEOUT_MS = 20_000;
 
 function str(value: unknown): string {
   return typeof value === "string" ? value : value == null ? "" : String(value);
 }
 
 /**
- * POST one Light API call. Grow takes `multipart/form-data`, not JSON — passing
- * JSON gets a generic failure that looks like bad credentials, which is an
- * afternoon nobody needs to spend twice.
+ * POST one payload to a Make scenario and read its Webhook response as JSON.
  *
- * Never throws: a gateway that is down, slow or shouting HTML is a `reason`
- * string, because every caller is on a path where an exception would either
- * abandon a PENDING row or 500 a webhook Grow would then retry six times.
+ * Never throws: a scenario that is off, slow, or answering with something other
+ * than JSON is a `reason` string, because every caller is on a path where an
+ * exception would either abandon a PENDING row or 500 a webhook Grow would then
+ * retry six times.
+ *
+ * The bare-"Accepted" case gets its own message rather than a generic parse
+ * error. It is what Make answers when a scenario has no *Webhook response*
+ * module — the single most likely way these scenarios get built wrong, and one
+ * that otherwise surfaces as an unreadable parse failure.
  */
-async function growPost(
-  env: GrowEnv,
-  endpoint: string,
-  fields: Record<string, string | number>
-): Promise<GrowCall> {
-  const body = new FormData();
-  for (const [key, value] of Object.entries(fields)) {
-    body.append(key, String(value));
-  }
-
+async function makePost(
+  config: GrowConfig,
+  url: string,
+  label: string,
+  payload: Record<string, unknown>
+): Promise<MakeCall> {
   let res: Response;
   try {
-    res = await fetch(`${baseUrl(env)}/${endpoint}`, {
+    res = await fetch(url, {
       method: "POST",
-      body,
+      headers: {
+        "content-type": "application/json",
+        ...(config.apiKey ? { "x-make-apikey": config.apiKey } : {}),
+      },
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       cache: "no-store",
     });
@@ -227,28 +234,39 @@ async function growPost(
     // i18n-exempt: a `reason` string, logged and shown only in the control
     // centre when a charge is investigated — never rendered to the buyer, who
     // gets the translated `message` instead.
-    return { ok: false, reason: `${endpoint}: הבקשה לספק נכשלה (${str(err)})` };
+    return { ok: false, reason: `${label}: הבקשה ל-Make נכשלה (${str(err)})` };
   }
 
-  let payload: GrowEnvelope;
+  const body = await res.text().catch(() => "");
+
+  if (!res.ok) {
+    // i18n-exempt: an operator-side `reason` — see above.
+    return { ok: false, reason: `${label}: Make החזיר HTTP ${res.status} (${body.slice(0, 200)})` };
+  }
+
+  const trimmed = body.trim();
+  if (trimmed === "Accepted") {
+    return {
+      ok: false,
+      // i18n-exempt: an operator-side `reason` — see above.
+      reason: `${label}: התרחיש ב-Make ענה "Accepted" — חסר לו מודול Webhook response`,
+    };
+  }
+
+  let parsed: unknown;
   try {
-    payload = (await res.json()) as GrowEnvelope;
+    parsed = JSON.parse(trimmed);
   } catch {
     // i18n-exempt: an operator-side `reason` — see above.
-    return { ok: false, reason: `${endpoint}: תשובה לא תקינה מהספק (HTTP ${res.status})` };
+    return { ok: false, reason: `${label}: תשובה שאינה JSON מ-Make (${trimmed.slice(0, 200)})` };
   }
 
-  // Grow answers HTTP 200 with `status: 0` for business errors, so the envelope
-  // — not the status line — decides.
-  if (str(payload.status) !== "1") {
-    const err = payload.err;
-    const detail =
-      // i18n-exempt: an operator-side `reason` — see above.
-      typeof err === "string" ? err : err ? JSON.stringify(err).slice(0, 300) : "ללא פירוט";
-    return { ok: false, reason: `${endpoint}: ${detail}` };
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    // i18n-exempt: an operator-side `reason` — see above.
+    return { ok: false, reason: `${label}: תשובת Make אינה אובייקט (${trimmed.slice(0, 200)})` };
   }
 
-  return { ok: true, data: payload.data ?? {} };
+  return { ok: true, data: parsed as Record<string, unknown> };
 }
 
 /* ------------------------------ field mapping ------------------------------ */
@@ -296,9 +314,10 @@ export class GrowProvider implements OrderPaymentProvider {
   readonly isTestMode: boolean;
 
   constructor(private readonly config: GrowConfig) {
-    // The sandbox host settles nothing, so its charges are test charges — this
-    // is what keeps `arePurchasesLive()` shut while pointed at sandbox, and what
-    // flags the rows `isTest` so sandbox runs never land in a revenue figure.
+    // A sandbox connection settles nothing, so its charges are test charges —
+    // this is what keeps `arePurchasesLive()` shut while pointed at sandbox, and
+    // what flags the rows `isTest` so sandbox runs never land in a revenue
+    // figure.
     this.isTestMode = config.env !== "production";
   }
 
@@ -319,39 +338,33 @@ export class GrowProvider implements OrderPaymentProvider {
     if (!phone) return { ok: false, reason: "מספר טלפון נייד לא תקין" }; // i18n-exempt-end
 
     const base = appBaseUrl();
-    const fields: Record<string, string | number> = {
-      userId: this.config.userId,
-      pageCode: this.config.pageCode,
+    const call = await makePost(this.config, this.config.createLinkUrl, "createPaymentLink", {
       // Whole agorot. A float with a trailing 0.00000001 is a mismatch at
       // settlement time, where the comparison is exact.
       sum: (Math.round(input.amountIls * 100) / 100).toFixed(2),
       description: growSafeText(input.description),
+      fullName: name,
+      phone,
+      email: input.buyer.email,
       successUrl: `${base}/game/diamonds/buy/success`,
       cancelUrl: `${base}/game/diamonds/buy/cancel`,
       notifyUrl: this.callbackUrl(),
-      "pageField[fullName]": name,
-      "pageField[phone]": phone,
-      "pageField[email]": input.buyer.email,
-      chargeType: 1,
-      paymentNum: 1,
       // Our purchase row id, echoed back on the callback. It is the only thing
       // tying Grow's notification to a row of ours, and it is *not* a secret —
       // the callback is verified by re-asking Grow, never by recognising this.
       cField1: input.purchaseId,
-    };
-    this.config.paymentMethods.forEach((method, i) => {
-      fields[`transactionTypes[${i}]`] = method;
     });
-
-    const call = await growPost(this.config.env, "createPaymentProcess", fields);
     if (!call.ok) return { ok: false, reason: call.reason };
 
     const redirectUrl = str(call.data.url);
     const orderId = str(call.data.processId);
     const token = str(call.data.processToken);
     if (!redirectUrl || !orderId || !token) {
-      // i18n-exempt: an operator-side `reason` — see above.
-      return { ok: false, reason: "createPaymentProcess: חסרים url/processId/processToken בתשובה" };
+      return {
+        ok: false,
+        // i18n-exempt: an operator-side `reason` — see above.
+        reason: "createPaymentLink: חסרים url/processId/processToken בתשובת התרחיש",
+      };
     }
 
     return { ok: true, orderId, redirectUrl, token };
@@ -364,13 +377,7 @@ export class GrowProvider implements OrderPaymentProvider {
       return { ok: false, reason: "אין processToken לאימות מול הספק" };
     }
 
-    // VERIFY: parameter names for the order lookup are not pinned down in
-    // Grow's public docs. `pageCode` + `processId` + `processToken` is the
-    // documented shape everywhere it appears; confirm in the panel before the
-    // first real charge. A wrong name surfaces as a business error here, which
-    // fails closed (the purchase stays PENDING and shows in /admin/purchases).
-    const call = await growPost(this.config.env, "getPaymentProcessInfo", {
-      pageCode: this.config.pageCode,
+    const call = await makePost(this.config, this.config.paymentInfoUrl, "getPaymentInfo", {
       processId: ref.orderId,
       processToken: ref.token,
     });
@@ -389,13 +396,13 @@ export class GrowProvider implements OrderPaymentProvider {
     const captureId = str(call.data.transactionId);
     if (!captureId) {
       // i18n-exempt: an operator-side `reason` — see above.
-      return { ok: false, reason: "getPaymentProcessInfo: חסר transactionId בתשובה" };
+      return { ok: false, reason: "getPaymentInfo: חסר transactionId בתשובה" };
     }
 
     const amount = Number(call.data.sum);
     if (!Number.isFinite(amount)) {
       // i18n-exempt: an operator-side `reason` — see above.
-      return { ok: false, reason: `getPaymentProcessInfo: sum לא מספרי (${str(call.data.sum)})` };
+      return { ok: false, reason: `getPaymentInfo: sum לא מספרי (${str(call.data.sum)})` };
     }
 
     // Grow settles in shekels only, so the currency is a constant rather than a
@@ -406,7 +413,7 @@ export class GrowProvider implements OrderPaymentProvider {
       captureId,
       amount,
       currency: STORE_CURRENCY,
-      purchaseId: readCustomField(call.data, "cField1") || null,
+      purchaseId: str(call.data.cField1) || null,
     };
   }
 
@@ -418,35 +425,24 @@ export class GrowProvider implements OrderPaymentProvider {
    * already credited by the time this runs, so a failure here costs at most a
    * duplicate notification — which the settlement guard swallows. Skipping it,
    * on the other hand, makes Grow retry the callback six times over an hour.
+   * Absent scenario 3 it is skipped entirely, which is exactly that trade.
    */
   async acknowledge(ref: OrderRef, captureId: string): Promise<void> {
-    await growPost(this.config.env, "approveTransaction", {
-      pageCode: this.config.pageCode,
+    if (!this.config.approveUrl) return;
+    await makePost(this.config, this.config.approveUrl, "approveTransaction", {
       processId: ref.orderId,
       transactionId: captureId,
     });
   }
 }
 
-/** Grow's custom fields arrive nested under `customFields` on the callback. */
-function readCustomField(data: Record<string, unknown>, key: string): string {
-  const direct = data[key];
-  if (typeof direct === "string" && direct) return direct;
-  const custom = data.customFields;
-  if (custom && typeof custom === "object") {
-    const value = (custom as Record<string, unknown>)[key];
-    if (typeof value === "string") return value;
-  }
-  return "";
-}
-
 /**
  * The Grow provider, or null when it is not fully configured.
  *
- * A *partial* configuration also returns null: a provider missing its page code
- * would fail every checkout with a gateway error, which is strictly worse than
- * staying on the mock. The gap is reported instead — see `growConfigStatus` and
- * `purchaseBlockers`.
+ * A *partial* configuration also returns null: a provider missing its verify
+ * scenario would either fail every settlement or, far worse, invite someone to
+ * remove the check — which is strictly worse than staying on the mock. The gap
+ * is reported instead — see `growConfigStatus` and `purchaseBlockers`.
  */
 export function growProvider(): OrderPaymentProvider | null {
   const config = growConfig();

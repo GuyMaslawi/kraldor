@@ -12,32 +12,41 @@ import {
 /**
  * The Grow gateway, tested where it is actually dangerous.
  *
+ * Grow is reached through Make scenarios rather than its own API (the direct
+ * Light API is a paid add-on this account does not have — see
+ * `docs/payments-grow-make.md`), so what these tests pin down is the contract
+ * with those scenarios: what we POST them, and what we do with what they answer.
+ *
  * Two things here are worth a test and the rest is plumbing:
  *
  * 1. **Nothing credits off an unverified answer.** `captureOrder` is the only
  *    source of a payment's amount, and it has to fail closed on every shape it
  *    does not positively recognise — an unpaid status, a missing transaction id,
- *    a non-numeric sum. Getting this wrong turns an unsigned public callback
- *    into a diamond printer, so each way of getting it wrong gets its own case.
+ *    a non-numeric sum, a scenario that answered with something other than JSON.
+ *    Getting this wrong turns an unsigned public callback into a diamond
+ *    printer, so each way of getting it wrong gets its own case.
  * 2. **The request Grow receives is the request we meant.** The gateway
  *    validates the name and phone formats itself, but only *after* a PENDING
  *    purchase row exists — and the callback URL is the endpoint's only
  *    credential, so a malformed one silently loses every payment notification.
  *
  * The tests drive real env vars and a stubbed `fetch` rather than mocking the
- * provider, because the mapping between our fields and Grow's is exactly the
- * part that has no other check on it.
+ * provider, because the mapping between our fields and the scenarios' is exactly
+ * the part that has no other check on it.
  */
 
 const SECRET = "a".repeat(32);
+const CREATE_URL = "https://hook.eu1.make.com/create";
+const INFO_URL = "https://hook.eu1.make.com/info";
 
 /** Env keys this file owns; restored after every case. */
 const KEYS = [
-  "GROW_USER_ID",
-  "GROW_PAGE_CODE",
+  "MAKE_GROW_CREATE_LINK_WEBHOOK_URL",
+  "MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL",
+  "MAKE_GROW_APPROVE_WEBHOOK_URL",
+  "MAKE_WEBHOOK_API_KEY",
   "GROW_CALLBACK_SECRET",
   "GROW_ENV",
-  "GROW_PAYMENT_METHODS",
   "NEXT_PUBLIC_APP_URL",
 ] as const;
 
@@ -57,28 +66,27 @@ afterEach(() => {
 });
 
 function configure(overrides: Partial<Record<(typeof KEYS)[number], string>> = {}) {
-  process.env.GROW_USER_ID = "user-1";
-  process.env.GROW_PAGE_CODE = "page-1";
+  process.env.MAKE_GROW_CREATE_LINK_WEBHOOK_URL = CREATE_URL;
+  process.env.MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL = INFO_URL;
   process.env.GROW_CALLBACK_SECRET = SECRET;
   process.env.NEXT_PUBLIC_APP_URL = "https://kraldor.example";
   for (const [key, value] of Object.entries(overrides)) process.env[key] = value;
 }
 
-/** Stub `fetch` with a canned envelope and capture what was sent. */
-function stubGrow(envelope: unknown, status = 200) {
-  const calls: { url: string; fields: Record<string, string> }[] = [];
+/** Stub `fetch` with a canned scenario response and capture what was sent. */
+function stubMake(response: unknown, status = 200) {
+  const calls: { url: string; headers: Record<string, string>; body: Record<string, unknown> }[] =
+    [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init: RequestInit) => {
-      const fields: Record<string, string> = {};
-      for (const [key, value] of (init.body as FormData).entries()) {
-        fields[key] = String(value);
-      }
-      calls.push({ url: String(url), fields });
-      return new Response(JSON.stringify(envelope), {
-        status,
-        headers: { "content-type": "application/json" },
+      calls.push({
+        url: String(url),
+        headers: (init.headers ?? {}) as Record<string, string>,
+        body: JSON.parse(String(init.body)),
       });
+      const text = typeof response === "string" ? response : JSON.stringify(response);
+      return new Response(text, { status });
     })
   );
   return calls;
@@ -155,11 +163,28 @@ describe("growConfigStatus", () => {
   });
 
   it("reports a partial configuration by name instead of failing every checkout", () => {
-    process.env.GROW_USER_ID = "user-1";
+    process.env.MAKE_GROW_CREATE_LINK_WEBHOOK_URL = CREATE_URL;
     const status = growConfigStatus();
     expect(status.state).toBe("partial");
-    expect(status.missing).toEqual(["GROW_PAGE_CODE", "GROW_CALLBACK_SECRET"]);
+    expect(status.missing).toEqual([
+      "MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL",
+      "GROW_CALLBACK_SECRET",
+    ]);
     // Still null: a half-configured gateway must not take the seat from the mock.
+    expect(growProvider()).toBeNull();
+  });
+
+  it("refuses to run without the verify scenario", () => {
+    /**
+     * The one difference from Allura's setup, and the reason it gets its own
+     * case: there the callback only extends a subscription, so a missing verify
+     * step costs nothing. Here it is the only thing standing between an unsigned
+     * public endpoint and free diamonds, so its absence has to keep the whole
+     * provider off rather than degrade to trusting the callback body.
+     */
+    configure();
+    delete process.env.MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL;
+    expect(growConfigStatus().missing).toContain("MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL");
     expect(growProvider()).toBeNull();
   });
 
@@ -168,6 +193,12 @@ describe("growConfigStatus", () => {
     expect(growConfigStatus().state).toBe("partial");
     configure({ GROW_CALLBACK_SECRET: `${"a".repeat(30)}/../` });
     expect(growConfigStatus().state).toBe("partial");
+  });
+
+  it("runs without the optional approve scenario", () => {
+    configure();
+    expect(growConfigStatus().state).toBe("ready");
+    expect(growProvider()).not.toBeNull();
   });
 
   it("defaults to sandbox, and sandbox charges are test charges", () => {
@@ -208,13 +239,12 @@ const ORDER = {
   buyer: { name: "ישראל ישראלי", phone: "050-123-4567", email: "buyer@example.com" },
 };
 
+const LINK = { url: "https://pay.example/p/1", processId: "332002", processToken: "tok-1" };
+
 describe("createOrder", () => {
   it("sends the fields Grow validates, in the shapes it validates them", async () => {
     configure();
-    const calls = stubGrow({
-      status: "1",
-      data: { url: "https://pay.example/p/1", processId: "332002", processToken: "tok-1" },
-    });
+    const calls = stubMake(LINK);
 
     const result = await growProvider()!.createOrder(ORDER);
     expect(result).toMatchObject({
@@ -224,39 +254,37 @@ describe("createOrder", () => {
       token: "tok-1",
     });
 
-    const { url, fields } = calls[0];
-    expect(url).toContain("sandbox.meshulam.co.il");
-    expect(url.endsWith("/createPaymentProcess")).toBe(true);
+    const { url, body } = calls[0];
+    expect(url).toBe(CREATE_URL);
     // Two decimals, always: the settlement comparison is exact, and a float that
     // serialises as "69.900000000000006" is a mismatch that refuses a real payment.
-    expect(fields.sum).toBe("69.90");
-    expect(fields["pageField[phone]"]).toBe("0501234567");
-    expect(fields["pageField[fullName]"]).toBe("ישראל ישראלי");
+    expect(body.sum).toBe("69.90");
+    expect(body.phone).toBe("0501234567");
+    expect(body.fullName).toBe("ישראל ישראלי");
     // Our row id is the only thread from the callback back to a purchase.
-    expect(fields.cField1).toBe("purchase-1");
+    expect(body.cField1).toBe("purchase-1");
     // The secret rides in the path — Grow rejects query strings in notifyUrl.
-    expect(fields.notifyUrl).toBe(`https://kraldor.example/api/pay/grow/${SECRET}`);
-    expect(fields.successUrl).toBe("https://kraldor.example/game/diamonds/buy/success");
-    expect(fields.cancelUrl).toBe("https://kraldor.example/game/diamonds/buy/cancel");
-    // Card, Bit, Apple Pay, Google Pay by default.
-    expect(fields["transactionTypes[0]"]).toBe("1");
-    expect(fields["transactionTypes[1]"]).toBe("6");
+    expect(body.notifyUrl).toBe(`https://kraldor.example/api/pay/grow/${SECRET}`);
+    expect(body.successUrl).toBe("https://kraldor.example/game/diamonds/buy/success");
+    expect(body.cancelUrl).toBe("https://kraldor.example/game/diamonds/buy/cancel");
   });
 
-  it("honours a narrowed payment-method list", async () => {
-    configure({ GROW_PAYMENT_METHODS: "1" });
-    const calls = stubGrow({
-      status: "1",
-      data: { url: "u", processId: "1", processToken: "t" },
-    });
+  it("authenticates to Make when a key is configured, and omits the header otherwise", async () => {
+    configure({ MAKE_WEBHOOK_API_KEY: "key-1" });
+    const withKey = stubMake(LINK);
     await growProvider()!.createOrder(ORDER);
-    expect(calls[0].fields["transactionTypes[0]"]).toBe("1");
-    expect(calls[0].fields["transactionTypes[1]"]).toBeUndefined();
+    expect(withKey[0].headers["x-make-apikey"]).toBe("key-1");
+
+    configure();
+    delete process.env.MAKE_WEBHOOK_API_KEY;
+    const without = stubMake(LINK);
+    await growProvider()!.createOrder(ORDER);
+    expect(without[0].headers["x-make-apikey"]).toBeUndefined();
   });
 
   it("rejects a bad name or phone before opening anything at the gateway", async () => {
     configure();
-    const calls = stubGrow({ status: "1", data: {} });
+    const calls = stubMake(LINK);
 
     const noSurname = await growProvider()!.createOrder({
       ...ORDER,
@@ -272,21 +300,35 @@ describe("createOrder", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("treats a business error as a failure even though the HTTP status is 200", async () => {
+  it("names the missing Webhook response module instead of a parse error", async () => {
+    /**
+     * What Make answers when a scenario has no *Webhook response* module — the
+     * single most likely way these scenarios get built wrong. Worth its own case
+     * because the generic message ("not JSON") sends whoever reads it looking at
+     * the wrong thing entirely.
+     */
     configure();
-    stubGrow({ status: "0", err: { message: "invalid pageCode" } });
+    stubMake("Accepted");
+    const result = await growProvider()!.createOrder(ORDER);
+    expect(result.ok).toBe(false);
+    expect((result as { reason: string }).reason).toContain("Webhook response");
+  });
+
+  it("fails when the scenario answers without a payment page", async () => {
+    configure();
+    stubMake({ processId: "332002" });
     const result = await growProvider()!.createOrder(ORDER);
     expect(result.ok).toBe(false);
   });
 
-  it("fails when the gateway answers without a payment page", async () => {
+  it("fails when the scenario itself errored", async () => {
     configure();
-    stubGrow({ status: "1", data: { processId: "332002" } });
+    stubMake("Internal Server Error", 500);
     const result = await growProvider()!.createOrder(ORDER);
     expect(result.ok).toBe(false);
   });
 
-  it("never throws when the gateway is unreachable", async () => {
+  it("never throws when Make is unreachable", async () => {
     configure();
     vi.stubGlobal(
       "fetch",
@@ -301,20 +343,16 @@ describe("createOrder", () => {
 /* ------------------------------- captureOrder ------------------------------ */
 
 const PAID = {
-  status: "1",
-  data: {
-    statusCode: "2",
-    status: "שולם",
-    transactionId: "145111110",
-    sum: "69.9",
-    customFields: { cField1: "purchase-1" },
-  },
+  statusCode: "2",
+  transactionId: "145111110",
+  sum: "69.9",
+  cField1: "purchase-1",
 };
 
 describe("captureOrder", () => {
   it("reports the amount Grow says was paid, not one anybody sent us", async () => {
     configure();
-    const calls = stubGrow(PAID);
+    const calls = stubMake(PAID);
     const result = await growProvider()!.captureOrder({ orderId: "332002", token: "tok-1" });
 
     expect(result).toMatchObject({
@@ -324,14 +362,15 @@ describe("captureOrder", () => {
       currency: "ILS",
       purchaseId: "purchase-1",
     });
-    expect(calls[0].fields.processId).toBe("332002");
-    expect(calls[0].fields.processToken).toBe("tok-1");
+    expect(calls[0].url).toBe(INFO_URL);
+    expect(calls[0].body.processId).toBe("332002");
+    expect(calls[0].body.processToken).toBe("tok-1");
   });
 
   it("fails closed on any status it does not positively recognise as paid", async () => {
     configure();
     for (const statusCode of ["0", "1", "3", "", "2 "]) {
-      stubGrow({ ...PAID, data: { ...PAID.data, statusCode } });
+      stubMake({ ...PAID, statusCode });
       const result = await growProvider()!.captureOrder({ orderId: "1", token: "t" });
       expect(result.ok, `statusCode=${JSON.stringify(statusCode)}`).toBe(false);
     }
@@ -340,18 +379,51 @@ describe("captureOrder", () => {
   it("fails closed when the transaction id or sum is unusable", async () => {
     configure();
 
-    stubGrow({ ...PAID, data: { ...PAID.data, transactionId: "" } });
+    stubMake({ ...PAID, transactionId: "" });
     expect((await growProvider()!.captureOrder({ orderId: "1", token: "t" })).ok).toBe(false);
 
-    stubGrow({ ...PAID, data: { ...PAID.data, sum: "לא מספר" } });
+    stubMake({ ...PAID, sum: "לא מספר" });
+    expect((await growProvider()!.captureOrder({ orderId: "1", token: "t" })).ok).toBe(false);
+  });
+
+  it("fails closed when the scenario answers with something other than JSON", async () => {
+    /**
+     * A misbuilt verify scenario must never read as a paid order. This is the
+     * case that keeps "the scenario broke" and "the money moved" on opposite
+     * sides of the credit decision.
+     */
+    configure();
+    stubMake("Accepted");
+    expect((await growProvider()!.captureOrder({ orderId: "1", token: "t" })).ok).toBe(false);
+
+    stubMake("<html>gateway timeout</html>");
     expect((await growProvider()!.captureOrder({ orderId: "1", token: "t" })).ok).toBe(false);
   });
 
   it("refuses to ask at all without the order's lookup token", async () => {
     configure();
-    const calls = stubGrow(PAID);
+    const calls = stubMake(PAID);
     const result = await growProvider()!.captureOrder({ orderId: "332002", token: null });
     expect(result.ok).toBe(false);
     expect(calls).toHaveLength(0);
+  });
+});
+
+/* ------------------------------- acknowledge ------------------------------- */
+
+describe("acknowledge", () => {
+  it("is skipped entirely when the optional scenario was not built", async () => {
+    configure();
+    const calls = stubMake({});
+    await growProvider()!.acknowledge?.({ orderId: "1", token: "t" }, "cap-1");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("tells Grow the notification was taken when it was", async () => {
+    configure({ MAKE_GROW_APPROVE_WEBHOOK_URL: "https://hook.eu1.make.com/approve" });
+    const calls = stubMake({});
+    await growProvider()!.acknowledge?.({ orderId: "332002", token: "t" }, "145111110");
+    expect(calls[0].url).toBe("https://hook.eu1.make.com/approve");
+    expect(calls[0].body).toMatchObject({ processId: "332002", transactionId: "145111110" });
   });
 });

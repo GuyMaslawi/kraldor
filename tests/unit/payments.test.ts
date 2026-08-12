@@ -28,8 +28,8 @@ import { arePurchasesLive, getPaymentProvider, purchaseBlockers } from "@/server
  */
 
 const KEYS = [
-  "GROW_USER_ID",
-  "GROW_PAGE_CODE",
+  "MAKE_GROW_CREATE_LINK_WEBHOOK_URL",
+  "MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL",
   "GROW_CALLBACK_SECRET",
   "GROW_ENV",
   "DIAMOND_PURCHASES_LIVE",
@@ -60,8 +60,8 @@ afterEach(() => {
 
 /** A complete Grow configuration. The secret must survive `SECRET_PATTERN`. */
 function configureGrow(env: "sandbox" | "production") {
-  process.env.GROW_USER_ID = "user-1";
-  process.env.GROW_PAGE_CODE = "page-1";
+  process.env.MAKE_GROW_CREATE_LINK_WEBHOOK_URL = "https://hook.eu1.make.com/create";
+  process.env.MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL = "https://hook.eu1.make.com/info";
   process.env.GROW_CALLBACK_SECRET = "a".repeat(32);
   process.env.GROW_ENV = env;
 }
@@ -101,8 +101,8 @@ describe("getPaymentProvider", () => {
   });
 
   it("stays on the mock when Grow is only half-configured", () => {
-    process.env.GROW_USER_ID = "user-1";
-    process.env.GROW_PAGE_CODE = "page-1";
+    process.env.MAKE_GROW_CREATE_LINK_WEBHOOK_URL = "https://hook.eu1.make.com/create";
+    process.env.MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL = "https://hook.eu1.make.com/info";
     // No callback secret: the callback would be unauthenticated, and Grow would
     // refuse the notifyUrl anyway.
     expect(getPaymentProvider().name).toBe("mock");
@@ -120,9 +120,9 @@ describe("getPaymentProvider", () => {
 
 describe("purchaseBlockers", () => {
   it("names the missing Grow variable rather than reporting 'no provider'", () => {
-    process.env.GROW_USER_ID = "user-1";
+    process.env.MAKE_GROW_CREATE_LINK_WEBHOOK_URL = "https://hook.eu1.make.com/create";
     const blockers = purchaseBlockers().join("|");
-    expect(blockers).toContain("GROW_PAGE_CODE");
+    expect(blockers).toContain("MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL");
     expect(blockers).toContain("GROW_CALLBACK_SECRET");
   });
 

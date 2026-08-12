@@ -35,8 +35,10 @@ VERCEL="npx --yes vercel@latest"
 # Preview still gets them because a preview that cannot open a checkout cannot
 # be used to test one; just know that the charge is real when you do.
 BOTH=(
-  GROW_USER_ID
-  GROW_PAGE_CODE
+  MAKE_GROW_CREATE_LINK_WEBHOOK_URL
+  MAKE_GROW_PAYMENT_INFO_WEBHOOK_URL
+  MAKE_GROW_APPROVE_WEBHOOK_URL
+  MAKE_WEBHOOK_API_KEY
   GROW_CALLBACK_SECRET
   GROW_ENV
   LEGAL_OPERATOR_TAX_ID

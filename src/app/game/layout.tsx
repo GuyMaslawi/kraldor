@@ -28,6 +28,7 @@ import { ImpersonationBanner } from "@/components/game/ImpersonationBanner";
 import { WarAlerts } from "@/components/game/WarAlerts";
 import { ChatDock } from "@/components/game/ChatDock";
 import { ActivePotions } from "@/components/game/ActivePotions";
+import { FervorGauge } from "@/components/game/FervorGauge";
 import { getActivePotionExpiries } from "@/lib/game/potionEffects";
 import { MiniGameButton } from "@/components/game/MiniGameButton";
 import { VipQuickCommand } from "@/components/game/VipQuickCommand";
@@ -280,6 +281,19 @@ export default async function GameLayout({ children }: { children: ReactNode }) 
               <VipQuickCommand isVip={isVip(empire)} />
               <ActivePotions
                 activeUntil={potionActiveUntil}
+                serverNow={now.getTime()}
+              />
+              {/* להט הקרב belongs in this row and not with the balances: it is
+                  not a thing the player owns, it is a thing that is currently
+                  true about their numbers — the same question the potions and
+                  the tick countdown beside it answer. Costs nothing to render;
+                  every column it reads is already on the `empire` row. */}
+              <FervorGauge
+                points={empire.fervorPoints}
+                at={empire.fervorAt?.getTime() ?? null}
+                hotUsed={
+                  empire.fervorDay === gameDay(now) ? empire.fervorHotAttacks : 0
+                }
                 serverNow={now.getTime()}
               />
               <UpdateTimers

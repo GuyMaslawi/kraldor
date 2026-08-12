@@ -4166,4 +4166,25 @@ export const EN: Record<string, string> = {
   "חשבונות הנהלה אינם משתתפים בזירה.":
     "Staff accounts do not take part in the arena.",
 
+  /* ------------------------------------------------------------------ */
+  /* להט הקרב — the presence boost                                       */
+  /* ------------------------------------------------------------------ */
+
+  /* The rungs. "ניצוץ" is already keyed above (Spark) and is deliberately not
+     repeated here — a duplicate key would silently shadow the first. */
+  "להבה": "Flame",
+  "מדורה": "Bonfire",
+  "שריפה": "Blaze",
+
+  "להט הקרב — כל פעולה שאתה מבצע מחממת את המד, ונקודה דועכת ממנו כל {minutes} דקות.":
+    "Battle Fervor — every action you take stokes the meter, and it sheds a point every {minutes} minutes.",
+  "כשהמד לוהט, הביזה שאתה לוקח מאימפריה מובסת גדולה יותר — עד {max} תקיפות מנצחות ביום.":
+    "While the meter burns, you plunder more from a beaten empire — for up to {max} winning attacks a day.",
+  "התורות עצמן נצברות כרגיל גם כשאתה לא מחובר. הלהט משנה כמה כל תורה שווה.":
+    "Turns themselves accrue as they always did, offline included. Fervor changes what each turn is worth.",
+  "→ {tier} בעוד {n}": "→ {tier} in {n}",
+  "להט הקרב הגדיל את הביזה ב-{pct}%": "Battle Fervor increased the plunder by {pct}%",
+  "התוקף היה בלהט קרב — הביזה גדלה ב-{pct}%":
+    "The attacker was in battle fervor — the plunder grew by {pct}%",
+
 };

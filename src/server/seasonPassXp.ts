@@ -1,9 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { lastDailyUpdate } from "@/lib/game/time";
 import { SEASON_PASS_XP, type SeasonPassAction } from "@/lib/game/seasonPass";
+import { bumpFervor } from "@/server/fervor";
 
 /**
- * Add season-pass XP for a gameplay action.
+ * Add season-pass XP for a gameplay action — and heat that player's להט הקרב.
  *
  * Deliberately NOT in a `"use server"` module: it takes a transaction client,
  * so it can only ever be called from server code inside an open transaction.
@@ -13,6 +14,31 @@ import { SEASON_PASS_XP, type SeasonPassAction } from "@/lib/game/seasonPass";
  * commit together. It never throws — season-pass progress is a side benefit,
  * and a failure here must not roll back the attack or upgrade the player
  * actually asked for.
+ *
+ * ## Why the fervor meter rides here
+ *
+ * This function is already the game's single "a tracked player action happened"
+ * choke point: twenty call sites across ten modules — attacks, spies, mine and
+ * empire upgrades, weapons, minigames, wheel spins, hero quests, boss fights,
+ * monuments — and the taxonomy of what counts as an action is exactly the
+ * taxonomy fervor needs. Bumping the meter here rather than at those twenty
+ * sites means no site can forget, and a feature added next month is covered the
+ * day it starts awarding pass XP.
+ *
+ * That the meter is fed by *every* action and not only by turn-spending ones is
+ * load-bearing, not incidental. A player on turns-upgrade level 1 has 288 turns
+ * a day — 28 attacks — and if raids were the only way to warm the meter he
+ * would have to spend most of his day's fuel reaching a multiplier the whale
+ * reaches with 17% of his. Free actions are what make the ladder climbable from
+ * the bottom.
+ *
+ * The `units === 0` early return below is inherited on purpose: a spend too
+ * small to earn pass XP is too small to heat the meter, so the existing
+ * anti-micro-transaction gate protects fervor for free.
+ *
+ * The one thing this coupling costs: fervor now depends on the season pass's
+ * action taxonomy. If that taxonomy is ever reworked, this call has to be
+ * re-homed rather than deleted with it.
  */
 export async function awardSeasonPassXp(
   tx: Prisma.TransactionClient,
@@ -26,6 +52,11 @@ export async function awardSeasonPassXp(
   // undo the spend gate entirely.
   const units = Math.max(0, Math.floor(times));
   if (units === 0) return;
+
+  // One click, one point — never `units`. A max-out upgrade that awards five
+  // levels of pass XP is still a single decision by a single present player,
+  // and paying it five points would let one button jump two tiers.
+  await bumpFervor(tx, empireId, new Date());
 
   const amount = SEASON_PASS_XP[action] * units;
   const cycleStart = lastDailyUpdate(new Date());

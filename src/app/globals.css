@@ -640,6 +640,32 @@ body {
   }
 }
 
+/* --- להט הקרב at its top rung. The meter is the one chip in the header that
+       the player earned in the last few minutes and will lose in the next few,
+       so שריפה breathes while the three rungs below it sit still — the same
+       grammar the rare titles use, where a glow means "this was earned".
+       Confined to the glow: this rides beside a live countdown, and a scaling
+       icon next to ticking digits reads as a fault. --- */
+@keyframes fervor-blaze {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 1px rgba(249, 115, 22, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.95));
+  }
+}
+.fervor-blaze {
+  animation: fervor-blaze 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fervor-blaze {
+    animation: none;
+    filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.8));
+  }
+}
+
 /* --- Unspent hero points — slow gold pulse so the player can't miss it --- */
 @keyframes points-pulse {
   0%,

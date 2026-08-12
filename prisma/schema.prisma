@@ -570,6 +570,26 @@ model Empire {
   /// breaks, so the board has something to show for the twelve days that were
   /// lost and the profile has a figure worth wearing.
   streakBest          Int            @default(0)
+  /// להט הקרב — the presence boost (see src/lib/game/fervor.ts).
+  ///
+  /// Four columns and no job, for the same reason the streak above is two
+  /// integers and no job: nothing may run while the player is away. The meter's
+  /// decay is *derived* at read time by `fervorNow`, never written by a sweep.
+  ///
+  /// `fervorPoints` is what the meter was worth at `fervorAt` — and `fervorAt`
+  /// is emphatically NOT "when the player last acted". It advances only in whole
+  /// FERVOR_DECAY_MS periods, carrying the sub-period remainder forward, because
+  /// decay is floored: stamping it to `now` on every action would let a player
+  /// acting every 1:59 pay `floor(0.99) = 0` decay forever and pin the meter at
+  /// its cap. See `bumpedFervor`, which is the only thing that may write these.
+  fervorPoints        Int            @default(0)
+  fervorAt            DateTime?
+  /// The Jerusalem game day (`gameDay`) of the counter below, and how many
+  /// winning attacks that day were already paid at the boosted rate. Same shape
+  /// as `streakDay` — a stale day reads as a fresh allowance on the next attack
+  /// rather than being cleared at midnight by something that has to be running.
+  fervorDay           Int            @default(0)
+  fervorHotAttacks    Int            @default(0)
   /// New-player shield: while this is in the future the empire cannot be
   /// attacked or spied. Set at registration; cleared early the moment the
   /// player launches their own first attack or spy (see attackEmpire/spyOnEmpire).
@@ -2102,6 +2122,19 @@ model BattleReport {
   // a won battle can still end with an empty haul.
   defenderResourceShielded Boolean @default(false)
   defenderSoldierShielded  Boolean @default(false)
+
+  /// להט הקרב at the moment this raid resolved, as a percent on top of the haul
+  /// (50 = ×1.5). Null when the meter was cold, when the day's allowance of
+  /// boosted attacks was already spent, or when the raid paid nothing anyway —
+  /// i.e. null means "the meter did not change this report".
+  ///
+  /// Snapshotted rather than recomputed for the same reason every `…BonusPct`
+  /// above is: the report is a record of a battle that happened, and the meter
+  /// it was fought under has decayed by the time anybody reads it.
+  ///
+  /// Deliberately NOT part of `battlePowerLedger` — that ledger itemises the
+  /// terms of the *power* comparison, and this modifies the haul, not who won.
+  attackerFervorPct Float?
 
   attackerEmpire Empire @relation("BattleAttacker", fields: [attackerEmpireId], references: [id], onDelete: Cascade)
   defenderEmpire Empire @relation("BattleDefender", fields: [defenderEmpireId], references: [id], onDelete: Cascade)

@@ -362,6 +362,22 @@ export default async function BattleResultPage({
               </div>
             ))}
           </div>
+          {/* Why the haul was bigger than the usual tenth. Shown to both sides:
+              the attacker learns what the meter bought him, and the defender
+              learns why this raid hurt more than the last one — a number that
+              changes the loot and is never explained is read as a bug. */}
+          {report.attackerFervorPct != null && (
+            <p className="mt-3 text-center text-[11px] text-orange-300/90">
+              <Icon name="spark" size={13} className="inline-block align-middle" />{" "}
+              {iAmAttacker
+                ? t("להט הקרב הגדיל את הביזה ב-{pct}%", {
+                    pct: report.attackerFervorPct,
+                  })
+                : t("התוקף היה בלהט קרב — הביזה גדלה ב-{pct}%", {
+                    pct: report.attackerFervorPct,
+                  })}
+            </p>
+          )}
         </div>
       )}
 

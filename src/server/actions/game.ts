@@ -60,6 +60,9 @@ import { applyShopDiscount } from "@/lib/game/diamondShop";
 import { getActivePotionKinds, grantPotion } from "@/lib/game/potionEffects";
 import { POTION_DOUBLE, rollPotionDrop } from "@/lib/game/potions";
 import { getLiveHappyHour, happyHourFactor } from "@/server/happyHour";
+import { livePoints } from "@/server/fervor";
+import { fervorMultiplier, hotAttackDecision } from "@/lib/game/fervor";
+import { gameDay } from "@/lib/game/time";
 import { armyPower, getEmpireIntelPower } from "@/lib/game/power";
 import {
   CITIZENS_PER_LEVEL,
@@ -1270,6 +1273,25 @@ export async function attackEmpire(
       // had running rather than replacing it.
       const happyHour = await getLiveHappyHour(tx, now);
 
+      // להט הקרב — the attacker's own presence meter, read here for the same
+      // reason as the two above: one consistent view of every multiplier before
+      // the battle resolves. Unlike Happy Hour this one is personal, and unlike
+      // a potion it was earned in the last few minutes rather than bought.
+      //
+      // Read from the locked `attacker` row rather than re-queried: the FOR
+      // UPDATE at the top of this transaction is what makes it current, and a
+      // second read would only widen the window this lock exists to close.
+      //
+      // Crucially this is read *before* the bump at the end of the battle, so an
+      // attack never feeds its own multiplier.
+      const attackerFervor = livePoints(attacker, now);
+      const fervor = hotAttackDecision(
+        attacker.fervorDay,
+        attacker.fervorHotAttacks,
+        gameDay(now),
+        attackerFervor
+      );
+
       // Paid raid shields, read under the same locks for the same reason. They
       // don't stop the raid — the battle resolves, the hero takes his blow and
       // the attacker still earns XP and loot rolls — they only put the
@@ -1369,11 +1391,24 @@ export async function attackEmpire(
       // a ×10 window and a potion up the raw rate runs past 100%, and a haul
       // that claims to take more than the defender owns is a lie the clamp
       // below silently corrects — better to say "everything" and mean it.
+      // להט הקרב rides here too, and only here — the meter boosts what a turn is
+      // *worth*, never how fast turns arrive. Plunder is a transfer between two
+      // players, so a multiplier on it moves resources around the map without
+      // minting any: the one boost in the game that cannot inflate an economy
+      // already ceilinged at 999P.
+      //
+      // A slot is spent only on a raid that actually pays. A loss takes nothing
+      // and a resource-shielded defender hands over nothing, and burning the
+      // day's allowance on a haul of zero would punish exactly the player the
+      // allowance exists to protect.
+      const fervorHot = attackerWins && !resourceShielded && fervor.hot;
+      const fervorPlunder = fervorHot ? fervorMultiplier(attackerFervor) : 1;
       const plunderRate = Math.min(
         1,
         PLUNDER_RATE *
           (attackerPotions.has("DOUBLE_RESOURCES") ? POTION_DOUBLE : 1) *
-          happyHourFactor(happyHour, "boostPlunder")
+          happyHourFactor(happyHour, "boostPlunder") *
+          fervorPlunder
       );
       // מגן משאבים zeroes the haul outright — the raid is won, the vaults hold.
       const stolen =
@@ -1602,6 +1637,23 @@ export async function attackEmpire(
         }
       }
 
+      /* ---- להט הקרב: spend the day's slot, then credit the action ---- */
+      // The counter and the meter are written in that order and for different
+      // reasons. The slot is consumed only if this raid was actually paid at the
+      // boosted rate (`fervorHot`), and the day is stamped alongside it so a
+      // stale `fervorDay` rolls over here rather than in something that has to
+      // be running at midnight — the same trick the daily streak uses.
+      if (fervorHot) {
+        await tx.empire.update({
+          where: { id: empireId },
+          data: { fervorDay: gameDay(now), fervorHotAttacks: fervor.nextHot },
+        });
+      }
+      // The meter itself is heated further down by `awardSeasonPassXp`, which is
+      // where every tracked action in the game feeds it — see the note on that
+      // function. It runs well after `attackerFervor` was read at the top of
+      // this transaction, so an attack never feeds its own multiplier.
+
       const report = await tx.battleReport.create({
         data: {
           attackerEmpireId: empireId,
@@ -1643,6 +1695,12 @@ export async function attackEmpire(
           // flagging the shields would credit them with a save they never made.
           defenderResourceShielded: attackerWins && resourceShielded,
           defenderSoldierShielded: attackerWins && soldierShielded,
+          // Null unless the meter actually moved this haul — see the column's
+          // note. `fervorHot` already carries "won, unshielded and inside the
+          // day's allowance", so there is nothing left to re-check here.
+          attackerFervorPct: fervorHot
+            ? Math.round((fervorPlunder - 1) * 100)
+            : null,
           ...(droppedItem
             ? {
                 droppedItemSlot: droppedItem.slot,

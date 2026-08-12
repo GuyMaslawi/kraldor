@@ -25,8 +25,15 @@ DRY=0
 
 VERCEL="npx --yes vercel@latest"
 
-# Set on production AND preview: harmless in both, and it lets a preview
-# deployment exercise the sandbox checkout end to end.
+# Set on production AND preview.
+#
+# This stopped being harmless on 2026-08-12, when GROW_ENV became `production`:
+# a preview deployment now holds live merchant credentials, so a checkout run
+# there moves real money. What keeps that bounded is DIAMOND_PURCHASES_LIVE,
+# which is deliberately NOT in either list here and is unset on preview — the
+# store stays shut to players and only an admin can reach a checkout at all.
+# Preview still gets them because a preview that cannot open a checkout cannot
+# be used to test one; just know that the charge is real when you do.
 BOTH=(
   GROW_USER_ID
   GROW_PAGE_CODE

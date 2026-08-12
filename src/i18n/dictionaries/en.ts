@@ -3477,6 +3477,36 @@ export const EN: Record<string, string> = {
   "חיילים שנפלו": "Soldiers lost",
   "נלקחו בשבי": "Taken captive",
 
+  /* the launch poster (/launch) — the other end of the same ceremony */
+  "פתיחת העונה | קראלדור": "Season opening | Kraldor",
+  "העונה החדשה נפתחת. בנה אימפריה, צור ברית, כבוש את הדירוג.":
+    "The new season opens. Build an empire, forge a guild, take the ladder.",
+  "פתיחת עונה רשמית": "Official season opening",
+  "העונה נפתחת": "The season opens",
+  "מפה ריקה, אוצר ריק וכל השאר תלוי בכם. ברגע שהשערים נפתחים, כל שנייה נחשבת.":
+    "An empty map, an empty treasury, and everything else is up to you. The moment the gates open, every second counts.",
+  "השערים נפתחים בעוד": "The gates open in",
+  "השערים נפתחו!": "The gates are open!",
+  "העונה החדשה התחילה. העולם ריק — לכו לתפוס אותו.":
+    "The new season has begun. The world is empty — go take it.",
+  "מעבירים אתכם לכניסה בעוד {seconds}…": "Taking you to the door in {seconds}…",
+  "מעבירים אתכם לכניסה…": "Taking you to the door…",
+  "להרשמה מוקדמת": "Register early",
+  "יצירת חשבון": "Create an account",
+  "כבר יש לי חשבון": "I already have an account",
+  "מה מחכה מעבר לשער": "What waits beyond the gate",
+  "עולם חדש לגמרי": "A brand-new world",
+  "כולם מתחילים מאפס באותה שנייה. אין ותק, אין יתרון — רק מי שמשחק נכון.":
+    "Everyone starts from nothing at the same second. No seniority, no head start — only who plays it right.",
+  "לבד לא שורדים כאן הרבה זמן. תבחרו צד לפני שהמפה מתחלקת בלעדיכם.":
+    "Nobody survives here alone for long. Pick a side before the map is divided without you.",
+  "קרבות ושוד": "Battle and plunder",
+  "כל אימפריה שכנה היא הזדמנות — או האיום הבא על אוצר הזהב שלכם.":
+    "Every neighbouring empire is an opportunity — or the next threat to your gold.",
+  "הדירוג": "The ladder",
+  "בסוף העונה נחתם היכל התהילה. שלושת הראשונים נשארים שם לנצח.":
+    "At the season's end the Hall of Fame is sealed. The top three stay there forever.",
+
   "קהילה | KRALDOR": "Community | KRALDOR",
   "הערוץ של קראלדור": "The Kraldor channel",
   "הדירוג הוא רק חצי מהמשחק. החצי השני הוא מי שיושב מהצד השני של המסך — בריתות שמתגבשות, טקטיקות שמתחלפות, וכל הכרזה על Happy Hour או סיזן חדש שנוחתת שם קודם.":

@@ -1994,10 +1994,12 @@ export const EN: Record<string, string> = {
   /* the diamond shop                                                    */
   /* ------------------------------------------------------------------ */
   "בונוס תפוקת משאבים": "Resource output boost",
-  "עד +{max}% לכל משאב · 24ש׳": "up to +{max}% per resource · 24h",
+  "רכישות מצטברות — עד +{max}% לכל משאב · 24ש׳":
+    "purchases stack — up to +{max}% per resource · 24h",
   "תוספת {resource}": "{resource} boost",
-  "כל רכישה +{step}% לתפוקה · עד +{max}% · 24ש׳":
-    "each purchase is +{step}% output · up to +{max}% · 24h",
+  "אפשר לשדרג שוב ושוב — כל רכישה +{step}% מצטברים, עד +{max}% · 24ש׳":
+    "buy it again and again — every purchase stacks another +{step}%, up to +{max}% · 24h",
+  "שדרג ל־+{next}%": "Upgrade to +{next}%",
   "בתקרה (+{max}%)": "At the cap (+{max}%)",
   "✨ פעיל עד {when}": "✨ Live until {when}",
   "🛡️ מגן עד {when}": "🛡️ Shielded until {when}",

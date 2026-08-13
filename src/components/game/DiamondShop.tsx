@@ -129,6 +129,35 @@ function ShopCard({
 
 /* ------------------------------ resource boost ------------------------------ */
 
+/**
+ * The rungs of a boost, drawn as one pip per purchase. The card's own "+0%"
+ * badge says where you are but not that there is anywhere to go — the ladder is
+ * what makes "this stacks, eight times, up to +200%" readable at a glance.
+ * No dir override: the pips fill from the start edge, so they fill rightwards
+ * in English and leftwards in Hebrew.
+ */
+function BoostLadder({ pct }: { pct: number }) {
+  const steps = Math.round(BOOST_MAX_PCT / BOOST_STEP_PCT);
+  const filled = Math.round(pct / BOOST_STEP_PCT);
+  return (
+    <span className="mt-2 flex items-center gap-2">
+      <span className="flex min-w-0 flex-1 gap-[3px]" aria-hidden>
+        {Array.from({ length: steps }, (_, i) => (
+          <span
+            key={i}
+            className={`h-1.5 flex-1 rounded-full ${
+              i < filled ? "bg-emerald-400" : "bg-zinc-700/70"
+            }`}
+          />
+        ))}
+      </span>
+      <span className="nums shrink-0 text-[10px] font-bold text-zinc-400" dir="ltr">
+        {pct}/{BOOST_MAX_PCT}%
+      </span>
+    </span>
+  );
+}
+
 function ResourceBoostCard({
   resource,
   pct,
@@ -170,10 +199,11 @@ function ResourceBoostCard({
       }
       desc={
         <>
-          {t("כל רכישה +{step}% לתפוקה · עד +{max}% · 24ש׳", {
+          {t("אפשר לשדרג שוב ושוב — כל רכישה +{step}% מצטברים, עד +{max}% · 24ש׳", {
             step: BOOST_STEP_PCT,
             max: BOOST_MAX_PCT,
           })}
+          <BoostLadder pct={pct} />
           {activeUntil && (
             <span className="mt-1 block text-emerald-400/90">
               {t("✨ פעיל עד {when}", { when: whenLabel(activeUntil, locale) })}
@@ -191,12 +221,15 @@ function ResourceBoostCard({
           </span>
         ) : (
           <SubmitButton
-            className="btn btn-gold w-full px-3 py-2 text-sm"
+            className="btn btn-gold w-full px-3 py-2 text-[13px]"
             formAction={action}
             disabled={diamonds < BOOST_STEP_COST}
             pendingText={t("רוכש...")}
           >
-            +{BOOST_STEP_PCT}% · <Price cost={BOOST_STEP_COST} />
+            {/* The target total, not the step: on a card that already sits at
+                +75%, a bare "+25%" reads like the boost you'd be buying. */}
+            {t("שדרג ל־+{next}%", { next: pct + BOOST_STEP_PCT })} ·{" "}
+            <Price cost={BOOST_STEP_COST} />
           </SubmitButton>
         )}
       </form>
@@ -630,7 +663,7 @@ export function DiamondShop({
         <SectionTitle
           icon={<Icon name="mine" size={20} className="text-crimson" />}
           title={t("בונוס תפוקת משאבים")}
-          hint={t("עד +{max}% לכל משאב · 24ש׳", { max: BOOST_MAX_PCT })}
+          hint={t("רכישות מצטברות — עד +{max}% לכל משאב · 24ש׳", { max: BOOST_MAX_PCT })}
         />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {boosts.map((b) => (

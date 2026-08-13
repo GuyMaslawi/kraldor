@@ -13,16 +13,23 @@ import { bonusMultiplier } from "@/lib/game/hero";
  * here rather than shipping a report whose column does not add up.
  */
 
-/** The attacker's half of the formula in server/actions/game.ts. */
+/**
+ * The attacker's half of the formula in server/actions/game.ts. `gear` is the
+ * hero's flat item power, which sits *inside* the parenthesis beside soldiers
+ * and weapons — every multiplier scales it.
+ */
 function attackerPower(
   soldiers: number,
   weapons: number,
   heroPct: number,
   guildPct: number,
-  aid: number
+  aid: number,
+  gear = 0
 ) {
   return (
-    (soldiers + weapons) * bonusMultiplier(heroPct) * bonusMultiplier(guildPct) +
+    (soldiers + weapons + gear) *
+      bonusMultiplier(heroPct) *
+      bonusMultiplier(guildPct) +
     aid
   );
 }
@@ -34,10 +41,11 @@ function defenderPower(
   defenseBonus: number,
   heroPct: number,
   guildPct: number,
-  aid: number
+  aid: number,
+  gear = 0
 ) {
   return (
-    (soldiers + weapons) *
+    (soldiers + weapons + gear) *
       defenseBonus *
       bonusMultiplier(heroPct) *
       bonusMultiplier(guildPct) +
@@ -60,6 +68,7 @@ describe("the battle power ledger", () => {
     const rows = battlePowerLedger({
       soldiers: 5_000,
       weapons: 1_200,
+      heroPower: 0,
       heroBonusPct: 18,
       guildBonusPct: 7,
       guildAidPct: 4,
@@ -82,6 +91,7 @@ describe("the battle power ledger", () => {
     const side: BattlePowerSources = {
       soldiers: 5_000,
       weapons: 1_200,
+      heroPower: 0,
       heroBonusPct: 18,
       guildBonusPct: 7,
       guildAidPct: 4,
@@ -109,6 +119,7 @@ describe("the battle power ledger", () => {
     const rows = battlePowerLedger({
       soldiers: 1_000,
       weapons: 0,
+      heroPower: 0,
       heroBonusPct: 50,
       guildBonusPct: null,
       guildAidPct: null,
@@ -129,6 +140,7 @@ describe("the battle power ledger", () => {
     const side: BattlePowerSources = {
       soldiers: 3_000,
       weapons: 500,
+      heroPower: 0,
       heroBonusPct: null,
       guildBonusPct: null,
       guildAidPct: null,
@@ -148,6 +160,7 @@ describe("the battle power ledger", () => {
       kinds({
         soldiers: 800,
         weapons: 0,
+        heroPower: 0,
         heroBonusPct: 0,
         guildBonusPct: 0,
         guildAidPct: 0,
@@ -166,6 +179,7 @@ describe("the battle power ledger", () => {
     const rows = battlePowerLedger({
       soldiers: 5_000,
       weapons: 1_200,
+      heroPower: 0,
       heroBonusPct: 18,
       guildBonusPct: null,
       guildAidPct: null,
@@ -181,12 +195,56 @@ describe("the battle power ledger", () => {
     ).toBeCloseTo(total, 6);
   });
 
+  it("counts gear power inside the base, so the multipliers scale it", () => {
+    // The whole reason the term lives above the subtotal. 1,000 soldiers plus
+    // 500 gear power, at +50%, is 2,250 — not 1,500 + 500.
+    const total = defenderPower(1_000, 0, 1, 50, 0, 0, 500);
+    const rows = battlePowerLedger({
+      soldiers: 1_000,
+      weapons: 0,
+      heroPower: 500,
+      heroBonusPct: 50,
+      guildBonusPct: null,
+      guildAidPct: null,
+      guildAidPower: null,
+      defenseBonusPct: 0,
+      total,
+    });
+
+    expect(rows.find((r) => r.kind === "subtotal")!.value).toBeCloseTo(1_500, 6);
+    // 50% of 1,500, which is only true if the gear joined the base.
+    expect(rows.find((r) => r.kind === "hero")!.value).toBeCloseTo(750, 6);
+    expect(
+      rows.filter((r) => r.kind !== "subtotal").reduce((n, r) => n + r.value, 0)
+    ).toBeCloseTo(total, 6);
+    expect(rows.some((r) => r.kind === "residual")).toBe(false);
+  });
+
+  it("omits the gear row for a hero wearing nothing, and for an old report", () => {
+    const bare = {
+      soldiers: 800,
+      weapons: 0,
+      heroBonusPct: 0,
+      guildBonusPct: 0,
+      guildAidPct: 0,
+      guildAidPower: 0,
+      defenseBonusPct: null,
+      total: attackerPower(800, 0, 0, 0, 0),
+    };
+    // Nothing equipped, and a report written before the column existed: both
+    // read as "no gear line", and neither invents a residual.
+    expect(kinds({ ...bare, heroPower: 0 })).not.toContain("heroPower");
+    expect(kinds({ ...bare, heroPower: null })).not.toContain("heroPower");
+    expect(kinds({ ...bare, heroPower: null })).not.toContain("residual");
+  });
+
   it("does not invent a residual row for floating-point noise", () => {
     const total = attackerPower(5_000, 1_200, 18, 7, 940) + 0.4;
     expect(
       kinds({
         soldiers: 5_000,
         weapons: 1_200,
+        heroPower: 0,
         heroBonusPct: 18,
         guildBonusPct: 7,
         guildAidPct: 4,

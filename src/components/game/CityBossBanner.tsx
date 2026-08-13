@@ -79,6 +79,7 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
     activeBattleId,
     activeEndsAt,
     canAttack,
+    blocked,
     myKills,
     conquerors,
   } = state;
@@ -100,13 +101,17 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
   const outmatched = soldiers > 0 && sortiesToKill > 3;
 
   const bossName = t(boss.name);
-  const disabledReason = dead
-    ? t("{boss} מת — הוא קם לתחייה בעוד רגע", { boss: bossName })
-    : activeBattleId
-      ? t("הקרב הנוכחי עוד רץ")
-      : outOfTurns
-        ? t("חסרות לך {turns} תורות", { turns: formatNumber(turnCost - myTurns) })
-        : t("אין לך צבא — אמן חיילים קודם");
+  // `blocked` first: it is the only reason here that never clears, so it must
+  // not be shadowed by a countdown or a turn shortfall that suggests waiting.
+  const disabledReason = blocked
+    ? t("חשבונות הנהלה אינם תוקפים את שליט העיר.")
+    : dead
+      ? t("{boss} מת — הוא קם לתחייה בעוד רגע", { boss: bossName })
+      : activeBattleId
+        ? t("הקרב הנוכחי עוד רץ")
+        : outOfTurns
+          ? t("חסרות לך {turns} תורות", { turns: formatNumber(turnCost - myTurns) })
+          : t("אין לך צבא — אמן חיילים קודם");
 
   return (
     <section

@@ -1,0 +1,18 @@
+-- שיאי העולם now pay a purse to whoever takes them first.
+--
+-- The board has been decoration since it shipped, and "what do I get for it?"
+-- was the question players kept asking about it. GLORY_PRIZE (in
+-- src/lib/game/achievements.ts) is the table of purses; this column is its
+-- receipt.
+--
+-- One column, nullable, no backfill. Every existing row means "arrived", and
+-- NULL correctly means "purse not paid" for all of them — including the records
+-- already standing, whose holders are paid on their next base-screen load. Only
+-- the earliest row per key is ever stamped, so at most one row per capstone
+-- carries a date.
+--
+-- It hangs off EmpireGloryAward rather than a table of its own so a season
+-- restart (`empire.deleteMany({})` in src/server/seasonRestart.ts) takes it with
+-- the empire: the new world opens with all five purses unclaimed and nothing has
+-- to remember to reset them.
+ALTER TABLE "EmpireGloryAward" ADD COLUMN "prizePaidAt" TIMESTAMP(3);

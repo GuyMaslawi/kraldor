@@ -5276,6 +5276,23 @@ body {
   color: #7d7a72;
 }
 
+/* The purse rule, under the subtitle. Gold-on-gold rather than another grey
+   line: it is the one sentence on this board that promises the reader
+   something, and at the subtitle's colour it disappeared into it. */
+.glory-prize-rule {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(228, 195, 90, 0.28);
+  background: linear-gradient(180deg, rgba(228, 195, 90, 0.12), rgba(228, 195, 90, 0.04));
+  padding: 0.1875rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--gold-bright);
+}
+
 .glory-tallies {
   display: flex;
   flex-wrap: wrap;
@@ -5610,6 +5627,12 @@ body {
   font-weight: 700;
   color: var(--gold-bright);
 }
+/* The purse in words, inside the hover caption — the band under the plaque
+   says the same thing in figures, and this is the copy a screen reader gets. */
+.glory-caption-prize {
+  font-weight: 600;
+  color: var(--gold);
+}
 .glory-caption-date { color: #6f6b62; }
 .glory-niche:hover .glory-caption,
 .glory-niche:focus-within .glory-caption {
@@ -5637,6 +5660,14 @@ body {
   text-align: center;
   transition: border-color 0.3s, box-shadow 0.3s;
 }
+/* A plaque with a purse struck under it is one plate, not two: square off the
+   edge the two meet on. Conditional rather than unconditional because a
+   capstone with no purse (see GLORY_PRIZE) still ends in a rounded plate. */
+.glory-niche:has(.glory-prize) .glory-plaque {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
 /* Two bolt heads. Decoration, but they are what makes it read as a plate
    fixed to a wall rather than another card. */
 .glory-plaque::before,
@@ -5700,6 +5731,71 @@ body {
   white-space: nowrap;
   font-size: 0.5625rem;
 }
+
+/* --- the purse --- */
+/* Bolted under the plaque, and drawn as part of it: same width, same metal,
+   joined by a hairline instead of a gap so the two read as one plate with a
+   prize struck into its lower half. A separate card here would have been a
+   sixth thing on a wall that survives by having five.
+
+   The kinds are spelled out — "1,500 יהלומים", not a diamond icon and a number.
+   An icon works in the command bar because the player reads that bar all day;
+   this is read once, by somebody deciding whether a record is worth chasing, and
+   the amounts are large enough that a misread icon is the difference between a
+   shrug and a race. One line per kind, so the word is never what gets clipped —
+   which is also why every purse in GLORY_PRIZE is exactly two lines: five
+   alcoves whose bands are different heights do not line up along the floor of
+   the hall. */
+.glory-prize {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  margin-top: -1px;
+  border-radius: 0 0 0.25rem 0.25rem;
+  border: 1px solid rgba(228, 195, 90, 0.22);
+  border-top-color: transparent;
+  background: linear-gradient(180deg, rgba(30, 26, 16, 0.95), rgba(14, 13, 10, 0.95));
+  padding: 0.25rem 0.375rem 0.3125rem;
+}
+.glory-niche.is-crowned .glory-prize {
+  border-color: rgba(228, 195, 90, 0.6);
+  border-top-color: transparent;
+  background: linear-gradient(180deg, rgba(86, 66, 15, 0.75), rgba(20, 16, 6, 0.95));
+}
+.glory-niche.is-open .glory-prize {
+  border-style: dashed;
+  border-top-style: none;
+  border-color: rgba(228, 195, 90, 0.16);
+}
+
+.glory-prize-tag {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8b8578;
+}
+
+/* One kind per line: the figure in bright gold, the noun beside it in the
+   plaque's own bone. `nowrap` on the line rather than on the band — the pair
+   must never split across two lines, but two pairs may sit on two lines. */
+.glory-prize-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  line-height: 1.3;
+  color: #a89f8b;
+}
+.glory-prize-line b {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--gold-bright);
+}
+.glory-niche.is-crowned .glory-prize-line { color: var(--bone); }
 
 .glory-vacant {
   display: flex;

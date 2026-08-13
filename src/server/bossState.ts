@@ -10,10 +10,10 @@ import { bonusMultiplier, heroBonuses, isHeroDead } from "@/lib/game/hero";
 import type { FullEmpire } from "@/lib/game/updates";
 import { notStaff } from "@/lib/staff";
 import {
-  BOSS_REVIVE_MS,
   bossForCity,
   bossHeroXp,
   bossPower,
+  bossReviveMs,
   bossReward,
   bossTurnCost,
   type BossReward,
@@ -103,6 +103,13 @@ export interface CityBossState {
 
   /** Everything that must be true before the attack button is live. */
   canAttack: boolean;
+  /**
+   * This empire is out of the game and may never march — a staff account or a
+   * planted garrison. Distinct from the other reasons `canAttack` is false, all
+   * of which are temporary: this one never clears, so the banner says so
+   * outright instead of offering a countdown that will not come.
+   */
+  blocked: boolean;
   /** This empire's total victories over this boss, all-time. */
   myKills: number;
   conquerors: BossConqueror[];
@@ -123,6 +130,10 @@ export async function getCityBossState(empire: FullEmpire): Promise<CityBossStat
   const now = new Date();
   const boss = bossForCity(empire.cities);
   const tunables = await getTunables();
+  // Read once and used both as the button's gate and as the banner's reason —
+  // the same predicate `startBossAssault` refuses on, so the screen can never
+  // offer a march the action will turn away.
+  const blocked = empire.isStaff || empire.isBot;
 
   const [
     guildBonusPct,
@@ -214,7 +225,12 @@ export async function getCityBossState(empire: FullEmpire): Promise<CityBossStat
   // moment to be off.
   const happyPlunder = happyHourFactor(happyHour, "boostPlunder");
   const cycleHaul = bossPayout(
-    bossReward(empire.cities, seasonPassDay(season, now.getTime()), tunables.boss.rewardMultiplier),
+    bossReward(
+      empire.cities,
+      seasonPassDay(season, now.getTime()),
+      tunables.boss.rewardMultiplier,
+      tunables.boss.slaveMultiplier
+    ),
     1,
     happyPlunder
   );
@@ -247,12 +263,13 @@ export async function getCityBossState(empire: FullEmpire): Promise<CityBossStat
     sorties: alive ? life.sorties : 0,
 
     revivesAt: dead ? life.revivesAt : null,
-    reviveMs: BOSS_REVIVE_MS,
+    reviveMs: bossReviveMs(tunables.boss.reviveMinutes),
     serverNow: now.getTime(),
 
     lifeHaul: cycleHaul,
     heroXp: Math.round(
-      bossHeroXp(empire.cities) * happyHourFactor(happyHour, "boostXp")
+      bossHeroXp(empire.cities, tunables.boss.heroXpMultiplier) *
+        happyHourFactor(happyHour, "boostXp")
     ),
 
     expectedSortieDamage: expectedDamage,
@@ -287,10 +304,12 @@ export async function getCityBossState(empire: FullEmpire): Promise<CityBossStat
 
     canAttack:
       tunables.boss.enabled >= 1 &&
+      !blocked &&
       !dead &&
       activeBattle == null &&
       empire.turns >= turnCost &&
       (empire.army?.soldiers ?? 0) > 0,
+    blocked,
     myKills,
     conquerors,
   };

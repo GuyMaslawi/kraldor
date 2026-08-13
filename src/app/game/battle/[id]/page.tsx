@@ -20,6 +20,7 @@ import {
 import { sharedGuild } from "@/lib/game/guildAllies";
 import { ShieldGlyph } from "@/components/game/ShieldBadges";
 import { shieldMeta } from "@/lib/game/diamondShop";
+import { getActiveShields, shieldFlags } from "@/lib/game/diamondEffects";
 import { getI18n, getT } from "@/i18n/server";
 
 export async function generateMetadata() {
@@ -108,6 +109,12 @@ export default async function BattleResultPage({
   // since, the rematch button is gone (see lib/game/guildAllies.ts).
   const allied = await sharedGuild(me.id, foe.id);
 
+  // What he is holding *now*, for the name in the banner — the rematch button
+  // is at the top of this page, and the shields the report froze (below) say
+  // what happened last time, not what the next swing would come home with. The
+  // badge's own tooltip says "פעיל", which is what keeps the two apart.
+  const foeShieldsNow = shieldFlags(await getActiveShields(foe.id));
+
   // Plunder: attacker gains it on a win, defender loses it.
   const plunderTotal = report.stolenGold + report.stolenWood + report.stolenIron + report.stolenStone;
 
@@ -138,11 +145,17 @@ export default async function BattleResultPage({
           value: formatNumber(row.value),
           tip: t("תוספת הכוח מהנשקים במחסן — נשקי התקפה לתוקף, נשקי הגנה למגן. נשק מהקטגוריה הלא־נכונה לא משתתף בקרב הזה."),
         };
+      case "heroPower":
+        return {
+          label: t("כוח ציוד הגיבור"),
+          value: `+${formatNumber(row.value)}`,
+          tip: t("כוח קרב קבוע מהחפצים שהגיבור לובש. הוא נספר עם החיילים והנשקים ולא מעליהם — כלומר כל הבונוסים שמתחת מוכפלים גם עליו. גיבור שנפל לא תורם ממנו דבר."),
+        };
       case "subtotal":
         return {
           label: t("סך כוח בסיס"),
           value: formatNumber(row.value),
-          tip: t("חיילים + נשקים. כל הבונוסים שמתחת מוכפלים על הסכום הזה, בזה אחר זה."),
+          tip: t("חיילים + נשקים + כוח ציוד הגיבור. כל הבונוסים שמתחת מוכפלים על הסכום הזה, בזה אחר זה."),
           strong: true,
         };
       case "defense":
@@ -184,6 +197,7 @@ export default async function BattleResultPage({
   const attackerLedgerInput: BattlePowerSources = {
     soldiers: report.attackerSoldiersPower,
     weapons: report.attackerWeaponsPower,
+    heroPower: report.attackerHeroPower,
     heroBonusPct: report.attackerHeroBonusPct,
     guildBonusPct: report.attackerGuildBonusPct,
     guildAidPct: report.attackerGuildAidPct,
@@ -195,6 +209,7 @@ export default async function BattleResultPage({
   const defenderLedgerInput: BattlePowerSources = {
     soldiers: report.defenderSoldiersPower,
     weapons: report.defenderWeaponsPower,
+    heroPower: report.defenderHeroPower,
     heroBonusPct: report.defenderHeroBonusPct,
     guildBonusPct: report.defenderGuildBonusPct,
     guildAidPct: report.defenderGuildAidPct,
@@ -284,7 +299,7 @@ export default async function BattleResultPage({
               <Icon name="crown" size={36} className="text-red-300" />
             </div>
             <p className="w-full break-words font-black text-red-300">
-              <PlayerLink empireId={foe.id} name={foe.name} />
+              <PlayerLink empireId={foe.id} name={foe.name} shields={foeShieldsNow} />
             </p>
             <p className="text-[11px] text-zinc-500">{iAmAttacker ? t("מתגונן") : t("תוקף")}</p>
           </div>

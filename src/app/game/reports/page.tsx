@@ -4,6 +4,7 @@ import { requireEmpire } from "@/lib/auth";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
 import { formatDate } from "@/lib/game/format";
+import { getShieldsForEmpires, shieldFlags } from "@/lib/game/diamondEffects";
 import { markReportsSeen } from "@/server/actions/messages";
 import { MarkSeen } from "@/components/game/MarkSeen";
 import { getI18n, getT } from "@/i18n/server";
@@ -51,6 +52,23 @@ export default async function ReportsPage() {
     }),
   ]);
 
+  // Who among the rivals on this desk is behind a paid shield *right now*. One
+  // query for the whole page (the ids are already on the reports, so nothing
+  // extra is read to find them), and it is deliberately the live answer rather
+  // than the one the report froze: this desk is where retaliation is decided,
+  // and what mattered last night is not what your turns will buy today.
+  const rivalIds = [
+    ...new Set([
+      ...battles.map((r) =>
+        r.attackerEmpireId === empire.id ? r.defenderEmpireId : r.attackerEmpireId
+      ),
+      ...spies.map((r) =>
+        r.attackerEmpireId === empire.id ? r.defenderEmpireId : r.attackerEmpireId
+      ),
+    ]),
+  ];
+  const shieldsByEmpire = await getShieldsForEmpires(rivalIds);
+
   // Reports that arrived since the player's last visit get a "new" marker —
   // but only for things done *to* me. My own attacks and spy missions are
   // never "news" to me, so they never carry a marker or feed a tab badge.
@@ -84,6 +102,7 @@ export default async function ReportsPage() {
       isNew: isIncomingNew(report.createdAt, isAttacker),
       rival,
       rivalId,
+      shields: shieldFlags(shieldsByEmpire.get(rivalId)),
       isAttacker,
       won,
       attackerPower: report.attackerPower,
@@ -105,6 +124,9 @@ export default async function ReportsPage() {
 
   const spyRows: SpyRow[] = spies.map((report) => {
     const isAttacker = report.attackerEmpireId === empire.id;
+    const rivalId = isAttacker
+      ? report.defenderEmpireId
+      : report.attackerEmpireId;
     return {
       id: report.id,
       createdAt: formatDate(report.createdAt, locale),
@@ -112,9 +134,8 @@ export default async function ReportsPage() {
       rival: isAttacker
         ? report.defenderEmpire.name
         : report.attackerEmpire.name,
-      rivalId: isAttacker
-        ? report.defenderEmpireId
-        : report.attackerEmpireId,
+      rivalId,
+      shields: shieldFlags(shieldsByEmpire.get(rivalId)),
       isAttacker,
       success: report.success,
       turnsSpent: report.turnsSpent,

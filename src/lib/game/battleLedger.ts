@@ -15,7 +15,7 @@
  * multipliers compound, so a term's contribution depends on everything before
  * it:
  *
- *   base = soldiers + weapons
+ *   base = soldiers + weapons + hero gear power
  *   ×  defence bonus   (defender only)
  *   ×  hero bonus
  *   ×  guild spell
@@ -29,6 +29,12 @@
 export interface BattlePowerSources {
   soldiers: number | null;
   weapons: number | null;
+  /**
+   * Flat combat power from the hero's equipped gear. A *base* term, not a
+   * bonus: it is added before the multipliers, so it appears above the subtotal
+   * and every percentage below it scales it too.
+   */
+  heroPower: number | null;
   heroBonusPct: number | null;
   guildBonusPct: number | null;
   guildAidPct: number | null;
@@ -43,6 +49,7 @@ export interface BattlePowerSources {
 export type LedgerKind =
   | "soldiers"
   | "weapons"
+  | "heroPower"
   | "subtotal"
   | "defense"
   | "hero"
@@ -74,11 +81,17 @@ export function battlePowerLedger(side: BattlePowerSources): LedgerRow[] {
   const rows: LedgerRow[] = [];
   const soldiers = side.soldiers ?? 0;
   const weapons = side.weapons ?? 0;
+  const heroPower = side.heroPower ?? 0;
 
   rows.push({ kind: "soldiers", value: soldiers });
   rows.push({ kind: "weapons", value: weapons });
+  // Omitted when the hero brought no gear power — including a report written
+  // before the column existed, which reads back as null and must not claim a
+  // zero the battle never had. The residual check below catches the difference
+  // if such a report's total ever fails to reconcile.
+  if (heroPower !== 0) rows.push({ kind: "heroPower", value: heroPower });
 
-  let running = soldiers + weapons;
+  let running = soldiers + weapons + heroPower;
   // The subtotal every multiplier below applies to. Worth its own line: "+20%"
   // means nothing until the reader knows what it is 20% of.
   rows.push({ kind: "subtotal", value: running });

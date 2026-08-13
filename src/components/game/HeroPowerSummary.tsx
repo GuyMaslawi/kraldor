@@ -247,12 +247,30 @@ export async function HeroPowerSummary({ bonuses }: { bonuses: HeroBonuses }) {
     },
   ];
 
-  // תורות/אזרחים — כמות קבועה מהחפצים, לא באחוזים. משאבים מטופלים בנפרד כי הם
-  // ניזונים משני מקורות שונים: אחוז מהנקודות (מכפיל מכרות) + כמות מהחפץ.
-  // יהלומים אינם ברשימה: חפצים אינם מייצרים יהלומים כלל (ראו HeroFlatStat).
+  // כמויות קבועות מהחפצים, לא באחוזים. משאבים מטופלים בנפרד כי הם ניזונים משני
+  // מקורות שונים: אחוז מהנקודות (מכפיל מכרות) + כמות מהחפץ.
+  //
+  // שלוש שורות הכוח הן החלק שנכנס לקרב עצמו: הן נספרות יחד עם החיילים והנשקים,
+  // ולכן כל האחוזים שמעליהן ברשימה מוכפלים גם עליהן.
   const flatRows: { stat: HeroStat; value: number; note: string }[] = [
+    {
+      stat: "attackPower",
+      value: itemsFlat.attackPower,
+      note: t("נספר עם החיילים והנשקים בתקיפה"),
+    },
+    {
+      stat: "defensePower",
+      value: itemsFlat.defensePower,
+      note: t("נספר עם החיילים והנשקים בהגנה"),
+    },
+    {
+      stat: "spyPower",
+      value: itemsFlat.spyPower,
+      note: t("נספר עם המרגלים בכל משימת ריגול"),
+    },
     { stat: "turns", value: itemsFlat.turns, note: t("נוסף בכל עדכון יומי") },
     { stat: "citizens", value: itemsFlat.citizens, note: t("נוסף בכל עדכון יומי") },
+    { stat: "diamonds", value: itemsFlat.diamonds, note: t("מזוקק מהמכנסיים בלבד") },
   ];
 
   return (
@@ -282,7 +300,7 @@ export async function HeroPowerSummary({ bonuses }: { bonuses: HeroBonuses }) {
           </div>
         </section>
 
-        {/* flat per-update yield from items: turns / citizens */}
+        {/* flat from items: combat power, then the per-update yield */}
         {/* The dividers the three-column layout used to carry are gone: with
             two-then-one columns the section labels already separate the groups,
             and a rule down a two-column split reads as a page seam. */}

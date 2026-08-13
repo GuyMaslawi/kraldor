@@ -25,6 +25,21 @@
 
 **הלוגו־לוקאפ שקוף נועד לרקע כהה** (הטקסט בגוון עצם בהיר). על רקע לבן הוא ייעלם.
 
+## רשתות חברתיות — סטורי
+
+| קובץ | מידה | לאן |
+| --- | --- | --- |
+| `kraldor-instagram-story-1080x1920.png` | 1080×1920 (9:16) | סטורי באינסטגרם, סטטוס בוואטסאפ, Facebook/TikTok story |
+
+זו מודעת ההשקה: קרסט, לוקאפ, "השערים נפתחו", הזמנה לשחק ו־`KRALDOR.COM`.
+המקור הוא `src/story.html`, ומשתמש באותו `crest.js` ו־`heebo.css` כמו שאר הסט.
+
+**אזורי הבטיחות של אינסטגרם.** האפליקציה מציירת ממשק משלה מעל ~250px עליונים
+(אווטאר, X) ומעל ~250px תחתונים ("שליחת הודעה", חץ ההחלקה). לכן כל הטקסט חי בתוך
+`.safe`, ורק קו הרקיע של הצריחים יורד מתחתיו — הוא נועד להיחתך חלקית.
+
+לשינוי הטקסט עורכים את הגוש `.safe` ב־`src/story.html` ומצלמים מחדש.
+
 ## מחוץ לדיסקורד — דף התשלום ב־Grow
 
 | קובץ | מידה | לאן |
@@ -68,13 +83,20 @@ CH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
   --default-background-color=00000000 \
   --window-size=1200,400  --screenshot=../kraldor-logo-lockup-1200x400.png \
   --virtual-time-budget=4000 "file://$PWD/lockup.html"
+
+"$CH" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
+  --window-size=1080,1920 --screenshot=../kraldor-instagram-story-1080x1920.png \
+  --virtual-time-budget=5000 "file://$PWD/story.html"
 ```
 
 `heebo.css` מחזיק את Heebo (עברית + לטינית, משקלים 400/700/800/900) כ־base64,
 כדי שהצילום ייצא זהה גם בלי רשת. `crest.js` הוא הקרסט המשותף — כל שינוי בו
 משנה את שלושת הנכסים יחד.
 
-### שתי מלכודות ששווה לזכור
+### שלוש מלכודות ששווה לזכור
+- **`letter-spacing` ב־RTL בורח שמאלה.** הרווח הנגרר של האות האחרונה נוחת בצד
+  *שמאל*, אז ה־padding המפצה שממרכז טקסט מרוּוח הולך על `padding-right` — לא על
+  `padding-left` כמו בלטינית. הכיתוב "השערים נפתחו" בסטורי ישב עקום עד שהתהפך.
 - **צילום ב־`--force-device-scale-factor=1`.** הקאבר מצויר ב־1920 ומוקטן
   ב־`transform: scale()` דרך `?w=`, אז DPR אחר יכפיל את המידה פעמיים.
 - **בלי חוק מיקום גורף עם `#id > *`.** בגרסה ראשונה `#stage > *{inset:0}` בלע

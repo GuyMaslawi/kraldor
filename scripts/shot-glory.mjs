@@ -64,7 +64,12 @@ try {
   for (const row of DRESS) {
     const has = await prisma.empireGloryAward.findFirst({ where: row });
     if (has) continue;
-    await prisma.empireGloryAward.create({ data: row });
+    // `prizePaidAt` is stamped up front so the base screen does NOT settle a
+    // purse for a fabricated arrival: a world record now pays real diamonds,
+    // turns and citizens to whoever holds the plaque (GLORY_PRIZE), and the
+    // finally below deletes the row — which would erase the receipt and leave
+    // the capstone payable a second time to whoever really gets there.
+    await prisma.empireGloryAward.create({ data: { ...row, prizePaidAt: new Date() } });
     minted.push(row);
   }
   if (minted.length) console.log(`stamped ${minted.length} award(s) for the shoot`);

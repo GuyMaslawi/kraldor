@@ -45,8 +45,8 @@ export interface WeaponDefinition {
   cost: WeaponCost;
 }
 
-/** Number of weapon tiers per category — 30 per category, 90 in total. */
-export const TIERS_PER_CATEGORY = 30;
+/** Number of weapon tiers per category — 35 per category, 105 in total. */
+export const TIERS_PER_CATEGORY = 35;
 
 /**
  * Cost doubles every tier, power grows by 2.5× every tier — the same rule in
@@ -87,7 +87,7 @@ function weaponPowerForTier(category: WeaponCategory, tier: number): number {
 }
 
 /**
- * Per-tier flavor (name + description), tier 1 → tier 30, ordered from the most
+ * Per-tier flavor (name + description), tier 1 → tier 35, ordered from the most
  * basic weapon up to the ultimate one. Cost and power come from the formulas
  * above; only the flavor lives here.
  */
@@ -123,7 +123,12 @@ const ATTACK_FLAVOR: readonly WeaponFlavor[] = [
   ["להבי אנרגיה טהורה", "חרבות אור שחותכות דרך כל הגנה."],
   ["תותחי סינגולריות", "נשק שיוצר חור שחור זעיר בלב האויב."],
   ["משמידי ממדים", "נשק שמוחק את האויב מהמציאות עצמה."],
-  ["יד קראלדור", "הנשק האולטימטיבי — כוח שאין לו אח ורע ביקום."],
+  ["יד קראלדור", "יד הברזל של הכתר — אין בעולם הזה כוח שעומד מולה."],
+  ["שוברי כוכבים", "תותחים שמנפצים גרמי שמיים לרסיסים בוערים."],
+  ["סופות אנטי-חומר", "ענני חומר נגדי שמאיינים כל מה שהם נוגעים בו."],
+  ["להבי אינסוף", "חרבות שהלהב שלהן פשוט לא נגמר."],
+  ["מכת האלים", "רעם שיורד מהשמיים ומוחק צבאות שלמים בבת אחת."],
+  ["זעם קראלדור", "הנשק האולטימטיבי — זעם שמוחק ממלכות מן הקיום."],
 ];
 
 const DEFENSE_FLAVOR: readonly WeaponFlavor[] = [
@@ -156,7 +161,12 @@ const DEFENSE_FLAVOR: readonly WeaponFlavor[] = [
   ["שריון על-ממדי", "הגנה שהאויב פשוט לא מסוגל לגעת בה."],
   ["כיפת נצח", "מגן שלא נפרץ מעולם בכל ההיסטוריה."],
   ["חומת המציאות", "מחסום ששובר את חוקי הפיזיקה עצמם."],
-  ["מבצר קראלדור", "ההגנה האולטימטיבית — בלתי חדירה לחלוטין."],
+  ["מבצר קראלדור", "מצודת הכתר — אין בעולם הזה צבא שמפיל אותה."],
+  ["חומות נצח", "אבן שלא נסדקת גם אחרי אלף מצורים."],
+  ["מגני אנטי-חומר", "שכבה שמאיינת כל פגז עוד באוויר."],
+  ["שריון אינסוף", "שריון שמתעבה עוד ועוד ככל שמכים בו."],
+  ["כיפת האלים", "מגן שהאלים עצמם פרשו מעל הממלכה."],
+  ["מגן קראלדור", "ההגנה האולטימטיבית — שום כוח ביקום לא חודר אותה."],
 ];
 
 const SPY_FLAVOR: readonly WeaponFlavor[] = [
@@ -189,7 +199,12 @@ const SPY_FLAVOR: readonly WeaponFlavor[] = [
   ["עין כול-רואה", "מערך שרואה כל תנועה בכל הממלכות."],
   ["תודעת רשת", "בינה שיודעת הכול עוד לפני שזה קורה."],
   ["עין המציאות", "ריגול שחודר את מסך הזמן עצמו."],
-  ["עין קראלדור", "הריגול האולטימטיבי — שום סוד לא נסתר ממנה."],
+  ["עין קראלדור", "עין הכתר — אין סוד בממלכות שנסתר ממנה."],
+  ["צופי נצח", "סוכנים ששומרים על היעד דורות שלמים בלי למצמץ."],
+  ["רשת אינסוף", "רשת שמסתעפת לכל פינה בלי גבול ובלי סוף."],
+  ["קוראי גורל", "מודיעין שקורא את מהלכי האויב לפני שהם נולדו."],
+  ["עין האלים", "מבט שחודר כל שכבה של המציאות."],
+  ["סוד קראלדור", "הריגול האולטימטיבי — כל האמת ביקום בידיים שלך."],
 ];
 
 const CATEGORY_FLAVOR: Record<WeaponCategory, readonly WeaponFlavor[]> = {
@@ -236,8 +251,9 @@ export function weaponByKey(key: string): WeaponDefinition | undefined {
 
 /**
  * Generated art for a weapon, as `public/weapons/<category>-t<tier>.webp`.
- * Every one of the 90 weapons has a piece; the card still falls back to the
- * category emoji if a file is ever missing, so art and code stay independent.
+ * Every weapon in the catalogue has a piece — 105 of them, `TIERS_PER_CATEGORY`
+ * × 3; the card still falls back to the category emoji if a file is ever
+ * missing, so art and code stay independent.
  */
 export function weaponArtPath(weapon: WeaponDefinition): string {
   return `/weapons/${weapon.category.toLowerCase()}-t${weapon.tier}.webp`;

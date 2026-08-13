@@ -120,9 +120,9 @@ import {
   BOSS_HERO_XP_PER_TIER,
   BOSS_ITEM_RARITY_FLOOR,
   BOSS_POWER_TIER_MULTIPLIER,
-  BOSS_REVIVE_MS,
   BOSS_TURN_COST_BASE,
   CITY_BOSSES,
+  bossReviveMs,
 } from "@/lib/game/bosses";
 import {
   BOSS_ASSAULT_DURATION_MS,
@@ -179,6 +179,13 @@ import {
   type Reward,
 } from "@/lib/game/rewards";
 import {
+  ACHIEVEMENT_BY_KEY,
+  GLORY_ICON,
+  GLORY_KEYS,
+  GLORY_NAME,
+  gloryPrize,
+} from "@/lib/game/achievements";
+import {
   MONUMENTS,
   MONUMENT_COST_GROWTH,
   MONUMENT_MAX_LEVEL,
@@ -214,11 +221,8 @@ import {
   WORLD_BOSS_FLOOR_SHARE,
   WORLD_BOSS_HP_MIN,
   WORLD_BOSS_HP_PER_EMPIRE,
-  WORLD_BOSS_KILL_DIAMONDS,
-  WORLD_BOSS_MAX_STRIKES,
   WORLD_BOSS_PHASES,
   WORLD_BOSS_PURSE,
-  WORLD_BOSS_STRIKE_TURNS,
 } from "@/lib/game/worldBoss";
 import {
   REFERRAL_BURST_LIMIT,
@@ -476,6 +480,15 @@ export async function GuideContent({
 } = {}) {
   const t = await getT();
   const tunables = await getTunables();
+  // The manual quotes the game as it is *tuned*, not as it shipped — the same
+  // rule every other figure on this page follows. Both bosses grew admin dials
+  // with /admin/bosses, so these three derive from them rather than from the
+  // constants beside them.
+  const reviveMinutes = Math.round(bossReviveMs(tunables.boss.reviveMinutes) / 60_000);
+  const worldBossPurse = WORLD_BOSS_PURSE.map((r) => ({
+    ...r,
+    amount: Math.max(0, Math.round(r.amount * tunables.worldBoss.rewardMultiplier)),
+  }));
   const sections = translateSections(t);
   const toc: TocEntry[] = ORDER.map((k) => ({
     id: sections[k].id,
@@ -2191,6 +2204,14 @@ export async function GuideContent({
                       desc: t("אלה לא רצים עם הכלכלה — בניין הגידול משלם כמות קבועה בכל עדכון יומי — ולכן הם עולים בחזקת הדרגה ובתקרה נמוכה בכוונה: נעליים רמה 1 נותנות {p0} אזרחים, רמה 10 נותנות {p1}, ורמה 100 נותנות {p2}. חפץ לא אמור להחליף את הבניין שקיים בשביל זה.", { p0: itemStatBonus("BOOTS", 1, "citizens"), p1: itemStatBonus("BOOTS", 10, "citizens"), p2: itemPrimaryBonus("BOOTS", HERO_MAX_LEVEL).value }),
                     },
                     {
+                      term: t("כוח קרב"),
+                      desc: t("לצד כל אחוז לחימה יש גם כוח קבוע, באותו משקל. הוא נספר יחד עם החיילים והנשקים — לא מעליהם — ולכן כל האחוזים מוכפלים גם עליו. חרב ראשית נותנת {p0} ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100; חפץ שנותן את הסטט כמשני נותן רבע עד חצי מזה. נעליים הן המשבצת היחידה בלי כוח קרב — היא לא נלחמת.", { p0: formatNumber(itemStatBonus("SWORD", 1, "attackPower")), p1: formatNumber(itemStatBonus("SWORD", 50, "attackPower")), p2: formatNumber(itemStatBonus("SWORD", HERO_MAX_LEVEL, "attackPower")) }),
+                    },
+                    {
+                      term: t("יהלומים"),
+                      desc: t("מכנסיים הן המשבצת היחידה שמזקקת יהלומים, וכמשני בלבד: {p0} ליום ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100. זה טפטוף מכוון — יהלומים הם מטבע אמיתי, ולא אמורים להיות הכנסה.", { p0: itemStatBonus("PANTS", 1, "diamonds"), p1: itemStatBonus("PANTS", 50, "diamonds"), p2: itemStatBonus("PANTS", HERO_MAX_LEVEL, "diamonds") }),
+                    },
+                    {
                       term: t("משאבים — שני כלים"),
                       desc: t("פרי שטן, מכנסיים ונעליים נותנים כמות קבועה בכל עדכון רגיל (עד +{p0}), וככל שהדרגה גבוהה יותר סוגי משאבים. לכל משבצת סדר משלה: פרי שטן פותח בזהב, מכנסיים בברזל, נעליים באבן. חרב ומגן פועלים הפוך — הם מכפילים את תפוקת כל המכרות באחוזים (עד +{p1}%), קטן בהתחלה ומשמעותי בסוף.", { p0: formatNumber(itemPrimaryBonus("RELIC", HERO_MAX_LEVEL).value), p1: itemStatBonus("SWORD", HERO_MAX_LEVEL, "resources") }),
                     },
@@ -2563,7 +2584,7 @@ export async function GuideContent({
 
             {/* ============================ 21 bosses ============================ */}
             <GuideSection meta={sections.bosses} index={INDEX.bosses}>
-              <Lead><RichText text={t("לכל אחת מעשר דרגות הערים יש שליט אחד — קיר PvE שכוחו  <0>. לוחצים <1> פעם אחת, והצבא יוצא לקרב של  <2> סבבים שרץ כ־ <3> שניות בזמן אמת. אפשר לצפות, ואפשר לעבור לדף אחר ולהמשיך לשחק — כשהקרב נגמר מגיעה הודעה עם כל השלל. לבוס יש <4>, וכשהוא נופל הוא קם לתחייה אחרי  <5> דקות.")} slots={[<><b>{t("פומבי וקבוע")}</b></>, <><b>{t("תקיפה")}</b></>, <><b className="nums">{BOSS_SORTIE_ROUNDS}</b></>, <><b className="nums">{Math.round(BOSS_ASSAULT_DURATION_MS / 1000)}</b></>, <><b>{t("מאגר חיים שנשמר בין תקיפות")}</b></>, <><b className="nums">{Math.round(BOSS_REVIVE_MS / 60000)}</b></>]} /></Lead>
+              <Lead><RichText text={t("לכל אחת מעשר דרגות הערים יש שליט אחד — קיר PvE שכוחו  <0>. לוחצים <1> פעם אחת, והצבא יוצא לקרב של  <2> סבבים שרץ כ־ <3> שניות בזמן אמת. אפשר לצפות, ואפשר לעבור לדף אחר ולהמשיך לשחק — כשהקרב נגמר מגיעה הודעה עם כל השלל. לבוס יש <4>, וכשהוא נופל הוא קם לתחייה אחרי  <5> דקות.")} slots={[<><b>{t("פומבי וקבוע")}</b></>, <><b>{t("תקיפה")}</b></>, <><b className="nums">{BOSS_SORTIE_ROUNDS}</b></>, <><b className="nums">{Math.round(BOSS_ASSAULT_DURATION_MS / 1000)}</b></>, <><b>{t("מאגר חיים שנשמר בין תקיפות")}</b></>, <><b className="nums">{reviveMinutes}</b></>]} /></Lead>
 
               <Note tone="red" icon="attack" title={t("שליט הוא מצור, לא לחיצה")}><RichText text={t("אף שליט לא נופל בתקיפה אחת. צבא שעומד <0> צריך בערך <1> תקיפות כדי לרוקן את מאגר החיים, צבא בכפול מהכוח — <2>, ובפי שלושה — אחת. צבא מתחת לקיר פשוט מכרסם לאורך יותר תקיפות, <3>: השלל משולם לפי הנזק, כך שאף תקיפה לא הולכת לאיבוד. בתמורה למצור הארוך, מה שיש לשליט בכיסים גדול בהתאם — הפלה אחת שווה יותר מיום שלם של תקיפות רגילות.")} slots={[<><b>{t("בדיוק על הכוח המודפס שלו")}</b></>, <><b className="nums">3</b></>, <><b className="nums">2</b></>, <><b>{t("ומקבל שלל על כל אחת מהן")}</b></>]} /></Note>
 
@@ -2668,7 +2689,7 @@ export async function GuideContent({
                       ]),
                   {
                     term: t("אין מכסה"),
-                    desc: t("אפשר לתקוף שוב ושוב — התורות הן הגבול היחיד. השלל חסום ע\"י מאגר החיים, כך שתקיפות נוספות קונות התקדמות, לא כפל שלל. בוס שנופל חוזר אחרי {p0} דקות עם מאגר חדש.", { p0: Math.round(BOSS_REVIVE_MS / 60000) }),
+                    desc: t("אפשר לתקוף שוב ושוב — התורות הן הגבול היחיד. השלל חסום ע\"י מאגר החיים, כך שתקיפות נוספות קונות התקדמות, לא כפל שלל. בוס שנופל חוזר אחרי {p0} דקות עם מאגר חדש.", { p0: reviveMinutes }),
                   },
                   {
                     term: t("ציוד מובטח"),
@@ -2684,6 +2705,8 @@ export async function GuideContent({
               <BossLadder
                 powerMultiplier={tunables.boss.powerMultiplier}
                 rewardMultiplier={tunables.boss.rewardMultiplier}
+                slaveMultiplier={tunables.boss.slaveMultiplier}
+                heroXpMultiplier={tunables.boss.heroXpMultiplier}
                 hpMultiplier={tunables.boss.hpMultiplier}
               />
 
@@ -2816,14 +2839,14 @@ export async function GuideContent({
                 <Fact
                   icon="turns"
                   label={t("מכה עולה")}
-                  value={WORLD_BOSS_STRIKE_TURNS}
+                  value={tunables.worldBoss.strikeTurns}
                   hint={t("תורות — כארבע תקיפות")}
                   tone="text-emerald-300"
                 />
                 <Fact
                   icon="attack"
                   label={t("מכות לשבוע")}
-                  value={WORLD_BOSS_MAX_STRIKES}
+                  value={tunables.worldBoss.maxStrikes}
                   hint={t("לכל אימפריה, בלי קשר לתורות")}
                 />
                 <Fact
@@ -2836,7 +2859,7 @@ export async function GuideContent({
                 <Fact
                   icon="diamond"
                   label={t("מכת המוות")}
-                  value={WORLD_BOSS_KILL_DIAMONDS}
+                  value={tunables.worldBoss.killDiamonds}
                   hint={t("יהלומים, למי שהפיל אותה")}
                   tone="text-cyan-300"
                 />
@@ -2905,7 +2928,7 @@ export async function GuideContent({
                   },
                   {
                     term: t("הקופה המלאה (בעיר אחת)"),
-                    desc: <Purse rewards={WORLD_BOSS_PURSE} />,
+                    desc: <Purse rewards={worldBossPurse} />,
                   },
                   {
                     term: t("מי שלא הכה לא מקבל"),
@@ -3360,6 +3383,54 @@ export async function GuideContent({
                       </span>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              {/* The one prize on this screen that does not renew: five records
+                  for a whole season, one player each. Built off GLORY_KEYS and
+                  GLORY_PRIZE rather than written out, so retuning a purse moves
+                  the guide with it — the question this answers ("what do I get
+                  for a world record?") is the one players kept asking. */}
+              <div className="panel-gold rounded-xl p-4">
+                <p className="mb-2 flex items-center gap-2 font-black text-gold-bright">
+                  <RichText text={t("<0> שיאי העולם")} slots={[<><Icon name="crown" size={18} /></>]} />
+                </p>
+                <p className="text-[11px] leading-relaxed text-zinc-400">
+                  <RichText
+                    text={t("חמישה שיאים, ולכל אחד <0> בעולם כולו. הראשון שמגיע ליעד מקבל את הפרס <1>, והשם שלו נחרט על הלוח שבראש הבסיס עד סוף העונה. אין מה לאסוף ואין מה ללחוץ — הפרס נכנס לחשבון בכניסה הבאה לבסיס, ומגיע גם הודעה לתיבה. בעונה חדשה כל חמשת השיאים נפתחים מחדש.")}
+                    slots={[<><b>{t("זוכה אחד")}</b></>, <><b>{t("אוטומטית")}</b></>]}
+                  />
+                </p>
+                <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
+                  {GLORY_KEYS.map((key) => (
+                    <span
+                      key={key}
+                      className="flex items-start justify-between gap-3 rounded bg-black/40 px-2.5 py-1.5 text-[11px]"
+                    >
+                      {/* Wraps rather than truncates: the guide is where a
+                          player comes to read the goal in full, and two of the
+                          five names are a whole sentence. */}
+                      <span className="flex min-w-0 items-start gap-1.5 leading-snug text-zinc-400">
+                        <Icon
+                          name={GLORY_ICON[key] ?? ACHIEVEMENT_BY_KEY.get(key)?.icon ?? "crown"}
+                          size={13}
+                          className="mt-px shrink-0 text-gold"
+                        />
+                        <span>{t(GLORY_NAME[key] ?? key)}</span>
+                      </span>
+                      {/* Spelled out, like the band on the board itself: the
+                          reader is here precisely because they did not know
+                          what the prize was. */}
+                      <span className="flex shrink-0 flex-col items-end gap-0.5 text-zinc-400">
+                        {gloryPrize(key).map((r) => (
+                          <span key={r.kind} className="whitespace-nowrap">
+                            <b className="nums text-gold-bright">{nf(r.amount)}</b>{" "}
+                            {t(REWARD_LABEL[r.kind])}
+                          </span>
+                        ))}
+                      </span>
+                    </span>
+                  ))}
                 </div>
               </div>
 

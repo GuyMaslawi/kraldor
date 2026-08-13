@@ -10,7 +10,7 @@ import { cityFullName, cityName } from "@/lib/game/cities";
 import { AutoRefresh } from "@/components/game/AutoRefresh";
 import { CityBossBanner } from "@/components/game/CityBossBanner";
 import { ShieldBadges } from "@/components/game/ShieldBadges";
-import { getShieldsForEmpires } from "@/lib/game/diamondEffects";
+import { getShieldsForEmpires, shieldFlags } from "@/lib/game/diamondEffects";
 import { getCityBossState } from "@/server/bossState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PresenceDot } from "@/components/ui/PresenceDot";
@@ -401,7 +401,9 @@ export default async function RankingsPage({
                                 Icon-only: which shield it is rides in the tint
                                 and the tooltip, so a row that mostly does not
                                 have one does not pay for the ones that do. */}
-                            <ShieldBadges shields={shieldsByEmpire.get(empire.id)} />
+                            <ShieldBadges
+                              shields={shieldFlags(shieldsByEmpire.get(empire.id))}
+                            />
                           </div>
                         </div>
                       </div>

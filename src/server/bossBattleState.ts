@@ -136,7 +136,8 @@ export async function getBossArenaState(empireId: string): Promise<BossArenaStat
   const lifeHaul = bossReward(
     battle.siege.cityTier,
     seasonPassDay(season, now.getTime()),
-    tunables.boss.rewardMultiplier
+    tunables.boss.rewardMultiplier,
+    tunables.boss.slaveMultiplier
   );
 
   return {

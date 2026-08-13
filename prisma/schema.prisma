@@ -881,6 +881,16 @@ model EmpireGloryAward {
   /// change, not a migration. Keys that fall out of the set are ignored on read.
   key       String
   awardedAt DateTime @default(now())
+  /// When the world-record purse for this capstone was paid to this empire, or
+  /// null — which is every row but at most five in the whole game.
+  ///
+  /// Only the *earliest* row per key is ever stamped: the purse belongs to
+  /// whoever arrived first, so this doubles as the once-per-capstone-per-season
+  /// receipt (see GLORY_PRIZE / settleGloryPrizes). It lives here rather than in
+  /// a table of its own precisely so it is wiped with the empire when a season
+  /// restarts — a new world opens with all five purses unclaimed, and nothing
+  /// has to remember to reset them.
+  prizePaidAt DateTime?
 
   empire Empire @relation(fields: [empireId], references: [id], onDelete: Cascade)
 
@@ -2148,6 +2158,15 @@ model BattleReport {
   // Hero: battle XP awarded to each side and the % power bonus each hero added.
   attackerHeroBonusPct Float?
   defenderHeroBonusPct Float?
+
+  // Flat combat power the hero's equipped gear contributed, snapshotted for the
+  // same reason the guild-aid columns are: gear is swapped, upgraded and lost,
+  // so the report has to say what this battle was actually fought with. It sits
+  // *inside* the base — beside soldiers and weapons — so every multiplier below
+  // scales it, and the ledger reproduces the stored total only if it is read
+  // there rather than added on at the end.
+  attackerHeroPower Float?
+  defenderHeroPower Float?
 
   // Guild spells: % power bonus each side's active buff added (attack buff
   // for the attacker, defense buff for the defender).

@@ -11,6 +11,11 @@ import {
   POINTS_PER_LEVEL,
   ITEM_LEVELS,
   PRIMARY_WEIGHT,
+  MINOR_EXTRA_WEIGHT,
+  HERO_POWER_STATS,
+  HERO_PERCENT_STATS,
+  POWER_STAT_FOR,
+  type HeroStat,
   RARITY_ORDER,
   SLOT_META,
   SLOT_ORDER,
@@ -521,17 +526,63 @@ describe("item stats", () => {
     // not happen is a slot that is simply weaker than the rest — כפפות and שריון
     // were exactly that (1.25 against everyone else's 1.5) for as long as an
     // extra was worth a flat quarter.
+    //
+    // Measured over the *percentage/economy* budget only. The flat power twins
+    // are a parallel budget with its own rule (the mirror test below), and
+    // diamonds are a deliberate single-slot outlier — folding either in would
+    // make this assertion say nothing about the thing it exists to protect.
+    const economy = (slot: (typeof SLOT_ORDER)[number]) =>
+      SLOT_META[slot].stats.filter(
+        (s) =>
+          !(HERO_POWER_STATS as readonly string[]).includes(s.stat) &&
+          s.stat !== "diamonds"
+      );
     const budgets = SLOT_ORDER.map((slot) =>
-      SLOT_META[slot].stats.reduce((sum, s) => sum + s.weight, 0)
+      economy(slot).reduce((sum, s) => sum + s.weight, 0)
     );
     const spread = Math.max(...budgets) - Math.min(...budgets);
     expect(spread).toBeLessThan(0.15);
     for (const slot of SLOT_ORDER) {
       // The headline stat always outweighs everything riding along with it.
-      const [head, ...extras] = SLOT_META[slot].stats;
+      const [head, ...extras] = economy(slot);
       expect(head.weight).toBeGreaterThanOrEqual(
         extras.reduce((sum, s) => sum + s.weight, 0)
       );
+    }
+  });
+
+  it("mirrors every combat percentage with a flat power line of equal weight", () => {
+    // The rule that keeps a slot's combat identity from drifting between its
+    // two instruments: a slot that pays attack% pays attackPower at exactly the
+    // same weight, and pays a power stat for nothing else. 🥾 is the one slot
+    // with no combat stat at all, and so must carry no power line either.
+    for (const slot of SLOT_ORDER) {
+      const weightOf = (stat: string) =>
+        SLOT_META[slot].stats.find((s) => s.stat === stat)?.weight ?? 0;
+      for (const pct of HERO_PERCENT_STATS) {
+        expect(weightOf(POWER_STAT_FOR[pct])).toBe(weightOf(pct));
+      }
+    }
+    // …and the mirror is not vacuous: the slots that fight do carry it.
+    expect(SLOT_ORDER.filter((s) => slotGrants(s, "attackPower"))).toContain("SWORD");
+    expect(SLOT_ORDER.filter((s) => slotGrants(s, "defensePower"))).toContain("ARMOR");
+    for (const stat of HERO_POWER_STATS) {
+      expect(slotGrants("BOOTS", stat)).toBe(false);
+    }
+  });
+
+  it("climbs the power ladder on every single rung", () => {
+    // A geometric curve over 40 rungs, rounded to three significant figures,
+    // must still strictly increase — the rounding that made a level-based bonus
+    // pay +17 → +17 is the reason bonuses are keyed to the rung at all.
+    for (const stat of HERO_POWER_STATS) {
+      const armed = SLOT_ORDER.find((s) => slotGrants(s, stat))!;
+      let previous = 0;
+      for (const level of ITEM_LEVELS) {
+        const value = itemStatBonus(armed, level, stat);
+        expect(value).toBeGreaterThan(previous);
+        previous = value;
+      }
     }
   });
 
@@ -572,11 +623,24 @@ describe("item stats", () => {
     }
   });
 
-  it("never grants diamonds from gear", () => {
-    // A repeatable diamond faucet would undercut the real-money store; this is
-    // the assertion that keeps it that way when slots are re-tuned.
+  it("fences the diamond faucet to one slot and a trickle", () => {
+    // Gear mints the real-money currency again, and this is the assertion that
+    // keeps it from becoming an income the way it was before (a maxed 👖 paid
+    // +80 a day, forever). Exactly one slot, as its *minor* extra, and a ceiling
+    // small enough that a full season of it does not add up to a package.
+    const minting = SLOT_ORDER.filter((slot) => slotGrants(slot, "diamonds"));
+    expect(minting).toEqual(["PANTS"]);
+    expect(
+      SLOT_META.PANTS.stats.find((s) => s.stat === "diamonds")!.weight
+    ).toBe(MINOR_EXTRA_WEIGHT);
+    expect(slotPrimaryStat("PANTS")).not.toBe("diamonds");
+    // The whole ladder: a trickle at the bottom, a trophy at the top.
+    expect(itemStatBonus("PANTS", 1, "diamonds")).toBe(1);
+    expect(itemStatBonus("PANTS", 100, "diamonds")).toBeLessThanOrEqual(25);
+    // Still nothing at all from the other eight, however they are re-tuned.
     for (const slot of SLOT_ORDER) {
-      expect(slotGrants(slot, "diamonds" as never)).toBe(false);
+      if (slot === "PANTS") continue;
+      expect(itemStatBonus(slot, 100, "diamonds")).toBe(0);
     }
   });
 });

@@ -11,8 +11,6 @@ import { formatNumber, formatCompact } from "@/lib/game/format";
 import { REWARD_ICON, REWARD_LABEL } from "@/lib/game/rewards";
 import {
   WORLD_BOSS_BLOW_META,
-  WORLD_BOSS_KILL_DIAMONDS,
-  WORLD_BOSS_MAX_STRIKES,
   WORLD_BOSS_PHASES,
   WORLD_BOSS_PHASE_BY_KEY,
   type WorldBossBlowEntry,
@@ -288,7 +286,10 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
 
   const slain = state.defeated || playing?.beat === "kill";
   const canStrike =
-    !state.defeated && state.strikesLeft > 0 && state.turns >= state.strikeTurns;
+    !state.blocked &&
+    !state.defeated &&
+    state.strikesLeft > 0 &&
+    state.turns >= state.strikeTurns;
   const blow = playing ? WORLD_BOSS_BLOW_META[playing.reveal.grade] : null;
 
   return (
@@ -450,6 +451,13 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
                 )
               )}
             </div>
+          ) : state.blocked ? (
+            // A staff account watches the week's fixture and stays out of it —
+            // the button is not merely disabled, it is replaced, because there
+            // is no condition under which it would come back. See lib/staff.ts.
+            <p className="rounded-lg border border-border-subtle bg-black/30 px-3 py-2 text-xs font-semibold text-zinc-400">
+              {t("חשבונות הנהלה אינם תוקפים את מפלצת העולם.")}
+            </p>
           ) : (
             <span className="gleam-wrap">
               <button
@@ -505,7 +513,7 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
                 <span className="font-bold nums text-zinc-400">
                   {t("{left}/{max} מכות", {
                     left: state.strikesLeft,
-                    max: WORLD_BOSS_MAX_STRIKES,
+                    max: state.maxStrikes,
                   })}
                 </span>
               </Tip>
@@ -623,7 +631,7 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
           </li>
           <li>
             {t("רק מי שמנחית את המכה האחרונה מקבל {diamonds} יהלומים לעצמו. אי אפשר לתכנן אותה — הנזק נפרש, אז אף אחד לא יודע איזו מכה תסיים.", {
-              diamonds: WORLD_BOSS_KILL_DIAMONDS,
+              diamonds: state.killDiamonds,
             })}
           </li>
           <li>

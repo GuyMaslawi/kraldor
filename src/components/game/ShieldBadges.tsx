@@ -67,8 +67,15 @@ export function ShieldGlyph({
   );
 }
 
-/** Which shields to draw, as expiry timestamps (null / absent = not running). */
-export type ShieldState = Partial<Record<ShieldKey, Date | string | null>>;
+/**
+ * Which shields to draw. Any truthy value means "this one is up" — an expiry
+ * timestamp where the screen is allowed to know the hour (the spy report, your
+ * own shop), and a bare `true` everywhere else. See `shieldFlags` in
+ * `src/lib/game/diamondEffects.ts`: this component is a client component, so
+ * whatever it is handed crosses into the payload, and the drop hour is intel
+ * the badge deliberately does not carry.
+ */
+export type ShieldState = Partial<Record<ShieldKey, Date | string | boolean | null>>;
 
 /**
  * The shield pills shown beside an empire's name. Renders nothing when the
@@ -88,7 +95,9 @@ export function ShieldBadges({
   size?: "sm" | "md";
 }) {
   if (!shields) return null;
-  const active = SHIELDS.filter((s) => shields[s.key] != null);
+  // Truthiness, not `!= null`: a flags map spells a shield that is *not* up as
+  // `false`, and a null check would draw a badge for every one of them.
+  const active = SHIELDS.filter((s) => Boolean(shields[s.key]));
   if (active.length === 0) return null;
 
   return (

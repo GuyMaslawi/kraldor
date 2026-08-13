@@ -29,7 +29,7 @@ import {
 } from "@/lib/admin";
 import { BAN_DAYS_MAX, formatBanDate, isBanned } from "@/lib/ban";
 import { syncStaffFlag } from "@/lib/staff";
-import { notBot } from "@/lib/bot";
+import { notBot, notStaffOrBot } from "@/lib/bot";
 import { GIFT_DEFAULTS, isGameWideScope } from "@/lib/adminBroadcast";
 import { weaponByKey, TIERS_PER_CATEGORY } from "@/lib/game/weapons";
 import { GUILD_AID_MAX_LEVEL, GUILD_CAPACITY_MAX_LEVEL } from "@/lib/game/guild";
@@ -93,7 +93,12 @@ import {
 } from "@/lib/game/happyHour";
 import { SEASON_PASS_XP_MAX } from "@/lib/game/seasonPass";
 import { ACHIEVEMENT_BY_KEY, GLORY_KEYS } from "@/lib/game/achievements";
-import { formatGameDateTime, lastDailyUpdate } from "@/lib/game/time";
+import { formatGameDateTime, gameWeek, lastDailyUpdate } from "@/lib/game/time";
+import {
+  WORLD_BOSS_BY_KEY,
+  rollWorldBoss,
+  worldBossMaxHp,
+} from "@/lib/game/worldBoss";
 import {
   DEFAULT_TUNABLES,
   getTunables,
@@ -2414,7 +2419,15 @@ export async function toggleAchievement(
   }
 }
 
-/** Stamp (or remove) a world-record decoration for this empire. */
+/**
+ * Stamp (or remove) a world-record decoration for this empire.
+ *
+ * A grant that lands this empire at the *head* of the key — no earlier stamp
+ * exists — hands over the record's purse as well (GLORY_PRIZE), paid on the
+ * player's next base-screen load. That is the intended reading of "grant a world
+ * record", and the audit row below is what makes it accountable; it is not a
+ * silent side effect to be surprised by. Revoking does not claw the purse back.
+ */
 export async function toggleGloryAward(
   _prev: AdminActionState,
   formData: FormData
@@ -4325,4 +4338,387 @@ export async function deleteBotEmpire(
   } catch (e) {
     return toErr(e);
   }
+}
+
+/* ============================================================= */
+/*                     BOSSES & THE WORLD BOSS                   */
+/* ============================================================= */
+
+/**
+ * The two bosses, from the control centre.
+ *
+ * They need different tools and it is worth saying why, because the asymmetry is
+ * not an oversight in either design.
+ *
+ * **בוס העיר** is private: one *life* per empire per city tier (`BossSiege`),
+ * with its own health and its own revive clock. There is nothing global to
+ * edit — "revive the boss" means reviving as many rows as there are players
+ * standing in front of one, so the actions below are scoped (everybody / one
+ * tier / one empire) and act on the newest life of each.
+ *
+ * **מפלצת העולם** is the opposite: exactly one row a week, shared by the whole
+ * server, deliberately built as a clock fixture with no admin button (see
+ * lib/game/worldBoss.ts). That was right for *spawning* it and remains so — the
+ * week's beast still appears on its own. What it left missing is any way to
+ * reach the fixture once it is standing: a pool frozen too high on a quiet week
+ * cannot be lowered, and a beast felled by an exploit cannot be put back. These
+ * actions edit the live row and nothing else; which boss a week draws is still a
+ * pure function of the week, except where an admin says otherwise here.
+ */
+
+/** The live week's row, or null before anybody has opened the arena. */
+async function currentWorldBoss() {
+  return prisma.worldBoss.findUnique({ where: { week: gameWeek(new Date()) } });
+}
+
+/** Full health, no corpse: the shape both the revive and the reset write. */
+function worldBossAlive(maxHp: number) {
+  return {
+    hp: maxHp,
+    maxHp,
+    defeatedAt: null,
+    slayerId: null,
+    slayerName: null,
+  };
+}
+
+/**
+ * Spawn the week's boss by hand, ahead of the first player to look.
+ *
+ * Only useful before anybody has opened the arena — after that the row exists
+ * and every other action here edits it.
+ */
+export async function spawnWorldBoss(
+  _prev: AdminActionState,
+  _formData: FormData
+): Promise<AdminActionState> {
+  try {
+    const admin = await requireAdmin();
+    const week = gameWeek(new Date());
+    if (await prisma.worldBoss.findUnique({ where: { week } })) {
+      return { error: "מפלצת השבוע כבר קיימת" };
+    }
+
+    const tunables = await getTunables();
+    const definition = rollWorldBoss(week);
+    const empires = await prisma.empire.count({ where: notStaffOrBot });
+    const maxHp = worldBossMaxHp(definition, empires, tunables.worldBoss.hpMultiplier);
+    const boss = await prisma.worldBoss.create({
+      data: { week, key: definition.key, maxHp, hp: maxHp },
+    });
+
+    await logAdmin(admin, {
+      action: "worldboss.spawn",
+      targetType: "worldBoss",
+      targetId: boss.id,
+      summary: `${definition.name} נוצרה ידנית עם ${formatNumber(maxHp)} חיים`,
+    });
+    revalidateBossScreens();
+    return { success: `${definition.name} עומדת בזירה` };
+  } catch (e) {
+    return toErr(e);
+  }
+}
+
+/**
+ * Edit the live beast: which one it is, its pool, and its health right now.
+ *
+ * `maxHp` is normally frozen at spawn — the fixture's whole shape depends on the
+ * pool not moving under a server mid-week (see `worldBossMaxHp`) — so this is
+ * the one place it can move, and it moves deliberately. Health is clamped to the
+ * pool: a beast on more health than it has is a bar that reads past full.
+ */
+export async function saveWorldBoss(
+  _prev: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  try {
+    const admin = await requireAdmin();
+    const boss = await currentWorldBoss();
+    if (!boss) return { error: "אין מפלצת עולם השבוע — צור אותה קודם" };
+
+    const key = str(formData, "key", 40) || boss.key;
+    const definition = WORLD_BOSS_BY_KEY.get(key);
+    if (!definition) return { error: "מפלצת לא מוכרת" };
+
+    const maxHp = Math.max(1, Math.round(optNum(formData, "maxHp", boss.maxHp)));
+    const hp = Math.min(maxHp, Math.max(0, Math.round(optNum(formData, "hp", boss.hp))));
+
+    // Health at zero and a live corpse are the same state; the two must never
+    // disagree, or the arena offers a strike that the guarded UPDATE refuses.
+    const defeated = hp <= 0;
+    const updated = await prisma.worldBoss.update({
+      where: { id: boss.id },
+      data: {
+        key,
+        maxHp,
+        hp,
+        ...(defeated
+          ? boss.defeatedAt
+            ? {}
+            : { defeatedAt: new Date(), slayerId: null, slayerName: null }
+          : { defeatedAt: null, slayerId: null, slayerName: null }),
+      },
+    });
+
+    await logAdmin(admin, {
+      action: "worldboss.save",
+      targetType: "worldBoss",
+      targetId: boss.id,
+      summary: `${definition.name}: ${formatNumber(updated.hp)}/${formatNumber(updated.maxHp)} חיים`,
+      details: { key, hp, maxHp, defeated },
+    });
+    revalidateBossScreens();
+    return { success: `${definition.name} עודכנה` };
+  } catch (e) {
+    return toErr(e);
+  }
+}
+
+/** Put the beast back on its feet at full health, keeping the damage board. */
+export async function reviveWorldBoss(
+  _prev: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  try {
+    const admin = await requireAdmin();
+    const boss = await currentWorldBoss();
+    if (!boss) return { error: "אין מפלצת עולם השבוע — צור אותה קודם" };
+
+    // An optional new pool, so "bring it back, but bigger" is one click rather
+    // than two. Blank keeps the pool it already carries.
+    const maxHp = Math.max(1, Math.round(optNum(formData, "maxHp", boss.maxHp)));
+    await prisma.worldBoss.update({
+      where: { id: boss.id },
+      data: worldBossAlive(maxHp),
+    });
+
+    await logAdmin(admin, {
+      action: "worldboss.revive",
+      targetType: "worldBoss",
+      targetId: boss.id,
+      summary: `המפלצת הוחזרה ל-${formatNumber(maxHp)} חיים מלאים`,
+    });
+    revalidateBossScreens();
+    return { success: "המפלצת עומדת שוב, בחיים מלאים" };
+  } catch (e) {
+    return toErr(e);
+  }
+}
+
+/**
+ * Fell it now.
+ *
+ * No slayer is stamped — nobody landed the blow — so the kill diamonds are paid
+ * to nobody, and the shared purse opens for everyone who struck this week. That
+ * is the point of the button: it ends a week that is not going to end on its own
+ * without robbing the players who turned up.
+ */
+export async function killWorldBoss(
+  _prev: AdminActionState,
+  _formData: FormData
+): Promise<AdminActionState> {
+  try {
+    const admin = await requireAdmin();
+    const boss = await currentWorldBoss();
+    if (!boss) return { error: "אין מפלצת עולם השבוע — צור אותה קודם" };
+    if (boss.defeatedAt) return { error: "המפלצת כבר הופלה השבוע" };
+
+    await prisma.worldBoss.update({
+      where: { id: boss.id },
+      data: { hp: 0, defeatedAt: new Date(), slayerId: null, slayerName: null },
+    });
+
+    await logAdmin(admin, {
+      action: "worldboss.kill",
+      targetType: "worldBoss",
+      targetId: boss.id,
+      summary: "המפלצת הופלה ידנית — השלל נפתח לכל המכים",
+    });
+    revalidateBossScreens();
+    return { success: "המפלצת הופלה. השלל פתוח לכל מי שהכה השבוע." };
+  } catch (e) {
+    return toErr(e);
+  }
+}
+
+/**
+ * Start the week over: full health, and the damage board wiped.
+ *
+ * The destructive one, and the warning is real — the strikes carry the `claimed`
+ * receipts, so deleting them re-opens the purse for anyone who already collected
+ * it. Use it on a week that went wrong, not on one that merely ended early.
+ */
+export async function resetWorldBoss(
+  _prev: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  try {
+    const admin = await requireAdmin();
+    const boss = await currentWorldBoss();
+    if (!boss) return { error: "אין מפלצת עולם השבוע — צור אותה קודם" };
+
+    const tunables = await getTunables();
+    const definition = WORLD_BOSS_BY_KEY.get(boss.key);
+    // Blank recomputes the pool from today's head count, which is what a spawn
+    // would have written had the week started now.
+    const empires = await prisma.empire.count({ where: notStaffOrBot });
+    const fresh =
+      definition != null
+        ? worldBossMaxHp(definition, empires, tunables.worldBoss.hpMultiplier)
+        : boss.maxHp;
+    const maxHp = Math.max(1, Math.round(optNum(formData, "maxHp", fresh)));
+
+    const [blows, strikes] = await prisma.$transaction([
+      prisma.worldBossBlow.deleteMany({ where: { bossId: boss.id } }),
+      prisma.worldBossStrike.deleteMany({ where: { bossId: boss.id } }),
+      prisma.worldBoss.update({ where: { id: boss.id }, data: worldBossAlive(maxHp) }),
+    ]);
+
+    await logAdmin(admin, {
+      action: "worldboss.reset",
+      targetType: "worldBoss",
+      targetId: boss.id,
+      summary: `השבוע אופס: ${formatNumber(maxHp)} חיים, ${strikes.count} מכים ו-${blows.count} מכות נמחקו`,
+    });
+    revalidateBossScreens();
+    return {
+      success: `המפלצת אופסה. לוח הנזק נוקה (${strikes.count} שחקנים).`,
+    };
+  } catch (e) {
+    return toErr(e);
+  }
+}
+
+/* ------------------------------ city bosses ------------------------------ */
+
+/**
+ * Restore city bosses to full life.
+ *
+ * Acts on the **newest** life of each (empire, tier) pair, which is the one row
+ * `currentLife` will read next — an older siege is history and reviving it would
+ * change nothing anybody can see. A dead one is brought back on the spot rather
+ * than having its clock shortened: `killedAt`/`revivesAt` cleared and the pool
+ * refilled, so the row that was a corpse is the life standing in front of the
+ * player on their next march.
+ *
+ * Scope is one of: every empire, one city tier, or one empire.
+ */
+export async function reviveCityBosses(
+  _prev: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  try {
+    const admin = await requireAdmin();
+    const empireId = str(formData, "empireId");
+    const tier = Math.round(optNum(formData, "cityTier", 0));
+
+    const where: Prisma.BossSiegeWhereInput = {
+      ...(empireId ? { empireId } : {}),
+      ...(tier > 0 ? { cityTier: clampLevel(tier, 1, MAX_CITIES) } : {}),
+    };
+
+    // Newest life per (empire, tier). Read as rows rather than updated in one
+    // statement because "newest" is not something a Prisma updateMany can say —
+    // and an updateMany over every matching row would resurrect sieges that were
+    // superseded long ago.
+    const sieges = await prisma.bossSiege.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, empireId: true, cityTier: true, hp: true, maxHp: true },
+    });
+    const newest = new Map<string, (typeof sieges)[number]>();
+    for (const siege of sieges) {
+      const key = `${siege.empireId}:${siege.cityTier}`;
+      if (!newest.has(key)) newest.set(key, siege);
+    }
+    if (newest.size === 0) return { error: "לא נמצאו בוסים בטווח שנבחר" };
+
+    const ids = [...newest.values()].map((s) => s.id);
+    // One statement, and raw because `hp = "maxHp"` — a column read into another
+    // column of the same row — is not something `updateMany` can express, and
+    // the two halves must not be able to land apart: a row with its corpse
+    // cleared but its pool still empty is a boss that is neither alive nor
+    // counting down.
+    const restored = await prisma.$executeRaw`
+      UPDATE "BossSiege"
+      SET hp = "maxHp", "killedAt" = NULL, "revivesAt" = NULL
+      WHERE id = ANY(${ids})
+    `;
+
+    const scope = empireId
+      ? "שחקן אחד"
+      : tier > 0
+        ? `דרגת עיר ${clampLevel(tier, 1, MAX_CITIES)}`
+        : "כל הדרגות";
+    await logAdmin(admin, {
+      action: "boss.revive",
+      targetType: empireId ? "empire" : "bossSiege",
+      targetId: empireId || undefined,
+      summary: `${restored} בוסי עיר הוחזרו לחיים מלאים (${scope})`,
+    });
+    revalidateBossScreens();
+    return { success: `${restored} בוסי עיר חזרו לחיים מלאים` };
+  } catch (e) {
+    return toErr(e);
+  }
+}
+
+/* ------------------------------ the knobs ------------------------------ */
+
+/**
+ * Save the two boss groups without touching anything else.
+ *
+ * Deliberately not `saveTunables`: that action rebuilds the whole overlay from
+ * one form and merges it over the **defaults**, so a partial form — this page
+ * carries two groups out of eight — would silently reset the starting bundle,
+ * the battle rates and the season cycle to their shipped values. Here the
+ * submitted fields are laid over the tunables as they currently stand.
+ */
+export async function saveBossTunables(
+  _prev: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  try {
+    const admin = await requireAdmin();
+    const current = await getTunables();
+    const groups = ["boss", "worldBoss"] as const;
+
+    const overlay: Record<string, Record<string, number>> = {
+      ...(current as unknown as Record<string, Record<string, number>>),
+    };
+    for (const group of groups) {
+      const values: Record<string, number> = { ...current[group] };
+      for (const field of Object.keys(DEFAULT_TUNABLES[group])) {
+        const raw = formData.get(`${group}.${field}`);
+        const n = Number(raw);
+        if (raw != null && raw !== "" && Number.isFinite(n)) values[field] = n;
+      }
+      overlay[group] = values;
+    }
+
+    const merged = mergeTunables(overlay);
+    await prisma.gameConfig.upsert({
+      where: { id: "singleton" },
+      create: { id: "singleton", data: merged as unknown as Prisma.InputJsonValue },
+      update: { data: merged as unknown as Prisma.InputJsonValue },
+    });
+    await logAdmin(admin, {
+      action: "config.save",
+      targetType: "config",
+      summary: "עודכן איזון הבוסים",
+      details: { boss: merged.boss, worldBoss: merged.worldBoss },
+    });
+    revalidateBossScreens();
+    return { success: "איזון הבוסים נשמר" };
+  } catch (e) {
+    return toErr(e);
+  }
+}
+
+/** Both boss screens plus the game shell, which carries the city-boss banner. */
+function revalidateBossScreens(): void {
+  revalidatePath("/admin/bosses");
+  revalidatePath("/admin/balance");
+  revalidatePath("/game", "layout");
 }

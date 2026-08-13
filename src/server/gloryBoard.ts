@@ -1,6 +1,14 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import { GLORY_KEYS, type AchievementsState } from "@/lib/game/achievements";
+import {
+  GLORY_KEYS,
+  GLORY_NAME,
+  gloryPrize,
+  type AchievementsState,
+} from "@/lib/game/achievements";
+import { REWARD_LABEL, mergeRewards, type Reward } from "@/lib/game/rewards";
+import { formatNumber } from "@/lib/game/format";
+import { payRewards } from "@/server/rewardGrant";
 
 /**
  * The capstone board on /game/base: automatic decorations, plus the world
@@ -27,11 +35,24 @@ import { GLORY_KEYS, type AchievementsState } from "@/lib/game/achievements";
  */
 
 export interface GloryChampion {
+  /** The winning `EmpireGloryAward` row — the one the purse is stamped on. */
+  awardId: string;
   empireId: string;
   empireName: string;
   /** `Empire.title` — the holder's תואר as it stands now, or null for none. */
   title: string | null;
   awardedAt: Date;
+  /** When this holder was paid the record's purse; null while it is owed. */
+  prizePaidAt: Date | null;
+  /**
+   * True when *some* row of this key has already been paid — normally the same
+   * row, but not necessarily. An admin can stamp an award with a backdated
+   * `awardedAt` (see `setGloryAward`), which moves the champion to a row whose
+   * own `prizePaidAt` is null; without this flag the capstone would pay a second
+   * purse. Read straight from the database rather than derived, so it is true
+   * even for a holder this query no longer names.
+   */
+  prizeTaken: boolean;
 }
 
 /**
@@ -96,21 +117,34 @@ export async function getGloryChampions(): Promise<Map<string, GloryChampion>> {
   const rows = await prisma.$queryRaw<
     {
       key: string;
+      award_id: string;
       empire_id: string;
       empire_name: string;
       empire_title: string | null;
       awarded_at: Date;
+      prize_paid_at: Date | null;
+      prize_taken: boolean;
     }[]
   >`
     SELECT DISTINCT ON (g.key)
       g.key                AS key,
+      g.id                 AS award_id,
       g."empireId"         AS empire_id,
       e.name               AS empire_name,
       -- The holder's title, off a join this query was already making for the
       -- name. Live rather than frozen at the award, deliberately: the case says
       -- who holds the record now, and a title is what that player is called now.
       e.title              AS empire_title,
-      g."awardedAt"        AS awarded_at
+      g."awardedAt"        AS awarded_at,
+      g."prizePaidAt"      AS prize_paid_at,
+      -- "Has this capstone's purse been paid to anybody?" — normally the same
+      -- row, but a backdated admin stamp can move the champion off a paid row.
+      -- Cheap: at most one row per key is ever stamped, and the (key, awardedAt)
+      -- index answers it without touching the heap for the rest.
+      EXISTS (
+        SELECT 1 FROM "EmpireGloryAward" p
+        WHERE p.key = g.key AND p."prizePaidAt" IS NOT NULL
+      )                    AS prize_taken
     FROM "EmpireGloryAward" g
     JOIN "Empire" e ON e.id = g."empireId"
     WHERE g.key = ANY(${GLORY_KEYS as string[]})
@@ -129,12 +163,136 @@ export async function getGloryChampions(): Promise<Map<string, GloryChampion>> {
     rows.map((r) => [
       r.key,
       {
+        awardId: r.award_id,
         empireId: r.empire_id,
         empireName: r.empire_name,
         title: r.empire_title,
         awardedAt: r.awarded_at,
+        prizePaidAt: r.prize_paid_at,
+        prizeTaken: r.prize_taken,
       },
     ])
   );
+}
+
+/* ------------------------------ the purse ------------------------------ */
+
+/** One capstone's purse, as it was actually credited. */
+export interface GloryPrizePayment {
+  key: string;
+  rewards: Reward[];
+}
+
+/**
+ * Pay the world-record purse to the empire currently holding each plaque.
+ *
+ * Called from the base screen right after `getGloryChampions`, for the *viewer
+ * only*. That is not a shortcut, it is the whole design: the same page load
+ * that stamps an arrival is the one that reads the records back, so an empire
+ * that has just taken a record is paid on that very request — and a record
+ * already standing when this shipped is settled the next time its holder opens
+ * their base. Nobody else's page load has to do anything, and a purse costs
+ * exactly zero extra queries on every load where there is nothing to pay: the
+ * champions map already carries the receipt.
+ *
+ * Paid once per capstone per season. Two guards, in order:
+ *
+ *  1. `prizeTaken` — some row of this key is already stamped. Covers the case
+ *     where the champion moved to an unpaid row (a backdated admin stamp).
+ *  2. A guarded `updateMany` on the winning row itself, inside the transaction
+ *     and *before* the credit. That is the real lock: two tabs loading the base
+ *     screen at once both see an unpaid record and both target the same row, and
+ *     `count === 0` is how the loser finds out. Stamping before paying rather
+ *     than after means the failure mode is an unpaid record — recoverable, and
+ *     visible — instead of a double payout.
+ *
+ * Returns what was actually paid, so the caller can tell the player. An empty
+ * array is the overwhelmingly common answer.
+ */
+export async function settleGloryPrizes(
+  empireId: string,
+  champions: ReadonlyMap<string, GloryChampion>
+): Promise<GloryPrizePayment[]> {
+  const owed = GLORY_KEYS.flatMap((key) => {
+    const held = champions.get(key);
+    if (!held || held.empireId !== empireId) return [];
+    if (held.prizePaidAt || held.prizeTaken) return [];
+    const prize = gloryPrize(key);
+    if (prize.length === 0) return [];
+    return [{ key, awardId: held.awardId, prize }];
+  });
+  if (owed.length === 0) return [];
+
+  const paid: GloryPrizePayment[] = [];
+  for (const { key, awardId, prize } of owed) {
+    const now = new Date();
+    const payment = await prisma.$transaction(async (tx) => {
+      // The receipt first. Whoever wins this update owns the purse; everybody
+      // else stops here having paid nothing.
+      const claimed = await tx.empireGloryAward.updateMany({
+        where: { id: awardId, prizePaidAt: null },
+        data: { prizePaidAt: now },
+      });
+      if (claimed.count === 0) return null;
+
+      const rewards = await payRewards(tx, empireId, prize);
+
+      // The receipt in the winner's own inbox — the payout is silent otherwise,
+      // and a purse nobody noticed arriving is a purse players keep asking about.
+      // Keys and params, not a finished sentence: the row is written on this
+      // player's request but the inbox renders in whatever language they are
+      // reading in at the time (see messageText.ts).
+      await tx.message.create({
+        data: {
+          empireId,
+          kind: "SYSTEM",
+          title: "🏆 שיא עולם על שמך — הפרס שולם",
+          body: "{record} — אתה הראשון בעולם שהגיע לשם, והשיא נרשם על שמך לצמיתות. הפרס נכנס לחשבונך אוטומטית: {prize}.",
+          bodyParams: {
+            record: { key: GLORY_NAME[key] ?? key },
+            prize: prizeClause(rewards),
+          },
+          href: "/game/base",
+          // Set explicitly, like every other message the game writes off its own
+          // clock: the column default is CURRENT_TIMESTAMP, which lands in the
+          // database session's zone rather than Prisma's UTC — three hours out,
+          // which is enough to sort a fresh receipt below yesterday's mail.
+          createdAt: now,
+        },
+      });
+
+      return { key, rewards };
+    });
+    if (payment) paid.push(payment);
+  }
+  return paid;
+}
+
+/**
+ * The purse as one translatable clause — "1,000 אזרחים ו-500 תורות".
+ *
+ * Nested keys rather than a sentence built here: every label is itself a
+ * dictionary key, so an English reader gets "1,000 Citizens and 500 Turns" out
+ * of a row written while a Hebrew player was being served. See the note on
+ * nested params in messageText.ts.
+ */
+type MessageParam =
+  | string
+  | number
+  | { key: string; params?: Record<string, MessageParam> };
+
+function prizeClause(rewards: readonly Reward[]): MessageParam {
+  const lines: MessageParam[] = mergeRewards(rewards).map((r) => ({
+    key: "{amount} {kind}",
+    params: { amount: formatNumber(r.amount), kind: { key: REWARD_LABEL[r.kind] } },
+  }));
+  if (lines.length === 0) return "";
+  // Folded from the right so the conjunction always joins the last line to
+  // everything before it. Every purse is two lines today; the fold is what keeps
+  // that from being an assumption a third line would break.
+  return lines.reduceRight((acc, line) => ({
+    key: "{a} ו-{b}",
+    params: { a: line, b: acc },
+  }));
 }
 

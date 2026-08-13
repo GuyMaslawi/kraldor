@@ -53,7 +53,13 @@ await prisma.empire.update({
 const held = await prisma.empireGloryAward.count({ where: { empireId: me.id } });
 if (held === 0) {
   await prisma.empireGloryAward.createMany({
-    data: [{ empireId: me.id, key: "cities_10" }, { empireId: me.id, key: "herolvl_100" }],
+    // `prizePaidAt` stamped up front for the same reason shot-glory.mjs does it:
+    // a fabricated arrival must not settle a real world-record purse on the
+    // holder's next base-screen load (see GLORY_PRIZE).
+    data: [
+      { empireId: me.id, key: "cities_10", prizePaidAt: new Date() },
+      { empireId: me.id, key: "herolvl_100", prizePaidAt: new Date() },
+    ],
     skipDuplicates: true,
   });
   console.log("stamped two glory awards for the shot");

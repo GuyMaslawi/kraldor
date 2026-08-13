@@ -8,6 +8,7 @@ import { PresenceDot } from "@/components/ui/PresenceDot";
 import { PlayerLink } from "@/components/ui/PlayerLink";
 import { isOnline } from "@/lib/game/chat";
 import { formatDate } from "@/lib/game/format";
+import { getShieldsForEmpires, shieldFlags } from "@/lib/game/diamondEffects";
 import { markMessagesRead } from "@/server/actions/messages";
 import { MESSAGE_ROSTER_SEED } from "@/lib/game/messages";
 import { MarkSeen } from "@/components/game/MarkSeen";
@@ -85,6 +86,14 @@ export default async function MessagesPage() {
   ]);
 
   const players: PlayerOption[] = roster;
+
+  // Who among the senders is behind a paid raid shield. A letter is one of the
+  // places you meet a rival, and "answering" it in this game often means turns
+  // rather than words — so the badge that says the loot is locked rides beside
+  // his name here too. System mail has no sender and contributes no id.
+  const senderShields = await getShieldsForEmpires([
+    ...new Set(messages.map((m) => m.senderEmpireId).filter((id): id is string => !!id)),
+  ]);
 
   // "New" = unread, or read moments ago (so the highlight survives the
   // mark-read revalidation that clears the sidebar badge).
@@ -237,6 +246,11 @@ export default async function MessagesPage() {
                             empireId={m.senderEmpireId}
                             name={from}
                             className="font-bold"
+                            shields={
+                              m.senderEmpireId
+                                ? shieldFlags(senderShields.get(m.senderEmpireId))
+                                : undefined
+                            }
                             staff={m.sender?.isStaff ?? false}
                           />
                         </span>

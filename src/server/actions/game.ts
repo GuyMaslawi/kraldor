@@ -74,6 +74,7 @@ import {
   bonusMultiplier,
   damagedHealth,
   heroBonuses,
+  heroPowerBonus,
   rollItemDrop,
 } from "@/lib/game/hero";
 import {
@@ -432,6 +433,17 @@ async function applyAssignments(
   });
 }
 
+/**
+ * The number in a mine's crew box is a *delta*, not the mine's new total: "10"
+ * on a mine already running 100 puts 110 down the shaft. It used to be read as
+ * the new total, which quietly released 90 slaves the player never meant to
+ * pull off — the field even came pre-filled with the current crew, so typing
+ * the number he wanted to add was exactly the wrong move.
+ *
+ * The mine's crew is re-read inside applyAssignments' row lock, so the delta is
+ * applied to the settled figure rather than to whatever the page was rendered
+ * with — two quick submits both land.
+ */
 export async function assignMineSlavesToResource(
   _prev: ActionState,
   formData: FormData
@@ -440,42 +452,71 @@ export async function assignMineSlavesToResource(
   const parsed = z
     .object({
       resource: resourceSchema,
-      amount: z.coerce.number().int().min(0).max(1_000_000),
+      amount: z.coerce.number().int().min(1).max(COLUMN_INT_MAX),
+      mode: z.enum(["add", "remove"]).default("add"),
     })
     .safeParse({
       resource: formData.get("resource"),
       amount: formData.get("amount"),
+      mode: formData.get("mode") ?? undefined,
     });
   if (!parsed.success) return { error: t("כמות עבדי מכרות לא תקינה") };
-  const { resource, amount } = parsed.data;
+  const { resource, amount, mode } = parsed.data;
   const mineType = RESOURCE_TO_MINE[resource];
 
   try {
     const empireId = await requireOwnEmpireId();
+    // Filled in by `compute` so the message can quote figures taken from the
+    // same locked read the write was validated against.
+    let moved = 0;
+    let crew = 0;
     const result = await applyAssignments(empireId, (totalSlaves, current) => {
-      const next = new Map(current);
-      next.set(mineType, amount);
-      let sum = 0;
-      for (const value of next.values()) sum += value;
-      if (sum > totalSlaves) {
-        const available =
-          totalSlaves - (sum - amount);
-        return {
-          error: t("אין מספיק עבדי מכרות פנויים (ניתן להציב כאן עד {max})", {
-            max: Math.max(0, available),
-          }),
-        };
+      const before = current.get(mineType) ?? 0;
+      let assignedElsewhere = 0;
+      for (const [type, value] of current) {
+        if (type !== mineType) assignedElsewhere += value;
       }
+
+      if (mode === "remove") {
+        // Asking to pull more men off than are standing there empties the mine
+        // rather than failing — "remove everything" is the obvious intent.
+        crew = Math.max(0, before - amount);
+        moved = before - crew;
+        if (moved === 0) return { error: t("אין עובדים במכרה הזה") };
+      } else {
+        const free = Math.max(0, totalSlaves - assignedElsewhere - before);
+        if (amount > free) {
+          return {
+            error: t("אין מספיק עבדי מכרות פנויים (ניתן להוסיף כאן עד {max})", {
+              max: free,
+            }),
+          };
+        }
+        crew = before + amount;
+        moved = amount;
+      }
+
+      const next = new Map(current);
+      next.set(mineType, crew);
       return next;
     });
     if (result.error) return { error: result.error };
 
     revalidateGame();
+    const mine = t(BUILDING_META[mineType].label);
     return {
-      success: t("הוצבו {count} עבדי מכרות ב{mine}", {
-        count: amount,
-        mine: t(BUILDING_META[mineType].label),
-      }),
+      success:
+        mode === "remove"
+          ? t("הוסרו {count} עבדי מכרות מ{mine} — נשארו {crew}", {
+              count: moved,
+              mine,
+              crew,
+            })
+          : t("נוספו {count} עבדי מכרות ל{mine} — כעת {crew} במכרה", {
+              count: moved,
+              mine,
+              crew,
+            }),
     };
   } catch (err) {
     await logError("game.assignMineSlavesToResource", err);
@@ -813,16 +854,22 @@ export async function spyOnEmpire(
       const defenderIntelLevel =
         defender.upgrades.find((u) => u.type === "INTELLIGENCE")?.level ?? 1;
       const heroSpyBonusPct = heroBonuses(attacker.hero).totalPct.spy;
+      // Gear spy power is a *base* term — it sits with the spies and the spy
+      // weapons — so both sides bring theirs. Only the percentage stays the
+      // attacker's, which is the asymmetry this mission has always had.
       const attackerIntel = getEmpireIntelPower(
         attacker.army,
         attacker.weapons,
         attackerIntelLevel,
-        heroSpyBonusPct
+        heroSpyBonusPct,
+        heroPowerBonus(heroBonuses(attacker.hero), "spy")
       );
       const defenderIntel = getEmpireIntelPower(
         defender.army,
         defender.weapons,
-        defenderIntelLevel
+        defenderIntelLevel,
+        0,
+        heroPowerBonus(heroBonuses(defender.hero), "spy")
       );
       const success = attackerIntel > defenderIntel;
 
@@ -1023,12 +1070,15 @@ export async function sabotageEmpire(
         attacker.army,
         attacker.weapons,
         attackerIntelLevel,
-        heroBonuses(attacker.hero).totalPct.spy
+        heroBonuses(attacker.hero).totalPct.spy,
+        heroPowerBonus(heroBonuses(attacker.hero), "spy")
       );
       const defenderIntel = getEmpireIntelPower(
         defender.army,
         defender.weapons,
-        defenderIntelLevel
+        defenderIntelLevel,
+        0,
+        heroPowerBonus(heroBonuses(defender.hero), "spy")
       );
       const success = sabotageSucceeds(attackerIntel, defenderIntel);
 
@@ -1329,8 +1379,16 @@ export async function attackEmpire(
       // multiplies it once more.
       const attackerHero = attacker.hero;
       const defenderHero = defender.hero;
-      const attackerHeroBonusPct = heroBonuses(attackerHero).totalPct.attack;
-      const defenderHeroBonusPct = heroBonuses(defenderHero).totalPct.defense;
+      const attackerBonuses = heroBonuses(attackerHero);
+      const defenderBonuses = heroBonuses(defenderHero);
+      const attackerHeroBonusPct = attackerBonuses.totalPct.attack;
+      const defenderHeroBonusPct = defenderBonuses.totalPct.defense;
+      // Flat power from equipped gear. It joins the base beside soldiers and
+      // weapons, so the percentages below multiply it too — and a fallen hero
+      // contributes none of it, because `heroBonuses` has already zeroed the
+      // whole tally he carries.
+      const attackerHeroPower = heroPowerBonus(attackerBonuses, "attack");
+      const defenderHeroPower = heroPowerBonus(defenderBonuses, "defense");
       const attackerGuildBonusPct = await getActiveGuildBuffPct(
         empireId,
         "ATTACK",
@@ -1351,12 +1409,12 @@ export async function attackEmpire(
       const defenderSoldiersPower = armyPower(defenderArmy);
       const defenderWeaponsPower = weaponsPower(defender.weapons, "DEFENSE");
       const attackerPower =
-        (attackerSoldiersPower + attackerWeaponsPower) *
+        (attackerSoldiersPower + attackerWeaponsPower + attackerHeroPower) *
           bonusMultiplier(attackerHeroBonusPct) *
           bonusMultiplier(attackerGuildBonusPct) +
         attackerGuildAid.power;
       const defenderPower =
-        (defenderSoldiersPower + defenderWeaponsPower) *
+        (defenderSoldiersPower + defenderWeaponsPower + defenderHeroPower) *
           DEFENSE_BONUS *
           bonusMultiplier(defenderHeroBonusPct) *
           bonusMultiplier(defenderGuildBonusPct) +
@@ -1696,6 +1754,8 @@ export async function attackEmpire(
           turnsSpent: ATTACK_TURN_COST,
           attackerHeroBonusPct,
           defenderHeroBonusPct,
+          attackerHeroPower,
+          defenderHeroPower,
           attackerGuildBonusPct,
           defenderGuildBonusPct,
           // Every remaining term of the two power formulas above, so the battle

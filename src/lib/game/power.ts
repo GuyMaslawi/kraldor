@@ -60,18 +60,23 @@ export function getEmpireSpyPower(
 
 /**
  * Effective intelligence power used to resolve spy missions: the raw spy power
- * (spies + spy weapons) scaled by the intelligence upgrade (+10%/level) plus any
- * extra percentage-point bonuses (e.g. an attacker's hero spy % and active guild
- * spy spell). A mission succeeds when the attacker's value strictly exceeds the
- * defender's.
+ * (spies + spy weapons + the flat spy power of the hero's gear) scaled by the
+ * intelligence upgrade (+10%/level) plus any extra percentage-point bonuses
+ * (e.g. an attacker's hero spy % and active guild spy spell). A mission
+ * succeeds when the attacker's value strictly exceeds the defender's.
+ *
+ * Gear power joins the base rather than the multiplier, exactly as it does in
+ * a battle — so 🪖 and 😈 are worth more to an empire that has also levelled
+ * its intelligence, and the two systems never cancel each other out.
  */
 export function getEmpireIntelPower(
   army: Pick<Army, "spies"> | null,
   weapons: readonly WeaponQuantityRow[],
   intelligenceLevel: number,
-  extraBonusPct = 0
+  extraBonusPct = 0,
+  heroSpyPower = 0
 ): number {
-  const base = getEmpireSpyPower(army, weapons);
+  const base = getEmpireSpyPower(army, weapons) + heroSpyPower;
   return base * (intelligencePowerMultiplier(intelligenceLevel) + extraBonusPct / 100);
 }
 
@@ -93,7 +98,7 @@ export function getEmpireMilitaryPower(
 
 /** One active bonus contributing to a side's real battle power. */
 export interface CombatPowerLine {
-  key: "defense-bonus" | "hero" | "guild-spell" | "guild-aid";
+  key: "gear" | "defense-bonus" | "hero" | "guild-spell" | "guild-aid";
   label: string;
   pct: number;
   /** Extra power this bonus adds (incremental, in the same order battle uses). */
@@ -109,7 +114,13 @@ export interface GuildAidInput {
 }
 
 export interface CombatPowerBreakdown {
-  /** Base power: soldiers + relevant weapons, before any multiplier. */
+  /**
+   * Base power before any multiplier: soldiers + relevant weapons + the flat
+   * power of the hero's gear. The gear term is *inside* the base, not a bonus
+   * on top of it, which is why it is also broken out as a `gear` line — the
+   * reader needs to see both that it is there and that everything below
+   * multiplies it.
+   */
   base: number;
   /** Only the bonuses currently in effect. */
   lines: CombatPowerLine[];
@@ -119,22 +130,30 @@ export interface CombatPowerBreakdown {
 
 /**
  * The attacker's real attack power, decomposed. Mirrors the battle math in
- * `attackEmpire` exactly: (soldiers + attack weapons) × hero attack % × guild
- * ATTACK spell %. The multipliers compound, so each line is its incremental
- * contribution in battle order.
+ * `attackEmpire` exactly: (soldiers + attack weapons + gear power) × hero
+ * attack % × guild ATTACK spell %. The multipliers compound, so each line is
+ * its incremental contribution in battle order.
  */
 export function attackPowerBreakdown(params: {
   army: Pick<Army, "soldiers"> | null;
   weapons: readonly WeaponQuantityRow[];
   /** Hero combined attack % (points + items). */
   heroAttackPct: number;
+  /** Flat attack power from equipped gear (heroPowerBonus). */
+  heroAttackPower?: number;
   /** Active guild ATTACK spell %. */
   guildAttackPct: number;
   /** Flat guild-aid reinforcement, if any. */
   guildAid?: GuildAidInput;
 }): CombatPowerBreakdown {
-  const base = getEmpireAttackPower(params.army, params.weapons);
+  const troops = getEmpireAttackPower(params.army, params.weapons);
+  const gear = params.heroAttackPower ?? 0;
+  const base = troops + gear;
   const lines: CombatPowerLine[] = [];
+
+  if (gear > 0) {
+    lines.push({ key: "gear", label: "כוח ציוד", pct: 0, amount: gear });
+  }
 
   const afterHero = base * bonusMultiplier(params.heroAttackPct);
   if (params.heroAttackPct > 0 && afterHero - base > 0) {
@@ -156,22 +175,30 @@ export function attackPowerBreakdown(params: {
 
 /**
  * The defender's real defense power, decomposed. Mirrors the battle math:
- * (soldiers + defense weapons) × 20% defender bonus × hero defense % × guild
- * DEFENSE spell %. The always-on +20% is shown as its own line so the total
- * reflects what an attacker actually faces.
+ * (soldiers + defense weapons + gear power) × 20% defender bonus × hero
+ * defense % × guild DEFENSE spell %. The always-on +20% is shown as its own
+ * line so the total reflects what an attacker actually faces.
  */
 export function defensePowerBreakdown(params: {
   army: Pick<Army, "soldiers"> | null;
   weapons: readonly WeaponQuantityRow[];
   /** Hero combined defense % (points + items). */
   heroDefensePct: number;
+  /** Flat defense power from equipped gear (heroPowerBonus). */
+  heroDefensePower?: number;
   /** Active guild DEFENSE spell %. */
   guildDefensePct: number;
   /** Flat guild-aid reinforcement, if any. */
   guildAid?: GuildAidInput;
 }): CombatPowerBreakdown {
-  const base = getEmpireDefensePower(params.army, params.weapons);
+  const troops = getEmpireDefensePower(params.army, params.weapons);
+  const gear = params.heroDefensePower ?? 0;
+  const base = troops + gear;
   const lines: CombatPowerLine[] = [];
+
+  if (gear > 0) {
+    lines.push({ key: "gear", label: "כוח ציוד", pct: 0, amount: gear });
+  }
 
   const afterDefBonus = base * DEFENSE_BONUS;
   lines.push({

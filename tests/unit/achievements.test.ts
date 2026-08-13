@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   ACHIEVEMENTS,
   GLORY_KEYS,
+  GLORY_PRIZE,
   type AchievementStats,
   buildAchievementsState,
+  gloryPrize,
   isAchievementReached,
 } from "@/lib/game/achievements";
+import { REWARD_LABEL } from "@/lib/game/rewards";
 import { HERO_MAX_LEVEL } from "@/lib/game/hero";
+import { MAX_WEAPON_TIER, WEAPONS } from "@/lib/game/weapons";
 
 /**
  * Only the fields a case cares about. Everything else reads as zero through
@@ -69,13 +73,71 @@ describe("world-record capstones", () => {
       heroResets: 0,
       maxMineLevel: 250,
       minMineLevel: 250,
-      distinctWeapons: 90,
-      totalWeapons: 90,
+      // Counted, not written: the foundry grew from 30 tiers to 35 and a
+      // hard-coded 90 here would have quietly stopped being "peak".
+      distinctWeapons: WEAPONS.length,
+      totalWeapons: WEAPONS.length,
+      // The weapon capstone reads the tier ladder, not the model count. It is
+      // monotonic in play — the unlock write is guarded `lt: targetTier` (see
+      // src/server/actions/game.ts) — which is what qualifies it for this board.
+      minUnlockedTier: MAX_WEAPON_TIER,
     });
     const afterPrestige = { ...peak, heroLevel: 1, heroResets: 1 };
     for (const key of GLORY_KEYS) {
       expect(isAchievementReached(byKey(key), peak), key).toBe(true);
       expect(isAchievementReached(byKey(key), afterPrestige), key).toBe(true);
+    }
+  });
+});
+
+describe("the world-record purse", () => {
+  it("asks for every weapon tier the foundry actually has", () => {
+    // The regression: the foundry grew from 30 tiers to 35 while both weapon
+    // ladders kept their old literals, so the `unlocks` chain called tier 30
+    // "כל הדרגות פתוחות" and the world record asked for 90 of 105 models. Both
+    // ceilings are counted now — and the record is the tier ladder, because 35
+    // is the figure the player meets in the foundry and 105 is not.
+    expect(GLORY_KEYS).toContain(`unlocks_${MAX_WEAPON_TIER}`);
+    expect(byKey(`arsenal_${WEAPONS.length}`).goal).toBe(WEAPONS.length);
+  });
+
+  it("pays every capstone on the board", () => {
+    // A capstone with no purse draws a plaque with no prize band — legal (see
+    // `gloryPrize`), but not something to arrive at by forgetting a line.
+    for (const key of GLORY_KEYS) expect(gloryPrize(key).length, key).toBeGreaterThan(0);
+  });
+
+  it("prices nothing the board does not show", () => {
+    // A purse on a key that fell off GLORY_KEYS is money nobody can win, and it
+    // would never be noticed: `settleGloryPrizes` only walks GLORY_KEYS.
+    for (const key of Object.keys(GLORY_PRIZE)) expect(GLORY_KEYS, key).toContain(key);
+  });
+
+  it("names one amount per reward kind, all positive", () => {
+    for (const key of GLORY_KEYS) {
+      const lines = gloryPrize(key);
+      const kinds = lines.map((l) => l.kind);
+      expect(new Set(kinds).size, key).toBe(kinds.length);
+      for (const line of lines) {
+        expect(line.amount, `${key}/${line.kind}`).toBeGreaterThan(0);
+        // The label is a dictionary key the inbox receipt renders through t().
+        expect(REWARD_LABEL[line.kind], `${key}/${line.kind}`).toBeTruthy();
+      }
+    }
+  });
+
+  it("rises with how hard the record is to take first", () => {
+    // GLORY_PRIZE is declared in the order the five are expected to fall — which
+    // is deliberately NOT the order GLORY_KEYS draws them in (that one is the
+    // arc of a run). Diamonds are the rationed half of a purse, so they are the
+    // half the ladder is checked on: an easier record paying more of them than a
+    // harder one is the mistake this catches.
+    const diamonds = Object.keys(GLORY_PRIZE).map(
+      (key) => gloryPrize(key).find((l) => l.kind === "diamonds")?.amount ?? 0
+    );
+    const order = Object.keys(GLORY_PRIZE);
+    for (let i = 1; i < diamonds.length; i += 1) {
+      expect(diamonds[i], order[i]).toBeGreaterThan(diamonds[i - 1]);
     }
   });
 });

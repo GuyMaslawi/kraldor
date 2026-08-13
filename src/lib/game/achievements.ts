@@ -14,6 +14,12 @@ import {
   citizensPerDailyUpdate,
 } from "./constants";
 import { HERO_MAX_LEVEL, effectiveHeroLevel } from "./hero";
+import { MAX_WEAPON_TIER, WEAPONS } from "./weapons";
+// The world-record purse is paid through the shared payout vocabulary
+// (payRewards), not through the achievement ladder's narrower one — a record is
+// not a collected achievement. Aliased because this module already has a
+// module-private `Reward` of its own shape.
+import type { Reward as PrizeLine } from "./rewards";
 
 /**
  * Achievements: a one-off (never resetting) reward ladder covering the whole
@@ -365,8 +371,22 @@ function one(
  */
 const num = (n: number) => n.toLocaleString("en-US");
 
-/** Total distinct weapon models in the game — 30 tiers × 3 categories. */
-const WEAPON_TOTAL = 90;
+/**
+ * Total distinct weapon models in the game — `TIERS_PER_CATEGORY × 3`.
+ *
+ * **Counted, not written down.** This was the literal `90` for as long as the
+ * foundry had 30 tiers, and when it grew to 35 the literal stayed behind: the
+ * top rung of the `arsenal` chain — and the world record hanging off it — asked
+ * for 90 of 105 models, which is rule 3 of this file (a chain's top rung is the
+ * game's real ceiling) quietly broken. A count cannot fall behind the catalogue.
+ *
+ * Retuning it mints a new key (`chain` embeds the goal), which is the intended
+ * behaviour here: the ceiling moved, so the old capstone is retired and the new
+ * one is open for everybody again — including its world record and purse. Rows
+ * already awarded under `arsenal_90` keep their claimed rewards and are simply
+ * no longer read.
+ */
+const WEAPON_TOTAL = WEAPONS.length;
 
 /**
  * The absolute ceiling of the citizen-intake upgrade: 10 levels per city, so
@@ -941,7 +961,21 @@ const EMPIRE: AchievementDefinition[] = [
     [
       { goal: 10, reward: ["iron", 80_000] },
       { goal: 20, reward: ["turns", 250] },
-      { goal: 30, reward: ["turns", 600], name: "כל הדרגות פתוחות", hint: "פתח את דרגה 30 בשלוש קטגוריות הנשק" },
+      // Rung 30 used to be the top, and used to be called "כל הדרגות פתוחות" —
+      // true when the foundry had 30 tiers, and quietly false from the day it
+      // grew to 35. It keeps its reward and its key (nobody's claim is voided);
+      // it just goes back to being an ordinary rung with the ladder's own name,
+      // and the ceiling below is the real one.
+      { goal: 30, reward: ["turns", 600] },
+      {
+        // Rule 3: the top rung is the game's ceiling, counted rather than
+        // written — MAX_WEAPON_TIER is TIERS_PER_CATEGORY, so growing the
+        // foundry moves this rung with it instead of stranding it.
+        goal: MAX_WEAPON_TIER,
+        reward: ["turns", 800],
+        name: "כל הדרגות פתוחות",
+        hint: "פתח את דרגה {goal} — הדרגה האחרונה — בשלוש קטגוריות הנשק",
+      },
     ]
   ),
 ];
@@ -1110,7 +1144,7 @@ export const GLORY_KEYS: readonly string[] = [
   `citizenup_${CITIZEN_GROWTH_500}`,
   "herolvl_100",
   "minelvl_250",
-  "arsenal_90",
+  `unlocks_${MAX_WEAPON_TIER}`,
 ];
 
 /**
@@ -1139,7 +1173,7 @@ export const GLORY_NAME: Record<string, string> = {
   [`citizenup_${CITIZEN_GROWTH_500}`]: "להגיע לשדרוג של 500 אזרחים בעדכון יומי",
   herolvl_100: "גיבור הגיע לרמה 100",
   minelvl_250: "להגיע למקסימום מכרות",
-  arsenal_90: "להגיע לכל דגמי הנשק",
+  [`unlocks_${MAX_WEAPON_TIER}`]: "לפתוח את כל דרגות הנשק",
 };
 
 /** The line under each name — the concrete mechanic, never a repeat of it. */
@@ -1148,7 +1182,7 @@ export const GLORY_TAGLINE: Record<string, string> = {
   [`citizenup_${CITIZEN_GROWTH_500}`]: 'שדרוג "קבלת מגויסים" עד 500 אזרחים בכל עדכון',
   herolvl_100: "הרמה האחרונה של הגיבור",
   minelvl_250: "ארבעת המכרות ברמה {mines}",
-  arsenal_90: "כל {models} הדגמים במחסן",
+  [`unlocks_${MAX_WEAPON_TIER}`]: "כל {tiers} הדרגות פתוחות בשלושת הסוגים",
 };
 
 /**
@@ -1165,7 +1199,7 @@ export const GLORY_UNIT: Record<string, string> = {
   [`citizenup_${CITIZEN_GROWTH_500}`]: "אזרחים ביום",
   herolvl_100: "רמת גיבור",
   minelvl_250: "רמת מכרה",
-  arsenal_90: "דגמי נשק",
+  [`unlocks_${MAX_WEAPON_TIER}`]: "דרגות נשק",
 };
 
 /**
@@ -1173,13 +1207,120 @@ export const GLORY_UNIT: Record<string, string> = {
  *
  * The ladder can afford to reuse an icon — its rows are read as a list, with
  * the name right there. In the hall the relic is most of what a niche says, so
- * the mine capstone and the arsenal capstone sharing the catalog's anvil made
- * two of the five alcoves look like the same record twice.
+ * the mine capstone and the weapon capstone sharing an icon with the catalog
+ * (the anvil, then the upgrade chevrons) made two of the five alcoves look like
+ * the same record twice. A sword for the foundry, an ore cart for the mines.
  */
 export const GLORY_ICON: Partial<Record<string, IconName>> = {
   minelvl_250: "mine",
-  arsenal_90: "attack",
+  [`unlocks_${MAX_WEAPON_TIER}`]: "attack",
 };
+
+/**
+ * The purse for taking a capstone **first in the world**.
+ *
+ * The board used to be decoration only, and the question players kept asking
+ * about it was the one it did not answer: *what do I get?* A record is the only
+ * thing in the game that exactly one player can ever hold — five of them per
+ * season, gone the moment somebody arrives — so it is the one place a purse
+ * cannot be farmed, repeated or bought back. It is paid **once per capstone per
+ * season**, automatically, to the holder of the plaque; see
+ * `settleGloryPrizes` in src/server/gloryBoard.ts.
+ *
+ * ## How the ladder was sized
+ *
+ * By how hard it is to get there *first*, which is not the same as how hard the
+ * condition is — a capstone that everyone reaches on their own schedule is a
+ * race nobody has to win. The order below is the order the five are expected to
+ * fall in a season, and the purse rises with it:
+ *
+ * 1. **500 אזרחים ביום** — level {@link CITIZEN_GROWTH_500} of the intake
+ *    upgrade. Ten rungs per city, so it needs five cities and a lot of gold and
+ *    nothing else. The first of the five to be taken, every season.
+ * 2. **עשר ערים** — gold-gated too, but the whole game races for it: the weapon
+ *    tier gates hang off the city count, so everyone is buying it anyway.
+ * 3. **מכרות ברמה {@link MINE_MAX_LEVEL}** — all four at the cap, ~18.9B of
+ *    each resource across 249 rungs (see MINE_UPGRADE_COST_GROWTH: an all-in
+ *    simulated player reaches the cap around day 45). A pure grind with no gate
+ *    on it, which is why it sits below the two that are gated.
+ * 4. **כל {@link MAX_WEAPON_TIER} דרגות הנשק** — the foundry finished. The gold
+ *    is nothing (`weaponTierUnlockCost` totals a few million); the wall is the
+ *    gate on the last tier, **nine cities and hero level 80**
+ *    (`weaponTierGate`), so it cannot be finished until most of the other four
+ *    are.
+ * 5. **גיבור ברמה {@link HERO_MAX_LEVEL}** — last, and the only ceiling the
+ *    resource economy cannot buy at all: hero XP comes only from battles, quests
+ *    and bosses, so it is bounded by turns and by opponents rather than by
+ *    income. It also contains #4 — you cannot reach 100 without passing the 80
+ *    that opens the last weapon tier.
+ *
+ * ## Why the weapon record counts tiers and not models
+ *
+ * It used to be `arsenal` — hold one of every model in the game — which reads
+ * as a bigger feat and is one: the last three models cost 859B gold apiece. It
+ * was replaced because of the *number on the wall*. The hall draws a capstone as
+ * one figure and one noun, and that figure was **105**, a count the player never
+ * meets anywhere: what they actually do is buy **35 tier unlocks**, each of
+ * which advances attack, defence and spy together. A wall that says 105 while
+ * the foundry says 35 makes the reader stop and do arithmetic to find out
+ * whether they are behind. `arsenal` is still in the ladder above, still pays
+ * its 200💎 — it is simply not the thing with a plaque.
+ *
+ * ## How big
+ *
+ * These are the largest one-off purses in the game after the season podium
+ * itself, on purpose: a record is not a milestone that everyone eventually
+ * reaches, it is a race with exactly one winner and no second place, and a purse
+ * that reads like an achievement reward makes the race look optional. Priced off
+ * the store, where the game's own exchange rates live — the 2,000-turn package
+ * costs 500💎 (0.25💎 a turn), so the last line below is worth about 4,000💎 all
+ * in, against the 10,000💎 that winning the entire season pays (prizes.ts). Beat
+ * everyone in the world to one ceiling and you have earned a good fraction of
+ * what beating them to all of them is worth.
+ *
+ * **Exactly two lines each, and the same two shapes throughout**: one kind that
+ * is spent back into playing, plus diamonds. That is not a layout convenience —
+ * a purse that is diamonds all the way down is a discount on the store that pays
+ * for the game, and one with no diamonds at all does not read as a prize. The
+ * uniform shape is also what lets the hall draw five purses that line up.
+ *
+ * Lines are declared in REWARD_ORDER so a board renders them in the same order
+ * everything else in the game does.
+ */
+export const GLORY_PRIZE: Record<string, readonly PrizeLine[]> = {
+  [`citizenup_${CITIZEN_GROWTH_500}`]: [
+    { kind: "citizens", amount: 2_500 },
+    { kind: "diamonds", amount: 150 },
+  ],
+  cities_10: [
+    { kind: "turns", amount: 3_000 },
+    { kind: "diamonds", amount: 300 },
+  ],
+  minelvl_250: [
+    { kind: "citizens", amount: 5_000 },
+    { kind: "diamonds", amount: 500 },
+  ],
+  [`unlocks_${MAX_WEAPON_TIER}`]: [
+    { kind: "turns", amount: 5_000 },
+    { kind: "diamonds", amount: 750 },
+  ],
+  herolvl_100: [
+    { kind: "turns", amount: 10_000 },
+    { kind: "diamonds", amount: 1_500 },
+  ],
+};
+
+/**
+ * The purse behind a capstone, or an empty list for one that carries none.
+ *
+ * Empty rather than undefined so every caller — the board, the payout, the
+ * receipt — can iterate without a null check, and so a capstone added to
+ * GLORY_KEYS without a purse degrades to a plaque with no prize band instead of
+ * throwing on the base screen.
+ */
+export function gloryPrize(key: string): readonly PrizeLine[] {
+  return GLORY_PRIZE[key] ?? [];
+}
 
 /**
  * Placeholders for the two taglines that quote a game ceiling.
@@ -1190,7 +1331,7 @@ export const GLORY_ICON: Partial<Record<string, IconName>> = {
  */
 const GLORY_PARAMS: Record<string, TranslateParams> = {
   minelvl_250: { mines: num(MINE_MAX_LEVEL) },
-  arsenal_90: { models: num(WEAPON_TOTAL) },
+  [`unlocks_${MAX_WEAPON_TIER}`]: { tiers: num(MAX_WEAPON_TIER) },
 };
 
 /**
@@ -1256,6 +1397,13 @@ export interface GloryView extends AchievementView {
   unit: string;
   /** First empire in the game to reach it; null while the record is open. */
   record: GloryRecord | null;
+  /**
+   * What being first pays — the bounty while the plaque is blank, and what the
+   * holder was paid once it is engraved. Same list either way: the prize is a
+   * property of the record, not of who holds it. Empty for a capstone with no
+   * purse. See GLORY_PRIZE.
+   */
+  prize: readonly PrizeLine[];
 }
 
 /**
@@ -1299,6 +1447,7 @@ export function selectGlory(
         unit: GLORY_UNIT[key] ?? "",
         icon: GLORY_ICON[key] ?? item.icon,
         params: { ...item.params, ...GLORY_PARAMS[key] },
+        prize: gloryPrize(key),
         record: held
           ? {
               empireId: held.empireId,

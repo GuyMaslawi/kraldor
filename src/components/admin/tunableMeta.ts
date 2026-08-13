@@ -81,7 +81,23 @@ export const TUNABLE_META: {
       powerMultiplier: { label: "מכפיל כוח הבוס (1 = ברירת מחדל)", step: 0.05 },
       rewardMultiplier: { label: "מכפיל שלל הבוס (1 = ברירת מחדל)", step: 0.05 },
       hpMultiplier: { label: "מכפיל חיי הבוס (1 = ברירת מחדל)", step: 0.05 },
+      slaveMultiplier: { label: "מכפיל עבדים מהבוס (1 = ברירת מחדל)", step: 0.05 },
+      heroXpMultiplier: { label: "מכפיל XP לגיבור מהבוס (1 = ברירת מחדל)", step: 0.05 },
+      reviveMinutes: { label: "דקות עד שבוס שנפל קם לתחייה" },
       enabled: { label: "בוס פתוח (1 = כן, 0 = סגור)" },
+    },
+  },
+  worldBoss: {
+    label: "מפלצת העולם",
+    icon: "🐋",
+    fields: {
+      enabled: { label: "זירת מפלצת העולם פתוחה (1 = כן, 0 = סגור)" },
+      hpMultiplier: { label: "מכפיל חיים למפלצת חדשה (1 = ברירת מחדל)", step: 0.05 },
+      damageMultiplier: { label: "מכפיל נזק של מכת שחקן (1 = ברירת מחדל)", step: 0.05 },
+      rewardMultiplier: { label: "מכפיל שלל משותף (1 = ברירת מחדל)", step: 0.05 },
+      killDiamonds: { label: "יהלומים למכה שמפילה" },
+      maxStrikes: { label: "מכות לשחקן בשבוע" },
+      strikeTurns: { label: "עלות תורות למכה" },
     },
   },
   heroQuest: {

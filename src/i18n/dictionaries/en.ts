@@ -275,9 +275,13 @@ export const EN: Record<string, string> = {
   "כמות עבדי מכרות לא תקינה": "That mine-slave count is not valid",
   "אין מספיק עבדי מכרות (סה\"כ עבדי מכרות: {total})":
     "You do not have that many mine slaves (you own {total})",
-  "אין מספיק עבדי מכרות פנויים (ניתן להציב כאן עד {max})":
-    "Not enough idle mine slaves — you can place up to {max} here",
-  "הוצבו {count} עבדי מכרות ב{mine}": "Placed {count} mine slaves in the {mine}",
+  "אין מספיק עבדי מכרות פנויים (ניתן להוסיף כאן עד {max})":
+    "Not enough idle mine slaves — you can add up to {max} here",
+  "אין עובדים במכרה הזה": "There is no crew on that mine",
+  "נוספו {count} עבדי מכרות ל{mine} — כעת {crew} במכרה":
+    "Sent {count} more mine slaves to the {mine} — {crew} working it now",
+  "הוסרו {count} עבדי מכרות מ{mine} — נשארו {crew}":
+    "Pulled {count} mine slaves off the {mine} — {crew} still working it",
   "כל {total} עבדי המכרות הוצבו ב{resource}":
     "All {total} mine slaves are now working {resource}",
   "עבדי המכרות חולקו שווה בשווה בין ארבעת המשאבים":
@@ -433,8 +437,23 @@ export const EN: Record<string, string> = {
   "נשק שמוחק את האויב מהמציאות עצמה.":
     "Weapons that erase the enemy from reality itself.",
   "יד קראלדור": "The Hand of Kraldor",
-  "הנשק האולטימטיבי — כוח שאין לו אח ורע ביקום.":
-    "The ultimate weapon — nothing in the universe stands beside it.",
+  "יד הברזל של הכתר — אין בעולם הזה כוח שעומד מולה.":
+    "The iron hand of the crown — no force in this world stands against it.",
+  "שוברי כוכבים": "Star Breakers",
+  "תותחים שמנפצים גרמי שמיים לרסיסים בוערים.":
+    "Cannons that shatter heavenly bodies into burning shards.",
+  "סופות אנטי-חומר": "Antimatter Storms",
+  "ענני חומר נגדי שמאיינים כל מה שהם נוגעים בו.":
+    "Clouds of antimatter that annihilate everything they touch.",
+  "להבי אינסוף": "Infinity Blades",
+  "חרבות שהלהב שלהן פשוט לא נגמר.":
+    "Swords whose blade simply never ends.",
+  "מכת האלים": "Strike of the Gods",
+  "רעם שיורד מהשמיים ומוחק צבאות שלמים בבת אחת.":
+    "Thunder that falls from the sky and erases whole armies at once.",
+  "זעם קראלדור": "The Wrath of Kraldor",
+  "הנשק האולטימטיבי — זעם שמוחק ממלכות מן הקיום.":
+    "The ultimate weapon — a wrath that erases kingdoms from existence.",
 
   /* ------------------------------------------------------------------ */
   /* weapon names and flavour — defence                                 */
@@ -527,8 +546,23 @@ export const EN: Record<string, string> = {
   "מחסום ששובר את חוקי הפיזיקה עצמם.":
     "A barrier that breaks the laws of physics themselves.",
   "מבצר קראלדור": "The Fortress of Kraldor",
-  "ההגנה האולטימטיבית — בלתי חדירה לחלוטין.":
-    "The ultimate defence — utterly impenetrable.",
+  "מצודת הכתר — אין בעולם הזה צבא שמפיל אותה.":
+    "The crown's citadel — no army in this world brings it down.",
+  "חומות נצח": "Eternal Walls",
+  "אבן שלא נסדקת גם אחרי אלף מצורים.":
+    "Stone that does not crack even after a thousand sieges.",
+  "מגני אנטי-חומר": "Antimatter Shields",
+  "שכבה שמאיינת כל פגז עוד באוויר.":
+    "A layer that annihilates every shell while it is still in the air.",
+  "שריון אינסוף": "Infinity Armour",
+  "שריון שמתעבה עוד ועוד ככל שמכים בו.":
+    "Armour that thickens further with every blow it takes.",
+  "כיפת האלים": "Dome of the Gods",
+  "מגן שהאלים עצמם פרשו מעל הממלכה.":
+    "A shield the gods themselves spread over the realm.",
+  "מגן קראלדור": "The Shield of Kraldor",
+  "ההגנה האולטימטיבית — שום כוח ביקום לא חודר אותה.":
+    "The ultimate defence — no force in the universe breaks through it.",
 
   /* ------------------------------------------------------------------ */
   /* weapon names and flavour — espionage                               */
@@ -621,8 +655,23 @@ export const EN: Record<string, string> = {
   "ריגול שחודר את מסך הזמן עצמו.":
     "Espionage that reaches through the veil of time itself.",
   "עין קראלדור": "The Eye of Kraldor",
-  "הריגול האולטימטיבי — שום סוד לא נסתר ממנה.":
-    "The ultimate intelligence — no secret is hidden from it.",
+  "עין הכתר — אין סוד בממלכות שנסתר ממנה.":
+    "The crown's eye — no secret in the realms is hidden from it.",
+  "צופי נצח": "Eternal Watchers",
+  "סוכנים ששומרים על היעד דורות שלמים בלי למצמץ.":
+    "Agents who watch a target for generations without blinking.",
+  "רשת אינסוף": "Infinity Network",
+  "רשת שמסתעפת לכל פינה בלי גבול ובלי סוף.":
+    "A network that branches into every corner, without limit or end.",
+  "קוראי גורל": "Fate Readers",
+  "מודיעין שקורא את מהלכי האויב לפני שהם נולדו.":
+    "Intelligence that reads the enemy's moves before they are born.",
+  "עין האלים": "Eye of the Gods",
+  "מבט שחודר כל שכבה של המציאות.":
+    "A gaze that pierces every layer of reality.",
+  "סוד קראלדור": "The Secret of Kraldor",
+  "הריגול האולטימטיבי — כל האמת ביקום בידיים שלך.":
+    "The ultimate intelligence — every truth in the universe in your hands.",
 
   /* ------------------------------------------------------------------ */
   /* the base screen — command centre                                   */
@@ -667,6 +716,25 @@ export const EN: Record<string, string> = {
   "ימי שרת": "days on the server",
   "הושג": "Reached",
   "עדיין פנוי": "Still open",
+
+  /* the purse a record pays whoever takes it first */
+  "הראשון בעולם שכובש שיא מקבל את הפרס שלצידו — אוטומטית, פעם אחת בעונה":
+    "The first player in the world to claim a record is paid the prize beside it — automatically, once a season",
+  "פרס לראשון": "Prize for first",
+  "פרס לראשון בעולם:": "Prize for first in the world:",
+  /* the guide's world-records card */
+  "<0> שיאי העולם": "<0> World Records",
+  "חמישה שיאים, ולכל אחד <0> בעולם כולו. הראשון שמגיע ליעד מקבל את הפרס <1>, והשם שלו נחרט על הלוח שבראש הבסיס עד סוף העונה. אין מה לאסוף ואין מה ללחוץ — הפרס נכנס לחשבון בכניסה הבאה לבסיס, ומגיע גם הודעה לתיבה. בעונה חדשה כל חמשת השיאים נפתחים מחדש.":
+    "Five records, each with <0> in the entire world. Whoever reaches the goal first is paid the prize <1>, and their name is engraved on the board at the top of the base screen until the season ends. There is nothing to collect and nothing to press — the prize lands in your account on your next visit to the base, along with a message in your inbox. A new season reopens all five records.",
+  /* "אוטומטית" is not repeated here — the guild-war section below already
+     carries it, and a second entry is a build error (TS1117). */
+  "זוכה אחד": "a single winner",
+  /* the inbox receipt, written when the purse is paid */
+  "🏆 שיא עולם על שמך — הפרס שולם": "🏆 A world record in your name — prize paid",
+  "{record} — אתה הראשון בעולם שהגיע לשם, והשיא נרשם על שמך לצמיתות. הפרס נכנס לחשבונך אוטומטית: {prize}.":
+    "{record} — you are the first player in the world to get there, and the record now carries your name for good. The prize was credited to your account automatically: {prize}.",
+  "{amount} {kind}": "{amount} {kind}",
+  "{a} ו-{b}": "{a} and {b}",
   "שיאי עולם": "World Records",
   "שיא עולם": "world record",
   "ראשון בעולם": "First in the world",
@@ -688,7 +756,14 @@ export const EN: Record<string, string> = {
     "Reach 500 citizens per daily update",
   "גיבור הגיע לרמה 100": "Hero reaches level 100",
   "להגיע למקסימום מכרות": "Max out every mine",
-  "להגיע לכל דגמי הנשק": "Own every weapon model",
+  /* The weapon record counts tier unlocks, not models: 35 is the number the
+     foundry itself shows, and 105 was a count the player never meets. */
+  "לפתוח את כל דרגות הנשק": "Unlock every weapon tier",
+  "כל {tiers} הדרגות פתוחות בשלושת הסוגים":
+    "All {tiers} tiers open, in all three categories",
+  "דרגות נשק": "weapon tiers",
+  "פתח את דרגה {goal} — הדרגה האחרונה — בשלוש קטגוריות הנשק":
+    "Unlock tier {goal} — the last one — in all three weapon categories",
   "האימפריה המלאה, כל עשר הערים": "The full empire — all ten cities",
   'שדרוג "קבלת מגויסים" עד 500 אזרחים בכל עדכון':
     'The "Citizen Intake" upgrade at 500 citizens per update',
@@ -1695,6 +1770,8 @@ export const EN: Record<string, string> = {
 
   /* the city boss */
   "בוס העיר אינו זמין כרגע.": "The city ruler is not available right now.",
+  "חשבונות הנהלה אינם תוקפים את שליט העיר.":
+    "Staff accounts do not march on the city ruler.",
   "{boss} מת — הוא קם לתחייה ב־{time}.": "{boss} is dead — he rises again at {time}.",
   "נדרשות {turns} תורות כדי לצאת לקרב מול {boss}.":
     "Marching on {boss} costs {turns} turns.",
@@ -2093,6 +2170,26 @@ export const EN: Record<string, string> = {
   "כוח האימפריה": "Empire power",
   "כוח התקפה": "Attack power",
   "כוח הגנה": "Defence power",
+  "כוח ציוד": "Gear power",
+  "נספר עם החיילים והנשקים בתקיפה": "Counted with the soldiers and weapons when attacking",
+  "נספר עם החיילים והנשקים בהגנה": "Counted with the soldiers and weapons when defending",
+  "נספר עם המרגלים בכל משימת ריגול": "Counted with the spies on every spy mission",
+  "מזוקק מהמכנסיים בלבד": "Distilled by the trousers alone",
+  // "כוח קרב" is not repeated here — the battle-report section below already
+  // carries it ("Battle power"), and the guide's legend heading is the same word.
+  "לצד כל אחוז לחימה יש גם כוח קבוע, באותו משקל. הוא נספר יחד עם החיילים והנשקים — לא מעליהם — ולכן כל האחוזים מוכפלים גם עליו. חרב ראשית נותנת {p0} ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100; חפץ שנותן את הסטט כמשני נותן רבע עד חצי מזה. נעליים הן המשבצת היחידה בלי כוח קרב — היא לא נלחמת.":
+    "Every combat percentage is matched by a flat power of the same weight. It is counted together with the soldiers and the weapons — not on top of them — so every percentage multiplies it too. A sword's headline power is {p0} at level 1, {p1} at level 50 and {p2} at level 100; a slot that carries the stat as an extra pays a quarter to a half of that. Boots are the one slot with no combat power at all — they do not fight.",
+  "מכנסיים הן המשבצת היחידה שמזקקת יהלומים, וכמשני בלבד: {p0} ליום ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100. זה טפטוף מכוון — יהלומים הם מטבע אמיתי, ולא אמורים להיות הכנסה.":
+    "Trousers are the one slot that distils diamonds, and only as a minor extra: {p0} a day at level 1, {p1} at level 50 and {p2} at level 100. The trickle is deliberate — diamonds are real currency, and are not meant to be an income.",
+  "כוח קרב קבוע שנוסף לצבא שלך בתקיפה, בדיוק כמו כוח מנשקים — ואז כל האחוזים מוכפלים גם עליו.":
+    "Flat combat power added to your army when attacking, exactly like the power from weapons — and every percentage then multiplies it too.",
+  "כוח קרב קבוע שנוסף לצבא שלך בהגנה, בדיוק כמו כוח מנשקים — ואז כל האחוזים מוכפלים גם עליו.":
+    "Flat combat power added to your army when defending, exactly like the power from weapons — and every percentage then multiplies it too.",
+  "כוח ריגול קבוע שנוסף למרגלים ולנשקי הריגול שלך בכל משימת ריגול, לפני מכפיל המודיעין.":
+    "Flat spy power added to your spies and spy weapons on every spy mission, before the intelligence multiplier.",
+  "יהלומים לעדכון יומי": "Diamonds per daily update",
+  "סלוט אחד בלבד (מכנסיים) מזקק יהלומים, ובכמות קטנה — עד 25 ליום בציוד המקסימלי.":
+    "A single slot (trousers) distils diamonds, and only a trickle — up to 25 a day on maxed gear.",
   "כוח מודיעין": "Intelligence power",
   "הברית החזקה": "The strongest guild",
   "כוח חברי הברית": "Guild members' power",
@@ -2766,7 +2863,9 @@ export const EN: Record<string, string> = {
   "שיא": "max",
   "עובדים במכרה": "Crew on the mine",
   "פנויים": "free",
-  "הצב": "Assign",
+  /* the crew box moves men in and out; the number is a delta, never a total */
+  "הוסף": "Add",
+  "הסר": "Remove",
   /* the folded breakdown — where the figure on the rig's plate comes from */
   "מאיפה המספר הזה": "Where this figure comes from",
   "תפוקה לכל עובד": "Per worker",
@@ -3232,9 +3331,14 @@ export const EN: Record<string, string> = {
   "כוח נשקים": "Weapon power",
   "תוספת הכוח מהנשקים במחסן — נשקי התקפה לתוקף, נשקי הגנה למגן. נשק מהקטגוריה הלא־נכונה לא משתתף בקרב הזה.":
     "The power the stored weapons add — attack weapons for the attacker, defence weapons for the defender. A weapon from the wrong category takes no part in this battle.",
+  "כוח ציוד הגיבור": "Hero gear power",
+  "כוח קרב קבוע מהחפצים שהגיבור לובש. הוא נספר עם החיילים והנשקים ולא מעליהם — כלומר כל הבונוסים שמתחת מוכפלים גם עליו. גיבור שנפל לא תורם ממנו דבר.":
+    "Flat combat power from the items the hero is wearing. It is counted alongside the soldiers and the weapons rather than on top of them — so every bonus below multiplies it too. A fallen hero contributes none of it.",
   "סך כוח בסיס": "Base power total",
   "חיילים + נשקים. כל הבונוסים שמתחת מוכפלים על הסכום הזה, בזה אחר זה.":
     "Soldiers + weapons. Every bonus below multiplies this total, one after another.",
+  "חיילים + נשקים + כוח ציוד הגיבור. כל הבונוסים שמתחת מוכפלים על הסכום הזה, בזה אחר זה.":
+    "Soldiers + weapons + hero gear power. Every bonus below multiplies this total, one after another.",
   "יתרון המגן +{pct}%": "Defender's edge +{pct}%",
   "הצד המתגונן נלחם בשטח שלו ומקבל תוספת קבועה של {pct}% על כוח הבסיס — לפני הגיבור ולפני קסמי הברית. התוקף לא מקבל אותה.":
     "The defending side fights on its own ground and gets a flat {pct}% on its base power — before the hero and before any guild spell. The attacker gets none of it.",
@@ -3993,6 +4097,10 @@ export const EN: Record<string, string> = {
   "{boss} כבר הופלה השבוע.": "{boss} has already been felled this week.",
   "המכה שלך הפילה את {boss}! {diamonds} יהלומים על המכה האחרונה.":
     "Your blow felled {boss}! {diamonds} diamonds for the killing strike.",
+  "המכה שלך הפילה את {boss}!": "Your blow felled {boss}!",
+  "זירת מפלצת העולם סגורה כרגע.": "The world boss arena is closed right now.",
+  "חשבונות הנהלה אינם תוקפים את מפלצת העולם.":
+    "Staff accounts do not strike the world boss.",
 
   /* your standing in the fight, pinned to the beast */
   "הנזק שלך": "Your damage",

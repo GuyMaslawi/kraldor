@@ -147,6 +147,12 @@ export function ItemCatalog({
                       icon={slotMeta.icon}
                       level={level}
                       rarity={uiRarityForLevel(level)}
+                      // 9 slots × 40 rungs = 360 tiles on one page. The tile
+                      // shimmer is per-tile animation (a sweep, twinkles with
+                      // stacked drop-shadows, a breathing box-shadow), and at
+                      // this count it repaints the whole page every frame.
+                      // The catalog is a reference table — it reads still.
+                      still
                       details={itemDetails(t, { slot, level }, heroLevel, {
                         owned: isOwned,
                         equipped: isEquipped,

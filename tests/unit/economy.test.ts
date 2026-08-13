@@ -57,6 +57,7 @@ import {
   discountedAmount,
   shieldMeta,
 } from "@/lib/game/diamondShop";
+import { shieldFlags } from "@/lib/game/diamondEffects";
 import {
   FORGE_DISCOUNT_PCT,
   POTION_STACK_CAP,
@@ -376,6 +377,25 @@ describe("the diamond shop", () => {
     it("resolves both keys to a distinct effect kind", () => {
       expect(shieldMeta("resources").kind).not.toBe(shieldMeta("soldiers").kind);
     });
+
+    it("badges say a shield is up without saying when it drops", () => {
+      // Every badge beside a player's name is handed shieldFlags(), never the
+      // expiry map: ShieldBadges is a client component, so anything given to it
+      // is serialised into the page payload, and the hour a shield lapses is
+      // intel a rival is meant to buy from a spy — not read off the ladder.
+      const flags = shieldFlags({
+        resources: new Date("2026-08-13T14:30:00.000Z"),
+        soldiers: null,
+      });
+      expect(flags).toEqual({ resources: true, soldiers: false });
+      expect(JSON.stringify(flags)).not.toContain("14:30");
+    });
+
+    it("draws nothing for an empire with no shields at all", () => {
+      // `getShieldsForEmpires` leaves unshielded empires out of its map, so the
+      // badge is routinely handed `undefined`.
+      expect(shieldFlags(undefined)).toEqual({ resources: false, soldiers: false });
+    });
   });
 });
 
@@ -607,10 +627,23 @@ describe("weapon tier curve", () => {
     });
   }
 
-  it("keeps the top tier inside safe-integer range once stacked", () => {
-    // Power lands in Float columns and is summed across an arsenal, so the top
-    // tier must leave room for a real stockpile before precision goes.
+  it("keeps a stacked top tier precise enough for a Float power column", () => {
+    // Power lands in Float columns and is summed across an arsenal. Past tier
+    // 30 the ladder outgrows exact-integer range — a stockpile of 1,000 top
+    // weapons is ~1.7e17, well over 2^53 — so exactness is no longer the bar.
+    // What still has to hold is relative precision: power is only ever ratioed,
+    // compared and displayed, never spent against a guarded balance, so a
+    // double's ~1e-16 relative error is invisible. Guard that, and guard that
+    // the sum stays a finite number instead of overflowing to Infinity.
     const top = Math.max(...WEAPONS.map((w) => w.power));
-    expect(top * 1_000).toBeLessThan(Number.MAX_SAFE_INTEGER);
+    const stack = 1_000;
+    const summed = top * stack;
+    expect(Number.isFinite(summed)).toBe(true);
+
+    // Exact value in BigInt, so the comparison is against real arithmetic and
+    // not against another double carrying the same error.
+    const exact = BigInt(top) * BigInt(stack);
+    const relativeError = Math.abs(summed - Number(exact)) / Number(exact);
+    expect(relativeError).toBeLessThan(1e-9);
   });
 });

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getActiveEmpireId } from "@/lib/auth";
 import { applyPendingUpdates } from "@/lib/game/updates";
+import { getTunables } from "@/lib/game/config";
 import { gameWeek, nextGameWeekStart } from "@/lib/game/time";
 import { formatNumber } from "@/lib/game/format";
 import { notStaffOrBot } from "@/lib/bot";
@@ -11,9 +12,6 @@ import { POLL_LIMIT, POLL_WINDOW_MS, localRateLimit } from "@/lib/rateLimit";
 import { REWARD_LABEL, type Reward } from "@/lib/game/rewards";
 import {
   WORLD_BOSS_BY_KEY,
-  WORLD_BOSS_KILL_DIAMONDS,
-  WORLD_BOSS_MAX_STRIKES,
-  WORLD_BOSS_STRIKE_TURNS,
   expectedStrikeDamage,
   rollWorldBoss,
   strikeDamage,
@@ -83,13 +81,13 @@ function describeRewards(t: T, rewards: readonly Reward[]): string {
  * not somebody who will turn up to fight, and counting it would raise the pool
  * against players who have to clear it.
  */
-async function openWorldBoss(week: number) {
+async function openWorldBoss(week: number, hpMultiplier: number) {
   const existing = await prisma.worldBoss.findUnique({ where: { week } });
   if (existing) return existing;
 
   const definition = rollWorldBoss(week);
   const empires = await prisma.empire.count({ where: notStaffOrBot });
-  const maxHp = worldBossMaxHp(definition, empires);
+  const maxHp = worldBossMaxHp(definition, empires, hpMultiplier);
 
   try {
     return await prisma.worldBoss.create({
@@ -121,15 +119,28 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
   const empireId = await getActiveEmpireId();
   if (empireId === null) return null;
 
+  const tunables = await getTunables();
+  // Closed from /admin/bosses. Checked before `openWorldBoss` so a shut arena
+  // does not spawn the week's row on the first look — a boss nobody may strike
+  // would otherwise sit there accruing a week it never gets fought.
+  if (tunables.worldBoss.enabled < 1) return null;
+
   const empire = await prisma.empire.findUnique({
     where: { id: empireId },
-    select: { id: true, cities: true, turns: true, militaryPower: true },
+    select: {
+      id: true,
+      cities: true,
+      turns: true,
+      militaryPower: true,
+      isStaff: true,
+      isBot: true,
+    },
   });
   if (!empire) return null;
 
   const now = new Date();
   const week = gameWeek(now);
-  const boss = await openWorldBoss(week);
+  const boss = await openWorldBoss(week, tunables.worldBoss.hpMultiplier);
   const definition = WORLD_BOSS_BY_KEY.get(boss.key);
   // A retired key degrades to no arena rather than a crash — the same rule
   // every other keyed table here follows.
@@ -214,21 +225,32 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
     endsAt: nextGameWeekStart(now).getTime(),
     serverNow: now.getTime(),
 
-    strikesLeft: Math.max(0, WORLD_BOSS_MAX_STRIKES - (mine?.hits ?? 0)),
-    strikeTurns: WORLD_BOSS_STRIKE_TURNS,
+    strikesLeft: Math.max(0, tunables.worldBoss.maxStrikes - (mine?.hits ?? 0)),
+    strikeTurns: tunables.worldBoss.strikeTurns,
+    maxStrikes: tunables.worldBoss.maxStrikes,
+    killDiamonds: Math.max(0, Math.round(tunables.worldBoss.killDiamonds)),
     turns: empire.turns,
-    expectedDamage: expectedStrikeDamage(empire.militaryPower),
+    expectedDamage: expectedStrikeDamage(
+      empire.militaryPower,
+      tunables.worldBoss.damageMultiplier
+    ),
     myDamage: mine?.damage ?? 0,
     board,
     participants,
     feed,
+    blocked: empire.isStaff || empire.isBot,
 
     // The spoils open the moment it is down, not at the end of the week — a
     // server that killed it on Tuesday should not be told to come back Sunday.
     claimable:
       boss.defeatedAt !== null && (mine?.hits ?? 0) > 0 && !(mine?.claimed ?? false),
     claimed: mine?.claimed ?? false,
-    reward: worldBossReward(share, participants, empire.cities),
+    reward: worldBossReward(
+      share,
+      participants,
+      empire.cities,
+      tunables.worldBoss.rewardMultiplier
+    ),
   };
 }
 
@@ -270,8 +292,14 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
     const week = gameWeek(new Date());
 
     // Outside the transaction: a transaction must not ask for a second
-    // connection while holding one — the same rule spyOnEmpire states.
-    const boss = await openWorldBoss(week);
+    // connection while holding one — the same rule spyOnEmpire states. That is
+    // also why the tunables are read here rather than beside their first use.
+    const tunables = await getTunables();
+    if (tunables.worldBoss.enabled < 1) {
+      return { error: t("זירת מפלצת העולם סגורה כרגע.") };
+    }
+
+    const boss = await openWorldBoss(week, tunables.worldBoss.hpMultiplier);
     const definition = WORLD_BOSS_BY_KEY.get(boss.key);
     if (!definition) return { error: t("אין מפלצת עולם השבוע.") };
 
@@ -281,6 +309,16 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
       // Settle first: a strike costs turns, and a player who was away has a
       // backlog of them waiting to be credited.
       const empire = await applyPendingUpdates(empireId, tx);
+
+      // Staff accounts are out of the game (src/lib/staff.ts), and this is the
+      // one fixture the whole server shares: a blow from an admin's empire —
+      // which can be handed any army at all — takes health off a pool everybody
+      // else has to clear, puts the admin's name in the live feed and on the
+      // damage board, and can take the kill prize. Refused inside the
+      // transaction, alongside every other claim on a shared resource.
+      if (empire.isStaff || empire.isBot) {
+        return { error: t("חשבונות הנהלה אינם תוקפים את מפלצת העולם.") };
+      }
 
       const live = await tx.worldBoss.findUnique({
         where: { id: boss.id },
@@ -297,26 +335,28 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
         where: { bossId_empireId: { bossId: boss.id, empireId } },
         select: { id: true, hits: true },
       });
-      if ((mine?.hits ?? 0) >= WORLD_BOSS_MAX_STRIKES) {
+      const maxStrikes = tunables.worldBoss.maxStrikes;
+      const strikeTurns = tunables.worldBoss.strikeTurns;
+      if ((mine?.hits ?? 0) >= maxStrikes) {
         return {
-          error: t("ניצלת את כל {max} המכות שלך השבוע.", {
-            max: WORLD_BOSS_MAX_STRIKES,
-          }),
+          error: t("ניצלת את כל {max} המכות שלך השבוע.", { max: maxStrikes }),
         };
       }
 
       // Guarded debit — the house rule for every spend here.
       const paid = await tx.empire.updateMany({
-        where: { id: empireId, turns: { gte: WORLD_BOSS_STRIKE_TURNS } },
-        data: { turns: { decrement: WORLD_BOSS_STRIKE_TURNS } },
+        where: { id: empireId, turns: { gte: strikeTurns } },
+        data: { turns: { decrement: strikeTurns } },
       });
       if (paid.count === 0) {
-        return {
-          error: t("מכה עולה {turns} תורות.", { turns: WORLD_BOSS_STRIKE_TURNS }),
-        };
+        return { error: t("מכה עולה {turns} תורות.", { turns: strikeTurns }) };
       }
 
-      const damage = strikeDamage(empire.militaryPower);
+      const damage = strikeDamage(
+        empire.militaryPower,
+        undefined,
+        tunables.worldBoss.damageMultiplier
+      );
 
       // The blow and the kill in one statement. `hp > 0` is what makes the kill
       // exclusive: of two players landing the last blow together, exactly one
@@ -352,7 +392,7 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
         // turns back — the blow never landed.
         await tx.empire.update({
           where: { id: empireId },
-          data: { turns: { increment: WORLD_BOSS_STRIKE_TURNS } },
+          data: { turns: { increment: strikeTurns } },
         });
         return {
           error: t("{boss} כבר הופלה השבוע.", { boss: t(definition.name) }),
@@ -386,10 +426,11 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
       // The killing blow is the one part of the fixture that belongs to
       // somebody. Paid immediately rather than through the shared claim, so the
       // moment lands while the player is looking at it.
-      if (hit.slain) {
+      const killDiamonds = Math.max(0, Math.round(tunables.worldBoss.killDiamonds));
+      if (hit.slain && killDiamonds > 0) {
         await tx.empire.update({
           where: { id: empireId },
-          data: { diamonds: { increment: WORLD_BOSS_KILL_DIAMONDS } },
+          data: { diamonds: { increment: killDiamonds } },
         });
       }
 
@@ -408,7 +449,10 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
       const hpBefore = hit.slain
         ? Math.min(live.hp, damage)
         : hit.hp + damage;
-      const expected = expectedStrikeDamage(empire.militaryPower);
+      const expected = expectedStrikeDamage(
+        empire.militaryPower,
+        tunables.worldBoss.damageMultiplier
+      );
 
       const reveal: WorldBossStrikeReveal = {
         damage,
@@ -420,8 +464,8 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
         slain: hit.slain,
         phaseBefore: worldBossPhase(hpBefore, boss.maxHp).key,
         phaseAfter: worldBossPhase(hit.hp, boss.maxHp).key,
-        strikesLeft: Math.max(0, WORLD_BOSS_MAX_STRIKES - striker.hits),
-        diamonds: hit.slain ? WORLD_BOSS_KILL_DIAMONDS : 0,
+        strikesLeft: Math.max(0, maxStrikes - striker.hits),
+        diamonds: hit.slain ? killDiamonds : 0,
       };
 
       // Only the kill says anything in words.
@@ -435,12 +479,17 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
       // kill is different: it pays diamonds, which the bar cannot show.
       return {
         reveal,
-        success: hit.slain
-          ? t("המכה שלך הפילה את {boss}! {diamonds} יהלומים על המכה האחרונה.", {
-              boss: t(definition.name),
-              diamonds: WORLD_BOSS_KILL_DIAMONDS,
-            })
-          : undefined,
+        success: !hit.slain
+          ? undefined
+          : killDiamonds > 0
+            ? t("המכה שלך הפילה את {boss}! {diamonds} יהלומים על המכה האחרונה.", {
+                boss: t(definition.name),
+                diamonds: killDiamonds,
+              })
+            : // The prize is a tunable now, and an admin may have zeroed it. The
+              // moment still belongs to this player, so it is still announced —
+              // just without a figure that is no longer paid.
+              t("המכה שלך הפילה את {boss}!", { boss: t(definition.name) }),
       };
     });
 
@@ -511,6 +560,12 @@ export async function collectWorldBoss(): Promise<ActionState> {
     const empireId = await requireOwnEmpireId();
     const week = gameWeek(new Date());
 
+    // Read outside the transaction, like every other `getTunables` on a write
+    // path here. The arena may since have been closed, but a share earned while
+    // it was open is still owed — closing the fixture is not a confiscation, so
+    // only the multiplier below is read from it.
+    const tunables = await getTunables();
+
     const boss = await prisma.worldBoss.findUnique({ where: { week } });
     if (!boss) return { error: t("אין מפלצת עולם השבוע.") };
     if (boss.defeatedAt === null) {
@@ -552,7 +607,12 @@ export async function collectWorldBoss(): Promise<ActionState> {
       const paid = await payRewards(
         tx,
         empireId,
-        worldBossReward(share, participants, empire.cities)
+        worldBossReward(
+          share,
+          participants,
+          empire.cities,
+          tunables.worldBoss.rewardMultiplier
+        )
       );
 
       return {

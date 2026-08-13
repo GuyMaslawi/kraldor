@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatNumber } from "@/lib/game/format";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { PlayerLink } from "@/components/ui/PlayerLink";
+import type { ShieldState } from "@/components/game/ShieldBadges";
 import { useT } from "@/i18n/client";
 
 export type BattleRow = {
@@ -15,6 +16,12 @@ export type BattleRow = {
   rival: string;
   /** The other empire in the fight — the "יריב" cell links to his dossier. */
   rivalId: string;
+  /**
+   * The raid shields he is holding *now* — not what he held when this report
+   * was written. The history is where retaliation is decided, and a rival who
+   * bought a shield after hitting you has nothing left to take back.
+   */
+  shields?: ShieldState;
   isAttacker: boolean;
   won: boolean;
   attackerPower: number;
@@ -41,6 +48,8 @@ export type SpyRow = {
   rival: string;
   /** The other empire in the mission — the "יריב" cell links to his dossier. */
   rivalId: string;
+  /** His raid shields right now — see the same field on BattleRow. */
+  shields?: ShieldState;
   /** True for missions I sent, false for enemy spies caught in my territory. */
   isAttacker: boolean;
   success: boolean;
@@ -181,7 +190,11 @@ export function ReportsTabs({
                       {/* Reading the history is how you find out who has been
                           hitting you — so the name opens his dossier, where the
                           answer (spy, raid, mail) is one more click. */}
-                      <PlayerLink empireId={r.rivalId} name={r.rival} />
+                      <PlayerLink
+                        empireId={r.rivalId}
+                        name={r.rival}
+                        shields={r.shields}
+                      />
                     </td>
                     <td className="px-4 py-3 text-red-400">
                       {num(r.attackerPower)}
@@ -290,7 +303,11 @@ export function ReportsTabs({
                       {/* Reading the history is how you find out who has been
                           hitting you — so the name opens his dossier, where the
                           answer (spy, raid, mail) is one more click. */}
-                      <PlayerLink empireId={r.rivalId} name={r.rival} />
+                      <PlayerLink
+                        empireId={r.rivalId}
+                        name={r.rival}
+                        shields={r.shields}
+                      />
                     </td>
                     <td className="px-4 py-3">
                       <span

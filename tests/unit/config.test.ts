@@ -79,6 +79,44 @@ describe("mergeTunables", () => {
     expect(mergeTunables({ heroQuest: { enabled: -1 } }).heroQuest.enabled).toBeGreaterThanOrEqual(0);
   });
 
+  it("never lets a world-boss strike become free, or pay turns to strike", () => {
+    // Same shape as the attack-turn-cost bug above: the debit is a guarded
+    // `gte` decrement, so a cost of -40 passes the affordability check and then
+    // *credits* 40 turns — an infinite turn faucet reachable from a text box.
+    for (const bad of [0, -1, -40]) {
+      expect(mergeTunables({ worldBoss: { strikeTurns: bad } }).worldBoss.strikeTurns)
+        .toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("leaves at least one strike a week and a pool that is not empty", () => {
+    expect(mergeTunables({ worldBoss: { maxStrikes: 0 } }).worldBoss.maxStrikes)
+      .toBeGreaterThanOrEqual(1);
+    expect(mergeTunables({ worldBoss: { hpMultiplier: 0 } }).worldBoss.hpMultiplier)
+      .toBeGreaterThan(0);
+    expect(
+      mergeTunables({ worldBoss: { damageMultiplier: 0 } }).worldBoss.damageMultiplier
+    ).toBeGreaterThan(0);
+  });
+
+  it("allows an instant boss revive but not a negative one", () => {
+    expect(mergeTunables({ boss: { reviveMinutes: 0 } }).boss.reviveMinutes).toBe(0);
+    expect(
+      mergeTunables({ boss: { reviveMinutes: -30 } }).boss.reviveMinutes
+    ).toBeGreaterThanOrEqual(0);
+  });
+
+  it("lets the captive and XP dials close entirely — zero is a real answer", () => {
+    const merged = mergeTunables({
+      boss: { slaveMultiplier: 0, heroXpMultiplier: 0 },
+      worldBoss: { rewardMultiplier: 0, killDiamonds: 0 },
+    });
+    expect(merged.boss.slaveMultiplier).toBe(0);
+    expect(merged.boss.heroXpMultiplier).toBe(0);
+    expect(merged.worldBoss.rewardMultiplier).toBe(0);
+    expect(merged.worldBoss.killDiamonds).toBe(0);
+  });
+
   it("bounds the store discount to a real percentage", () => {
     expect(
       mergeTunables({ diamondStore: { purchaseDiscountPct: 900 } }).diamondStore

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { WornTitle } from "@/components/ui/WornTitle";
+import { ShieldBadges, type ShieldState } from "@/components/game/ShieldBadges";
 import { useT } from "@/i18n/client";
 
 /**
@@ -26,6 +27,7 @@ export function PlayerLink({
   className = "",
   title,
   titleKey,
+  shields,
   staff = false,
 }: {
   empireId: string | null | undefined;
@@ -44,6 +46,20 @@ export function PlayerLink({
    * empire row the key sits on.
    */
   titleKey?: string | null;
+  /**
+   * The paid raid shields this empire is holding right now, if the caller
+   * loaded them — `getActiveShields` / `getShieldsForEmpires` in
+   * `src/lib/game/diamondEffects.ts` both return exactly this shape.
+   *
+   * A shield is public knowledge and it is the single fact that decides whether
+   * a raid is worth its turns, so it belongs on the name itself rather than on
+   * one board that happens to remember it: wherever you meet a rival — the
+   * ladder, your inbox, the battle history, his dossier — the badge rides with
+   * him. Absent (the default) draws nothing, so a caller with no shield data
+   * simply keeps the plain name; passing a map with no live shield draws
+   * nothing either.
+   */
+  shields?: ShieldState | null;
   /**
    * Render as the game's own account: molten gold with a highlight travelling
    * across it (`.staff-name` in globals.css).
@@ -67,12 +83,22 @@ export function PlayerLink({
   // whole — which is the right way round, since the name is also a tooltip and
   // a link while the title is only ever the word.
   const worn = <WornTitle titleKey={titleKey} className="ms-1.5 align-middle" />;
+  // Same reasoning as the title, and the same place: outside the link, after
+  // the word. `empty:hidden` is what keeps the wrapper honest — ShieldBadges
+  // renders nothing for an empire holding no shield, and an empty span would
+  // otherwise still spend its margin on every unshielded name in a table.
+  const guarded = shields ? (
+    <span className="ms-1.5 inline-flex items-center gap-1 align-middle empty:hidden">
+      <ShieldBadges shields={shields} />
+    </span>
+  ) : null;
 
   if (!empireId)
     return (
       <>
         <span className={cls}>{name}</span>
         {worn}
+        {guarded}
       </>
     );
 
@@ -91,6 +117,7 @@ export function PlayerLink({
         {name}
       </Link>
       {worn}
+      {guarded}
     </>
   );
 }

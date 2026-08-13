@@ -224,9 +224,10 @@ export async function applyPendingUpdates(
     );
   }
 
-  /* ---- daily updates: citizens + turns + bank interest + deposit-period reset ---- */
+  /* ---- daily: citizens + turns + gear diamonds + bank interest + period reset ---- */
   const missedDailies = dailyUpdatesBetween(empire.lastDailyUpdateAt, now);
   let citizensGained = 0;
+  let diamondsGained = 0;
   if (missedDailies.length > 0) {
     const growthLevel =
       empire.upgrades.find((u) => u.type === "CITIZEN_GROWTH")?.level ?? 1;
@@ -259,6 +260,13 @@ export async function applyPendingUpdates(
     // always said "extra resources per tick, and extra turns/citizens per
     // update"; the code disagreed.
     turnsGained += heroBonus.itemsFlat.turns * missedDailies.length;
+
+    // 👖 distils diamonds, and it is the only thing in the game that mints the
+    // paid currency on a curve. It rides the same daily cadence as turns and
+    // citizens — never the 5-minute tick, which is the 288× cadence error the
+    // turn line above is a monument to. The whole backlog lands, like the rest
+    // of the daily grants: a week away is a week's diamonds, not one day's.
+    diamondsGained = heroBonus.itemsFlat.diamonds * missedDailies.length;
   }
 
   // Top up wheel spins once per missed daily update. Spins bank without limit
@@ -310,6 +318,9 @@ export async function applyPendingUpdates(
       stone: { increment: gained.stone },
       citizens: { increment: citizensGained },
       turns: { increment: turnsGained },
+      // Omitted entirely when nothing was distilled, so an empire without 👖
+      // never touches the paid-currency column on a routine settle.
+      ...(diamondsGained > 0 ? { diamonds: { increment: diamondsGained } } : {}),
       // The denormalised power figures, re-derived from the army and arsenal
       // this settle already loaded — no extra query, and it makes every settle
       // a repair. A write path that changes an army and forgets to call

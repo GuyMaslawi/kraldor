@@ -40,11 +40,11 @@ import { getI18n, getT, type T } from "@/i18n/server";
 import { LOCALE_TAG } from "@/i18n/locale";
 import {
   BOSS_ITEM_RARITY_FLOOR,
-  BOSS_REVIVE_MS,
   BOSS_REWARD_RESOURCES,
   bossForCity,
   bossHeroXp,
   bossPower,
+  bossReviveMs,
   bossReward,
   bossTurnCost,
   type BossReward,
@@ -210,6 +210,15 @@ export async function startBossAssault(empireId: string): Promise<BossSortieOutc
     }
 
     const empire = await applyPendingUpdates(empireId, tx);
+
+    // Staff accounts are out of the game (src/lib/staff.ts), and the boss is a
+    // public fixture: the conquerors' roll on the banner carries the name of
+    // whoever felled it, and an admin's empire can be handed any army it likes.
+    // A bot is refused for the same reason it is refused the arena — a planted
+    // garrison marches on nothing.
+    if (empire.isStaff || empire.isBot) {
+      return { error: t("חשבונות הנהלה אינם תוקפים את שליט העיר.") };
+    }
     const now = new Date();
     const boss = bossForCity(empire.cities);
     const turnCost = bossTurnCost(empire.cities);
@@ -383,7 +392,12 @@ async function settleBattle(
         hp: Math.max(0, siege.hp - credited),
         damageDealt: { increment: credited },
         ...(killed
-          ? { killedAt: now, revivesAt: new Date(now.getTime() + BOSS_REVIVE_MS) }
+          ? {
+              killedAt: now,
+              revivesAt: new Date(
+                now.getTime() + bossReviveMs(tunables.boss.reviveMinutes)
+              ),
+            }
           : {}),
       },
     });
@@ -432,7 +446,8 @@ async function settleBattle(
   const lifeHaul = bossReward(
     cities,
     seasonPassDay(season, now.getTime()),
-    tunables.boss.rewardMultiplier
+    tunables.boss.rewardMultiplier,
+    tunables.boss.slaveMultiplier
   );
 
   const chip =
@@ -474,7 +489,9 @@ async function settleBattle(
     ((await getActivePotionKinds(empireId, tx, now)).has("DOUBLE_XP")
       ? POTION_DOUBLE
       : 1) * happyHourFactor(happyHour, "boostXp");
-  const heroXp = Math.round(bossHeroXp(cities) * fraction * xpMultiplier);
+  const heroXp = Math.round(
+    bossHeroXp(cities, tunables.boss.heroXpMultiplier) * fraction * xpMultiplier
+  );
   let droppedItem: { slot: HeroItemSlot; level: number; rarity: HeroRarity } | null = null;
 
   if (hero && (heroXp > 0 || killed)) {

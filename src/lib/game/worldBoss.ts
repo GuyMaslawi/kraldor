@@ -167,10 +167,16 @@ export const WORLD_BOSS_HP_MIN = 250_000;
  */
 export function worldBossMaxHp(
   boss: WorldBossDefinition,
-  empires: number
+  empires: number,
+  /** `worldBoss.hpMultiplier` — the admin's dial on a *new* spawn's pool. */
+  hpMultiplier = 1
 ): number {
   const pool = Math.max(1, Math.floor(empires)) * WORLD_BOSS_HP_PER_EMPIRE;
-  return Math.max(WORLD_BOSS_HP_MIN, Math.round(pool * boss.toughness));
+  const scale = Math.max(0, hpMultiplier);
+  return Math.max(
+    1,
+    Math.round(Math.max(WORLD_BOSS_HP_MIN, pool * boss.toughness) * scale)
+  );
 }
 
 /* ------------------------------ striking ------------------------------ */
@@ -237,12 +243,19 @@ export const WORLD_BOSS_DAMAGE_SPREAD = 0.25;
  */
 export function strikeDamage(
   militaryPower: number,
-  random: () => number = secureRandom
+  random: () => number = secureRandom,
+  /**
+   * `worldBoss.damageMultiplier`. Scales the blow rather than the pool, which is
+   * the knob to reach for once a week is already under way: the health of a
+   * standing boss is frozen at spawn, so raising it is the only way to help a
+   * server that is not going to get its beast down in time.
+   */
+  damageMultiplier = 1
 ): number {
   const power = Math.max(0, militaryPower);
   const base = Math.sqrt(power) * WORLD_BOSS_DAMAGE_PER_POWER;
   const spread = 1 + (random() * 2 - 1) * WORLD_BOSS_DAMAGE_SPREAD;
-  return Math.max(1, Math.round(base * spread));
+  return Math.max(1, Math.round(base * spread * Math.max(0, damageMultiplier)));
 }
 
 /**
@@ -253,8 +266,11 @@ export function strikeDamage(
  * would either differ from the blow actually landed or hand the player the roll
  * in advance, and the second is the whole thing the spread exists to prevent.
  */
-export function expectedStrikeDamage(militaryPower: number): number {
-  return strikeDamage(militaryPower, () => 0.5);
+export function expectedStrikeDamage(
+  militaryPower: number,
+  damageMultiplier = 1
+): number {
+  return strikeDamage(militaryPower, () => 0.5, damageMultiplier);
 }
 
 /* ------------------------------ the beast's temper ------------------------------ */
@@ -476,9 +492,15 @@ export function worldBossShare(share: number, participants: number): number {
 export function worldBossReward(
   share: number,
   participants: number,
-  cities: number
+  cities: number,
+  /** `worldBoss.rewardMultiplier` — the admin's dial on the whole purse. */
+  rewardMultiplier = 1
 ): Reward[] {
-  const factor = worldBossShare(share, participants);
+  const factor = worldBossShare(share, participants) * Math.max(0, rewardMultiplier);
+  // The per-line floor below exists so a tiny share is never worth nothing. A
+  // multiplier of zero is a different statement — an admin closing the purse —
+  // and the floor must not overrule it into paying one of everything.
+  if (factor <= 0) return [];
   return scaleRewards(
     WORLD_BOSS_PURSE.map((r) => ({
       kind: r.kind,
@@ -582,6 +604,16 @@ export interface WorldBossState {
   /** Strikes this empire has left this week. */
   strikesLeft: number;
   strikeTurns: number;
+  /**
+   * The week's allowance and the kill prize, as they actually stand.
+   *
+   * Carried on the state rather than read from the constants above, because
+   * both are admin tunables now (`worldBoss.maxStrikes`, `worldBoss.killDiamonds`)
+   * — a screen quoting the shipped figure would be advertising a rule the server
+   * is no longer enforcing.
+   */
+  maxStrikes: number;
+  killDiamonds: number;
   /** The viewer's turns, so the button can say why it is disabled. */
   turns: number;
   /** The blow this empire's power is worth, quoted before it is struck. */
@@ -593,6 +625,13 @@ export interface WorldBossState {
   participants: number;
   /** The last blows anybody landed, newest first. */
   feed: WorldBossBlowEntry[];
+
+  /**
+   * The viewer is out of the game and may watch but never strike — a staff
+   * account or a planted garrison. The arena is still drawn in full: an admin
+   * has every reason to look at the week's fixture, and none to be in it.
+   */
+  blocked: boolean;
 
   /** The viewer may collect their share. */
   claimable: boolean;

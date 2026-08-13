@@ -13,7 +13,7 @@ import type {
   WeaponCategory,
 } from "@prisma/client";
 import type { FullEmpire } from "./updates";
-import { heroReviveAt, rawHeroBonuses } from "./hero";
+import { heroReviveAt, rawHeroBonuses, type HeroFlatStat } from "./hero";
 import {
   getEmpireAttackPower,
   getEmpireDefensePower,
@@ -110,8 +110,16 @@ export interface SpyIntelHero {
    * misleading row of zeroes.
    */
   pct: { attack: number; defense: number; spy: number; resources: number };
-  /** Flat units per daily cycle from equipped gear. */
-  flat: { resources: number; turns: number; citizens: number };
+  /**
+   * Every flat bonus from equipped gear: the per-update yields, and the three
+   * flat combat powers — which are the most valuable line in the whole report,
+   * because they are the part of the target's defence that is not in the
+   * barracks and cannot be read off the army count.
+   *
+   * Typed as the whole tally rather than a hand-picked three, so a new flat
+   * stat reaches the report instead of being silently dropped here.
+   */
+  flat: Record<HeroFlatStat, number>;
   items: SpyIntelHeroItem[];
   /** The expedition the hero is away on, if any. */
   quest: { tier: number; endsAt: string } | null;

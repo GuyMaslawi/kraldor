@@ -2,6 +2,12 @@ import "server-only";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_CITIZENS_BASE, DEFAULT_CITIZENS_PER_LEVEL } from "@/lib/game/constants";
+import { BOSS_REVIVE_MS } from "@/lib/game/bosses";
+import {
+  WORLD_BOSS_KILL_DIAMONDS,
+  WORLD_BOSS_MAX_STRIKES,
+  WORLD_BOSS_STRIKE_TURNS,
+} from "@/lib/game/worldBoss";
 
 /**
  * Admin-editable global game balance. These are the *server-authoritative*
@@ -62,8 +68,50 @@ export interface GameTunables {
      * number players measure themselves against alone.
      */
     hpMultiplier: number;
+    /**
+     * Captives, on top of `rewardMultiplier`.
+     *
+     * Its own knob because the pens are the one boss reward that never gets
+     * spent: resources are consumed, a mine slave produces for the rest of the
+     * season (see BOSS_REWARD_SCALE_SLAVES). Softening the haul without
+     * softening the captives — or the reverse — is a thing an admin actually
+     * wants, and a single multiplier cannot express it.
+     */
+    slaveMultiplier: number;
+    /** Hero XP from a boss run, on top of the loot split. */
+    heroXpMultiplier: number;
+    /**
+     * How long a felled tyrant stays dead, in minutes. 0 brings it straight
+     * back. Read at the settle, so changing it only moves clocks started after
+     * the change — a boss already counting down keeps the deadline it was
+     * stamped with.
+     */
+    reviveMinutes: number;
     /** 0 closes the boss entirely; 1 opens it. */
     enabled: number;
+  };
+  /**
+   * מפלצת העולם. The week's beast is a clock fixture — see lib/game/worldBoss.ts
+   * — so these do not schedule anything: they scale the pool a *new* spawn is
+   * given, what a blow takes off, and what the week pays. The live row is edited
+   * from /admin/bosses, which is the only thing that can reach a fixture already
+   * standing.
+   */
+  worldBoss: {
+    /** 0 closes the arena entirely; 1 opens it. */
+    enabled: number;
+    /** Scales the health pool a *newly spawned* boss is frozen with. */
+    hpMultiplier: number;
+    /** Scales what one blow takes off — the dial for "we cannot get it down". */
+    damageMultiplier: number;
+    /** Scales the shared purse a felled boss pays out. */
+    rewardMultiplier: number;
+    /** Diamonds for the killing blow, and for nothing else. */
+    killDiamonds: number;
+    /** Blows one empire may land per week. */
+    maxStrikes: number;
+    /** Turns one blow costs. */
+    strikeTurns: number;
   };
   /**
    * Hero expeditions. The durations, turn costs and loot odds live in
@@ -189,7 +237,22 @@ export const DEFAULT_TUNABLES: GameTunables = {
     powerMultiplier: 1,
     rewardMultiplier: 1,
     hpMultiplier: 1,
+    slaveMultiplier: 1,
+    heroXpMultiplier: 1,
+    // Seeded from bosses.ts so the shipped cadence has exactly one definition.
+    reviveMinutes: Math.round(BOSS_REVIVE_MS / 60_000),
     enabled: 1,
+  },
+  worldBoss: {
+    enabled: 1,
+    hpMultiplier: 1,
+    damageMultiplier: 1,
+    rewardMultiplier: 1,
+    // Seeded from worldBoss.ts, for the same reason as above: an empty overlay
+    // and the shipped constants must agree.
+    killDiamonds: WORLD_BOSS_KILL_DIAMONDS,
+    maxStrikes: WORLD_BOSS_MAX_STRIKES,
+    strikeTurns: WORLD_BOSS_STRIKE_TURNS,
   },
   heroQuest: {
     rewardMultiplier: 1,
@@ -261,9 +324,29 @@ const TUNABLE_BOUNDS: {
     rewardMultiplier: [0, 1e3],
     // Likewise a zero HP pool: the first round would fell every tyrant.
     hpMultiplier: [0.01, 1e3],
+    slaveMultiplier: [0, 1e3],
+    heroXpMultiplier: [0, 1e3],
+    // Zero is legitimate ("it comes straight back"); a week is the ceiling,
+    // beyond which the countdown on the banner stops meaning anything.
+    reviveMinutes: [0, 10_080],
     // As on heroQuest.enabled, the read path tests `>= 1`, so a stray 0.5
     // closes the boss rather than half-opening something with no half state.
     enabled: [0, 1],
+  },
+  worldBoss: {
+    enabled: [0, 1],
+    // Never zero on either of these: a pool of nothing is felled by the first
+    // blow of the week, and a damage scale of nothing makes the fixture
+    // unwinnable while still charging turns for every strike.
+    hpMultiplier: [0.01, 1e3],
+    damageMultiplier: [0.01, 1e3],
+    rewardMultiplier: [0, 1e3],
+    killDiamonds: [0, 1e6],
+    // At least one blow, or the arena charges nobody and pays nobody.
+    maxStrikes: [1, 1e4],
+    // Must be >= 1 — see the note above TUNABLE_BOUNDS: the debit is a guarded
+    // `gte` decrement, so a negative cost passes the check and mints turns.
+    strikeTurns: [1, 1e6],
   },
   heroQuest: {
     rewardMultiplier: [0, 1e3],
@@ -318,6 +401,11 @@ export function mergeTunables(overlay: unknown): GameTunables {
     battle: mergeGroup(DEFAULT_TUNABLES.battle, o.battle, TUNABLE_BOUNDS.battle),
     economy: mergeGroup(DEFAULT_TUNABLES.economy, o.economy, TUNABLE_BOUNDS.economy),
     boss: mergeGroup(DEFAULT_TUNABLES.boss, o.boss, TUNABLE_BOUNDS.boss),
+    worldBoss: mergeGroup(
+      DEFAULT_TUNABLES.worldBoss,
+      o.worldBoss,
+      TUNABLE_BOUNDS.worldBoss
+    ),
     heroQuest: mergeGroup(
       DEFAULT_TUNABLES.heroQuest,
       o.heroQuest,

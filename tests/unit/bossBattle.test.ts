@@ -45,7 +45,13 @@ import {
   BOSS_ROUT_LOOT_PENALTY,
   type BossCounter,
 } from "@/lib/game/bossBattle";
-import { bossPower, bossReward } from "@/lib/game/bosses";
+import {
+  BOSS_REVIVE_MS,
+  bossHeroXp,
+  bossPower,
+  bossReviveMs,
+  bossReward,
+} from "@/lib/game/bosses";
 
 const MOVES: BossMove[] = ["SMASH", "SWEEP", "EXPOSED"];
 const COUNTERS: BossCounter[] = ["ASSAULT", "SHIELD", "FLANK"];
@@ -839,5 +845,48 @@ describe("the reward scale-up", () => {
     expect(richer).toBeGreaterThan(harder);
     // ...and not so much richer that the boss becomes the only thing worth doing.
     expect(richer / harder).toBeLessThan(1.5);
+  });
+});
+
+/**
+ * The city boss's admin dials, added with /admin/bosses. Same contract as the
+ * world boss's: every one is a trailing optional parameter, so an untouched
+ * overlay leaves the shipped curves exactly where they were.
+ */
+describe("the city boss admin multipliers", () => {
+  it("changes nothing at 1", () => {
+    expect(bossReward(3, 5, 1, 1)).toEqual(bossReward(3, 5));
+    expect(bossHeroXp(4, 1)).toBe(bossHeroXp(4));
+    expect(bossReviveMs(BOSS_REVIVE_MS / 60_000)).toBe(BOSS_REVIVE_MS);
+  });
+
+  it("moves the captives without touching the resources", () => {
+    const base = bossReward(3, 5);
+    const generous = bossReward(3, 5, 1, 2);
+    expect(generous.gold).toBe(base.gold);
+    expect(generous.slaves).toBe(base.slaves * 2);
+  });
+
+  it("closes the pens entirely at zero, rather than paying the floor of one", () => {
+    expect(bossReward(3, 5, 1, 0).slaves).toBe(0);
+    expect(bossReward(3, 5, 0).slaves).toBe(0);
+  });
+
+  it("compounds the captive dial with the global haul dial", () => {
+    const base = bossReward(2, 1);
+    const both = bossReward(2, 1, 2, 2);
+    expect(both.gold).toBe(base.gold * 2);
+    expect(both.slaves).toBe(base.slaves * 4);
+  });
+
+  it("scales the hero's XP", () => {
+    expect(bossHeroXp(5, 2)).toBe(bossHeroXp(5) * 2);
+    expect(bossHeroXp(5, 0)).toBe(0);
+  });
+
+  it("reads the revive delay in minutes and never goes negative", () => {
+    expect(bossReviveMs(15)).toBe(15 * 60_000);
+    expect(bossReviveMs(0)).toBe(0);
+    expect(bossReviveMs(-5)).toBe(0);
   });
 });

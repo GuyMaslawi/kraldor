@@ -73,6 +73,28 @@ export async function getActiveShields(
   return out;
 }
 
+/** Which shields are up, with the hour they drop stripped off. */
+export type ShieldFlags = Record<ShieldKey, boolean>;
+
+/**
+ * An expiry map flattened to "up / not up" — what every *badge* is handed.
+ *
+ * ShieldBadges is a client component, so anything given to it is serialised
+ * into the RSC payload of the page that drew it, expiry timestamps included.
+ * The hour a shield drops is intel: a raider who reads 14:30 off a ladder row
+ * can park on the target and swing the minute it lapses, without paying a spy
+ * for the timing. That number is earned in the spy report (and shown to an
+ * owner about his own shields in the shop); everywhere else the badge says that
+ * a shield is up and nothing more, and this is what makes that true of the wire
+ * and not only of the pixels.
+ */
+export function shieldFlags(shields: ShieldExpiry | undefined | null): ShieldFlags {
+  return {
+    resources: Boolean(shields?.resources),
+    soldiers: Boolean(shields?.soldiers),
+  };
+}
+
 /**
  * The same, for a page showing many empires at once (the rankings ladder) —
  * one query for the whole list instead of one per row. Empires without a shield

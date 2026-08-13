@@ -796,10 +796,14 @@ export function BossLadder({
   powerMultiplier = 1,
   rewardMultiplier = 1,
   hpMultiplier = 1,
+  slaveMultiplier = 1,
+  heroXpMultiplier = 1,
 }: {
   powerMultiplier?: number;
   rewardMultiplier?: number;
   hpMultiplier?: number;
+  slaveMultiplier?: number;
+  heroXpMultiplier?: number;
 }) {
   const t = useT();
   const [day, setDay] = useState(1);
@@ -832,7 +836,7 @@ export function BossLadder({
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
         {CITY_BOSSES.map((boss) => {
-          const reward = bossReward(boss.tier, day, rewardMultiplier);
+          const reward = bossReward(boss.tier, day, rewardMultiplier, slaveMultiplier);
           const maxHp = bossSiegeMaxHp(boss.tier, powerMultiplier, hpMultiplier);
           const sorties = bossSortiesToKill(myPower, maxHp);
           return (
@@ -888,7 +892,7 @@ export function BossLadder({
                     </span>
                     <span className="flex items-center gap-1 text-purple-300">
                       <Icon name="spark" size={12} /> {t("ניסיון")}
-                      <b className="nums" dir="ltr">{int(bossHeroXp(boss.tier))}</b>
+                      <b className="nums" dir="ltr">{int(bossHeroXp(boss.tier, heroXpMultiplier))}</b>
                     </span>
                   </div>
                 </div>

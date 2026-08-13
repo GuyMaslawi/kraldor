@@ -324,7 +324,17 @@ function grow(base: number, tierMultiplier: number, tier: number, day: number): 
  * the damage it deals and `bossKillFraction` for the kill (see `bossBattle.ts`).
  * `multiplier` is the admin-tunable global scalar.
  */
-export function bossReward(cities: number, day: number, multiplier = 1): BossReward {
+export function bossReward(
+  cities: number,
+  day: number,
+  multiplier = 1,
+  /**
+   * `boss.slaveMultiplier`, applied to the captives *on top of* `multiplier`.
+   * Separate because the pens are the one line here that is never spent — see
+   * BOSS_REWARD_SCALE_SLAVES.
+   */
+  slaveMultiplier = 1
+): BossReward {
   const tier = Math.min(MAX_CITIES, Math.max(1, Math.floor(cities)));
   const res = (base: number) =>
     Math.round(
@@ -335,14 +345,19 @@ export function bossReward(cities: number, day: number, multiplier = 1): BossRew
     wood: res(BOSS_REWARD_BASE.wood),
     iron: res(BOSS_REWARD_BASE.iron),
     stone: res(BOSS_REWARD_BASE.stone),
-    slaves: Math.max(
-      1,
-      Math.round(
-        grow(BOSS_REWARD_BASE.slaves, BOSS_SLAVE_TIER_MULTIPLIER, tier, day) *
-          BOSS_REWARD_SCALE_SLAVES *
-          multiplier
-      )
-    ),
+    // Floored at one only while the pens are meant to pay at all: an admin who
+    // sets either dial to zero is closing the captive line, and a "minimum of
+    // one" that survived that would be the knob quietly refusing to obey.
+    slaves: (() => {
+      const scale = BOSS_REWARD_SCALE_SLAVES * multiplier * slaveMultiplier;
+      if (scale <= 0) return 0;
+      return Math.max(
+        1,
+        Math.round(
+          grow(BOSS_REWARD_BASE.slaves, BOSS_SLAVE_TIER_MULTIPLIER, tier, day) * scale
+        )
+      );
+    })(),
   };
 }
 
@@ -372,9 +387,11 @@ export const BOSS_REWARD_RESOURCES: readonly StorableResource[] = [
 export const BOSS_HERO_XP_BASE = 1_800;
 export const BOSS_HERO_XP_PER_TIER = 1_100;
 
-export function bossHeroXp(cities: number): number {
+export function bossHeroXp(cities: number, multiplier = 1): number {
   const tier = Math.min(MAX_CITIES, Math.max(1, Math.floor(cities)));
-  return BOSS_HERO_XP_BASE + (tier - 1) * BOSS_HERO_XP_PER_TIER;
+  return Math.round(
+    (BOSS_HERO_XP_BASE + (tier - 1) * BOSS_HERO_XP_PER_TIER) * Math.max(0, multiplier)
+  );
 }
 
 /** A failed run teaches the hero nothing — only a felled boss pays XP. */
@@ -411,6 +428,17 @@ export const BOSS_ITEM_RARITY_FLOOR: HeroRarity = "RARE";
  * a trade rather than a windfall.
  */
 export const BOSS_REVIVE_MS = 60 * 60 * 1000;
+
+/**
+ * The revive delay actually in force, from `boss.reviveMinutes`.
+ *
+ * The tunable is minutes rather than milliseconds because that is the unit the
+ * admin thinks in, and it defaults to exactly BOSS_REVIVE_MS — an untouched
+ * overlay leaves the cadence above unchanged.
+ */
+export function bossReviveMs(reviveMinutes: number): number {
+  return Math.max(0, Math.round(reviveMinutes * 60_000));
+}
 
 /**
  * There is no victory allowance, and the absence is deliberate.

@@ -19,7 +19,7 @@ import { SABOTAGE_MISSIONS, type SabotageOption } from "@/lib/game/sabotage";
 import { MessageCompose } from "@/components/game/MessageCompose";
 import { ShieldBadges } from "@/components/game/ShieldBadges";
 import { ActivePotions } from "@/components/game/ActivePotions";
-import { getActiveShields } from "@/lib/game/diamondEffects";
+import { getActiveShields, shieldFlags } from "@/lib/game/diamondEffects";
 import { sharedGuild } from "@/lib/game/guildAllies";
 import { isStaffEmpire } from "@/lib/staff";
 import { getActivePotionExpiries } from "@/lib/game/potionEffects";
@@ -244,7 +244,21 @@ export default async function EmpireProfilePage({
           // shimmering name in chat, so the name has to still be shimmering
           // when they get here — otherwise the treatment reads as a chat badge
           // rather than as who this account is.
-          staffTarget ? <span className="staff-name">{empire.name}</span> : empire.name
+          <span className="inline-flex flex-wrap items-center justify-center gap-2">
+            {staffTarget ? (
+              <span className="staff-name">{empire.name}</span>
+            ) : (
+              empire.name
+            )}
+            {/* The shields, on the title itself. They used to be drawn only
+                inside the war-actions callout below, which is rendered on a
+                dossier you can *act* on — so your own shields were invisible on
+                your own page, and a rival from another city read a name with
+                nothing beside it. Whether a shield is up is a fact about the
+                empire, not about the buttons, so it rides with the name here and
+                the callout keeps only the sentence explaining what it costs you. */}
+            <ShieldBadges shields={shieldFlags(shields)} size="md" />
+          </span>
         }
         subtitle={
           <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
@@ -393,7 +407,7 @@ export default async function EmpireProfilePage({
 
                 {canEngage && activeShields.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
-                    <ShieldBadges shields={shields} />
+                    <ShieldBadges shields={shieldFlags(shields)} />
                     <span>
                       {t(
                         "לאימפריה הזו {shields} — ניצחון עליה לא יניב {spoils}. התקיפה עצמה עדיין אפשרית (ניסיון, חפצים ושיקויים).",

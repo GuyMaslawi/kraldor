@@ -124,6 +124,12 @@ export interface ItemTileDetails {
  * item's stats and its equip requirement; an unmet requirement renders the
  * tile locked (dimmed + 🔒). The tooltip floats in a portal, so it survives
  * scrolling grids and screen edges without being clipped.
+ *
+ * `still` strips the moving parts (the light sweep, the twinkles, the breathing
+ * aura) and keeps only the static rarity frame. The shimmer is a treasure
+ * effect for the handful of pieces on the hero's body or in the bag; a wall of
+ * hundreds of them — the full catalog — is a strobing page that drops frames,
+ * so that grid asks for still tiles.
  */
 export function ItemTile({
   slug,
@@ -133,6 +139,7 @@ export function ItemTile({
   rarity,
   size = "md",
   details,
+  still = false,
 }: {
   slug?: string;
   icon: string;
@@ -141,6 +148,7 @@ export function ItemTile({
   rarity: Rarity;
   size?: "sm" | "md" | "lg";
   details?: ItemTileDetails;
+  still?: boolean;
 }) {
   const t = useT();
   const [imgOk, setImgOk] = useState(false);
@@ -160,7 +168,7 @@ export function ItemTile({
   const locked = details?.meetsRequirement === false && !worn;
   // Locked items stay dim & inert; everything else shimmers. Desync each tile's
   // sweep from a stable seed so a grid twinkles unevenly rather than in a wave.
-  const sparkle = !locked;
+  const sparkle = !locked && !still;
   const shineDelay = `${(((level ?? 1) * 37 + (slug?.length ?? 3) * 13) % 40) / 10}s`;
 
   // On localhost the image can finish loading before React hydrates, so the
@@ -288,6 +296,11 @@ export function ItemTile({
             ref={imgRef}
             src={src}
             alt={name ?? ""}
+            // The catalog renders hundreds of these at once: fetching and
+            // decoding every one up front stalls the main thread for seconds.
+            // Off-screen tiles now cost nothing until they are scrolled to.
+            loading="lazy"
+            decoding="async"
             className={`absolute inset-0 h-full w-full object-contain p-1 transition-opacity ${imgOk ? "opacity-100" : "opacity-0"} ${
               locked ? "grayscale-[0.7]" : ""
             }`}

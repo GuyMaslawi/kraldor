@@ -123,12 +123,19 @@ export function MineCard({
         pulse={pulse}
       />
 
-      {/* -------- the crew box -------- */}
+      {/* -------- the crew box --------
+          The number here is how many men to move, not the mine's new crew: on a
+          mine already running 100, typing 10 and pressing "הוסף" leaves 110. The
+          box used to be pre-filled with the current crew and read as the new
+          total, so the natural "type what you want to add" released the rest. */}
       <form action={assignAction} className="space-y-1.5">
         <input type="hidden" name="resource" value={resource} />
         <div className="flex items-baseline justify-between gap-2 text-xs">
           <label htmlFor={crewId} className="font-semibold text-gold-dim">
-            {t("עובדים במכרה")}
+            {t("עובדים במכרה")}{" "}
+            <span className="nums font-bold text-zinc-300" dir="ltr">
+              {nis(assignedSlaves)}
+            </span>
           </label>
           <span className="text-zinc-500">
             {t("פנויים")}{" "}
@@ -142,17 +149,34 @@ export function MineCard({
             id={crewId}
             type="number"
             name="amount"
-            min={0}
-            max={assignedSlaves + freeSlaves}
-            defaultValue={assignedSlaves}
+            min={1}
+            max={Math.max(freeSlaves, assignedSlaves, 1)}
+            required
+            placeholder={t("כמות")}
             className="nums w-full rounded-lg border border-border-subtle bg-panel-inset px-3 py-1.5 text-center text-sm font-bold text-zinc-100 outline-none focus:border-gold"
           />
           <SubmitButton
+            name="mode"
+            value="add"
             variant="secondary"
             className="btn btn-ghost shrink-0 px-3"
-            pendingText={t("מעדכן...")}
+            /* Both buttons submit the same action, so both would light up with
+               the same pending word and squeeze the number box mid-submit. */
+            pendingText="…"
           >
-            {t("הצב")}
+            {t("הוסף")}
+          </SubmitButton>
+          <SubmitButton
+            name="mode"
+            value="remove"
+            variant="secondary"
+            className="btn btn-ghost shrink-0 px-3"
+            /* Both buttons submit the same action, so both would light up with
+               the same pending word and squeeze the number box mid-submit. */
+            pendingText="…"
+            disabled={assignedSlaves === 0}
+          >
+            {t("הסר")}
           </SubmitButton>
         </div>
       </form>

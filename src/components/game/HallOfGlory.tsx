@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { WornTitle } from "@/components/ui/WornTitle";
 import { useAfterFirstPaint, useCountUp } from "@/components/ui/motion";
-import { formatCompact } from "@/lib/game/format";
+import { formatCompact, formatNumber } from "@/lib/game/format";
+import { REWARD_LABEL } from "@/lib/game/rewards";
 import { useT } from "@/i18n/client";
 import type { GloryView } from "@/lib/game/achievements";
 
@@ -37,6 +38,12 @@ import type { GloryView } from "@/lib/game/achievements";
  * - **The world**: who holds the record — the plaque, and only the plaque. An
  *   unheld record leaves the plaque unengraved rather than blank, because
  *   "nobody has done this yet" is the most interesting thing the hall can say.
+ *   Bolted under it is the **purse** the record pays whoever gets there first:
+ *   the same amounts whether the plaque is engraved or blank, because the prize
+ *   belongs to the record and not to its holder. It is the one thing on the wall
+ *   players asked for by name, so it is written in figures on the wall itself
+ *   rather than hidden in the caption — the caption spells the same purse out in
+ *   words for a reader who is listening rather than looking.
  * - **The reader**: their own progress — the gold light rising inside the
  *   alcove to `--glory-p` of its height, plus one small fraction at the floor.
  *   Never written out anywhere else.
@@ -139,6 +146,18 @@ function GloryNiche({ item, index }: { item: GloryView; index: number }) {
         <span className="glory-caption">
           <strong>{t(item.name, item.params)}</strong>
           <span>{t(item.tagline, item.params)}</span>
+          {/* The purse in words. The band under the plaque says it in figures
+              and icons, which a screen reader cannot read out — and the words
+              are also what tells a first-time reader that those figures are a
+              prize rather than another statistic. */}
+          {item.prize.length > 0 && (
+            <span className="glory-caption-prize">
+              {t("פרס לראשון בעולם:")}{" "}
+              {item.prize
+                .map((r) => `${formatNumber(r.amount)} ${t(REWARD_LABEL[r.kind])}`)
+                .join(" + ")}
+            </span>
+          )}
           {item.record && (
             <span className="nums glory-caption-date" dir="ltr">
               {item.record.awardedLabel}
@@ -175,6 +194,34 @@ function GloryNiche({ item, index }: { item: GloryView; index: number }) {
           </span>
         )}
       </div>
+
+      {/* The purse, bolted under the plaque.
+          **Written out, not iconified.** It was a row of icons and figures
+          first, which is how the rest of the game writes a balance — but a
+          balance is read in a bar the player looks at fifty times a day, and
+          this is read once, by somebody deciding whether to chase a record. "750
+          💎" needs the reader to already know the icon; "750 יהלומים" does not,
+          and the amounts here are large enough that guessing wrong is the
+          difference between a shrug and a race. One line per kind, so the word
+          is never the thing that gets clipped.
+          Deliberately identical whether the record is open or taken: it is the
+          bounty on the record either way, and a band that changed shape at the
+          moment somebody took it would make the wall read as five different
+          things. `aria-hidden`: the caption already says all of this in a
+          sentence, and a screen reader should hear it once. */}
+      {item.prize.length > 0 && (
+        <div className="glory-prize" aria-hidden>
+          <span className="glory-prize-tag">{t("פרס לראשון")}</span>
+          {item.prize.map((r) => (
+            <span key={r.kind} className="glory-prize-line">
+              <b className="nums" dir="ltr">
+                {formatNumber(r.amount)}
+              </b>
+              <span>{t(REWARD_LABEL[r.kind])}</span>
+            </span>
+          ))}
+        </div>
+      )}
     </li>
   );
 }
@@ -201,6 +248,14 @@ export function HallOfGlory({
         </h2>
         <p className="glory-sub">
           {t("שיאי המשחק ומי כבש אותם ראשון — מכל השחקנים בעולם")}
+        </p>
+        {/* The rule behind every purse on the wall, stated once. Each band below
+            says what a record pays; this says who it is paid to, and that it
+            arrives on its own. Both halves are the question players kept
+            asking about this board. */}
+        <p className="glory-prize-rule">
+          <Icon name="gift" size={12} className="shrink-0" />
+          {t("הראשון בעולם שכובש שיא מקבל את הפרס שלצידו — אוטומטית, פעם אחת בעונה")}
         </p>
         <div className="glory-tallies">
           <span className="glory-count">

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="heebo.css">
+<style>
+  /* KRALDOR launch story — authored at 1080x1920 (Instagram / WhatsApp story).
+     Instagram parks its own chrome over the top ~250px (avatar, close) and the
+     bottom ~250px ("send message", the swipe-up hint). Everything readable
+     therefore lives inside .safe, and only the skyline is allowed below it. */
+  html,body{margin:0;padding:0;background:#08080b;overflow:hidden}
+  #stage{
+    position:relative;width:1080px;height:1920px;overflow:hidden;transform-origin:0 0;
+    font-family:'Heebo',system-ui,sans-serif;direction:rtl;
+    background:
+      radial-gradient(104% 42% at 50% -6%, rgba(150,120,40,.30), transparent 62%),
+      radial-gradient(70% 26% at 12% 42%, rgba(26,24,30,.7), transparent 66%),
+      radial-gradient(70% 26% at 88% 42%, rgba(26,24,30,.7), transparent 66%),
+      linear-gradient(180deg,#100e0d 0%,#0b0a0b 46%,#070607 100%);
+  }
+  .layer{position:absolute;left:0;top:0;width:1080px;height:1920px;pointer-events:none}
+  .vig{background:
+      linear-gradient(90deg,rgba(0,0,0,.68) 0%,transparent 22%,transparent 78%,rgba(0,0,0,.68) 100%),
+      radial-gradient(120% 96% at 50% 42%, transparent 56%, rgba(0,0,0,.6) 100%);}
+
+  /* ornate gold frame — the same two-hairline + corner-bracket treatment as the
+     Discord cover, so the set still reads as one brand. */
+  .frame{position:absolute;left:38px;top:38px;right:38px;bottom:38px;
+    border:1px solid rgba(196,160,50,.34);
+    box-shadow:inset 0 0 160px -80px rgba(196,160,50,.45);}
+  .frame::after{content:"";position:absolute;left:12px;top:12px;right:12px;bottom:12px;
+    border:1px solid rgba(214,201,173,.11)}
+  .br{position:absolute;width:74px;height:74px;border:2px solid rgba(228,195,90,.7);
+      box-shadow:0 0 18px -6px rgba(228,195,90,.6)}
+  .br-tl{top:38px;left:38px;border-right:0;border-bottom:0}
+  .br-tr{top:38px;right:38px;border-left:0;border-bottom:0}
+  .br-bl{bottom:38px;left:38px;border-right:0;border-top:0}
+  .br-br{bottom:38px;right:38px;border-left:0;border-top:0}
+
+  .safe{position:absolute;left:0;right:0;top:262px;height:1310px;
+        display:flex;flex-direction:column;align-items:center}
+
+  /* ---- lockup ---- */
+  .crest{filter:drop-shadow(0 20px 46px rgba(0,0,0,.95)) drop-shadow(0 0 52px rgba(196,160,50,.26))}
+  .word{margin-top:26px;font-weight:900;font-size:118px;line-height:1;letter-spacing:.19em;
+    color:#efe6ce;direction:ltr;padding-left:.19em;
+    text-shadow:0 8px 40px rgba(0,0,0,.92), 0 0 70px rgba(196,160,50,.28);}
+  .word b{color:#e4c35a}
+  .sub{margin-top:14px;font-weight:800;font-size:31px;letter-spacing:.46em;
+       color:#c2b184;padding-right:.46em;text-shadow:0 3px 18px rgba(0,0,0,.95)}
+
+  .div{display:flex;align-items:center;gap:22px;margin-top:36px}
+  .div i{display:block;width:190px;height:1px;background:linear-gradient(90deg,transparent,#8f7a45)}
+  .div i+i{background:linear-gradient(90deg,#8f7a45,transparent)}
+  .div s{display:block;width:13px;height:13px;background:#e4c35a;transform:rotate(45deg);
+         box-shadow:0 0 18px rgba(228,195,90,.8)}
+
+  /* ---- the announcement ---- */
+  /* RTL + letter-spacing: the trailing space of the last glyph lands on the
+     LEFT, so the compensating padding goes on the right, not the left. */
+  .eyebrow{margin-top:44px;font-weight:800;font-size:27px;letter-spacing:.34em;
+    color:#0d0b09;padding:13px calc(30px + .34em) 13px 30px;border-radius:999px;
+    background:linear-gradient(180deg,#e9cb68,#bf9a2c);
+    box-shadow:0 12px 34px -12px rgba(228,195,90,.75), inset 0 1px 0 rgba(255,255,255,.45)}
+  .head{margin-top:40px;font-weight:900;font-size:96px;line-height:1.12;color:#f3ecdb;
+    text-align:center;text-shadow:0 8px 44px rgba(0,0,0,.95), 0 0 80px rgba(196,160,50,.22)}
+  .head b{color:#e4c35a}
+  .lede{margin-top:30px;font-weight:500;font-size:39px;line-height:1.55;color:#cbbfa4;
+    text-align:center;max-width:790px;text-shadow:0 3px 16px rgba(0,0,0,.9)}
+
+  .pills{display:flex;gap:16px;margin-top:40px}
+  .pill{font-weight:700;font-size:29px;color:#d6c9ad;padding:14px 30px;border-radius:999px;
+    border:1px solid rgba(196,160,50,.42);background:rgba(196,160,50,.08);
+    box-shadow:inset 0 0 26px -16px rgba(228,195,90,.9)}
+
+  /* ---- call to action ---- */
+  .cta{margin-top:auto;display:flex;flex-direction:column;align-items:center}
+  .btn{font-weight:900;font-size:46px;letter-spacing:.02em;color:#100d07;
+    padding:28px 76px;border-radius:22px;
+    background:linear-gradient(180deg,#f0d478,#c4a032 55%,#a9861f);
+    box-shadow:0 26px 56px -20px rgba(228,195,90,.7), 0 0 0 1px rgba(255,255,255,.22) inset,
+               0 2px 0 rgba(255,255,255,.5) inset}
+  .url{margin-top:30px;direction:ltr;font-weight:900;font-size:52px;letter-spacing:.09em;
+    color:#e4c35a;text-shadow:0 4px 26px rgba(0,0,0,.95), 0 0 44px rgba(196,160,50,.42)}
+  .note{margin-top:16px;font-weight:600;font-size:27px;letter-spacing:.05em;color:#9d9276}
+
+  .ember{position:absolute;border-radius:50%;background:#e4c35a;filter:blur(.6px)}
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg class="layer" viewBox="0 0 1080 1920" preserveAspectRatio="none" id="sky"></svg>
+  <div class="layer vig"></div>
+  <div class="frame"></div>
+  <i class="br br-tl"></i><i class="br br-tr"></i><i class="br br-bl"></i><i class="br br-br"></i>
+
+  <div class="safe">
+    <div class="crest" id="crest"></div>
+    <div class="word">KRA<b>L</b>DOR</div>
+    <div class="sub">קראלדור</div>
+    <div class="div"><i></i><s></s><i></i></div>
+
+    <div class="eyebrow">השערים נפתחו</div>
+    <div class="head">המשחק <b>עלה לאוויר</b></div>
+    <div class="lede">משחק אסטרטגיה בעברית, ישר מהדפדפן.<br>בנו אימפריה, גייסו צבא וכבשו את העולם.</div>
+    <div class="pills">
+      <span class="pill">ממלכות</span>
+      <span class="pill">בריתות</span>
+      <span class="pill">מלחמה</span>
+    </div>
+
+    <div class="cta">
+      <div class="btn">שחקו עכשיו — בחינם</div>
+      <div class="url">KRALDOR.COM</div>
+      <div class="note">ההרשמה פתוחה · הלינק בביו</div>
+    </div>
+  </div>
+</div>
+
+<script src="crest.js"></script>
+<script>
+  document.getElementById('crest').innerHTML = crest('st', 208);
+
+  /* ---------- the silhouetted war-scape along the bottom ----------
+     Same two-citadels-in-depth idea as the Discord cover, re-cut for a 1080
+     column: fewer towers, and the whole thing pushed into the bottom ~22% so
+     it sits UNDER the safe area and Instagram's own chrome, never behind text. */
+  const P = [];
+  const push = (d, fill, extra = '') => P.push(`<path d="${d}" fill="${fill}" ${extra}/>`);
+
+  P.push(`<defs>
+    <radialGradient id="hz" cx="0.5" cy="0.74" r="0.6">
+      <stop offset="0"   stop-color="#d8b04a" stop-opacity="0.40"/>
+      <stop offset="0.5" stop-color="#8f6a1c" stop-opacity="0.16"/>
+      <stop offset="1"   stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#191521" stop-opacity="0"/>
+      <stop offset="1" stop-color="#191521" stop-opacity="0.42"/>
+    </linearGradient>
+    <linearGradient id="pennant" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e4c35a"/><stop offset="1" stop-color="#a9861f"/>
+    </linearGradient>
+    <radialGradient id="gate" cx="0.5" cy="0.9" r="0.7">
+      <stop offset="0" stop-color="#e4c35a" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#e4c35a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>`);
+
+  function citadel({ ground, wallTop, fill, towers, merlon, flags, lights }) {
+    let wall = `M0,${ground} L0,${wallTop}`;
+    for (let x = 0; x < 1080; x += merlon * 1.8) {
+      wall += ` L${x},${wallTop} L${x},${wallTop - merlon * 0.55} ` +
+              `L${x + merlon},${wallTop - merlon * 0.55} L${x + merlon},${wallTop}`;
+    }
+    wall += ` L1080,${wallTop} L1080,${ground} Z`;
+    push(wall, fill);
+
+    for (const [cx, hw, top, spire] of towers) {
+      push(`M${cx-hw},${ground} L${cx-hw},${top} L${cx+hw},${top} L${cx+hw},${ground} Z`, fill);
+      const lw = hw + merlon * 0.3, tooth = merlon * 0.5, step = merlon * 0.9;
+      let cren = `M${cx-lw},${top+6} L${cx-lw},${top-tooth*0.5}`;
+      for (let x = cx - lw; x < cx + lw; x += step) {
+        cren += ` L${x},${top-tooth*0.5} L${x},${top-tooth*1.6} ` +
+                `L${x+tooth},${top-tooth*1.6} L${x+tooth},${top-tooth*0.5}`;
+      }
+      cren += ` L${cx+lw},${top-tooth*0.5} L${cx+lw},${top+6} Z`;
+      push(cren, fill);
+      if (spire) {
+        const apex = top - tooth * 1.6 - hw * 1.5;
+        push(`M${cx-lw},${top-tooth*1.6} L${cx},${apex} L${cx+lw},${top-tooth*1.6} Z`, fill);
+        if (flags && spire === 2) {
+          push(`M${cx-2},${apex} L${cx+2},${apex} L${cx+2},${apex-40} L${cx-2},${apex-40} Z`, '#9c8748');
+          push(`M${cx+2},${apex-38} L${cx+32},${apex-28} L${cx+2},${apex-18} Z`,
+               'url(#pennant)', 'opacity="0.9"');
+        }
+      }
+      if (lights) {
+        const rows = Math.floor((ground - top - 40) / 46);
+        for (let r = 0; r < rows; r++) {
+          for (const s of [-1, 1]) {
+            if ((r + (s > 0 ? 1 : 0) + cx) % 3 === 0) continue;
+            const x = cx + s * hw * 0.42 - 3, y = top + 30 + r * 46;
+            P.push(`<rect x="${x}" y="${y}" width="6" height="11" rx="3" fill="#e4c35a" opacity="${r === 0 ? 0.5 : 0.34}"/>`);
+          }
+        }
+      }
+    }
+  }
+
+  // FAR citadel
+  citadel({
+    ground: 1830, wallTop: 1752, fill: '#1b1726', merlon: 16, flags: false,
+    towers: [[62, 20, 1700, 0], [268, 24, 1678, 1], [516, 18, 1712, 0],
+             [742, 24, 1678, 1], [1010, 20, 1700, 0]],
+  });
+  P.push(`<rect x="0" y="1656" width="1080" height="186" fill="url(#haze)"/>`);
+
+  // amber battle-glow between the two citadels — backlights the near silhouette
+  P.push(`<ellipse cx="540" cy="1826" rx="640" ry="230" fill="url(#hz)"/>`);
+
+  // NEAR citadel — lit from within
+  citadel({
+    ground: 1920, wallTop: 1846, fill: '#0b0912', merlon: 26, flags: true, lights: true,
+    towers: [[104, 36, 1742, 2], [332, 42, 1706, 1],
+             [478, 26, 1786, 0], [602, 26, 1786, 0],   // the gatehouse pair
+             [748, 42, 1706, 1], [976, 36, 1742, 2]],
+  });
+
+  // the gate: an arch of warm light between the gatehouse towers
+  P.push(`<ellipse cx="540" cy="1916" rx="76" ry="104" fill="url(#gate)"/>`);
+  push('M504,1920 L504,1866 Q540,1826 576,1866 L576,1920 Z', '#f0d478', 'opacity="0.30"');
+  push('M514,1920 L514,1870 Q540,1838 566,1870 L566,1920 Z', '#0b0912', 'opacity="0.75"');
+
+  // foreground ridge
+  push('M0,1920 L0,1888 L150,1874 L320,1894 L480,1878 L660,1898 L830,1876 ' +
+       'L980,1896 L1080,1882 L1080,1920 Z', '#040306');
+
+  P.push(`<ellipse cx="540" cy="1886" rx="660" ry="150" fill="url(#hz)" opacity="0.5"/>`);
+
+  document.getElementById('sky').innerHTML = P.join('');
+
+  /* ---------- embers (fixed table, never random) ---------- */
+  const st = document.getElementById('stage');
+  [[146,470,3,.34],[236,880,2,.24],[912,520,3,.32],[840,930,2,.24],[128,1240,2,.22],
+   [948,1290,2,.20],[300,340,2,.22],[790,362,2,.20],[540,1560,2,.24],[196,1620,3,.22],
+   [880,1600,2,.20],[420,1680,2,.18],[672,1712,2,.18]].forEach(([x,y,r,o]) => {
+    const e = document.createElement('i');
+    e.className = 'ember';
+    e.style.cssText = `left:${x-r}px;top:${y-r}px;width:${r*2}px;height:${r*2}px;opacity:${o}`;
+    st.appendChild(e);
+  });
+
+  /* ---------- scale the 1080 stage for smaller exports via ?w= ---------- */
+  const w = Number(new URLSearchParams(location.search).get('w') || 1080);
+  if (w !== 1080) st.style.transform = `scale(${w / 1080})`;
+</script>
+</body>
+</html>

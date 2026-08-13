@@ -366,3 +366,68 @@ describe("how a blow landed", () => {
     expect(grades).toEqual(new Set(["glancing", "solid", "crushing"]));
   });
 });
+
+/**
+ * The admin dials, added when /admin/bosses was built.
+ *
+ * All three are trailing optional parameters, so every existing call site keeps
+ * the shipped fixture — that is the property the first test here pins, and it is
+ * the one that matters: an untouched overlay must leave the week exactly as it
+ * was designed.
+ */
+describe("the admin multipliers", () => {
+  it("changes nothing at 1 — the shipped fixture is the default", () => {
+    const boss = WORLD_BOSS_BY_KEY.get("deep_leviathan")!;
+    expect(worldBossMaxHp(boss, 120, 1)).toBe(worldBossMaxHp(boss, 120));
+    expect(expectedStrikeDamage(250_000, 1)).toBe(expectedStrikeDamage(250_000));
+    expect(worldBossReward(0.3, 8, 3, 1)).toEqual(worldBossReward(0.3, 8, 3));
+  });
+
+  it("scales a new spawn's health pool", () => {
+    const boss = WORLD_BOSS_BY_KEY.get("deep_leviathan")!;
+    const base = worldBossMaxHp(boss, 200);
+    expect(worldBossMaxHp(boss, 200, 2)).toBe(base * 2);
+    expect(worldBossMaxHp(boss, 200, 0.5)).toBe(Math.round(base / 2));
+  });
+
+  it("never hands back a pool of nothing, however small the dial", () => {
+    // A pool of zero would be felled by the first blow of the week — and the
+    // bounds in config.ts refuse anything under 0.01 before it ever gets here.
+    const boss = WORLD_BOSSES[0];
+    expect(worldBossMaxHp(boss, 200, 0)).toBeGreaterThanOrEqual(1);
+    expect(worldBossMaxHp(boss, 200, -5)).toBeGreaterThanOrEqual(1);
+  });
+
+  it("scales what one blow takes off, expected and rolled alike", () => {
+    expect(expectedStrikeDamage(1_000_000, 3)).toBe(
+      expectedStrikeDamage(1_000_000) * 3
+    );
+    const half = strikeDamage(1_000_000, () => 0.5, 0.5);
+    expect(half).toBe(Math.round(expectedStrikeDamage(1_000_000) * 0.5));
+  });
+
+  it("keeps a blow worth at least one point of damage at any dial", () => {
+    expect(strikeDamage(0, () => 0.5, 0.001)).toBeGreaterThanOrEqual(1);
+  });
+
+  it("scales the shared purse", () => {
+    const base = worldBossReward(0.4, 10, 2);
+    const doubled = worldBossReward(0.4, 10, 2, 2);
+    for (const [i, line] of base.entries()) {
+      expect(doubled[i].kind).toBe(line.kind);
+      // Not strictly greater on every line: the smallest (two wheel spins at a
+      // quarter share) is already sitting on the per-line floor of one, and a
+      // floor is a floor in both directions.
+      expect(doubled[i].amount).toBeGreaterThanOrEqual(line.amount);
+    }
+    const gold = (r: typeof base) => r.find((line) => line.kind === "gold")!.amount;
+    expect(gold(doubled)).toBe(gold(base) * 2);
+  });
+
+  it("pays nothing at all when the purse is closed, rather than one of each", () => {
+    // The per-line `Math.max(1, …)` floor exists so a rounding-error share still
+    // pays something. An admin setting the multiplier to zero is saying the
+    // opposite, and the floor must not overrule them.
+    expect(worldBossReward(1, 1, MAX_CITIES, 0)).toEqual([]);
+  });
+});

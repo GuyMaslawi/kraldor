@@ -13,6 +13,7 @@ const LINKS = [
   { href: "/admin/broadcast", label: "שידור ומתנות", icon: "📣" },
   { href: "/admin/minigame", label: "מיני-משחק", icon: "🎯" },
   { href: "/admin/happy-hour", label: "Happy Hour", icon: "🔥" },
+  { href: "/admin/bosses", label: "בוסים ומפלצת", icon: "🐋" },
   { href: "/admin/seasons", label: "עונות", icon: "📅" },
   { href: "/admin/guilds", label: "בריתות", icon: "🤝" },
   { href: "/admin/war", label: "מלחמת בריתות", icon: "⚔️" },

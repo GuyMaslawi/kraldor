@@ -17,11 +17,19 @@ import {
 import { formatNumber } from "@/lib/game/format";
 import { getT, type T } from "@/i18n/server";
 
-/** Turn a base decomposition plus a bonus breakdown into PowerCard rows. */
+/**
+ * Turn a base decomposition plus a bonus breakdown into PowerCard rows.
+ *
+ * A line with no percentage behind it — gear power, which is a flat term inside
+ * the base rather than a multiplier of it — prints its label alone. "(+0%)"
+ * would be a false statement about the only line on the card that is not one.
+ */
 function bonusRows(t: T, breakdown: CombatPowerBreakdown | undefined) {
   if (!breakdown) return [];
   return breakdown.lines.map((line) => ({
-    label: t("{label} (+{pct}%)", { label: t(line.label), pct: line.pct }),
+    label: line.pct
+      ? t("{label} (+{pct}%)", { label: t(line.label), pct: line.pct })
+      : t(line.label),
     value: Math.round(line.amount),
   }));
 }

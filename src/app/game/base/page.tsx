@@ -12,7 +12,7 @@ import {
   type StorableResource,
 } from "@/lib/game/constants";
 import { productionPerTick } from "@/lib/game/resources";
-import { heroBonuses } from "@/lib/game/hero";
+import { heroBonuses, heroPowerBonus } from "@/lib/game/hero";
 import { getActiveGuildBuffPct } from "@/lib/game/guildBuffs";
 import { getGuildAidBonus } from "@/lib/game/guildAid";
 import { GUILD_ROLE_META } from "@/lib/game/guild";
@@ -21,10 +21,15 @@ import { PowerSummary } from "@/components/game/PowerSummary";
 import { WheelCard } from "@/components/game/WheelCard";
 import { HallOfGlory } from "@/components/game/HallOfGlory";
 import { getAchievementsState } from "@/server/achievementState";
-import { getGloryChampions, stampGloryAwards } from "@/server/gloryBoard";
+import {
+  getGloryChampions,
+  settleGloryPrizes,
+  stampGloryAwards,
+} from "@/server/gloryBoard";
 import { selectGlory } from "@/lib/game/achievements";
 import { wheelClock } from "@/lib/game/wheel";
 import { formatNumber, formatCompact, formatDate } from "@/lib/game/format";
+import { getShieldsForEmpires, shieldFlags } from "@/lib/game/diamondEffects";
 import { getI18n, getT } from "@/i18n/server";
 
 export async function generateMetadata() {
@@ -77,6 +82,19 @@ export default async function BasePage() {
       }),
     ]);
 
+  // The six names at most on the activity feed, and which of them are behind a
+  // paid raid shield right now — the feed is a shortlist of people you might
+  // hit back, so the same badge the ladder carries belongs on it. One query for
+  // all of them, off ids the reports already hold.
+  const feedShields = await getShieldsForEmpires([
+    ...new Set([
+      ...recentBattles.map((r) =>
+        r.attackerEmpireId === empire.id ? r.defenderEmpireId : r.attackerEmpireId
+      ),
+      ...recentSpies.map((r) => r.defenderEmpireId),
+    ]),
+  ]);
+
   // Real battle power for the attack/defense cards: same hero + guild
   // multipliers the fight itself applies, so the numbers match combat.
   const heroBonus = heroBonuses(empire.hero);
@@ -84,6 +102,7 @@ export default async function BasePage() {
     army: empire.army,
     weapons: empire.weapons,
     heroAttackPct: heroBonus.totalPct.attack,
+    heroAttackPower: heroPowerBonus(heroBonus, "attack"),
     guildAttackPct,
     guildAid,
   });
@@ -91,6 +110,7 @@ export default async function BasePage() {
     army: empire.army,
     weapons: empire.weapons,
     heroDefensePct: heroBonus.totalPct.defense,
+    heroDefensePower: heroPowerBonus(heroBonus, "defense"),
     guildDefensePct,
     guildAid,
   });
@@ -139,6 +159,12 @@ export default async function BasePage() {
   // take the record on this very load.
   if (achievements) await stampGloryAwards(empire.id, achievements);
   const gloryRecords = await getGloryChampions();
+  // Being *first* pays a purse (GLORY_PRIZE). Settled here, on the holder's own
+  // load, because this is the request that just stamped the arrival — so the
+  // player who takes a record is paid on the very load that takes it. Writes
+  // nothing, and costs no query at all, unless this reader holds a record whose
+  // purse is still owed: the receipt is already in the map above.
+  await settleGloryPrizes(empire.id, gloryRecords);
   const glory = achievements
     ? selectGlory(achievements, gloryRecords, empire.id, locale)
     : [];
@@ -292,7 +318,13 @@ export default async function BasePage() {
                     ) : (
                       <><Icon name="shield" size={16} className="inline-block align-middle" /> {t("הותקפת על ידי")}</>
                     )}{" "}
-                    <PlayerLink empireId={rivalId} name={rival} className="font-semibold" /> —{" "}
+                    <PlayerLink
+                      empireId={rivalId}
+                      name={rival}
+                      shields={shieldFlags(feedShields.get(rivalId))}
+                      className="font-semibold"
+                    />{" "}
+                    —{" "}
                     <span className={won ? "text-emerald-400" : "text-red-400"}>
                       {won ? t("ניצחון") : t("הפסד")}
                     </span>
@@ -308,6 +340,7 @@ export default async function BasePage() {
                   <PlayerLink
                     empireId={r.defenderEmpireId}
                     name={r.defenderEmpire.name}
+                    shields={shieldFlags(feedShields.get(r.defenderEmpireId))}
                     className="font-semibold"
                   />{" "}
                   —{" "}

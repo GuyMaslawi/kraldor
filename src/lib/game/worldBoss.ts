@@ -252,6 +252,153 @@ export function expectedStrikeDamage(militaryPower: number): number {
   return strikeDamage(militaryPower, () => 0.5);
 }
 
+/* ------------------------------ the beast's temper ------------------------------ */
+
+/**
+ * מפלצת העולם is the only fight in the game the whole server watches at once,
+ * and until now nothing about it changed while it was being fought: the bar
+ * shortened and that was the entire arc of a week. A phase is what gives the
+ * week a *shape* — four states the server crosses together, each announced the
+ * moment somebody's blow breaks the threshold.
+ *
+ * ## Deliberately cosmetic
+ *
+ * A phase changes what the arena looks like and what it says. It changes no
+ * number. That is a decision rather than an omission: the health pool, the blow
+ * and the purse are calibrated against each other in this file (see
+ * WORLD_BOSS_HP_PER_EMPIRE), and an enrage that doubled the beast's health or
+ * halved a blow would retune the whole fixture from the middle of the fight —
+ * and would do it to a server that is already losing. The drama is free; the
+ * balance is not, so only the drama is taken.
+ */
+export type WorldBossPhaseKey = "calm" | "roused" | "enraged" | "dying";
+
+export interface WorldBossPhase {
+  key: WorldBossPhaseKey;
+  /** Health fraction *above* which this phase holds — read top down. */
+  from: number;
+  /** A word for the beast's state, shown beside the bar. */
+  label: string;
+  /**
+   * What the arena announces when a blow crosses into it — null for the phase
+   * the week opens in, which is never crossed into.
+   *
+   * Written about "המפלצת" rather than about the beast by name, because the six
+   * in the catalog are not of one grammatical gender and one line has to serve
+   * all of them.
+   */
+  cry: string | null;
+  /**
+   * 0..3, handed to the CSS as `--heat`. One number rather than a palette per
+   * phase, so the six beasts keep their own accent and only burn hotter.
+   */
+  heat: number;
+}
+
+export const WORLD_BOSS_PHASES: readonly WorldBossPhase[] = [
+  {
+    key: "calm",
+    from: 0.75,
+    label: "שלווה",
+    cry: null,
+    heat: 0,
+  },
+  {
+    key: "roused",
+    from: 0.5,
+    label: "נעורה",
+    cry: "המפלצת מרימה את ראשה. עכשיו היא יודעת שאתם כאן.",
+    heat: 1,
+  },
+  {
+    key: "enraged",
+    from: 0.25,
+    label: "משתוללת",
+    cry: "משהו נשבר בה. היא נלחמת מכאן בלי חשבון.",
+    heat: 2,
+  },
+  {
+    key: "dying",
+    from: 0,
+    label: "גוססת",
+    cry: "היא בקושי עומדת. מישהו הולך לסיים את זה היום.",
+    heat: 3,
+  },
+];
+
+export const WORLD_BOSS_PHASE_BY_KEY = new Map(
+  WORLD_BOSS_PHASES.map((p) => [p.key, p])
+);
+
+/** The beast's temper at a given health. Exactly zero is always the last phase. */
+export function worldBossPhase(hp: number, maxHp: number): WorldBossPhase {
+  const fraction = maxHp > 0 ? Math.max(0, hp) / maxHp : 0;
+  return (
+    WORLD_BOSS_PHASES.find((phase) => fraction > phase.from) ??
+    WORLD_BOSS_PHASES[WORLD_BOSS_PHASES.length - 1]
+  );
+}
+
+/* ------------------------------ how a blow landed ------------------------------ */
+
+/**
+ * A blow is scattered across WORLD_BOSS_DAMAGE_SPREAD, and until the arena grew
+ * a reveal that scatter was invisible — two blows a third apart in size read as
+ * the same sentence with different digits. The grade is what the reveal
+ * narrates, and it is derived from the roll that already happened rather than
+ * rolled again: there is no second source of randomness here to disagree with
+ * the damage actually dealt.
+ */
+export type WorldBossBlowGrade = "glancing" | "solid" | "crushing";
+
+/**
+ * How far from the expected blow a roll has to fall to be called anything other
+ * than solid — 40% of the spread, so roughly the outer third at each end lands
+ * a named blow and the middle stays unremarkable. Much tighter and every second
+ * strike is "crushing", which is the same as none of them being.
+ */
+export const WORLD_BOSS_BLOW_BAND = WORLD_BOSS_DAMAGE_SPREAD * 0.4;
+
+export function worldBossBlowGrade(
+  damage: number,
+  expected: number
+): WorldBossBlowGrade {
+  if (!(expected > 0)) return "solid";
+  const ratio = damage / expected;
+  if (ratio <= 1 - WORLD_BOSS_BLOW_BAND) return "glancing";
+  if (ratio >= 1 + WORLD_BOSS_BLOW_BAND) return "crushing";
+  return "solid";
+}
+
+export interface WorldBossBlowMeta {
+  label: string;
+  /** One sentence for the reveal — the army's account of the blow. */
+  line: string;
+  /** Tailwind tone for the damage figure. */
+  tone: string;
+}
+
+export const WORLD_BOSS_BLOW_META: Record<
+  WorldBossBlowGrade,
+  WorldBossBlowMeta
+> = {
+  glancing: {
+    label: "מכה שטחית",
+    line: "הכוח נחבט בשריון ונסוג. המכה עברה בשוליים.",
+    tone: "text-zinc-300",
+  },
+  solid: {
+    label: "פגיעה מלאה",
+    line: "הפלוגות פורצות פנימה, והנשק מוצא בשר.",
+    tone: "text-gold-bright",
+  },
+  crushing: {
+    label: "מכה מוחצת",
+    line: "הפרצה נפתחה בדיוק כשהלהב ירד. משהו בפנים נשבר.",
+    tone: "text-crimson-bright",
+  },
+};
+
 /* ------------------------------ the spoils ------------------------------ */
 
 /**
@@ -350,6 +497,61 @@ export interface WorldBossStriker {
   isMe: boolean;
 }
 
+/**
+ * One blow in the live feed — the part of the arena that is other people.
+ *
+ * The damage board answers "who is carrying this week"; it is a standings
+ * table, and a standings table looks identical whether it was filled an hour
+ * ago or on Monday. The feed answers the other question a shared fixture has to
+ * answer — "is anyone else actually here" — and it is the only place the server
+ * appears on the screen as something happening rather than something recorded.
+ */
+export interface WorldBossBlowEntry {
+  id: string;
+  empireId: string;
+  empireName: string;
+  /** `Empire.title` — drawn beside the name by WornTitle, null for none. */
+  title: string | null;
+  damage: number;
+  /** The beast's health after this blow, so the feed reads as a descent. */
+  hpAfter: number;
+  /** This was the killing blow. */
+  slaying: boolean;
+  at: number;
+  isMe: boolean;
+}
+
+/**
+ * What one strike hands back to the screen so it can be *played* rather than
+ * printed.
+ *
+ * The damage is already applied and the kill already awarded by the time this
+ * is returned — see the note on `strikeWorldBoss`. Nothing here is authority;
+ * it is the report of a blow that has landed, which is exactly why the reveal
+ * can be skipped, interrupted or missed entirely with no consequence.
+ */
+export interface WorldBossStrikeReveal {
+  damage: number;
+  /** The blow this striker's power was expected to land, for the grade. */
+  expected: number;
+  grade: WorldBossBlowGrade;
+  /** Health the instant before this blow, and the instant after. */
+  hpBefore: number;
+  hpAfter: number;
+  maxHp: number;
+  slain: boolean;
+  /**
+   * The phase the blow started in and the one it ended in. They differ on
+   * exactly one strike per threshold, server-wide — which is what makes the
+   * announcement an event rather than a status line.
+   */
+  phaseBefore: WorldBossPhaseKey;
+  phaseAfter: WorldBossPhaseKey;
+  strikesLeft: number;
+  /** Diamonds paid for the killing blow, 0 for every other blow. */
+  diamonds: number;
+}
+
 /** The arena, as the screen renders it. */
 export interface WorldBossState {
   key: string;
@@ -361,6 +563,8 @@ export interface WorldBossState {
 
   maxHp: number;
   hp: number;
+  /** The beast's temper at this health — see WORLD_BOSS_PHASES. */
+  phase: WorldBossPhaseKey;
   /** True once hp reached zero. */
   defeated: boolean;
   /** Who landed the killing blow, if it is down. */
@@ -375,11 +579,15 @@ export interface WorldBossState {
   strikeTurns: number;
   /** The viewer's turns, so the button can say why it is disabled. */
   turns: number;
+  /** The blow this empire's power is worth, quoted before it is struck. */
+  expectedDamage: number;
   /** Damage this empire has dealt. */
   myDamage: number;
   /** Everyone who has struck, most damage first (capped for display). */
   board: WorldBossStriker[];
   participants: number;
+  /** The last blows anybody landed, newest first. */
+  feed: WorldBossBlowEntry[];
 
   /** The viewer may collect their share. */
   claimable: boolean;

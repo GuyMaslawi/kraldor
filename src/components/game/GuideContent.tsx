@@ -215,6 +215,7 @@ import {
   WORLD_BOSS_HP_PER_EMPIRE,
   WORLD_BOSS_KILL_DIAMONDS,
   WORLD_BOSS_MAX_STRIKES,
+  WORLD_BOSS_PHASES,
   WORLD_BOSS_PURSE,
   WORLD_BOSS_STRIKE_TURNS,
 } from "@/lib/game/worldBoss";
@@ -3199,6 +3200,45 @@ export async function GuideContent({
                   },
                 ]}
               />
+
+              <TableWrap>
+                <table className="guide-table w-full text-right text-[0.78rem]">
+                  <thead>
+                    <tr>
+                      <th>מצב</th>
+                      <th>חיים</th>
+                      <th>מה קורה</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {WORLD_BOSS_PHASES.map((phase, index) => {
+                      const from = WORLD_BOSS_PHASES[index - 1]?.from ?? 1;
+                      return (
+                        <tr key={phase.key}>
+                          <td className="whitespace-nowrap font-bold text-bone">
+                            {phase.label}
+                          </td>
+                          <td className="nums whitespace-nowrap text-crimson-bright" dir="ltr">
+                            {Math.round(phase.from * 100)}–{Math.round(from * 100)}%
+                          </td>
+                          <td className="text-zinc-400">
+                            {phase.cry ?? "המצב שבו השבוע נפתח."}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </TableWrap>
+
+              <Note tone="purple" icon="heart" title="המצב משתנה, המספרים לא">
+                ככל שהמפלצת נשחקת היא עוברת בין ארבעה מצבים, וכל השרת חוצה כל סף
+                יחד — מי שהמכה שלו שברה את הסף הוא שרואה את ההכרזה. המצב משנה איך
+                הזירה נראית ומה היא אומרת, ו<b>לא משנה שום מספר</b>: לא את מאגר
+                החיים, לא את הנזק ולא את הקופה. זו החלטה ולא השמטה — כל השלושה
+                מכוילים זה מול זה, ו״זעם״ שהיה מכפיל חיים באמצע השבוע היה מכייל
+                מחדש את הפיקסצ׳ר דווקא לשרת שכבר מפגר.
+              </Note>
 
               <TableWrap>
                 <table className="guide-table w-full text-right text-[0.78rem]">

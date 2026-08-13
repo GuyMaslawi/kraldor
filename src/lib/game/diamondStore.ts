@@ -19,10 +19,11 @@ export interface DiamondPackage {
   id: string;
   /** Hebrew display name shown on the store card. */
   name: string;
-  /** Base diamonds granted. */
+  /**
+   * Diamonds granted. One number, and the only number — there is no bonus tier
+   * and no "+X בונוס" split any more (see the catalogue note below).
+   */
   diamonds: number;
-  /** Extra diamonds thrown in on top (0 for the entry tier). */
-  bonus: number;
   /** Full price in ILS, before any admin discount. */
   priceIls: number;
   /** Optional highlight tag. */
@@ -57,12 +58,36 @@ export interface DiamondPackage {
  * carries the "הכי פופולרי" tag. Do not re-raise them without a fee change that
  * actually justifies it.
  *
- * The diamond counts are deliberately untouched. Raising the entry price while
- * holding its diamonds steepens the whole value curve — `packageValuePct` is
- * measured against the entry tier, so every larger package advertises a bigger
- * "+X% ערך" badge than it did before. That is the right nudge to carry: the flat
- * fee is what makes one ₪280 sale cheaper to process than twenty ₪14 ones, so
- * the store should be pulling buyers up the ladder.
+ * **ניצוץ's diamond count moved on 2026-08-13, and only its diamond count.**
+ * Priced against the competing Hebrew title, our diamond was the cheaper one at
+ * every tier but the first: their ₪20 entry pack pays 30💎/₪ where ours paid
+ * 20.1, so the one number a player compares before he has spent anything was the
+ * one number we lost on. 650💎 at the same ₪19.90 puts the entry tier at
+ * 32.7💎/₪ — ahead of theirs — without touching the price, which is what the
+ * flat-fee table above is actually about.
+ *
+ * The cost is the value curve: `packageValuePct` is measured against the entry
+ * tier, so a richer ניצוץ shrinks every "+X% ערך" badge above it (ארגז drops
+ * from ~149% to ~53%). That badge is the nudge up the ladder, and the flat fee is
+ * why the nudge matters — one ₪280 sale is cheaper to process than twenty ₪14
+ * ones. Accepted anyway: a badge only persuades someone already in the store,
+ * and the entry rate is what decides whether he walks in. If the ladder needs its
+ * pull back, add diamonds to the *upper* packages rather than taking them off
+ * this one.
+ *
+ * **The bonus split is gone as of 2026-08-13 — every package is one flat
+ * number.** A package used to carry `diamonds` plus a `bonus` on top, shown as
+ * "3,000 +500 בונוס", and the pair was always a presentation of a single total
+ * nobody could buy separately: the checkout charged for the sum, credited the
+ * sum, and the split existed only to dress the sum up. Deleting it changed no
+ * price and no grant except at the top tier, which was rounded 30,000 → 28,000.
+ * Do not reintroduce a bonus field to make a package *look* generous; move the
+ * diamond count itself, where a player can compare it against a competitor's.
+ *
+ * `DiamondPurchase` keeps its `baseDiamonds`/`bonusDiamonds` columns, and new
+ * rows write the whole grant to `baseDiamonds` with 0 bonus. The columns stay
+ * because purchases already settled under the old catalogue snapshot a real
+ * split, and a receipt must keep saying what was actually sold.
  *
  * Prices are consumer-facing and therefore VAT-inclusive if the operator ever
  * becomes an עוסק מורשה. Changing one here changes only what future buyers pay:
@@ -70,21 +95,22 @@ export interface DiamondPackage {
  * purchase time, so past receipts keep saying what was actually charged.
  */
 export const DIAMOND_PACKAGES: readonly DiamondPackage[] = [
-  { id: "spark", name: "ניצוץ", emoji: "✨", diamonds: 400, bonus: 0, priceIls: 19.9 },
-  { id: "pouch", name: "פיקדון", emoji: "💠", diamonds: 1200, bonus: 100, priceIls: 34.9 },
-  { id: "chest", name: "ארגז אוצר", emoji: "🧰", diamonds: 3000, bonus: 500, priceIls: 69.9, tag: "popular" },
-  { id: "vault", name: "כספת הקיסר", emoji: "🏆", diamonds: 7500, bonus: 1500, priceIls: 139.9, tag: "best" },
-  { id: "hoard", name: "אוצר הכתר", emoji: "👑", diamonds: 24000, bonus: 6000, priceIls: 279.9 },
+  { id: "spark", name: "ניצוץ", emoji: "✨", diamonds: 650, priceIls: 19.9 },
+  { id: "pouch", name: "פיקדון", emoji: "💠", diamonds: 1300, priceIls: 34.9 },
+  { id: "chest", name: "ארגז אוצר", emoji: "🧰", diamonds: 3500, priceIls: 69.9, tag: "popular" },
+  { id: "vault", name: "כספת הקיסר", emoji: "🏆", diamonds: 9000, priceIls: 139.9, tag: "best" },
+  { id: "hoard", name: "אוצר הכתר", emoji: "👑", diamonds: 28000, priceIls: 279.9 },
 ];
 
-/** Total diamonds a package grants (base + bonus). */
-export function packageTotal(pkg: DiamondPackage): number {
-  return pkg.diamonds + pkg.bonus;
-}
-
-/** Diamonds granted per shekel — the raw value of a package. */
+/**
+ * Diamonds granted per shekel — the raw value of a package.
+ *
+ * This is the one number the catalogue is actually tuned on, and it has to keep
+ * rising with the price: 32.7 → 37.2 → 50.1 → 64.3 → 100.1 💎/₪. A package that
+ * pays less per shekel than a cheaper one is a trap, not a tier.
+ */
 export function packageRate(pkg: DiamondPackage): number {
-  return packageTotal(pkg) / pkg.priceIls;
+  return pkg.diamonds / pkg.priceIls;
 }
 
 /**

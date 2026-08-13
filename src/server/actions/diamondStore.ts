@@ -12,7 +12,6 @@ import {
   formatIls,
   isValidBuyerName,
   isValidBuyerPhone,
-  packageTotal,
 } from "@/lib/game/diamondStore";
 import type { StoreActionState } from "@/lib/game/diamondStore";
 import { arePurchasesLive, getPaymentProvider } from "@/server/payments";
@@ -36,7 +35,7 @@ interface CheckoutContext {
   /** Price after the admin discount — the only amount ever charged. */
   amountIls: number;
   discountPct: number;
-  /** Diamonds the package grants (base + bonus). */
+  /** Diamonds the package grants. */
   total: number;
 }
 
@@ -115,7 +114,7 @@ async function preflight(packageId: string, limiterKey: string): Promise<Preflig
       pkg,
       amountIls: discountedPrice(pkg.priceIls, discountPct),
       discountPct,
-      total: packageTotal(pkg),
+      total: pkg.diamonds,
     },
   };
 }
@@ -131,7 +130,9 @@ async function openPurchaseRow(ctx: CheckoutContext) {
       packageId: ctx.pkg.id,
       diamonds: ctx.total,
       baseDiamonds: ctx.pkg.diamonds,
-      bonusDiamonds: ctx.pkg.bonus,
+      // The catalogue has no bonus tier any more — the whole grant is the base.
+      // The column stays for the purchases settled back when it did.
+      bonusDiamonds: 0,
       priceIls: ctx.amountIls,
       basePriceIls: ctx.pkg.priceIls,
       discountPct: ctx.discountPct,
@@ -177,7 +178,7 @@ async function logTestPurchase(input: {
  * Buy a diamond package for real money. The price is recomputed server-side
  * (never trusted from the client), each attempt is recorded as a rich
  * {@link "@prisma/client".DiamondPurchase} audit row (buyer + empire snapshots,
- * base/bonus split, list vs. charged price, currency), and on a successful
+ * diamonds granted, list vs. charged price, currency), and on a successful
  * charge the diamonds are credited in the same transaction that flips the row
  * to PAID. Payment goes through the swappable {@link getPaymentProvider} seam —
  * a mock provider today, whose charges are flagged `isTest`. Until a real

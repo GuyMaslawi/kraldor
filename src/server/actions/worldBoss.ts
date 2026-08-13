@@ -7,17 +7,23 @@ import { applyPendingUpdates } from "@/lib/game/updates";
 import { gameWeek, nextGameWeekStart } from "@/lib/game/time";
 import { formatNumber } from "@/lib/game/format";
 import { notStaffOrBot } from "@/lib/bot";
+import { POLL_LIMIT, POLL_WINDOW_MS, localRateLimit } from "@/lib/rateLimit";
 import { REWARD_LABEL, type Reward } from "@/lib/game/rewards";
 import {
   WORLD_BOSS_BY_KEY,
   WORLD_BOSS_KILL_DIAMONDS,
   WORLD_BOSS_MAX_STRIKES,
   WORLD_BOSS_STRIKE_TURNS,
+  expectedStrikeDamage,
   rollWorldBoss,
   strikeDamage,
+  worldBossBlowGrade,
   worldBossMaxHp,
+  worldBossPhase,
   worldBossReward,
+  type WorldBossBlowEntry,
   type WorldBossState,
+  type WorldBossStrikeReveal,
   type WorldBossStriker,
 } from "@/lib/game/worldBoss";
 import { payRewards } from "@/server/rewardGrant";
@@ -99,6 +105,17 @@ async function openWorldBoss(week: number) {
 /** Rows shown on the damage board. Beyond this it is a scroll, not a board. */
 const BOARD_SIZE = 25;
 
+/**
+ * Blows shown in the live feed.
+ *
+ * Twelve is about a screen of them at the arena's density, and the number is a
+ * hard ceiling on the query rather than a display truncation — the feed is read
+ * on a poll by every player in the arena at once, which is precisely the shape
+ * of query the "no cached boards" rule says must be bounded at the database
+ * instead of cached in front of it.
+ */
+const FEED_SIZE = 12;
+
 /** Everything the arena renders. */
 export async function getWorldBossState(): Promise<WorldBossState | null> {
   const empireId = await getActiveEmpireId();
@@ -118,7 +135,7 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
   // every other keyed table here follows.
   if (!definition) return null;
 
-  const [strikes, participants, damageTotal, mine] = await Promise.all([
+  const [strikes, participants, damageTotal, mine, blows] = await Promise.all([
     prisma.worldBossStrike.findMany({
       where: { bossId: boss.id },
       orderBy: { damage: "desc" },
@@ -139,6 +156,21 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
       where: { bossId_empireId: { bossId: boss.id, empireId } },
       select: { damage: true, hits: true, claimed: true },
     }),
+    prisma.worldBossBlow.findMany({
+      where: { bossId: boss.id },
+      orderBy: { createdAt: "desc" },
+      take: FEED_SIZE,
+      select: {
+        id: true,
+        empireId: true,
+        empireName: true,
+        title: true,
+        damage: true,
+        hpAfter: true,
+        slaying: true,
+        createdAt: true,
+      },
+    }),
   ]);
 
   const total = damageTotal._sum.damage ?? 0;
@@ -153,6 +185,18 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
     isMe: row.empireId === empireId,
   }));
 
+  const feed: WorldBossBlowEntry[] = blows.map((row) => ({
+    id: row.id,
+    empireId: row.empireId,
+    empireName: row.empireName,
+    title: row.title,
+    damage: row.damage,
+    hpAfter: row.hpAfter,
+    slaying: row.slaying,
+    at: row.createdAt.getTime(),
+    isMe: row.empireId === empireId,
+  }));
+
   return {
     key: definition.key,
     name: definition.name,
@@ -163,6 +207,7 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
 
     maxHp: boss.maxHp,
     hp: Math.max(0, boss.hp),
+    phase: worldBossPhase(boss.hp, boss.maxHp).key,
     defeated: boss.defeatedAt !== null,
     slayerName: boss.slayerName,
 
@@ -172,9 +217,11 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
     strikesLeft: Math.max(0, WORLD_BOSS_MAX_STRIKES - (mine?.hits ?? 0)),
     strikeTurns: WORLD_BOSS_STRIKE_TURNS,
     turns: empire.turns,
+    expectedDamage: expectedStrikeDamage(empire.militaryPower),
     myDamage: mine?.damage ?? 0,
     board,
     participants,
+    feed,
 
     // The spoils open the moment it is down, not at the end of the week — a
     // server that killed it on Tuesday should not be told to come back Sunday.
@@ -187,6 +234,11 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
 
 /* ------------------------------ strike ------------------------------ */
 
+/** A landed blow, with everything the arena needs to play it out. */
+export interface WorldBossStrikeState extends ActionState {
+  reveal?: WorldBossStrikeReveal;
+}
+
 /**
  * Land one blow.
  *
@@ -194,8 +246,24 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
  * under the empire's own lock, because every one of these is a claim on a shared
  * resource: the turns are the player's, the strike count is theirs, and the
  * health is everybody's.
+ *
+ * ## The blow lands here, and only then is it shown
+ *
+ * The arena plays a short reveal over the returned `reveal` — the beast rears,
+ * the blow lands, the bar drops. It is worth being exact about what that is and
+ * is not, because the city boss's assault (lib/game/bossBattle.ts) works the
+ * opposite way round and copying it here would break two things at once.
+ *
+ * There, the whole fight is rolled at launch and *applied at the settle* a
+ * minute later, which is safe because the fight is private. Here the health is
+ * shared and the killing blow is a race: the moment a blow's effect is deferred,
+ * the bar every other player is watching becomes a lie, and two players can each
+ * be told they landed the kill. So the damage, the kill stamp and the diamonds
+ * are all committed in this transaction, before anything is returned, and the
+ * reveal is a *report* of something that has already happened. A player who
+ * closes the tab mid-animation has lost nothing but the animation.
  */
-export async function strikeWorldBoss(): Promise<ActionState> {
+export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
   const t = await getT();
   try {
     const empireId = await requireOwnEmpireId();
@@ -294,10 +362,25 @@ export async function strikeWorldBoss(): Promise<ActionState> {
       // The striker's running total. upsert rather than create-or-update: two of
       // this player's own tabs can reach here together, and a failed insert
       // would poison the transaction in Postgres.
-      await tx.worldBossStrike.upsert({
+      const striker = await tx.worldBossStrike.upsert({
         where: { bossId_empireId: { bossId: boss.id, empireId } },
         create: { bossId: boss.id, empireId, damage, hits: 1 },
         update: { damage: { increment: damage }, hits: { increment: 1 } },
+        select: { hits: true },
+      });
+
+      // The blow itself, for the live feed. Written in the same transaction as
+      // the damage so the feed can never show a blow the bar has not taken.
+      await tx.worldBossBlow.create({
+        data: {
+          bossId: boss.id,
+          empireId,
+          empireName: empire.name,
+          title: empire.title,
+          damage,
+          hpAfter: hit.hp,
+          slaying: hit.slain,
+        },
       });
 
       // The killing blow is the one part of the fixture that belongs to
@@ -314,7 +397,35 @@ export async function strikeWorldBoss(): Promise<ActionState> {
       // this is deliberately the smaller `attack`.
       await awardSeasonPassXp(tx, empireId, "attack");
 
+      // The health the instant *before* this blow, and it is exact for every
+      // blow that did not kill: `GREATEST(0, hp - damage)` clamps only on the
+      // kill, so `hpAfter + damage` is the health this strike actually found —
+      // even if somebody else's blow landed between the read above and this
+      // write. That exactness is what makes the phase crossing below belong to
+      // exactly one striker server-wide, instead of being announced by everyone
+      // who happened to be looking at a stale bar. On the kill there is no
+      // phase left to cross, so the approximate branch is never read for one.
+      const hpBefore = hit.slain
+        ? Math.min(live.hp, damage)
+        : hit.hp + damage;
+      const expected = expectedStrikeDamage(empire.militaryPower);
+
+      const reveal: WorldBossStrikeReveal = {
+        damage,
+        expected,
+        grade: worldBossBlowGrade(damage, expected),
+        hpBefore,
+        hpAfter: hit.hp,
+        maxHp: boss.maxHp,
+        slain: hit.slain,
+        phaseBefore: worldBossPhase(hpBefore, boss.maxHp).key,
+        phaseAfter: worldBossPhase(hit.hp, boss.maxHp).key,
+        strikesLeft: Math.max(0, WORLD_BOSS_MAX_STRIKES - striker.hits),
+        diamonds: hit.slain ? WORLD_BOSS_KILL_DIAMONDS : 0,
+      };
+
       return {
+        reveal,
         success: hit.slain
           ? t("המכה שלך הפילה את {boss}! {diamonds} יהלומים על המכה האחרונה.", {
               boss: t(definition.name),
@@ -333,6 +444,50 @@ export async function strikeWorldBoss(): Promise<ActionState> {
   } catch (err) {
     await logError("worldBoss.strikeWorldBoss", err);
     return { error: t("אירעה שגיאה, נסה שוב") };
+  }
+}
+
+/* ------------------------------ watching ------------------------------ */
+
+/**
+ * What the arena asks for while it is open. `retry` is a refused or failed
+ * round, which is a different thing from "the fixture is gone" — see the same
+ * distinction on BossArenaPoll, and the bug it was introduced to fix.
+ */
+export interface WorldBossPoll {
+  state?: WorldBossState | null;
+  retry?: boolean;
+}
+
+/**
+ * The arena, re-read.
+ *
+ * This exists because the world boss is the one screen in the game whose
+ * contents change without the viewer doing anything: the bar moves when a
+ * stranger strikes, and the phase turns when a stranger crosses a threshold. A
+ * server-rendered snapshot cannot show that, and until the arena polled, "the
+ * whole server is fighting this" was a claim the page made rather than
+ * something a player could see.
+ *
+ * Rate-limited with the in-process ceiling rather than the Postgres-counted one
+ * for the reason `pollBossArena` states: this is a read path, and a refused
+ * round costs the player nothing because the arena simply asks again. The
+ * client also stops polling on a hidden tab and on a felled boss, which is what
+ * keeps a page anyone may leave open all week from being a standing load.
+ */
+export async function pollWorldBoss(): Promise<WorldBossPoll> {
+  try {
+    const empireId = await getActiveEmpireId();
+    if (empireId === null) return { retry: true };
+
+    if (!localRateLimit(`poll:worldboss:${empireId}`, POLL_LIMIT, POLL_WINDOW_MS)) {
+      return { retry: true };
+    }
+
+    return { state: await getWorldBossState() };
+  } catch (err) {
+    await logError("worldBoss.pollWorldBoss", err);
+    return { retry: true };
   }
 }
 

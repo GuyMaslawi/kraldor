@@ -73,9 +73,22 @@ export interface TurnPackage {
  * Turn packages, cheapest → largest. Each package has its own independent
  * cooldown that grows with the size of the package, so the largest one can only
  * be bought once every 12 hours while small top-ups recharge quickly.
+ *
+ * **The 100-turn pack is priced below the ladder on purpose (2026-08-13).** It
+ * is the first thing a new player can afford, and the competing Hebrew title
+ * sells the same 100 turns for 25💎 on a *3-hour* cooldown; at the old 40💎 ours
+ * was the one place in the whole catalogue where we asked more for less. 20💎
+ * undercuts them outright, and our 1-hour recharge already beat theirs.
+ *
+ * That does invert the per-turn curve at the bottom — 0.20💎/turn here against
+ * 0.25 on the 2,000 pack — and the inversion is the trade we want: the cheap
+ * rate is only reachable by coming back 24 times a day, so a player buys it with
+ * attention, while the big pack still wins on every session that is worth less
+ * than 24 visits. Do not "fix" the monotonicity by raising this back up without
+ * lowering the larger packs to match, or the entry price goes back over theirs.
  */
 export const TURN_PACKAGES: TurnPackage[] = [
-  { turns: 100, cost: 40, cooldownHours: 1, cooldownKind: "TURN_PACK_1" },
+  { turns: 100, cost: 20, cooldownHours: 1, cooldownKind: "TURN_PACK_1" },
   { turns: 300, cost: 100, cooldownHours: 3, cooldownKind: "TURN_PACK_2" },
   { turns: 800, cost: 240, cooldownHours: 6, cooldownKind: "TURN_PACK_3" },
   { turns: 2000, cost: 500, cooldownHours: 12, cooldownKind: "TURN_PACK_4" },
@@ -146,9 +159,14 @@ export const SHIELDS: ShieldMeta[] = [
     label: "מגן חיילים",
     desc: "תוקף שמנצח אותך לא משעבד אף חייל — הצבא שלך יוצא מהקרב בגודלו המלא.",
     badge: "מגן חיילים פעיל — לא ניתן לשעבד את חייליו",
+    // Cut from 500/840 on 2026-08-13. The soldier shield used to be the pricier
+    // of the two on the theory that an army is worth more than a warehouse, but
+    // the competing title sells both of its shields at one flat 400/800 — which
+    // left ours the only shield in either game charging above the other's. Now
+    // it undercuts them at both durations, like the resource shield already did.
     durations: [
-      { hours: 24, cost: 500 },
-      { hours: 48, cost: 840 },
+      { hours: 24, cost: 350 },
+      { hours: 48, cost: 580 },
     ],
   },
 ];

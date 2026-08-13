@@ -2067,7 +2067,6 @@ export const EN: Record<string, string> = {
   "מערכת התשלומים בהרצה אחרונה. היהלומים נזקפים אוטומטית לחשבונך מיד עם סיום הרכישה.":
     "The payment system is in its final trial run. Diamonds are credited to your account automatically the moment the purchase completes.",
   "ערך": "value",
-  "בונוס": "bonus",
   "רכישה מיידית": "Buy now",
   "רכישה": "Buy",
   "בקרוב": "Soon",
@@ -2080,7 +2079,6 @@ export const EN: Record<string, string> = {
   "מעולה!": "Excellent!",
   "התשלום בקרוב!": "Payment is coming soon!",
   "הבנתי": "Got it",
-  "כולל בונוס": "Bonus included",
   "לתשלום": "To pay",
   "פרטים אלה נדרשים על ידי חברת הסליקה ולהפקת הקבלה.":
     "The payment provider requires these details, and so does the receipt.",
@@ -3943,6 +3941,42 @@ export const EN: Record<string, string> = {
   "השבוע נגמר": "the week is over",
   "{d}י {h}ש": "{d}d {h}h",
   "{h}ש": "{h}h",
+
+  /* the beast's temper — WORLD_BOSS_PHASES */
+  "שלווה": "Untroubled",
+  "נעורה": "Roused",
+  "משתוללת": "Raging",
+  "גוססת": "Dying",
+  "מצב המפלצת משתנה ככל שהיא נשחקת — כל השרת חוצה אותו יחד":
+    "The beast's state turns as it is worn down — the whole server crosses each one together",
+  "המפלצת מרימה את ראשה. עכשיו היא יודעת שאתם כאן.":
+    "The beast raises its head. Now it knows you are here.",
+  "משהו נשבר בה. היא נלחמת מכאן בלי חשבון.":
+    "Something in it has broken. From here it fights without restraint.",
+  "היא בקושי עומדת. מישהו הולך לסיים את זה היום.":
+    "It can barely stand. Somebody is going to finish this today.",
+  "המפלצת משתנה.": "The beast is changing.",
+
+  /* one blow, as the reveal narrates it */
+  "מכה שטחית": "A glancing blow",
+  "הכוח נחבט בשריון ונסוג. המכה עברה בשוליים.":
+    "The force broke against the armour and fell back. The blow caught only the edge.",
+  "פגיעה מלאה": "A clean hit",
+  "הפלוגות פורצות פנימה, והנשק מוצא בשר.":
+    "The companies drive in, and the steel finds flesh.",
+  "מכה מוחצת": "A crushing blow",
+  "הפרצה נפתחה בדיוק כשהלהב ירד. משהו בפנים נשבר.":
+    "The opening appeared exactly as the blade came down. Something inside it broke.",
+  "הנזק נפרש סביב המספר הזה — אף אחד לא יודע איזו מכה תפיל אותה":
+    "Damage is scattered around this figure — nobody knows which blow will fell it",
+  "המכה האחרונה שלך. {diamonds} יהלומים.":
+    "Yours was the killing blow. {diamonds} diamonds.",
+
+  /* the live feed */
+  "המכות האחרונות": "Latest blows",
+  "המכה האחרונה": "Killing blow",
+  "לפני {m} דק׳": "{m}m ago",
+  "לפני {h} ש׳": "{h}h ago",
 
   /* striking */
   "הכה": "Strike",

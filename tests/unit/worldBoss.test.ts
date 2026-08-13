@@ -1,18 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
   WORLD_BOSSES,
+  WORLD_BOSS_BLOW_BAND,
+  WORLD_BOSS_BLOW_META,
   WORLD_BOSS_BY_KEY,
   WORLD_BOSS_FLOOR_SHARE,
   WORLD_BOSS_HP_MIN,
   WORLD_BOSS_HP_PER_EMPIRE,
   WORLD_BOSS_MAX_STRIKES,
+  WORLD_BOSS_PHASES,
+  WORLD_BOSS_PHASE_BY_KEY,
   WORLD_BOSS_PURSE,
   WORLD_BOSS_STRIKE_TURNS,
   WORLD_BOSS_DAMAGE_SPREAD,
   expectedStrikeDamage,
   rollWorldBoss,
   strikeDamage,
+  worldBossBlowGrade,
   worldBossMaxHp,
+  worldBossPhase,
   worldBossReward,
   worldBossShare,
 } from "@/lib/game/worldBoss";
@@ -250,5 +256,113 @@ describe("the price of a strike", () => {
   it("prices health against participation", () => {
     expect(WORLD_BOSS_HP_PER_EMPIRE).toBeGreaterThan(0);
     expect(WORLD_BOSS_HP_MIN).toBeGreaterThan(WORLD_BOSS_HP_PER_EMPIRE);
+  });
+});
+
+describe("the beast's temper", () => {
+  it("orders the phases from full health down to none", () => {
+    const froms = WORLD_BOSS_PHASES.map((p) => p.from);
+    expect(froms).toEqual([...froms].sort((a, b) => b - a));
+    expect(froms.at(-1)).toBe(0);
+    expect(new Set(WORLD_BOSS_PHASES.map((p) => p.key)).size).toBe(
+      WORLD_BOSS_PHASES.length
+    );
+    expect(WORLD_BOSS_PHASE_BY_KEY.size).toBe(WORLD_BOSS_PHASES.length);
+  });
+
+  it("announces every phase except the one the week opens in", () => {
+    expect(WORLD_BOSS_PHASES[0].cry).toBeNull();
+    for (const phase of WORLD_BOSS_PHASES.slice(1)) {
+      expect(phase.cry).toBeTruthy();
+    }
+  });
+
+  it("burns hotter as the beast is worn down", () => {
+    const heats = WORLD_BOSS_PHASES.map((p) => p.heat);
+    expect(heats).toEqual([...heats].sort((a, b) => a - b));
+  });
+
+  it("puts a fresh boss in the opening phase and a dead one in the last", () => {
+    expect(worldBossPhase(1_000, 1_000).key).toBe(WORLD_BOSS_PHASES[0].key);
+    expect(worldBossPhase(0, 1_000).key).toBe(WORLD_BOSS_PHASES.at(-1)!.key);
+    // A pool that never existed must still resolve rather than throw.
+    expect(worldBossPhase(0, 0).key).toBe(WORLD_BOSS_PHASES.at(-1)!.key);
+  });
+
+  it("crosses exactly once per threshold as health drains", () => {
+    const seen: string[] = [];
+    for (let hp = 1_000; hp >= 0; hp -= 1) {
+      const key = worldBossPhase(hp, 1_000).key;
+      if (seen.at(-1) !== key) seen.push(key);
+    }
+    expect(seen).toEqual(WORLD_BOSS_PHASES.map((p) => p.key));
+  });
+
+  it("never crosses back up as the fight goes on", () => {
+    // The whole point of an announcement is that it happens once, server-wide.
+    let index = 0;
+    for (let hp = 1_000; hp >= 0; hp -= 7) {
+      const at = WORLD_BOSS_PHASES.findIndex(
+        (p) => p.key === worldBossPhase(hp, 1_000).key
+      );
+      expect(at).toBeGreaterThanOrEqual(index);
+      index = at;
+    }
+  });
+});
+
+describe("how a blow landed", () => {
+  it("calls the middle of the spread solid", () => {
+    expect(worldBossBlowGrade(100, 100)).toBe("solid");
+  });
+
+  it("grades the ends of the spread", () => {
+    expect(worldBossBlowGrade(100 * (1 - WORLD_BOSS_DAMAGE_SPREAD), 100)).toBe(
+      "glancing"
+    );
+    expect(worldBossBlowGrade(100 * (1 + WORLD_BOSS_DAMAGE_SPREAD), 100)).toBe(
+      "crushing"
+    );
+  });
+
+  it("keeps the band inside the spread, so both ends are reachable", () => {
+    // A band wider than the roll can reach would make one grade unreachable and
+    // the other two the only outcomes.
+    expect(WORLD_BOSS_BLOW_BAND).toBeGreaterThan(0);
+    expect(WORLD_BOSS_BLOW_BAND).toBeLessThan(WORLD_BOSS_DAMAGE_SPREAD);
+  });
+
+  it("leaves the middle band to solid and no more than that", () => {
+    expect(worldBossBlowGrade(100 * (1 - WORLD_BOSS_BLOW_BAND * 0.99), 100)).toBe(
+      "solid"
+    );
+    expect(worldBossBlowGrade(100 * (1 + WORLD_BOSS_BLOW_BAND * 0.99), 100)).toBe(
+      "solid"
+    );
+  });
+
+  it("grades a blow with no expectation rather than dividing by zero", () => {
+    expect(worldBossBlowGrade(500, 0)).toBe("solid");
+  });
+
+  it("has copy for every grade", () => {
+    for (const grade of ["glancing", "solid", "crushing"] as const) {
+      expect(WORLD_BOSS_BLOW_META[grade].label).toBeTruthy();
+      expect(WORLD_BOSS_BLOW_META[grade].line).toBeTruthy();
+    }
+  });
+
+  it("reaches all three grades over a run of real rolls", () => {
+    const grades = new Set<string>();
+    let seed = 1;
+    const random = () => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    };
+    const expected = expectedStrikeDamage(10_000);
+    for (let i = 0; i < 400; i++) {
+      grades.add(worldBossBlowGrade(strikeDamage(10_000, random), expected));
+    }
+    expect(grades).toEqual(new Set(["glancing", "solid", "crushing"]));
   });
 });

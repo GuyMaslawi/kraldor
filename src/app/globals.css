@@ -11349,6 +11349,258 @@ body {
   transition: width 0.5s ease-out;
 }
 
+/* ---- the beast's temper -------------------------------------------------
+   `--heat` is 0..3, one number from WORLD_BOSS_PHASES rather than a palette per
+   phase — so the six beasts keep their own `--accent` and the arena only burns
+   hotter around them as the week wears the thing down. A veil of crimson over
+   the whole card, at nothing on a fresh boss and a quarter on a dying one. */
+
+.wb-scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    rgb(190 40 45 / calc(var(--heat, 0) * 0.055)),
+    transparent 70%
+  );
+  transition: background 1.2s ease;
+}
+
+/* The aura's breath quickens with the temper. Same animation, shorter beat. */
+.wb-scene[data-phase="enraged"] .wb-aura {
+  animation-duration: 3.6s;
+}
+
+.wb-scene[data-phase="dying"] .wb-aura {
+  animation-duration: 2.2s;
+}
+
+.wb-phase-chip {
+  border-radius: 999px;
+  border: 1px solid rgb(var(--accent) / 0.45);
+  background: rgb(var(--accent) / 0.12);
+  padding: 0.05rem 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: rgb(var(--accent));
+}
+
+/* ---- one blow ----------------------------------------------------------
+   The whole reveal is under two seconds, and every piece of it is keyed off the
+   same instant: the beast pulls back, the card takes the hit, a shock ring
+   leaves the sigil and the figure is thrown clear. Nothing here is authority —
+   the blow was committed server-side before this played (see WorldBossArena). */
+
+/* The card itself takes the blow. Small — this is a whole panel moving, and
+   anything larger reads as a bug rather than as an impact. */
+@keyframes wb-shake {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  15% {
+    transform: translate3d(-5px, 2px, 0);
+  }
+  30% {
+    transform: translate3d(4px, -2px, 0);
+  }
+  45% {
+    transform: translate3d(-3px, 1px, 0);
+  }
+  60% {
+    transform: translate3d(2px, -1px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.wb-scene-hit {
+  animation: wb-shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* The wind-up: it rears, and the sway stops — the thing has noticed you. */
+@keyframes wb-windup {
+  from {
+    transform: scale(1) translateY(0);
+  }
+  to {
+    transform: scale(1.14) translateY(-10px);
+  }
+}
+
+.wb-sigil-windup {
+  animation: wb-windup 0.5s ease-out both;
+  filter: drop-shadow(0 6px 30px rgb(var(--accent) / 0.9));
+}
+
+/* The recoil: it is knocked back off the blow and settles. */
+@keyframes wb-struck {
+  0% {
+    transform: scale(1.14) translateY(-10px) rotate(0deg);
+    filter: brightness(2.4) drop-shadow(0 0 26px rgb(255 255 255 / 0.8));
+  }
+  18% {
+    transform: scale(0.9) translateY(6px) rotate(-9deg);
+    filter: brightness(1.5);
+  }
+  45% {
+    transform: scale(1.04) translateY(-2px) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) translateY(0) rotate(0deg);
+    filter: brightness(1);
+  }
+}
+
+.wb-sigil-struck {
+  animation: wb-struck 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* The shock leaving the point of impact. */
+@keyframes wb-shock {
+  from {
+    opacity: 0.85;
+    transform: translate(-50%, 0) scale(0.2);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(2.6);
+  }
+}
+
+.wb-shock {
+  position: absolute;
+  top: 2.2rem;
+  left: 50%;
+  width: 9rem;
+  height: 9rem;
+  pointer-events: none;
+  border-radius: 999px;
+  border: 2px solid rgb(255 255 255 / 0.55);
+  box-shadow: 0 0 30px rgb(var(--accent) / 0.8);
+  animation: wb-shock 0.75s ease-out both;
+}
+
+/* The figure the blow took off, thrown clear and fading. Absolute so it never
+   moves the beast's name or the lore underneath it.
+   The travel is deliberately short. `.wb-scene` clips its overflow and the
+   sigil already sits at the top of the card, so a figure that rose the usual
+   distance was sheared in half by the card's own edge — it has room to leave
+   the beast and none to leave the panel. */
+@keyframes wb-damage {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.5);
+  }
+  22% {
+    opacity: 1;
+    transform: translate(-50%, -8px) scale(1.35);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -20px) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -34px) scale(1);
+  }
+}
+
+.wb-damage {
+  position: absolute;
+  top: 2.9rem;
+  left: 50%;
+  pointer-events: none;
+  font-size: 1.75rem;
+  font-weight: 900;
+  text-shadow: 0 3px 14px rgb(0 0 0 / 0.9);
+  animation: wb-damage 1.4s ease-out both;
+}
+
+/* The army's account of the blow, arriving just behind it. */
+@keyframes wb-account {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wb-account {
+  animation: wb-account 0.35s ease-out 0.12s both;
+}
+
+/* The threshold. Three of these a week, so it is allowed to sweep. */
+@keyframes wb-cry {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  20% {
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.wb-cry {
+  border-top: 1px solid rgb(190 40 45 / 0.35);
+  border-bottom: 1px solid rgb(190 40 45 / 0.35);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(190 40 45 / 0.18),
+    transparent
+  );
+  padding-block: 0.5rem;
+  animation: wb-cry 1.1s ease-out both;
+}
+
+/* The kill. The one moment in the fixture that belongs to somebody. */
+@keyframes wb-kill {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.wb-kill {
+  animation: wb-kill 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  text-shadow: 0 0 24px rgb(52 211 153 / 0.6);
+}
+
+/* A blow that landed while somebody was reading the feed. */
+@keyframes wb-feed-new {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    background: rgb(190 40 45 / 0.22);
+  }
+}
+
+.wb-feed-new {
+  animation: wb-feed-new 0.6s ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wb-aura,
   .wb-sigil {
@@ -11356,6 +11608,24 @@ body {
   }
   .wb-bar > span {
     transition: none;
+  }
+  /* The reveal is skipped outright for these readers (the component checks the
+     query before it plays), but the classes can still be on screen for the beat
+     between the answer and the settle — so they resolve to their end state
+     rather than to motion. */
+  .wb-scene-hit,
+  .wb-sigil-windup,
+  .wb-sigil-struck,
+  .wb-shock,
+  .wb-damage,
+  .wb-account,
+  .wb-cry,
+  .wb-kill,
+  .wb-feed-new {
+    animation: none;
+  }
+  .wb-shock {
+    display: none;
   }
 }
 

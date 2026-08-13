@@ -731,6 +731,7 @@ model Empire {
   monuments          EmpireMonument[]
   titles             EmpireTitle[]
   worldBossStrikes   WorldBossStrike[]
+  worldBossBlows     WorldBossBlow[]
   arenaEntries       ArenaEntry[]
   referredBy         Empire?             @relation("Referral", fields: [referredById], references: [id], onDelete: SetNull)
   referred           Empire[]            @relation("Referral")
@@ -981,6 +982,44 @@ model WorldBoss {
   updatedAt DateTime @updatedAt
 
   strikes WorldBossStrike[]
+  blows   WorldBossBlow[]
+}
+
+/// One blow, kept as its own row so the arena can show the fight *happening*.
+///
+/// WorldBossStrike is an aggregate — a running total per empire — and a total
+/// cannot say whether anybody is in the arena right now. This is the ledger
+/// behind the live feed: the last dozen blows the server landed, newest first.
+///
+/// Names are denormalised for the reason WorldBoss.slayerName is: the feed is
+/// read on a poll, and a season wipe may remove the empire while the row is
+/// still being displayed. Rows are never pruned — one week of one boss is at
+/// most WORLD_BOSS_MAX_STRIKES per empire, and the season wipe takes the boss
+/// and its blows together.
+model WorldBossBlow {
+  id       String @id @default(cuid())
+  bossId   String
+  empireId String
+
+  /// Frozen at the moment of the blow — see above.
+  empireName String
+  title      String?
+
+  damage Float
+  /// The beast's health after this blow, so the feed reads as a descent rather
+  /// than as a list of unrelated numbers.
+  hpAfter Float
+  /// This blow was the kill. Exactly one row per boss can carry it, for the
+  /// same reason WorldBoss.defeatedAt can only be stamped once.
+  slaying Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  boss   WorldBoss @relation(fields: [bossId], references: [id], onDelete: Cascade)
+  empire Empire    @relation(fields: [empireId], references: [id], onDelete: Cascade)
+
+  /// The feed: "this boss's blows, newest first".
+  @@index([bossId, createdAt])
 }
 
 /// One empire's running total against one world boss.

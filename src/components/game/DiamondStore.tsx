@@ -13,7 +13,6 @@ import {
   formatIls,
   isValidBuyerName,
   isValidBuyerPhone,
-  packageTotal,
   packageValuePct,
   STORE_IDLE,
   type DiamondPackage,
@@ -229,7 +228,7 @@ function FeaturedPackage({
   onBuy: () => void;
 }) {
   const t = useT();
-  const total = packageTotal(pkg);
+  const total = pkg.diamonds;
   const tag = pkg.tag ? TAG_META[pkg.tag] : null;
 
   return (
@@ -262,13 +261,6 @@ function FeaturedPackage({
               {formatNumber(total)}
             </span>
             <span className="text-xs font-semibold text-zinc-400">{t("יהלומים")}</span>
-            {pkg.bonus > 0 && (
-              <span
-                className="nums rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-black text-emerald-300"
-              >
-                <span dir="ltr">+{formatNumber(pkg.bonus)}</span> {t("בונוס")}
-              </span>
-            )}
           </div>
         </div>
 
@@ -302,7 +294,7 @@ function PackageCard({
   onBuy: () => void;
 }) {
   const t = useT();
-  const total = packageTotal(pkg);
+  const total = pkg.diamonds;
   const tag = pkg.tag ? TAG_META[pkg.tag] : null;
   const valuePct = packageValuePct(pkg);
 
@@ -345,13 +337,6 @@ function PackageCard({
           {formatNumber(total)}
         </span>
       </div>
-      <span className="relative mt-0.5 block h-4 text-[11px] font-black text-emerald-300">
-        {pkg.bonus > 0 && (
-          <span className="nums">
-            <span dir="ltr">+{formatNumber(pkg.bonus)}</span> {t("בונוס")}
-          </span>
-        )}
-      </span>
 
       <div className="relative mt-auto grid gap-2 pt-3">
         <PriceTag pkg={pkg} discountPct={discountPct} />
@@ -393,7 +378,7 @@ function CheckoutModal({
   const [buyerName, setBuyerName] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
 
-  const total = packageTotal(pkg);
+  const total = pkg.diamonds;
   const net = discountedPrice(pkg.priceIls, discountPct);
   const hasDiscount = discountPct > 0;
   const credited = state.status === "success" ? (state.diamonds ?? total) : null;
@@ -495,14 +480,6 @@ function CheckoutModal({
                   {formatNumber(total)}
                 </span>
               </div>
-              {pkg.bonus > 0 && (
-                <div className="flex items-center justify-between text-emerald-300">
-                  <span>{t("כולל בונוס")}</span>
-                  <span className="nums font-bold" dir="ltr">
-                    +{formatNumber(pkg.bonus)}
-                  </span>
-                </div>
-              )}
               <div className="flex items-center justify-between border-t border-border-subtle pt-2">
                 <span className="text-zinc-400">{t("לתשלום")}</span>
                 <span className="flex items-baseline gap-2">

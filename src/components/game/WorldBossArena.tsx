@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Tip } from "@/components/ui/Tip";
 import { PlayerLink } from "@/components/ui/PlayerLink";
@@ -9,11 +10,20 @@ import { FormMessage } from "@/components/ui/FormMessage";
 import { formatNumber, formatCompact } from "@/lib/game/format";
 import { REWARD_ICON, REWARD_LABEL } from "@/lib/game/rewards";
 import {
+  WORLD_BOSS_BLOW_META,
   WORLD_BOSS_KILL_DIAMONDS,
   WORLD_BOSS_MAX_STRIKES,
+  WORLD_BOSS_PHASES,
+  WORLD_BOSS_PHASE_BY_KEY,
+  type WorldBossBlowEntry,
   type WorldBossState,
+  type WorldBossStrikeReveal,
 } from "@/lib/game/worldBoss";
-import { collectWorldBoss, strikeWorldBoss } from "@/server/actions/worldBoss";
+import {
+  collectWorldBoss,
+  pollWorldBoss,
+  strikeWorldBoss,
+} from "@/server/actions/worldBoss";
 import { useT } from "@/i18n/client";
 
 /**
@@ -25,17 +35,170 @@ import { useT } from "@/i18n/client";
  * anything" (my damage, my rank, my share). Nothing here is decoration for its
  * own sake — a fixture the whole server shares only works if a stranger's
  * contribution is legible.
+ *
+ * ## Why a blow is played rather than printed
+ *
+ * A strike used to be a button press and a line of text, which is a strange
+ * thing for the one enemy the entire server fights: the city boss — a *private*
+ * encounter — gets a minute-long animated assault, and the world's did not get
+ * a beat. So a blow is now revealed over a couple of seconds: the beast rears,
+ * the blow lands with the figure bursting off it, the bar drops, and the army
+ * says what happened.
+ *
+ * It is deliberately **short**, and the reason is arithmetic. The city boss's
+ * assault costs 300 turns and is fought a handful of times a cycle, so a minute
+ * of ceremony is an event. A strike here costs 40 turns and there are
+ * WORLD_BOSS_MAX_STRIKES of them a week — at a minute each that is twenty
+ * minutes of watching, which is a chore rather than a ritual. Two seconds is a
+ * beat; the longer sequences are saved for the two moments that are actually
+ * rare, a phase crossing and the kill.
+ *
+ * Nothing here is authority. The blow was committed server-side before this
+ * component heard about it (see `strikeWorldBoss`), so the reveal can be cut
+ * short, missed, or skipped entirely under `prefers-reduced-motion` with no
+ * effect on what was dealt.
  */
-export function WorldBossArena({ state }: { state: WorldBossState }) {
+
+/* ------------------------------ the reveal's clock ------------------------------ */
+
+/** The beast rears back before the blow lands. */
+const WINDUP_MS = 500;
+/** The blow, the figure and the bar — the beat an ordinary strike ends on. */
+const IMPACT_MS = 1_500;
+/** The pause after the beast staggers, before the kill takes the screen. */
+const KILL_DELAY_MS = 700;
+/** How long the felled-beast sequence holds before the page settles. */
+const KILL_MS = 4_200;
+/** How long a phase announcement sits on screen. Three of these a week. */
+const CRY_MS = 2_200;
+
+/**
+ * How often the arena re-reads the world.
+ *
+ * The only screen in the game whose contents change while the viewer does
+ * nothing: the bar moves when a stranger strikes. Twelve seconds is slow for a
+ * poll and deliberately so — this page can be left open all week, so the client
+ * additionally holds off while a reveal is playing and while the tab is hidden,
+ * and stops entirely once the beast is down.
+ */
+const POLL_MS = 12_000;
+
+/** Which beat of the reveal is on screen. */
+type Beat = "windup" | "impact" | "cry" | "kill";
+
+interface Playing {
+  reveal: WorldBossStrikeReveal;
+  beat: Beat;
+}
+
+export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
   const t = useT();
+  const router = useRouter();
+  const [state, setState] = useState<WorldBossState>(initial);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ error?: string; success?: string }>({});
+  const [playing, setPlaying] = useState<Playing | null>(null);
+
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Read by the poll, which must not overwrite the state out from under a
+  // running reveal — the bar would jump to the polled health mid-animation.
+  // Mirrored into a ref in an effect rather than assigned during render, so the
+  // interval's closure can read it without being torn down and rebuilt on every
+  // beat of the reveal.
+  const busy = useRef(false);
+  useEffect(() => {
+    busy.current = playing !== null || pending;
+  }, [playing, pending]);
+
+  const clearTimers = useCallback(() => {
+    for (const id of timers.current) clearTimeout(id);
+    timers.current = [];
+  }, []);
+
+  useEffect(() => clearTimers, [clearTimers]);
+
+  /* ------------------------------ polling ------------------------------ */
+
+  useEffect(() => {
+    if (state.defeated) return;
+    const id = setInterval(() => {
+      if (busy.current) return;
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+      void pollWorldBoss().then((result) => {
+        // `retry` and a missing state both mean "nothing was learned" — never
+        // "the fixture is gone". The screen keeps what it has.
+        if (result.state && !busy.current) setState(result.state);
+      });
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [state.defeated]);
+
+  /* ------------------------------ striking ------------------------------ */
+
+  const finish = useCallback(
+    (result: { error?: string; success?: string }) => {
+      setPlaying(null);
+      setMessage(result);
+      // Re-read rather than lean on the refresh below. `state` is seeded from a
+      // prop and then owned here, so a server re-render hands this component a
+      // new `initial` it will never look at — without this, the damage board,
+      // the strike allowance and the feed would all sit a blow out of date
+      // until the next poll came round.
+      void pollWorldBoss().then((polled) => {
+        if (polled.state) setState(polled.state);
+      });
+      // The strike moved turns, and on a kill diamonds too — both of which live
+      // in the layout's resource bar, which this component does not own.
+      router.refresh();
+    },
+    [router]
+  );
+
+  const play = useCallback(
+    (reveal: WorldBossStrikeReveal, receipt: { success?: string }) => {
+      const at = (ms: number, run: () => void) => {
+        timers.current.push(setTimeout(run, ms));
+      };
+
+      setPlaying({ reveal, beat: "windup" });
+      at(WINDUP_MS, () => setPlaying({ reveal, beat: "impact" }));
+
+      if (reveal.slain) {
+        at(WINDUP_MS + KILL_DELAY_MS, () => setPlaying({ reveal, beat: "kill" }));
+        at(WINDUP_MS + KILL_DELAY_MS + KILL_MS, () => finish(receipt));
+        return;
+      }
+
+      // A crossing is worth stopping for; an ordinary blow is not.
+      if (reveal.phaseAfter !== reveal.phaseBefore) {
+        at(WINDUP_MS + IMPACT_MS, () => setPlaying({ reveal, beat: "cry" }));
+        at(WINDUP_MS + IMPACT_MS + CRY_MS, () => finish(receipt));
+        return;
+      }
+
+      at(WINDUP_MS + IMPACT_MS, () => finish(receipt));
+    },
+    [finish]
+  );
 
   const strike = () => {
+    clearTimers();
+    setPlaying(null);
     setMessage({});
     startTransition(async () => {
       const result = await strikeWorldBoss();
-      setMessage({ error: result.error, success: result.success });
+      // A reader who has asked for less motion gets the receipt and nothing
+      // else — the blow has already landed either way.
+      const reduced =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      if (result.reveal && !reduced) {
+        play(result.reveal, { success: result.success });
+      } else {
+        finish({ error: result.error, success: result.success });
+      }
     });
   };
 
@@ -44,31 +207,81 @@ export function WorldBossArena({ state }: { state: WorldBossState }) {
     startTransition(async () => {
       const result = await collectWorldBoss();
       setMessage({ error: result.error, success: result.success });
+      router.refresh();
     });
   };
 
-  const pct = state.maxHp > 0 ? (state.hp / state.maxHp) * 100 : 0;
+  /* ------------------------------ what the screen shows ------------------------------ */
+
+  // During the wind-up the bar is still at the health the blow found; from the
+  // impact on it shows what the blow left. Outside a reveal it is simply the
+  // world's, which the poll keeps current.
+  const hp = playing
+    ? playing.beat === "windup"
+      ? playing.reveal.hpBefore
+      : playing.reveal.hpAfter
+    : state.hp;
+  const maxHp = playing ? playing.reveal.maxHp : state.maxHp;
+  const pct = maxHp > 0 ? (hp / maxHp) * 100 : 0;
+
+  const phaseKey =
+    playing && playing.beat !== "windup" ? playing.reveal.phaseAfter : state.phase;
+  const phase = WORLD_BOSS_PHASE_BY_KEY.get(phaseKey) ?? WORLD_BOSS_PHASES[0];
+
+  const slain = state.defeated || playing?.beat === "kill";
   const canStrike =
     !state.defeated && state.strikesLeft > 0 && state.turns >= state.strikeTurns;
+  const blow = playing ? WORLD_BOSS_BLOW_META[playing.reveal.grade] : null;
 
   return (
     <div
-      style={{ "--accent": state.accent } as CSSProperties}
+      style={
+        {
+          "--accent": state.accent,
+          "--heat": phase.heat,
+        } as CSSProperties
+      }
       className="space-y-5"
     >
       {/* -------- the beast -------- */}
-      <section className="wb-scene panel-gold rounded-2xl p-4 sm:p-6">
+      <section
+        className={`wb-scene panel-gold rounded-2xl p-4 sm:p-6${
+          playing && playing.beat !== "windup" ? " wb-scene-hit" : ""
+        }`}
+        data-phase={phase.key}
+      >
         <span className="wb-aura" aria-hidden />
+        {playing && playing.beat !== "windup" && (
+          <span className="wb-shock" aria-hidden />
+        )}
 
         <div className="relative text-center">
           <span
             className={`wb-sigil block text-6xl sm:text-7xl ${
-              state.defeated ? "wb-sigil-slain" : ""
+              slain
+                ? "wb-sigil-slain"
+                : playing?.beat === "windup"
+                  ? "wb-sigil-windup"
+                  : playing
+                    ? "wb-sigil-struck"
+                    : ""
             }`}
             aria-hidden
           >
             {state.sigil}
           </span>
+
+          {/* The figure the blow took off, thrown clear of the beast. */}
+          {playing && playing.beat !== "windup" && blow && (
+            <span
+              className={`wb-damage nums ${blow.tone}`}
+              dir="ltr"
+              aria-hidden
+            >
+              −{formatNumber(playing.reveal.damage)}
+            </span>
+          )}
+
           <h2 className="mt-2 text-xl font-black tracking-wide text-gold-bright sm:text-2xl">
             {t(state.name)}
           </h2>
@@ -83,30 +296,63 @@ export function WorldBossArena({ state }: { state: WorldBossState }) {
             <span style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
           </div>
           <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-2 text-xs">
-            <span className="font-black nums text-bone" dir="ltr">
-              {formatNumber(Math.round(state.hp))} /{" "}
-              {formatNumber(Math.round(state.maxHp))}
+            <span className="flex items-baseline gap-2">
+              <span className="font-black nums text-bone" dir="ltr">
+                {formatNumber(Math.round(hp))} / {formatNumber(Math.round(maxHp))}
+              </span>
+              {!slain && (
+                <Tip tip={t("מצב המפלצת משתנה ככל שהיא נשחקת — כל השרת חוצה אותו יחד")}>
+                  <span className="wb-phase-chip">{t(phase.label)}</span>
+                </Tip>
+              )}
             </span>
             <span className="flex items-center gap-3 text-zinc-500">
-              <span>
-                {t("{count} נלחמים", { count: state.participants })}
-              </span>
+              <span>{t("{count} נלחמים", { count: state.participants })}</span>
               <WeekCountdown at={state.endsAt} serverNow={state.serverNow} />
             </span>
           </div>
         </div>
 
+        {/* -------- what the army says about the blow -------- */}
+        {playing && playing.beat !== "windup" && blow && !playing.reveal.slain && (
+          <div className="wb-account relative mt-4 text-center">
+            <p className={`text-sm font-black ${blow.tone}`}>{t(blow.label)}</p>
+            <p className="mt-0.5 text-xs text-bone/70">{t(blow.line)}</p>
+          </div>
+        )}
+
+        {/* -------- the beast turns -------- */}
+        {playing?.beat === "cry" && (
+          <div className="wb-cry relative mt-4" role="status">
+            <p className="text-center text-sm font-black text-crimson-bright">
+              {t(
+                WORLD_BOSS_PHASE_BY_KEY.get(playing.reveal.phaseAfter)?.cry ??
+                  "המפלצת משתנה."
+              )}
+            </p>
+          </div>
+        )}
+
         {/* -------- the one control -------- */}
         <div className="relative mt-5 flex flex-wrap items-center justify-center gap-3">
-          {state.defeated ? (
-            <div className="text-center">
+          {slain ? (
+            <div className={`text-center${playing?.beat === "kill" ? " wb-kill" : ""}`}>
               <p className="text-lg font-black text-emerald-300">
                 {t("המפלצת הופלה!")}
               </p>
-              {state.slayerName && (
-                <p className="mt-0.5 text-xs text-zinc-400">
-                  {t("המכה האחרונה: {name}", { name: state.slayerName })}
+              {playing?.beat === "kill" ? (
+                <p className="mt-0.5 inline-flex items-center gap-1 text-sm font-bold text-cyan-300">
+                  <Icon name="diamond" size={14} />
+                  {t("המכה האחרונה שלך. {diamonds} יהלומים.", {
+                    diamonds: playing.reveal.diamonds,
+                  })}
                 </p>
+              ) : (
+                state.slayerName && (
+                  <p className="mt-0.5 text-xs text-zinc-400">
+                    {t("המכה האחרונה: {name}", { name: state.slayerName })}
+                  </p>
+                )
               )}
             </div>
           ) : (
@@ -114,12 +360,12 @@ export function WorldBossArena({ state }: { state: WorldBossState }) {
               <button
                 type="button"
                 onClick={strike}
-                disabled={pending || !canStrike}
+                disabled={pending || playing !== null || !canStrike}
                 className={`btn btn-gold px-6 py-2.5 text-base disabled:opacity-50${
-                  pending || !canStrike ? "" : " btn-gleam"
+                  pending || playing !== null || !canStrike ? "" : " btn-gleam"
                 }`}
               >
-                {pending ? (
+                {pending || playing ? (
                   t("מכה…")
                 ) : (
                   <>
@@ -128,7 +374,7 @@ export function WorldBossArena({ state }: { state: WorldBossState }) {
                   </>
                 )}
               </button>
-              {!pending && canStrike && (
+              {!pending && !playing && canStrike && (
                 <>
                   <i className="gleam-spark gleam-spark-a" aria-hidden />
                   <i className="gleam-spark gleam-spark-b" aria-hidden />
@@ -137,7 +383,11 @@ export function WorldBossArena({ state }: { state: WorldBossState }) {
             </span>
           )}
 
-          {!state.defeated && (
+          {/* `slain` rather than `state.defeated`: during the kill sequence the
+              polled state has not caught up yet, and leaving the turn cost and
+              the strike allowance beside "the beast is down" undercuts the one
+              moment in the fixture that belongs to somebody. */}
+          {!slain && (
             <span className="flex flex-wrap items-center gap-3 text-xs">
               <Tip tip={t("כל מכה עולה תורות")}>
                 <span
@@ -147,6 +397,11 @@ export function WorldBossArena({ state }: { state: WorldBossState }) {
                 >
                   <Icon name="turns" size={13} />
                   {state.strikeTurns}
+                </span>
+              </Tip>
+              <Tip tip={t("הנזק נפרש סביב המספר הזה — אף אחד לא יודע איזו מכה תפיל אותה")}>
+                <span className="flex items-center gap-1 font-bold nums text-crimson-bright" dir="ltr">
+                  ~{formatCompact(state.expectedDamage)}
                 </span>
               </Tip>
               <Tip
@@ -201,10 +456,16 @@ export function WorldBossArena({ state }: { state: WorldBossState }) {
           </div>
         )}
 
-        <div className="relative mt-3">
-          <FormMessage error={message.error} success={message.success} />
-        </div>
+        {/* The receipt, once the reveal has had its beat. */}
+        {!playing && (
+          <div className="relative mt-3">
+            <FormMessage error={message.error} success={message.success} />
+          </div>
+        )}
       </section>
+
+      {/* -------- the fight, as it happens -------- */}
+      <BlowFeed feed={state.feed} serverNow={state.serverNow} />
 
       {/* -------- the damage board -------- */}
       <section className="panel rounded-2xl p-4 sm:p-5">
@@ -264,6 +525,114 @@ export function WorldBossArena({ state }: { state: WorldBossState }) {
       </section>
     </div>
   );
+}
+
+/* ------------------------------ the live feed ------------------------------ */
+
+/**
+ * The last blows anybody landed.
+ *
+ * The damage board is standings, and standings look the same whether they were
+ * earned an hour ago or on Monday. This is the part of the arena that is other
+ * people: it is how a player who opens the page on Thursday can tell whether
+ * the server is still fighting or has given up on the week.
+ *
+ * Rows that arrived since the last read slide in, so a blow landing while
+ * somebody is reading is *seen* rather than merely present on the next scroll.
+ */
+function BlowFeed({
+  feed,
+  serverNow,
+}: {
+  feed: WorldBossBlowEntry[];
+  serverNow: number;
+}) {
+  const t = useT();
+  const seen = useRef<Set<string>>(new Set(feed.map((b) => b.id)));
+  const [fresh, setFresh] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    const arrived = feed.filter((b) => !seen.current.has(b.id)).map((b) => b.id);
+    for (const blow of feed) seen.current.add(blow.id);
+    if (arrived.length > 0) setFresh(new Set(arrived));
+  }, [feed]);
+
+  if (feed.length === 0) return null;
+
+  return (
+    <section className="panel rounded-2xl p-4 sm:p-5">
+      <h3 className="flex items-center gap-2 text-base font-black tracking-wide text-gold-bright">
+        <Icon name="attack" size={18} className="text-crimson-bright" />
+        {t("המכות האחרונות")}
+      </h3>
+
+      <ul className="mt-3 space-y-1">
+        {feed.map((blow) => (
+          <li
+            key={blow.id}
+            className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs ${
+              blow.slaying
+                ? "border border-emerald-500/40 bg-emerald-500/8"
+                : blow.isMe
+                  ? "border border-gold/40 bg-gold/8"
+                  : "border border-transparent bg-black/20"
+            }${fresh.has(blow.id) ? " wb-feed-new" : ""}`}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <PlayerLink
+                empireId={blow.empireId}
+                name={blow.empireName}
+                titleKey={blow.title}
+                className="truncate font-bold"
+              />
+              {blow.slaying && (
+                <span className="shrink-0 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-black text-emerald-300">
+                  {t("המכה האחרונה")}
+                </span>
+              )}
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              {/* "−29.6K → 96.4K": what the blow took and what it left. Without
+                  the arrow the two figures read as one number twice. */}
+              <span className="flex items-center gap-1 nums" dir="ltr">
+                <span className="font-bold text-crimson-bright">
+                  −{formatCompact(blow.damage)}
+                </span>
+                <span className="text-[10px] text-zinc-600">
+                  → {formatCompact(blow.hpAfter)}
+                </span>
+              </span>
+              <Ago at={blow.at} serverNow={serverNow} />
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** "לפני 3 דק׳" — measured against the server's clock, like every other age here. */
+function Ago({ at, serverNow }: { at: number; serverNow: number }) {
+  const t = useT();
+  const [now, setNow] = useState(serverNow);
+
+  useEffect(() => {
+    const skew = Date.now() - serverNow;
+    const tick = () => setNow(Date.now() - skew);
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [serverNow]);
+
+  const minutes = Math.floor(Math.max(0, now - at) / 60_000);
+  const label =
+    minutes < 1
+      ? t("עכשיו")
+      : minutes < 60
+        ? t("לפני {m} דק׳", { m: minutes })
+        : t("לפני {h} ש׳", { h: Math.floor(minutes / 60) });
+
+  return <span className="w-14 shrink-0 text-end text-[10px] text-zinc-600">{label}</span>;
 }
 
 /**

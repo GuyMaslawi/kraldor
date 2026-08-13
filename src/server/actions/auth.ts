@@ -17,7 +17,6 @@ import { normalizeName } from "@/lib/game/text";
 import { getTunables } from "@/lib/game/config";
 import { appBaseUrl, sendMail } from "@/server/mailer";
 import { seasonClosedError } from "@/server/seasonGuard";
-import { PRELAUNCH_LOGIN_NOTICE, prelaunchShut } from "@/lib/prelaunch";
 import { getI18n, getT } from "@/i18n/server";
 import {
   LOGIN_TIMING_DUMMY_HASH,
@@ -541,17 +540,6 @@ export async function login(
     return { error: banNotice(await getT(), user) };
   }
 
-  // The game has not opened yet — see lib/prelaunch.ts. Two things about where
-  // this sits. It is *after* the password check, so it tells a stranger nothing
-  // the correct password had not already told them (a wrong password still gets
-  // the generic message above, and the enumeration hardening upstream is intact).
-  // And it is *before* `createSession`, so a refused player never holds a cookie
-  // for a game they cannot enter — rather than being handed one and bouncing off
-  // every screen behind it.
-  if (prelaunchShut(user.role)) {
-    return { error: t(PRELAUNCH_LOGIN_NOTICE) };
-  }
-
   // Successful sign-in clears the streak (and any expired lock), and is also the
   // one moment we hold the plaintext for an existing account — so it is where a
   // digest written at an older, weaker cost gets upgraded in place. Without this
@@ -811,23 +799,13 @@ export async function googleSignIn(credential: string): Promise<AuthState> {
     return { error: banNotice(await getT(), user) };
   }
 
-  // Read up here rather than just before the redirect, because the pre-launch
-  // gate below turns on exactly this answer.
+  // Whether this account already named an empire — the redirect at the bottom
+  // routes on exactly this answer (a Google sign-up reaches its empire two
+  // screens after the button: sign-in, then /onboarding).
   const empire = await prisma.empire.findUnique({
     where: { userId: user.id },
     select: { id: true },
   });
-
-  // The same shut door as `login`, with one exemption that matters: an account
-  // with no empire yet is still *registering*, and registration is the one thing
-  // that stays open all through the pre-launch window. Google reaches the empire
-  // two screens after the button (sign-in, then /onboarding), so refusing every
-  // non-admin here would leave a Google sign-up permanently half-finished — able
-  // to create an account it can never name an empire for. Coming back to *play*
-  // is what is shut, and that is the branch that already has one.
-  if (empire && prelaunchShut(user.role)) {
-    return { error: t(PRELAUNCH_LOGIN_NOTICE) };
-  }
 
   // Stamp the login address on every Google sign-in, returning users included —
   // the create branch above only covers brand-new accounts.

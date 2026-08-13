@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/auth";
 import { verifyEmailToken } from "@/server/actions/auth";
 import { requireOpenSeason } from "@/server/seasonGuard";
-import { PRELAUNCH } from "@/lib/prelaunch";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { ResendVerification } from "@/components/auth/ResendVerification";
 import { FormMessage } from "@/components/ui/FormMessage";
@@ -108,25 +107,13 @@ async function VerifyHelp() {
   return (
     <>
       <ResendVerification />
-      {/* Resending needs a session, and pre-launch a non-admin cannot open one
-          — so instead of pointing at a door that refuses them, it points at the
-          countdown and at the only inbox that can help before then. */}
-      {PRELAUNCH ? (
-        <p className="text-sm text-zinc-400">
-          {t("אם אינך מחובר, אפשר לבקש קישור חדש עם פתיחת המשחק.")}{" "}
-          <Link href="/launch" className="font-semibold text-gold hover:text-gold-bright">
-            {t("לספירה לאחור")}
-          </Link>
-        </p>
-      ) : (
-        <p className="text-sm text-zinc-400">
-          {t("אם אינך מחובר,")}{" "}
-          <Link href="/login" className="font-semibold text-gold hover:text-gold-bright">
-            {t("התחבר תחילה")}
-          </Link>{" "}
-          {t("ואז בקש קישור חדש.")}
-        </p>
-      )}
+      <p className="text-sm text-zinc-400">
+        {t("אם אינך מחובר,")}{" "}
+        <Link href="/login" className="font-semibold text-gold hover:text-gold-bright">
+          {t("התחבר תחילה")}
+        </Link>{" "}
+        {t("ואז בקש קישור חדש.")}
+      </p>
     </>
   );
 }

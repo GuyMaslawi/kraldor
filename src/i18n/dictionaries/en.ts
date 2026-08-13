@@ -132,21 +132,7 @@ export const EN: Record<string, string> = {
   "לתוצאות העונה ולספירה לאחור →":
     "Season results and the countdown →",
 
-  /* the pre-launch window — see src/lib/prelaunch.ts */
-  "המשחק נפתח בקרוב": "The game opens soon",
-  "הכניסה תיפתח עם פתיחת העונה. עד אז אפשר להירשם ולשמור את שם האימפריה.":
-    "Sign-in opens with the season. Until then you can register and claim your empire name.",
-  "לספירה לאחור →": "To the countdown →",
-  "המשחק עוד לא נפתח, אז אי אפשר להיכנס. אפשר להירשם עכשיו ולשמור את שם האימפריה לרגע שהשערים נפתחים.":
-    "The game has not opened yet, so there is no signing in. You can register now and hold your empire name for the moment the gates open.",
-  "הירשם עכשיו ותפוס את השם": "Register now and claim your name",
-  "ההרשמה פתוחה. הכניסה למשחק תיפתח כשהספירה מסתיימת.":
-    "Registration is open. The game itself opens when the countdown ends.",
-  "ספירה לאחור": "Countdown",
-  "לספירה לאחור": "To the countdown",
   "הרשמה": "Register",
-  "אם אינך מחובר, אפשר לבקש קישור חדש עם פתיחת המשחק.":
-    "If you are not signed in, you can request a new link once the game opens.",
 
   /* ------------------------------------------------------------------ */
   /* the armory (weapons)                                               */
@@ -3506,35 +3492,7 @@ export const EN: Record<string, string> = {
   "חיילים שנפלו": "Soldiers lost",
   "נלקחו בשבי": "Taken captive",
 
-  /* the launch poster (/launch) — the other end of the same ceremony */
-  "פתיחת העונה | קראלדור": "Season opening | Kraldor",
-  "העונה החדשה נפתחת. בנה אימפריה, צור ברית, כבוש את הדירוג.":
-    "The new season opens. Build an empire, forge a guild, take the ladder.",
-  "פתיחת עונה רשמית": "Official season opening",
-  "העונה נפתחת": "The season opens",
-  "מפה ריקה, אוצר ריק וכל השאר תלוי בכם. ברגע שהשערים נפתחים, כל שנייה נחשבת.":
-    "An empty map, an empty treasury, and everything else is up to you. The moment the gates open, every second counts.",
-  "השערים נפתחים בעוד": "The gates open in",
-  "השערים נפתחו!": "The gates are open!",
-  "העונה החדשה התחילה. העולם ריק — לכו לתפוס אותו.":
-    "The new season has begun. The world is empty — go take it.",
-  "מעבירים אתכם לכניסה בעוד {seconds}…": "Taking you to the door in {seconds}…",
-  "מעבירים אתכם לכניסה…": "Taking you to the door…",
-  "להרשמה מוקדמת": "Register early",
-  "יצירת חשבון": "Create an account",
-  "כבר יש לי חשבון": "I already have an account",
-  "מה מחכה מעבר לשער": "What waits beyond the gate",
-  "עולם חדש לגמרי": "A brand-new world",
-  "כולם מתחילים מאפס באותה שנייה. אין ותק, אין יתרון — רק מי שמשחק נכון.":
-    "Everyone starts from nothing at the same second. No seniority, no head start — only who plays it right.",
-  "לבד לא שורדים כאן הרבה זמן. תבחרו צד לפני שהמפה מתחלקת בלעדיכם.":
-    "Nobody survives here alone for long. Pick a side before the map is divided without you.",
-  "קרבות ושוד": "Battle and plunder",
-  "כל אימפריה שכנה היא הזדמנות — או האיום הבא על אוצר הזהב שלכם.":
-    "Every neighbouring empire is an opportunity — or the next threat to your gold.",
   "הדירוג": "The ladder",
-  "בסוף העונה נחתם היכל התהילה. שלושת הראשונים נשארים שם לנצח.":
-    "At the season's end the Hall of Fame is sealed. The top three stay there forever.",
 
   "קהילה | KRALDOR": "Community | KRALDOR",
   "הערוץ של קראלדור": "The Kraldor channel",

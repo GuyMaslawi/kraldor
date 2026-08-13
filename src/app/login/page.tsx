@@ -4,7 +4,6 @@ import { getSessionUserId } from "@/lib/auth";
 import { getSeasonGate } from "@/server/seasonClose";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { PRELAUNCH } from "@/lib/prelaunch";
 import { getT } from "@/i18n/server";
 
 export async function generateMetadata() {
@@ -30,25 +29,6 @@ export default async function LoginPage() {
   const t = await getT();
   return (
     <AuthShell>
-      {/* The game has not opened yet: the form still works for the operator (this
-          is the only way into /admin) but `login` refuses everybody else, so the
-          screen has to say so before somebody types a password that will bounce. */}
-      {PRELAUNCH && (
-        <div className="mb-5 rounded-xl border border-gold/25 bg-panel-inset px-4 py-3 text-center">
-          <p className="text-sm font-bold text-gold-bright">
-            {t("המשחק נפתח בקרוב")}
-          </p>
-          <p className="mt-1 text-xs text-zinc-400">
-            {t("הכניסה תיפתח עם פתיחת העונה. עד אז אפשר להירשם ולשמור את שם האימפריה.")}
-          </p>
-          <Link
-            href="/launch"
-            className="mt-2 inline-block text-xs font-semibold text-crimson-bright underline-offset-4 hover:underline"
-          >
-            {t("לספירה לאחור →")}
-          </Link>
-        </div>
-      )}
       {!gate.open && (
         <div className="mb-5 rounded-xl border border-gold/25 bg-panel-inset px-4 py-3 text-center">
           <p className="text-sm font-bold text-gold-bright">

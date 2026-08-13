@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { PRELAUNCH } from "@/lib/prelaunch";
 import { getT } from "@/i18n/server";
 
 export async function generateMetadata() {
@@ -36,29 +35,13 @@ export default async function NotFound() {
         <p className="max-w-sm text-sm text-zinc-400">
           {t("הכתובת שהגעת אליה לא קיימת — ייתכן שהקישור נשבר בדרך או שהדף הוסר.")}
         </p>
-        {/* Where "back" is depends on whether there is a game to go back to.
-            Pre-launch both buttons below would only bounce to the poster, so
-            the poster and the sign-up sheet are the two answers instead. */}
         <div className="mt-2 flex flex-wrap justify-center gap-2">
-          {PRELAUNCH ? (
-            <>
-              <Link href="/launch" className="btn btn-gold px-5 py-2 text-sm">
-                {t("לספירה לאחור")}
-              </Link>
-              <Link href="/register" className="btn btn-ghost px-5 py-2 text-sm">
-                {t("הרשמה")}
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link href="/game/base" className="btn btn-gold px-5 py-2 text-sm">
-                {t("חזרה לבסיס")}
-              </Link>
-              <Link href="/login" className="btn btn-ghost px-5 py-2 text-sm">
-                {t("התחברות")}
-              </Link>
-            </>
-          )}
+          <Link href="/game/base" className="btn btn-gold px-5 py-2 text-sm">
+            {t("חזרה לבסיס")}
+          </Link>
+          <Link href="/login" className="btn btn-ghost px-5 py-2 text-sm">
+            {t("התחברות")}
+          </Link>
         </div>
       </div>
     </AuthShell>

@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/auth";
 import { getSeasonGate, readRecap, type SeasonRecap } from "@/server/seasonClose";
-import { requireLaunched } from "@/server/prelaunchGuard";
 import { getTunables } from "@/lib/game/config";
 import { formatCompact, formatDate, formatNumber } from "@/lib/game/format";
 import { SeasonCountdown } from "@/components/game/SeasonCountdown";
@@ -77,10 +76,6 @@ async function Totals({ totals }: { totals: SeasonRecap["totals"] }) {
 }
 
 export default async function SeasonEndPage() {
-  // No season has ended yet, so there is no story here to tell — and the bounce
-  // below would send a visitor to `/login`, which is not where a pre-launch
-  // visitor belongs. See prelaunchGuard.
-  await requireLaunched();
   const { t, locale } = await getI18n();
   const gate = await getSeasonGate();
 

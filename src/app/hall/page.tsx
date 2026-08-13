@@ -3,7 +3,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getHallOfFame } from "@/server/seasonClose";
 import { formatCompact, formatDate, formatNumber } from "@/lib/game/format";
-import { requireLaunched } from "@/server/prelaunchGuard";
 import { PublicShell } from "@/components/public/PublicShell";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { getI18n, getT } from "@/i18n/server";
@@ -41,9 +40,6 @@ const MEDALS = ["🥇", "🥈", "🥉"];
  * login, and half of the empires named do not exist any more anyway.
  */
 export default async function PublicHallPage() {
-  // Nobody has won anything yet — before the first season this page is an empty
-  // ceremony, so the pre-launch window sends visitors to the poster instead.
-  await requireLaunched();
   const { t, locale } = await getI18n();
   const hall = await getHallOfFame();
 

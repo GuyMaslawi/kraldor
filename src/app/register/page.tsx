@@ -4,7 +4,6 @@ import { requireOpenSeason } from "@/server/seasonGuard";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { readPendingReferral, resolveReferralCode } from "@/server/referralGuard";
-import { PRELAUNCH } from "@/lib/prelaunch";
 import { getT } from "@/i18n/server";
 
 export async function generateMetadata() {
@@ -30,9 +29,7 @@ export default async function RegisterPage() {
 
   return (
     <AuthShell wide>
-      {/* Pre-launch there is nothing to log into: the sign-up sheet is the only
-          thing open, and the form says so by not offering the alternative. */}
-      <RegisterForm invitedBy={inviter?.empireName ?? null} canLogin={!PRELAUNCH} />
+      <RegisterForm invitedBy={inviter?.empireName ?? null} />
     </AuthShell>
   );
 }

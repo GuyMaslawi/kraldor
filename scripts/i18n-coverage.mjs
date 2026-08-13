@@ -282,7 +282,11 @@ for (const file of files) {
   // opener sits immediately before it.
   const loose = [];
   for (const m of code.matchAll(/(["'])((?:\\.|(?!\1)[^\\])*)\1/g)) {
-    const text = m[2];
+    // Unescaped, exactly as the dictionary keys above are: a literal written
+    // `"…שדרוג \"קבלת תורות\"."` carries plain quotes at runtime, and comparing
+    // the raw source text against an unescaped key never matched — which made a
+    // string that *is* translated report as missing forever.
+    const text = m[2].replace(/\\(["'])/g, "$1");
     if (!HEBREW.test(text)) continue;
     // The window has to clear a wrapped call that prettier broke across lines —
     // `t(\n        "…"` is ordinary formatting for a long string. Widening it is

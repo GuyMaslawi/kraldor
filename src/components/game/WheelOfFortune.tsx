@@ -5,6 +5,7 @@ import {
   WHEEL_PRIZES,
   wheelPrizeAmount,
   wheelPrizeByKey,
+  type WheelClock,
   type WheelPrizeDef,
 } from "@/lib/game/wheel";
 import { spinWheel } from "@/server/actions/wheel";
@@ -85,12 +86,12 @@ function readAngle(el: HTMLElement): number {
 
 export function WheelOfFortune({
   spinsAvailable,
-  seasonCycle,
+  clock,
   onClose,
 }: {
   spinsAvailable: number;
-  /** Daily-update cycle of the season — prize amounts grow with it. */
-  seasonCycle: number;
+  /** Where the season stands — prize amounts are interpolated from it. */
+  clock: WheelClock;
   onClose: () => void;
 }) {
   const t = useT();
@@ -465,8 +466,9 @@ export function WheelOfFortune({
           <span className="nums font-black text-gold-bright" dir="ltr">{spinsLeft}</span>
         </div>
         <p className="nums mt-3 text-xs font-semibold text-gold">
-          {t("מחזור {cycle} לעונה — הפרסים גדלים בכל עדכון יומי!", {
-            cycle: seasonCycle,
+          {t("מחזור {cycle} מתוך {total} לעונה — הפרסים גדלים בכל עדכון יומי!", {
+            cycle: clock.cycle,
+            total: clock.total,
           })}
         </p>
         <p className="mt-1 text-xs font-semibold text-zinc-400">
@@ -589,7 +591,7 @@ export function WheelOfFortune({
                   through the whole spin. */}
               {WHEEL_PRIZES.map((p, i) => {
                 const angle = i * SEG;
-                const amount = p.kind === "amount" ? wheelPrizeAmount(p, seasonCycle) : null;
+                const amount = p.kind === "amount" ? wheelPrizeAmount(p, clock) : null;
                 return (
                   <div
                     key={p.key}

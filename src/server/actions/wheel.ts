@@ -9,8 +9,9 @@ import { grantCitizens } from "@/lib/game/grants";
 import {
   WHEEL_PRIZES,
   pickWheelPrizeIndex,
-  seasonCycle,
+  wheelClock,
   wheelPrizeAmount,
+  type WheelClock,
   type WheelGrant,
   type WheelPrizeDef,
 } from "@/lib/game/wheel";
@@ -44,18 +45,18 @@ const num = (n: number) => Math.round(n).toLocaleString("en-US");
 
 /**
  * Grant a won prize to the empire and return the reveal message. Every branch
- * writes to the DB — the wheel actually pays out. Amount prizes grow with the
- * daily-update cycle; the one unit prize (a hero item) is a concrete grant.
+ * writes to the DB — the wheel actually pays out. Amount prizes are read off the
+ * season clock; the one unit prize (a hero item) is a concrete grant.
  */
 async function grantPrize(
   tx: Prisma.TransactionClient,
   empire: FullEmpire,
   prize: WheelPrizeDef,
-  cycle: number,
+  clock: WheelClock,
   t: T
 ): Promise<{ message: string; grants: WheelGrant[] }> {
   const empireId = empire.id;
-  const amount = wheelPrizeAmount(prize, cycle);
+  const amount = wheelPrizeAmount(prize, clock);
 
   switch (prize.key) {
     case "diamonds":
@@ -89,7 +90,8 @@ async function grantPrize(
         grants: [{ key: "wood", amount }],
       };
     case "citizens":
-      // Capped by city count — see grantCitizens.
+      // Always through grantCitizens, never a raw increment — see the note there
+      // on why the spin rate, not a population lid, is what keeps this safe.
       await grantCitizens(tx, empireId, amount);
       return {
         message: t("זכית ב־{amount} אזרחים!", { amount: num(amount) }),
@@ -126,7 +128,7 @@ async function grantPrize(
       // No room / no hero — pay a gold consolation so the spin isn't wasted.
       const consolation = wheelPrizeAmount(
         WHEEL_PRIZES.find((p) => p.key === "gold")!,
-        cycle
+        clock
       );
       await tx.empire.update({
         where: { id: empireId },
@@ -165,14 +167,14 @@ export async function spinWheel(): Promise<SpinResult> {
       const season = empire.seasonId
         ? await tx.gameSeason.findUnique({ where: { id: empire.seasonId } })
         : null;
-      const cycle = seasonCycle(season, Date.now());
+      const clock = wheelClock(season, Date.now());
 
       const prizeIndex = pickWheelPrizeIndex();
       const { message, grants } = await grantPrize(
         tx,
         empire,
         WHEEL_PRIZES[prizeIndex],
-        cycle,
+        clock,
         t
       );
       await awardSeasonPassXp(tx, empireId, "wheelSpin");

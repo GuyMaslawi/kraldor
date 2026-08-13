@@ -4,15 +4,16 @@ import { useState } from "react";
 import { WheelOfFortune } from "./WheelOfFortune";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/i18n/client";
+import type { WheelClock } from "@/lib/game/wheel";
 
 /** The base-screen "גלגל המזל" card that opens the wheel modal. */
 export function WheelCard({
   spinsAvailable = 3,
-  seasonCycle = 1,
+  clock = { cycle: 1, total: 1 },
 }: {
   spinsAvailable?: number;
-  /** Daily-update cycle of the season — wheel prize amounts grow with it. */
-  seasonCycle?: number;
+  /** Where the season stands — wheel prize amounts are interpolated from it. */
+  clock?: WheelClock;
 }) {
   const [open, setOpen] = useState(false);
   const t = useT();
@@ -45,7 +46,7 @@ export function WheelCard({
       {open && (
         <WheelOfFortune
           spinsAvailable={spinsAvailable}
-          seasonCycle={seasonCycle}
+          clock={clock}
           onClose={() => setOpen(false)}
         />
       )}

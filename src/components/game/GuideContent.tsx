@@ -236,11 +236,13 @@ import {
   SEASON_PASS_DAILY_GROWTH,
 } from "@/lib/game/seasonPass";
 import {
-  WHEEL_MAX_DOUBLINGS,
-  WHEEL_PREMIUM_BASE,
-  WHEEL_PREMIUM_STEP,
+  WHEEL_CITIZEN_BASE,
+  WHEEL_CITIZEN_FINAL,
+  WHEEL_DIAMOND_BASE,
+  WHEEL_DIAMOND_FINAL,
   WHEEL_PRIZES,
   WHEEL_RESOURCE_BASE,
+  WHEEL_RESOURCE_FINAL,
 } from "@/lib/game/wheel";
 import {
   CHAT_BODY_MAX,
@@ -3736,13 +3738,17 @@ export async function GuideContent({
                   <p className="text-[11px] leading-relaxed text-zinc-400">
                     <b className="nums">{tunables.daily.wheelSpins}</b> סיבובים בכל עדכון
                     יומי, נצברים בלי הגבלה — שבוע היעדרות לא מבזבז כלום.{" "}
-                    {WHEEL_PRIZES.length} פרסים בשני מסלולי גדילה: ארבעת המשאבים פותחים ב־
-                    <b className="nums">{nf(WHEEL_RESOURCE_BASE)}</b> כל אחד{" "}
-                    <b>ומכפילים את עצמם כל יום</b> (עד <b className="nums">{WHEEL_MAX_DOUBLINGS}</b>{" "}
-                    הכפלות), והיהלומים והאזרחים פותחים ב־
-                    <b className="nums">{WHEEL_PREMIUM_BASE}</b> ועולים ב־
-                    <b className="nums">{WHEEL_PREMIUM_STEP}</b> בכל עדכון יומי — שני הווג׳ים
-                    האלה משלמים תמיד את אותו מספר בדיוק.
+                    {WHEEL_PRIZES.length} פרסים, וכל פרס <b>גדל בכל עדכון יומי</b> מהערך שלו
+                    ביום הראשון עד הערך שלו בעדכון האחרון של העונה — בלי קפיצות ובלי תקרה
+                    שנתקעים בה באמצע. ארבעת המשאבים הולכים מ־
+                    <b className="nums">{nf(WHEEL_RESOURCE_BASE)}</b> ל־
+                    <b className="nums">{nf(WHEEL_RESOURCE_FINAL)}</b> כל אחד (גדילה מוכפלת,
+                    כמו הכלכלה עצמה), היהלומים מ־
+                    <b className="nums">{WHEEL_DIAMOND_BASE}</b> ל־
+                    <b className="nums">{WHEEL_DIAMOND_FINAL}</b> והאזרחים מ־
+                    <b className="nums">{WHEEL_CITIZEN_BASE}</b> ל־
+                    <b className="nums">{WHEEL_CITIZEN_FINAL}</b> (תוספת קבועה בכל עדכון).
+                    עונה קצרה יותר פשוט מטפסת מהר יותר — הסוף תמיד אותו סוף.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {WHEEL_PRIZES.map((p) => (
@@ -3909,11 +3915,11 @@ export async function GuideContent({
 
               <Note tone="green" icon="diamond" title="למה יש רק ווג׳ אחד של יהלומים">
                 דרך התהילה ושליטי הערים לא מחלקים יהלומים בכוונה, והגלגל מחלק אותם
-                מווג׳ יחיד שעולה לאט: <b className="nums">{WHEEL_PREMIUM_BASE}</b> ביום
-                הראשון, ועוד <b className="nums">{WHEEL_PREMIUM_STEP}</b> בכל עדכון יומי —
-                אותה כמות בדיוק כמו ווג׳ האזרחים. בכוונה זה המסלול הזוחל ולא הכפלה כמו
-                המשאבים: מקור חוזר ומתפוצץ של מטבע פרימיום היה מרוקן מתוכן כל מה שנקנה
-                בו.
+                מווג׳ יחיד שעולה לאט: <b className="nums">{WHEEL_DIAMOND_BASE}</b> ביום
+                הראשון, ועולה בהדרגה עד{" "}
+                <b className="nums">{WHEEL_DIAMOND_FINAL}</b> בעדכון האחרון של העונה. בכוונה
+                זו תוספת קבועה ולא הכפלה כמו המשאבים: מקור חוזר ומתפוצץ של מטבע פרימיום
+                היה מרוקן מתוכן כל מה שנקנה בו.
               </Note>
 
               <div className="flex justify-center">

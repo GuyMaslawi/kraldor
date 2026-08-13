@@ -509,9 +509,15 @@ export function wheelLuckBonus(level: number): number {
 /**
  * Wheel luck is the one upgrade priced as a luxury: free spins are the scarcest
  * currency in the game, so every percent has to hurt. The curve is geometric,
- * not linear like the other upgrades — the *first* purchase already costs three
- * times a second city (3M gold), and the last one (14 → 15) lands near a
- * billion. All 14 purchases together run to roughly 2.5B gold, an endgame sink.
+ * not linear like the other upgrades — the *first* purchase already costs 30M
+ * gold, and the last one (14 → 15) lands near 9B. All 14 purchases together run
+ * to roughly 25B gold, the largest single sink in the game.
+ *
+ * The ladder was multiplied by ten on 2026-08-13: at the old 3M opener the whole
+ * 15-level climb was paid off long before a season's economy peaked, which made
+ * the cap the default state rather than a luxury. The wheel's own resource
+ * wedges pay 5.24B a spin from day 21 on, so a sink priced in single-digit
+ * millions was never going to hold.
  *
  * Declared here rather than beside the other cost functions further down because
  * EMPIRE_UPGRADE_META prints the growth factor in its description, and that
@@ -519,10 +525,10 @@ export function wheelLuckBonus(level: number): number {
  * its temporal dead zone.
  */
 const WHEEL_LUCK_BASE_COST = {
-  gold: 3_000_000,
-  wood: 1_500_000,
-  iron: 1_500_000,
-  stone: 1_000_000,
+  gold: 30_000_000,
+  wood: 15_000_000,
+  iron: 15_000_000,
+  stone: 10_000_000,
 } as const;
 
 /** Each wheel-luck level multiplies the previous level's price by this. */

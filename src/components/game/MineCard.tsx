@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useId, type ReactNode } from "react";
 import {
   upgradeMine,
   upgradeMineToMax,
@@ -52,6 +52,7 @@ export function MineCard({
   isVip,
 }: MineCardProps) {
   const t = useT();
+  const crewId = useId();
   const [upgradeState, upgradeAction] = useActionState<ActionState, FormData>(
     upgradeMine,
     {}
@@ -82,41 +83,36 @@ export function MineCard({
   }, [assignState, fire]);
 
   return (
-    <div className="panel rounded-xl p-4 flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+    <div className="panel rounded-xl p-4 flex flex-col gap-3">
+      {/* One line, one level. The old header printed the level twice — the
+          fraction under the name and a separate "max" pill beside it. */}
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="flex min-w-0 items-center gap-2 font-bold text-gold-bright">
           <Icon
             name={RESOURCE_ICON[resource]}
-            size={30}
-            className={RESOURCE_ICON_COLOR[resource]}
+            size={26}
+            className={`shrink-0 ${RESOURCE_ICON_COLOR[resource]}`}
           />
-          <div>
-            <h3 className="font-bold text-gold-bright">{t(label)}</h3>
-            <p className="text-xs font-semibold text-gold-dim">
-              {t("רמה")}{" "}
-              <span className="nums" dir="ltr">
-                {level} / {maxLevel}
-              </span>
-            </p>
-          </div>
-        </div>
+          <span className="truncate">{t(label)}</span>
+        </h3>
         <span
-          className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+          className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${
             isMaxLevel
               ? "border border-gold/40 bg-gold/10 text-gold-bright"
               : "border border-border-subtle bg-panel-inset text-gold-dim"
           }`}
         >
-          {isMaxLevel ? `${t("שיא")} ` : ""}
+          {isMaxLevel ? `${t("שיא")} · ` : ""}
           {t("רמה")}{" "}
           <span className="nums" dir="ltr">
-            {maxLevel}
+            {isMaxLevel ? maxLevel : `${level}/${maxLevel}`}
           </span>
         </span>
       </div>
 
       {/* The machine itself: it runs at the speed of the crew standing on it,
-          and the plate on its frame carries the real per-update output. */}
+          and the plate on its frame carries the real per-update output — which
+          is the one number this card exists to show, so nothing repeats it. */}
       <MineRig
         resource={resource}
         label={t(label)}
@@ -127,108 +123,59 @@ export function MineCard({
         pulse={pulse}
       />
 
-      <p className="text-center text-xs text-gold-dim">
-        {t("תפוקה לעדכון רגיל")}
-        {breakdown.lines.length > 0 ? t(" (כולל בונוסים)") : ""}
-      </p>
-
-      {/* min-height keeps the stat boxes and forms aligned across the four
-          cards even when descriptions wrap to a different number of lines */}
-      <p className="min-h-[3.75rem] text-sm text-zinc-400">{t(description)}</p>
-
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 panel-inset rounded-lg p-3 text-xs">
-        <dt className="text-zinc-400">{t("עבדי מכרות מוצבים")}</dt>
-        <dd className="nums text-left font-bold text-zinc-100" dir="ltr">
-          {nis(assignedSlaves)}
-        </dd>
-        <dt className="text-zinc-400">{t("תפוקה לעבד מכרות")}</dt>
-        <dd className="nums text-left font-bold text-zinc-100" dir="ltr">
-          {nis(productionPerSlave)} {t(resourceLabel)}
-        </dd>
-        <dt className="text-zinc-400">{t("תפוקת בסיס לעדכון")}</dt>
-        <dd className="nums text-end font-bold text-zinc-100" dir="ltr">
-          +{nis(breakdown.base)} {t(resourceLabel)}
-        </dd>
-      </dl>
-
-      {breakdown.lines.length > 0 && (
-        <div className="panel-inset rounded-lg p-3 text-xs space-y-1.5">
-          <p className="flex items-center gap-1.5 font-semibold text-gold-dim">
-            <Icon name="spark" size={14} className="text-crimson-bright" />
-            {t("בונוסים פעילים")}
-          </p>
-          {breakdown.lines.map((line) => (
-            <div key={line.key} className="flex items-center justify-between gap-2">
-              <span className="text-zinc-400">
-                {t(line.label, line.labelParams)}
-                {line.pct !== undefined ? (
-                  <span className="nums" dir="ltr">
-                    {" "}
-                    (+{line.pct}%)
-                  </span>
-                ) : null}
-              </span>
-              <span className="nums font-bold text-emerald-300" dir="ltr">
-                +{nis(line.amount)}
-              </span>
-            </div>
-          ))}
-          <div className="flex items-center justify-between gap-2 border-t border-border-subtle pt-1.5">
-            <span className="font-semibold text-gold-dim">{t("סה״כ בפועל")}</span>
-            <span className="nums font-black text-emerald-400" dir="ltr">
-              +{nis(breakdown.total)} {t(resourceLabel)}
-            </span>
-          </div>
-        </div>
-      )}
-
-      <form action={assignAction} className="flex items-end gap-2">
+      {/* -------- the crew box -------- */}
+      <form action={assignAction} className="space-y-1.5">
         <input type="hidden" name="resource" value={resource} />
-        <label className="flex-1 space-y-1">
-          <span className="text-xs text-gold-dim">
-            {t("ניהול עובדים (פנויים:")}{" "}
-            <span className="nums" dir="ltr">
+        <div className="flex items-baseline justify-between gap-2 text-xs">
+          <label htmlFor={crewId} className="font-semibold text-gold-dim">
+            {t("עובדים במכרה")}
+          </label>
+          <span className="text-zinc-500">
+            {t("פנויים")}{" "}
+            <span className="nums font-bold text-zinc-300" dir="ltr">
               {nis(freeSlaves)}
             </span>
-            )
           </span>
+        </div>
+        <div className="flex gap-2">
           <input
+            id={crewId}
             type="number"
             name="amount"
             min={0}
             max={assignedSlaves + freeSlaves}
             defaultValue={assignedSlaves}
-            className="nums w-full rounded-lg border border-border-subtle bg-panel-inset px-3 py-1.5 text-sm text-zinc-100 outline-none focus:border-gold"
+            className="nums w-full rounded-lg border border-border-subtle bg-panel-inset px-3 py-1.5 text-center text-sm font-bold text-zinc-100 outline-none focus:border-gold"
           />
-        </label>
-        <SubmitButton
-          variant="secondary"
-          className="btn btn-ghost"
-          pendingText={t("מעדכן...")}
-        >
-          {t("עדכן חלוקה")}
-        </SubmitButton>
+          <SubmitButton
+            variant="secondary"
+            className="btn btn-ghost shrink-0 px-3"
+            pendingText={t("מעדכן...")}
+          >
+            {t("הצב")}
+          </SubmitButton>
+        </div>
       </form>
 
       {/* At the ceiling there is nothing left to buy, so the two upgrade
           buttons and the cost line give way to a single "maxed out" plate. */}
       {isMaxLevel ? (
-        <div className="mt-auto flex items-center justify-center gap-2 rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm font-bold text-gold-bright">
+        <div className="flex items-center justify-center gap-2 rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm font-bold text-gold-bright">
           <Icon name="spark" size={16} className="text-gold-bright" />
           {t("המכונה משודרגת למקסימום")}
         </div>
       ) : (
-        <form action={upgradeAction} className="mt-auto space-y-2">
+        <form action={upgradeAction} className="space-y-2">
           <input type="hidden" name="resource" value={resource} />
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-400">
-            <span className="font-semibold text-gold-dim">{t("עלות שדרוג:")}</span>
-            <span className="nums" dir="ltr">
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="font-semibold text-gold-dim">{t("עלות שדרוג")}</span>
+            <span className="nums font-bold text-zinc-200" dir="ltr">
               <Icon
                 name={RESOURCE_ICON[resource]}
                 size={14}
                 className={`inline align-[-2px] ${RESOURCE_ICON_COLOR[resource]}`}
               />{" "}
-              {nis(upgradeCost[resource])} {t(resourceLabel)}
+              {nis(upgradeCost[resource])}
             </span>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -251,10 +198,95 @@ export function MineCard({
         </form>
       )}
 
+      {/* Everything a player reads once and then never again — where the plate's
+          figure comes from, and the mine's flavour — folded away. `mt-auto` sits
+          here rather than on the upgrade form so opening one card's fold cannot
+          drag its buttons out of line with the other three. */}
+      <details className="group mt-auto border-t border-border-subtle pt-2">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] font-bold text-gold-dim transition-colors hover:text-gold-bright [&::-webkit-details-marker]:hidden">
+          <span
+            aria-hidden
+            className="inline-block transition-transform group-open:rotate-90 rtl:-scale-x-100"
+          >
+            ▸
+          </span>
+          {t("מאיפה המספר הזה")}
+        </summary>
+
+        <dl className="mt-2.5 space-y-1 text-[11px]">
+          <BreakRow label={t("תפוקה לכל עובד")} value={nis(productionPerSlave)} />
+          {/* With no bonus running, base *is* the total — printing both would be
+              the same figure twice, which is what this card is getting away from. */}
+          {breakdown.lines.length > 0 && (
+            <BreakRow
+              label={t("תפוקת בסיס")}
+              value={`+${nis(breakdown.base)}`}
+              className="border-t border-border-subtle pt-1"
+            />
+          )}
+          {breakdown.lines.map((line) => (
+            <BreakRow
+              key={line.key}
+              label={
+                <>
+                  {t(line.label, line.labelParams)}
+                  {line.pct !== undefined ? (
+                    <span className="nums" dir="ltr">
+                      {" "}
+                      (+{line.pct}%)
+                    </span>
+                  ) : null}
+                </>
+              }
+              value={`+${nis(line.amount)}`}
+              tone="text-emerald-300"
+            />
+          ))}
+          <BreakRow
+            label={t("סה״כ לעדכון")}
+            value={`+${nis(breakdown.total)} ${t(resourceLabel)}`}
+            tone="text-emerald-400"
+            className={`font-black ${
+              breakdown.lines.length > 0 ? "border-t border-border-subtle pt-1" : ""
+            }`}
+          />
+        </dl>
+
+        <p className="mt-2.5 text-[11px] leading-relaxed text-zinc-500">
+          {t(description)}
+        </p>
+      </details>
+
       <FormMessage
         error={upgradeState.error ?? maxState.error ?? assignState.error}
         success={assignState.success ?? upgradeState.success ?? maxState.success}
       />
+    </div>
+  );
+}
+
+/**
+ * One line of the folded breakdown. Every row is the same flex — label at the
+ * start, figure at the end — so the column of numbers cannot drift out of line
+ * the way the old grid's mixed `text-left` / `text-end` cells did.
+ */
+function BreakRow({
+  label,
+  value,
+  tone = "text-zinc-100",
+  className = "",
+}: {
+  label: ReactNode;
+  value: string;
+  tone?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-baseline justify-between gap-2 ${className}`}>
+      <dt className="text-zinc-400">{label}</dt>
+      <dd className={`nums shrink-0 font-bold ${tone}`} dir="ltr">
+        {value}
+      </dd>
     </div>
   );
 }

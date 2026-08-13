@@ -67,12 +67,14 @@ import {
 import {
   pickWheelPrizeIndex,
   wheelPrizeAmount,
-  WHEEL_DOUBLE_EVERY_CYCLES,
-  WHEEL_MAX_DOUBLINGS,
-  WHEEL_PREMIUM_BASE,
-  WHEEL_PREMIUM_STEP,
+  wheelClock,
+  WHEEL_CITIZEN_BASE,
+  WHEEL_CITIZEN_FINAL,
+  WHEEL_DIAMOND_BASE,
+  WHEEL_DIAMOND_FINAL,
   WHEEL_PRIZES,
   WHEEL_RESOURCE_BASE,
+  WHEEL_RESOURCE_FINAL,
 } from "@/lib/game/wheel";
 import { armyPower, getEmpireMilitaryPower } from "@/lib/game/power";
 import {
@@ -408,41 +410,73 @@ describe("the wheel", () => {
     }
   });
 
-  it("pays more in a later cycle", () => {
-    const prize = WHEEL_PRIZES[0];
-    expect(wheelPrizeAmount(prize, 5)).toBeGreaterThanOrEqual(wheelPrizeAmount(prize, 1));
-  });
-
   it("never hands out army weapons — those are earned in the factory", () => {
     expect(WHEEL_PRIZES.map((p) => p.key)).not.toContain("allWeapons");
   });
 
-  it("pays the diamond and citizen wedges the identical number, every cycle", () => {
-    const diamonds = WHEEL_PRIZES.find((p) => p.key === "diamonds")!;
-    const citizens = WHEEL_PRIZES.find((p) => p.key === "citizens")!;
-    for (const cycle of [1, 2, 3, 17, 60]) {
-      expect(wheelPrizeAmount(diamonds, cycle)).toBe(wheelPrizeAmount(citizens, cycle));
+  it("opens every wedge on its base and closes it on its final amount", () => {
+    const season = { cycle: 1, total: 61 };
+    const last = { cycle: 61, total: 61 };
+    const at = (key: string, clock: { cycle: number; total: number }) =>
+      wheelPrizeAmount(WHEEL_PRIZES.find((p) => p.key === key)!, clock);
+
+    for (const key of ["gold", "iron", "stone", "wood"]) {
+      expect(at(key, season)).toBe(WHEEL_RESOURCE_BASE);
+      expect(at(key, last)).toBe(WHEEL_RESOURCE_FINAL);
     }
-    // Day 1 morning, day 1 evening, day 2 morning — the published ladder.
-    expect(wheelPrizeAmount(diamonds, 1)).toBe(WHEEL_PREMIUM_BASE);
-    expect(wheelPrizeAmount(diamonds, 3)).toBe(WHEEL_PREMIUM_BASE + 2 * WHEEL_PREMIUM_STEP);
+    expect(at("diamonds", season)).toBe(WHEEL_DIAMOND_BASE);
+    expect(at("diamonds", last)).toBe(WHEEL_DIAMOND_FINAL);
+    expect(at("citizens", season)).toBe(WHEEL_CITIZEN_BASE);
+    expect(at("citizens", last)).toBe(WHEEL_CITIZEN_FINAL);
   });
 
-  it("doubles every resource wedge once a day, then plateaus at the cap", () => {
-    for (const key of ["gold", "iron", "stone", "wood"]) {
-      const prize = WHEEL_PRIZES.find((p) => p.key === key)!;
-      expect(wheelPrizeAmount(prize, 1)).toBe(WHEEL_RESOURCE_BASE);
-      // Both of day 1's updates pay the base; the doubling lands on day 2.
-      expect(wheelPrizeAmount(prize, 2)).toBe(WHEEL_RESOURCE_BASE);
-      expect(wheelPrizeAmount(prize, 3)).toBe(WHEEL_RESOURCE_BASE * 2);
-      expect(wheelPrizeAmount(prize, 5)).toBe(WHEEL_RESOURCE_BASE * 4);
-
-      // A long season must not print 2^89 — the cap is what makes that safe.
-      const capped = WHEEL_RESOURCE_BASE * 2 ** WHEEL_MAX_DOUBLINGS;
-      const firstCappedCycle = WHEEL_MAX_DOUBLINGS * WHEEL_DOUBLE_EVERY_CYCLES + 1;
-      expect(wheelPrizeAmount(prize, firstCappedCycle)).toBe(capped);
-      expect(wheelPrizeAmount(prize, firstCappedCycle + 400)).toBe(capped);
+  it("lands on the same finish whatever the season's length", () => {
+    // The curve is pinned to the season, not to a fixed number of days: a
+    // 10-day season simply climbs faster and still closes on the finals.
+    for (const total of [3, 21, 61, 181]) {
+      for (const prize of WHEEL_PRIZES.filter((p) => p.kind === "amount")) {
+        expect(wheelPrizeAmount(prize, { cycle: 1, total })).toBe(prize.base);
+        expect(wheelPrizeAmount(prize, { cycle: total, total })).toBe(prize.final);
+      }
     }
+  });
+
+  it("grows on every single update — never a jump, never a plateau", () => {
+    // The whole point of the interpolated curve. Each update must be strictly
+    // richer than the one before it (no flat stretch), and no update may more
+    // than double the last (no overnight leap the player can feel).
+    const total = 61;
+    for (const prize of WHEEL_PRIZES.filter((p) => p.kind === "amount")) {
+      for (let cycle = 2; cycle <= total; cycle++) {
+        const prev = wheelPrizeAmount(prize, { cycle: cycle - 1, total });
+        const now = wheelPrizeAmount(prize, { cycle, total });
+        expect(now).toBeGreaterThan(prev);
+        expect(now).toBeLessThanOrEqual(prev * 2);
+      }
+    }
+  });
+
+  it("holds at the final amount past the end and at the base with no season", () => {
+    const gold = WHEEL_PRIZES.find((p) => p.key === "gold")!;
+    // wheelClock clamps, but the amount function must not blow past `final`
+    // even if handed an out-of-range cycle directly.
+    expect(wheelPrizeAmount(gold, { cycle: 900, total: 61 })).toBe(WHEEL_RESOURCE_FINAL);
+    // No active season: the clock stands at 1 of 1 and everything pays its base.
+    expect(wheelPrizeAmount(gold, wheelClock(null, Date.now()))).toBe(WHEEL_RESOURCE_BASE);
+  });
+
+  it("pays the published end-of-season numbers on the last day of a 30-day season", () => {
+    const start = new Date("2026-09-01T12:00:00+03:00");
+    const end = new Date(start.getTime() + 30 * 86_400_000);
+    const clock = wheelClock({ startsAt: start, endsAt: end }, end.getTime());
+    const amountOf = (key: string) =>
+      wheelPrizeAmount(WHEEL_PRIZES.find((p) => p.key === key)!, clock);
+
+    for (const key of ["gold", "iron", "stone", "wood"]) {
+      expect(amountOf(key)).toBe(50_000_000_000);
+    }
+    expect(amountOf("diamonds")).toBe(150);
+    expect(amountOf("citizens")).toBe(500);
   });
 });
 
@@ -453,8 +487,12 @@ describe("wheel luck", () => {
   });
 
   it("costs a fortune from the very first purchase", () => {
-    // The premise of the upgrade: level 1 → 2 already outprices a second city.
-    expect(wheelLuckUpgradeCost(1).gold).toBeGreaterThanOrEqual(3_000_000);
+    // The premise of the upgrade: level 1 → 2 already outprices a second city
+    // many times over, and the top of the ladder is a multi-billion sink.
+    expect(wheelLuckUpgradeCost(1).gold).toBeGreaterThanOrEqual(30_000_000);
+    expect(
+      wheelLuckUpgradeCost(WHEEL_LUCK_MAX_LEVEL - 1).gold
+    ).toBeGreaterThanOrEqual(5_000_000_000);
   });
 
   it("compounds — every level costs strictly more than the one below", () => {

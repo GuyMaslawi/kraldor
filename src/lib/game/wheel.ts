@@ -4,46 +4,62 @@ import { dailyUpdatesBetween } from "./time";
 import { secureRandom } from "./random";
 
 /**
- * Wheel-of-fortune prize table. Two growth ladders, both clocked off the
- * daily-update cycle (see `seasonCycle`), because the two prize families are
- * worth wildly different things:
+ * Wheel-of-fortune prize table.
  *
- * - `"double"` — the four resources. They open at a genuinely useful
- *   WHEEL_RESOURCE_BASE and then **double once a day**, so the wheel keeps pace
- *   with an economy that is itself exponential (mines, cities, interest). A
- *   fixed or linear payout stops mattering by week two.
- * - `"step"` — diamonds and citizens, deliberately on one shared ladder so the
- *   two wedges always pay the identical number (9/9, then 11/11, 13/13 …).
- *   These are the scarce currencies: diamonds price the real-money store,
- *   citizens are capped by city count, and neither survives doubling.
+ * Every `amount` prize is defined by three things — where it opens on the
+ * season's first update, where it lands on the season's **last** one, and the
+ * shape of the curve between them. Nothing else: there is no per-update step, no
+ * doubling period and no ceiling to bump into, because the two endpoints and the
+ * season's own length already determine the whole ladder.
  *
- * The one unit prize (a hero item) is always a single rolled grant.
+ * That is a deliberate replacement for the ladder this file used to hold, which
+ * doubled the resource wedges once a day and clamped them at a cap. It produced
+ * two artefacts a player could see: a payout that *tripled overnight* in the last
+ * week (2.6B → 5.2B in one update), and a flat plateau for the final third of the
+ * season where the wheel stopped growing at all. Interpolating instead spreads
+ * the same start and the same finish evenly over every update in between — the
+ * wheel gets a little better twice a day, every day, right up to the closing bell.
+ *
+ * The two curves:
+ *
+ * - `"geometric"` — the four resources, which multiply by a constant factor each
+ *   update. Resource income in this game is itself multiplicative (mines × slaves
+ *   × cities), so a linear wheel would be enormous on day 2 and pocket change on
+ *   day 30. Over a 30-day season the factor works out at about ×1.31 an update,
+ *   i.e. ×1.72 a day.
+ * - `"linear"` — diamonds and citizens, which add a constant amount each update.
+ *   These are the scarce currencies: diamonds price the real-money store and
+ *   citizens convert straight into army, so neither may compound. They no longer
+ *   share one ladder and pay the identical number — an end-of-season citizen
+ *   wedge has to be worth a city's intake, while a diamond wedge must never
+ *   approach a store pack.
+ *
+ * Because the curve is pinned to the season's own length, *any* season — 10 days
+ * or 90 — opens on the base and closes on the final amount. A short season simply
+ * climbs faster. The one unit prize (a hero item) is always a single rolled grant.
  */
 
-/** Day-1 payout of every resource wedge — gold, iron, stone and wood alike. */
+/** Payout of every resource wedge — gold, iron, stone and wood alike — on day 1. */
 export const WHEEL_RESOURCE_BASE = 5000;
 
 /**
- * Daily-update cycles per doubling of a `"double"` prize. DAILY_UPDATE_TIMES
- * fires twice a day, so 2 cycles = one doubling a day.
+ * What a single resource wedge pays on the season's final daily update. The
+ * largest single payout in the game, and deliberately so: it is the last spin of
+ * a season no one carries anything out of.
  */
-export const WHEEL_DOUBLE_EVERY_CYCLES = 2;
+export const WHEEL_RESOURCE_FINAL = 50_000_000_000;
+
+/** The diamond wedge, first update to last. */
+export const WHEEL_DIAMOND_BASE = 9;
+export const WHEEL_DIAMOND_FINAL = 150;
 
 /**
- * Ceiling on how many times a `"double"` prize may double. Season length is
- * admin-set and unbounded (see the season form in admin), so uncapped daily
- * doubling would pay 5,000 × 2^89 on a 90-day season — a number no resource
- * bar, formatter or balance pass survives. At 20 the resource wedges plateau
- * at ~5.24B a spin from day 21 on, which is still the largest single payout
- * in the game.
+ * The citizen wedge, first update to last. Ten times the diamond finish because
+ * citizens are spent by the thousand and are worthless outside the season they
+ * are won in.
  */
-export const WHEEL_MAX_DOUBLINGS = 20;
-
-/** Day-1 payout of the diamond and citizen wedges — always equal to each other. */
-export const WHEEL_PREMIUM_BASE = 9;
-
-/** How much the shared diamond/citizen ladder gains on every daily update. */
-export const WHEEL_PREMIUM_STEP = 2;
+export const WHEEL_CITIZEN_BASE = 10;
+export const WHEEL_CITIZEN_FINAL = 500;
 
 /**
  * Spins granted on each daily update. Spins bank without limit — there is
@@ -55,8 +71,8 @@ export const WHEEL_DAILY_SPINS = 3;
 
 export type WheelPrizeKind = "amount" | "unit";
 
-/** Which growth ladder an `amount` prize rides — see the file header. */
-export type WheelGrowth = "double" | "step";
+/** Which curve an `amount` prize follows from `base` to `final` — see the header. */
+export type WheelGrowth = "geometric" | "linear";
 
 export interface WheelPrizeDef {
   key: string;
@@ -71,11 +87,17 @@ export interface WheelPrizeDef {
    */
   color: string;
   kind: WheelPrizeKind;
-  /** Day-1 amount for `kind: "amount"` prizes; ignored for unit prizes. */
+  /** Amount on the season's first daily update; ignored for unit prizes. */
   base: number;
-  /** Growth ladder for `kind: "amount"` prizes; ignored for unit prizes. */
+  /** Amount on the season's last daily update; ignored for unit prizes. */
+  final?: number;
+  /** Curve between `base` and `final`; ignored for unit prizes. */
   growth?: WheelGrowth;
-  /** Round the grown amount to a clean, readable step. */
+  /**
+   * Granularity the interpolated amount is rounded to. Resources round to three
+   * significant figures instead (see `wheelPrizeAmount`) — this is their floor,
+   * and the exact quantum for the two counted prizes.
+   */
   step: number;
   /** Extra requirement text shown in the wheel modal, if any. */
   note?: string;
@@ -93,12 +115,12 @@ export interface WheelPrizeDef {
  * one obvious standout.
  */
 export const WHEEL_PRIZES: WheelPrizeDef[] = [
-  { key: "diamonds", label: "יהלומים", icon: "diamond", color: "#7ad7e8", kind: "amount", base: WHEEL_PREMIUM_BASE, growth: "step", step: 1 },
-  { key: "gold", label: "זהב", icon: "gold", color: "#e4c35a", kind: "amount", base: WHEEL_RESOURCE_BASE, growth: "double", step: 50 },
-  { key: "iron", label: "ברזל", icon: "iron", color: "#a9b6c6", kind: "amount", base: WHEEL_RESOURCE_BASE, growth: "double", step: 50 },
-  { key: "stone", label: "אבן", icon: "stone", color: "#8e8a80", kind: "amount", base: WHEEL_RESOURCE_BASE, growth: "double", step: 50 },
-  { key: "wood", label: "עץ", icon: "wood", color: "#b0793c", kind: "amount", base: WHEEL_RESOURCE_BASE, growth: "double", step: 50 },
-  { key: "citizens", label: "אזרחים", icon: "citizens", color: "#d8c9a6", kind: "amount", base: WHEEL_PREMIUM_BASE, growth: "step", step: 1 },
+  { key: "diamonds", label: "יהלומים", icon: "diamond", color: "#7ad7e8", kind: "amount", base: WHEEL_DIAMOND_BASE, final: WHEEL_DIAMOND_FINAL, growth: "linear", step: 1 },
+  { key: "gold", label: "זהב", icon: "gold", color: "#e4c35a", kind: "amount", base: WHEEL_RESOURCE_BASE, final: WHEEL_RESOURCE_FINAL, growth: "geometric", step: 50 },
+  { key: "iron", label: "ברזל", icon: "iron", color: "#a9b6c6", kind: "amount", base: WHEEL_RESOURCE_BASE, final: WHEEL_RESOURCE_FINAL, growth: "geometric", step: 50 },
+  { key: "stone", label: "אבן", icon: "stone", color: "#8e8a80", kind: "amount", base: WHEEL_RESOURCE_BASE, final: WHEEL_RESOURCE_FINAL, growth: "geometric", step: 50 },
+  { key: "wood", label: "עץ", icon: "wood", color: "#b0793c", kind: "amount", base: WHEEL_RESOURCE_BASE, final: WHEEL_RESOURCE_FINAL, growth: "geometric", step: 50 },
+  { key: "citizens", label: "אזרחים", icon: "citizens", color: "#d8c9a6", kind: "amount", base: WHEEL_CITIZEN_BASE, final: WHEEL_CITIZEN_FINAL, growth: "linear", step: 1 },
   { key: "item", label: "חפץ לגיבור", icon: "spark", color: "#a074e8", kind: "unit", base: 1, step: 1, note: "דורש מקום פנוי בתיק הגיבור" },
 ];
 
@@ -119,46 +141,79 @@ export function wheelPrizeByKey(key: string): WheelPrizeDef | undefined {
 }
 
 /**
- * How many daily-update cycles the season has run through, 1-based.
+ * The wheel's growth clock: which daily-update cycle the season is on, and how
+ * many it holds in total. Both 1-based, so a season that has only just opened
+ * reads `{ cycle: 1, total: 61 }` on a 30-day season.
  *
- * This is the growth clock for the wheel: DAILY_UPDATE_TIMES fires twice a day,
- * so cycle 1 is the season's opening, cycle 2 starts at the next daily update
- * that evening, and so on. Clamped to the season's own length so an expired
- * season keeps paying its final amounts instead of growing forever, and falls
- * back to cycle 1 when no season is active.
+ * DAILY_UPDATE_TIMES fires twice a day, so cycle 1 is the season's opening,
+ * cycle 2 starts at the next daily update that evening, and so on. `cycle` is
+ * clamped to `total`, so a season sitting past its end keeps paying its final
+ * amounts instead of growing forever; with no season active the clock stands
+ * still at 1 of 1 and every prize pays its base.
+ *
+ * Both halves come from one place because they are only meaningful together —
+ * a cycle number says nothing about how rich a spin should be until you know
+ * how much season is left to run.
  */
-export function seasonCycle(
+export interface WheelClock {
+  cycle: number;
+  total: number;
+}
+
+export function wheelClock(
   season: Pick<GameSeason, "startsAt" | "endsAt"> | null | undefined,
   now: number
-): number {
-  if (!season) return 1;
+): WheelClock {
+  if (!season) return { cycle: 1, total: 1 };
   const elapsed = dailyUpdatesBetween(season.startsAt, new Date(now)).length + 1;
-  const total =
-    dailyUpdatesBetween(season.startsAt, season.endsAt).length + 1;
-  return Math.min(Math.max(elapsed, 1), Math.max(total, 1));
+  const total = Math.max(
+    dailyUpdatesBetween(season.startsAt, season.endsAt).length + 1,
+    1
+  );
+  return { cycle: Math.min(Math.max(elapsed, 1), total), total };
+}
+
+/** Round to three significant figures, so a huge payout reads as a number. */
+function readable(value: number): number {
+  if (value <= 0) return 0;
+  const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(value)) - 2);
+  return Math.round(value / magnitude) * magnitude;
 }
 
 /**
- * Amount a prize pays on a given daily-update cycle. Unit prizes always pay 1,
- * and cycle 1 always pays exactly the base, so day 1 is the published number.
+ * Amount a prize pays on a given daily-update cycle. Unit prizes always pay 1.
  *
- * `"step"` prizes gain WHEEL_PREMIUM_STEP on *every* daily update (9 → 11 → 13
- * …), while `"double"` prizes double once every WHEEL_DOUBLE_EVERY_CYCLES —
- * i.e. the diamond/citizen ladder climbs twice a day and the resources double
- * once a day, both off the same cycle clock.
+ * The prize walks from `base` to `final` across the season: cycle 1 pays exactly
+ * the base and the last cycle pays exactly the final amount, with every update
+ * in between one even step along the curve. `"linear"` prizes add a constant
+ * amount per update, `"geometric"` ones multiply by a constant factor — so
+ * neither ever jumps, and neither ever flattens out early. `progress` is the
+ * whole of the season clock a prize needs; nothing here knows about days.
+ *
+ * Resources are rounded to three significant figures rather than to `step`,
+ * because at the top of the ladder a payout accurate to 50 units is 9 digits of
+ * noise. The rounding is applied to the interpolated value, never to a running
+ * total, so it can't drift — and at progress 1 it is exact by construction
+ * (`final` is already a 1- or 2-significant-figure number).
  */
-export function wheelPrizeAmount(prize: WheelPrizeDef, cycle: number): number {
+export function wheelPrizeAmount(
+  prize: WheelPrizeDef,
+  clock: WheelClock
+): number {
   if (prize.kind === "unit") return 1;
-  const elapsed = Math.max(cycle, 1) - 1;
-  if (prize.growth === "step") {
-    return prize.base + WHEEL_PREMIUM_STEP * elapsed;
+  const final = prize.final ?? prize.base;
+  const span = Math.max(clock.total - 1, 1);
+  const progress = Math.min(Math.max(clock.cycle - 1, 0) / span, 1);
+
+  if (prize.growth === "geometric" && prize.base > 0 && final > 0) {
+    const grown = prize.base * (final / prize.base) ** progress;
+    return Math.min(Math.max(readable(grown), prize.step), final);
   }
-  const doublings = Math.min(
-    Math.floor(elapsed / WHEEL_DOUBLE_EVERY_CYCLES),
-    WHEEL_MAX_DOUBLINGS
+  const grown = prize.base + (final - prize.base) * progress;
+  return Math.min(
+    Math.max(Math.round(grown / prize.step) * prize.step, prize.step),
+    final
   );
-  const grown = prize.base * 2 ** doublings;
-  return Math.max(prize.step, Math.round(grown / prize.step) * prize.step);
 }
 
 /** Uniformly pick a winning wedge index. The server owns this roll. */

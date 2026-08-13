@@ -11515,24 +11515,125 @@ body {
   pointer-events: none;
   font-size: 1.75rem;
   font-weight: 900;
-  text-shadow: 0 3px 14px rgb(0 0 0 / 0.9);
+  letter-spacing: -0.01em;
+  /* Black for legibility over the beast, then a halo in the figure's own colour
+     — which is the blow's grade (see WORLD_BOSS_BLOW_META), so a crushing blow
+     reads as one from across the room without reading the word. */
+  text-shadow:
+    0 3px 14px rgb(0 0 0 / 0.9),
+    0 0 22px currentColor;
   animation: wb-damage 1.4s ease-out both;
 }
 
-/* The army's account of the blow, arriving just behind it. */
+@media (min-width: 640px) {
+  .wb-damage {
+    font-size: 2.15rem;
+  }
+}
+
+/* The army's account of the blow, arriving just behind it — laid *over* the
+   lore it displaces rather than pushed in underneath it. Absolute on purpose:
+   a strike is pressed twenty times a week, and a block that enters the flow and
+   leaves it again moves everything below the card each time. Nothing a blow
+   does may move the page (see the note at the head of WorldBossArena). */
 @keyframes wb-account {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(calc(-50% + 6px));
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(-50%);
   }
 }
 
 .wb-account {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  text-align: center;
   animation: wb-account 0.35s ease-out 0.12s both;
+}
+
+/* ---- your standing in the fight -----------------------------------------
+   Pinned to the beast's own corner. The total is what decides your share of the
+   purse and the blow beside it is the one you just landed, which together are
+   everything the printed receipt used to say — except that these do not appear
+   and vanish, so the card never changes height. */
+
+.wb-tally {
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgb(var(--accent) / 0.35);
+  background: rgb(0 0 0 / 0.4);
+  padding: 0.28rem 0.5rem;
+  text-align: start;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.45);
+}
+
+.wb-tally-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: rgb(161 161 170 / 0.9);
+}
+
+.wb-tally-total {
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: rgb(var(--accent));
+  text-shadow: 0 0 14px rgb(var(--accent) / 0.5);
+}
+
+/* The blow pops in and stays. Re-keyed per strike so it plays again even when
+   two blows land on the same figure. */
+@keyframes wb-tally-blow {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(1.5);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0) scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.wb-tally-blow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.1;
+  animation: wb-tally-blow 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* On a phone the card is barely wider than the beast, so the tally gives back
+   what it can rather than crowding the sigil. */
+@media (max-width: 639px) {
+  .wb-tally {
+    padding: 0.22rem 0.4rem;
+  }
+  .wb-tally-label {
+    font-size: 0.55rem;
+  }
+  .wb-tally-total {
+    font-size: 0.85rem;
+  }
+  .wb-tally-blow {
+    font-size: 0.66rem;
+  }
 }
 
 /* The threshold. Three of these a week, so it is allowed to sweep. */
@@ -11619,6 +11720,7 @@ body {
   .wb-shock,
   .wb-damage,
   .wb-account,
+  .wb-tally-blow,
   .wb-cry,
   .wb-kill,
   .wb-feed-new {

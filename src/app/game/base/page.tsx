@@ -23,7 +23,7 @@ import { HallOfGlory } from "@/components/game/HallOfGlory";
 import { getAchievementsState } from "@/server/achievementState";
 import { getGloryChampions, stampGloryAwards } from "@/server/gloryBoard";
 import { selectGlory } from "@/lib/game/achievements";
-import { seasonCycle } from "@/lib/game/wheel";
+import { wheelClock } from "@/lib/game/wheel";
 import { formatNumber, formatCompact, formatDate } from "@/lib/game/format";
 import { getI18n, getT } from "@/i18n/server";
 
@@ -161,8 +161,9 @@ export default async function BasePage() {
     1,
     Math.ceil((nowMs - new Date(empire.createdAt).getTime()) / 86_400_000)
   );
-  // Wheel prizes grow with the season — day 1 pays base amounts, each day adds more.
-  const wheelCycle = seasonCycle(season, nowMs);
+  // Wheel prizes grow with the season — the first update pays the base amounts
+  // and the last one the published finals, spread evenly over every update between.
+  const clock = wheelClock(season, nowMs);
 
   return (
     <div className="space-y-6">
@@ -199,7 +200,7 @@ export default async function BasePage() {
             )}
           </div>
         </div>
-        <WheelCard spinsAvailable={empire.wheelSpins} seasonCycle={wheelCycle} />
+        <WheelCard spinsAvailable={empire.wheelSpins} clock={clock} />
       </div>
 
       {/* empire power */}

@@ -57,6 +57,22 @@ import { useT } from "@/i18n/client";
  * component heard about it (see `strikeWorldBoss`), so the reveal can be cut
  * short, missed, or skipped entirely under `prefers-reduced-motion` with no
  * effect on what was dealt.
+ *
+ * ## Nothing a strike does may move the page
+ *
+ * A strike used to end in a printed receipt — "you hit it for 10,011, it has
+ * 135,112 left" — and the whole card below it jumped every time the line
+ * appeared and again when it went. That is a bad trade for a button pressed
+ * WORLD_BOSS_MAX_STRIKES times a week, and it was also redundant: the health it
+ * quoted is the bar, which is on screen permanently and is the largest thing on
+ * it. So the receipt is gone, and everything a blow has to say is said **beside
+ * the beast** — the figure thrown off it, the army's account over the lore, and
+ * a standing tally of your damage pinned next to the sigil. All of it is
+ * absolutely positioned: a strike changes what the card *shows* and never what
+ * it measures, so the page under it does not move at all.
+ *
+ * The one thing still printed is an error, which is the one thing the bar
+ * cannot show.
  */
 
 /* ------------------------------ the reveal's clock ------------------------------ */
@@ -91,6 +107,29 @@ interface Playing {
   beat: Beat;
 }
 
+/**
+ * The blow this reader last landed, kept after the reveal has finished.
+ *
+ * The float over the beast lasts a second and a half; this is what remains, and
+ * it is the reason the printed receipt could be dropped without the player
+ * losing the figure. `seq` only exists to re-key the element so the pop plays
+ * again on a blow that happened to deal exactly the same damage as the last.
+ */
+interface LastBlow {
+  seq: number;
+  reveal: WorldBossStrikeReveal;
+  /**
+   * The running total this blow brought the striker to.
+   *
+   * `state.myDamage` is only refreshed by the poll that follows the reveal, so
+   * for the second in between it is still the figure from *before* this blow —
+   * and a tally that fell back to the old total and then jumped would be worse
+   * than no tally. Taken here from the state at the instant the button was
+   * pressed, and read as a floor, so the number only ever climbs.
+   */
+  total: number;
+}
+
 export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
   const t = useT();
   const router = useRouter();
@@ -98,6 +137,7 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ error?: string; success?: string }>({});
   const [playing, setPlaying] = useState<Playing | null>(null);
+  const [lastBlow, setLastBlow] = useState<LastBlow | null>(null);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Read by the poll, which must not overwrite the state out from under a
@@ -156,6 +196,12 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
     [router]
   );
 
+  /**
+   * The kill is the one blow that still says something in words, because it is
+   * the one blow the bar cannot express: the beast is at zero either way, and
+   * only the line says the diamonds are yours. Every other blow is silent —
+   * see the note at the head of this file.
+   */
   const play = useCallback(
     (reveal: WorldBossStrikeReveal, receipt: { success?: string }) => {
       const at = (ms: number, run: () => void) => {
@@ -174,11 +220,11 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
       // A crossing is worth stopping for; an ordinary blow is not.
       if (reveal.phaseAfter !== reveal.phaseBefore) {
         at(WINDUP_MS + IMPACT_MS, () => setPlaying({ reveal, beat: "cry" }));
-        at(WINDUP_MS + IMPACT_MS + CRY_MS, () => finish(receipt));
+        at(WINDUP_MS + IMPACT_MS + CRY_MS, () => finish({}));
         return;
       }
 
-      at(WINDUP_MS + IMPACT_MS, () => finish(receipt));
+      at(WINDUP_MS + IMPACT_MS, () => finish({}));
     },
     [finish]
   );
@@ -189,15 +235,27 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
     setMessage({});
     startTransition(async () => {
       const result = await strikeWorldBoss();
-      // A reader who has asked for less motion gets the receipt and nothing
-      // else — the blow has already landed either way.
+      // Set before the reveal plays and kept after it ends, so the figure is on
+      // screen for a reader who skipped the animation entirely as well as for
+      // one who watched it.
+      if (result.reveal) {
+        const reveal = result.reveal;
+        const total = state.myDamage + reveal.damage;
+        setLastBlow((prev) => ({ seq: (prev?.seq ?? 0) + 1, reveal, total }));
+      }
+      // A reader who has asked for less motion is handed the same standing
+      // tally with no sequence in front of it — the blow has already landed
+      // either way.
       const reduced =
         typeof window !== "undefined" &&
         window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       if (result.reveal && !reduced) {
         play(result.reveal, { success: result.success });
       } else {
-        finish({ error: result.error, success: result.success });
+        finish({
+          error: result.error,
+          success: result.reveal?.slain ? result.success : undefined,
+        });
       }
     });
   };
@@ -256,6 +314,31 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
         )}
 
         <div className="relative text-center">
+          {/* Your standing in the fight, pinned to the beast itself. This is
+              where the old receipt's figure went: the running total is the
+              number that actually decides your share of the spoils, and the
+              blow beside it is the one you just landed. Absolute, so it can
+              appear on the first strike of the week without moving the card. */}
+          {(state.myDamage > 0 || lastBlow) && (
+            <div className="wb-tally">
+              <span className="wb-tally-label">{t("הנזק שלך")}</span>
+              <span className="wb-tally-total nums" dir="ltr">
+                {formatCompact(Math.max(state.myDamage, lastBlow?.total ?? 0))}
+              </span>
+              {lastBlow && (
+                <span
+                  key={lastBlow.seq}
+                  className={`wb-tally-blow nums ${
+                    WORLD_BOSS_BLOW_META[lastBlow.reveal.grade].tone
+                  }`}
+                  dir="ltr"
+                >
+                  −{formatCompact(lastBlow.reveal.damage)}
+                </span>
+              )}
+            </div>
+          )}
+
           <span
             className={`wb-sigil block text-6xl sm:text-7xl ${
               slain
@@ -285,9 +368,28 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
           <h2 className="mt-2 text-xl font-black tracking-wide text-gold-bright sm:text-2xl">
             {t(state.name)}
           </h2>
-          <p className="mx-auto mt-1.5 max-w-2xl text-sm leading-relaxed text-bone/80">
-            {t(state.lore)}
-          </p>
+          {/* The lore steps aside for the blow rather than being pushed down by
+              it — one element's opacity instead of two elements' heights. The
+              account is absolute *within this box* rather than within the whole
+              header, so a two-line account over a one-line lore spreads about
+              the lore's own centre instead of climbing over the beast's name. */}
+          <div className="relative mt-1.5">
+            <p
+              className={`mx-auto max-w-2xl text-sm leading-relaxed text-bone/80 transition-opacity duration-200 ${
+                playing && playing.beat !== "windup" ? "opacity-0" : "opacity-100"
+              }`}
+            >
+              {t(state.lore)}
+            </p>
+
+            {/* What the army says about the blow, over the lore it replaced. */}
+            {playing && playing.beat !== "windup" && blow && !playing.reveal.slain && (
+              <div className="wb-account" role="status">
+                <p className={`text-sm font-black ${blow.tone}`}>{t(blow.label)}</p>
+                <p className="mt-0.5 text-xs text-bone/70">{t(blow.line)}</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* The bar. Deliberately the largest thing on the page. */}
@@ -312,14 +414,6 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
             </span>
           </div>
         </div>
-
-        {/* -------- what the army says about the blow -------- */}
-        {playing && playing.beat !== "windup" && blow && !playing.reveal.slain && (
-          <div className="wb-account relative mt-4 text-center">
-            <p className={`text-sm font-black ${blow.tone}`}>{t(blow.label)}</p>
-            <p className="mt-0.5 text-xs text-bone/70">{t(blow.line)}</p>
-          </div>
-        )}
 
         {/* -------- the beast turns -------- */}
         {playing?.beat === "cry" && (
@@ -418,9 +512,30 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
           )}
         </div>
 
-        {/* -------- the spoils -------- */}
-        {state.defeated && (
+        {/* -------- the spoils --------
+            Shown while the beast is still standing, not only over its body. The
+            purse is the answer to "what do I get for this", and a player asks
+            that *before* spending forty turns — quoting it only after the kill
+            answered the question for everybody except the person deciding. It
+            is the live figure: `state.reward` is computed from the damage and
+            the head count as they stand this second, so it moves as the week
+            fills up, which is exactly what a player needs to understand about
+            how the split works. */}
+        {(state.defeated || state.myDamage > 0) && (
           <div className="relative mt-4 flex flex-col items-center gap-2">
+            <p className="text-[11px] font-bold tracking-wide text-zinc-400">
+              {state.defeated ? (
+                t("חלקך בשלל")
+              ) : (
+                <Tip
+                  tip={t(
+                    "אומדן חי — החלק השווה קטן ככל שמצטרפים עוד שחקנים, וחלק הנזק גדל עם כל מכה שלך"
+                  )}
+                >
+                  <span>{t("החלק שלך אם היא תיפול עכשיו")}</span>
+                </Tip>
+              )}
+            </p>
             <span className="flex flex-wrap items-center justify-center gap-1.5">
               {state.reward.map((r) => (
                 <Tip key={r.kind} tip={t(REWARD_LABEL[r.kind])}>
@@ -448,9 +563,17 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
               >
                 {pending ? t("אוסף…") : t("קח את חלקך")}
               </button>
-            ) : (
+            ) : state.defeated ? (
               <p className="text-xs text-zinc-500">
                 {t("לא הכית את המפלצת השבוע — אין חלק בשלל.")}
+              </p>
+            ) : (
+              // Standing beast, and this reader has struck it: the purse above
+              // is a quote, and the button that pays it opens the moment it
+              // falls. Saying so is what stops the quote from reading as
+              // something already banked.
+              <p className="text-[11px] text-zinc-500">
+                {t("ייאסף בכפתור כאן ברגע שהיא תיפול — גם אם לא אתה תפיל אותה.")}
               </p>
             )}
           </div>
@@ -480,11 +603,32 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
             </span>
           )}
         </h3>
-        <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-          {t("חצי מהשלל מתחלק שווה בשווה בין כל מי שהכה, וחצי לפי נזק. מי שמפיל אותה מקבל {diamonds} יהלומים לעצמו.", {
-            diamonds: WORLD_BOSS_KILL_DIAMONDS,
-          })}
-        </p>
+        {/* The four questions a player actually arrives with, in the order they
+            ask them. The one line this replaced stated the formula correctly
+            and answered none of them: it never said that striking once is
+            enough, never said what happens when the server is crowded, and
+            never said that the fight does not run in the background — which is
+            the thing a player assumes, because every other boss in this game
+            does. A fixture the whole server shares is only shared if the rules
+            are legible to somebody who has not read the code. */}
+        <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-zinc-400">
+          <li>
+            {t("מכה אחת מספיקה כדי לקבל חלק בשלל — לא חייבים להפיל אותה, וגם לא להיות בין המובילים.")}
+          </li>
+          <li>
+            {t("חצי מהשלל מתחלק שווה בשווה בין כל {count} המכים, וחצי לפי אחוז הנזק שלך. ככל שפחות שחקנים משתתפים, החלק השווה של כל אחד גדול יותר.", {
+              count: Math.max(1, state.participants),
+            })}
+          </li>
+          <li>
+            {t("רק מי שמנחית את המכה האחרונה מקבל {diamonds} יהלומים לעצמו. אי אפשר לתכנן אותה — הנזק נפרש, אז אף אחד לא יודע איזו מכה תסיים.", {
+              diamonds: WORLD_BOSS_KILL_DIAMONDS,
+            })}
+          </li>
+          <li>
+            {t("כל מכה מסתיימת מיד ונרשמת בו במקום. אין כאן קרב שממשיך ברקע, ואפשר להכות גם בזמן שמצור על בוס העיר רץ.")}
+          </li>
+        </ul>
 
         {state.board.length === 0 ? (
           <p className="mt-3 rounded-lg border border-border-subtle bg-black/25 px-3 py-3 text-sm text-zinc-500">

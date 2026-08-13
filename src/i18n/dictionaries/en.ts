@@ -1389,6 +1389,8 @@ export const EN: Record<string, string> = {
   "כעת:": "Now:",
   "אחרי שדרוג:": "After upgrading:",
   "עלות שדרוג:": "Upgrade cost:",
+  /* the mine card puts the figure on the far side of the row, so no colon */
+  "עלות שדרוג": "Upgrade cost",
   "אין מספיק מהמשאב הזה לשדרוג": "Not enough of this resource for the upgrade",
   "חסר: {amount}": "Short by {amount}",
   "חסר לשדרוג: {resources}": "Short for the upgrade: {resources}",
@@ -2685,8 +2687,8 @@ export const EN: Record<string, string> = {
   "כבה צלילים": "Mute the sound",
   "הפעל צלילים": "Unmute the sound",
   "סיבובים זמינים": "Spins available",
-  "מחזור {cycle} לעונה — הפרסים גדלים בכל עדכון יומי!":
-    "Cycle {cycle} of the season — the prizes grow with every daily update.",
+  "מחזור {cycle} מתוך {total} לעונה — הפרסים גדלים בכל עדכון יומי!":
+    "Cycle {cycle} of {total} this season — the prizes grow with every daily update.",
   "פרס ״חפץ״ דורש לפחות מקום פנוי אחד בתיק הגיבור.":
     "An \"item\" prize needs at least one free slot in the hero's pack.",
   "סובב את כל הסיבובים הזמינים בבת אחת (עד 10)":
@@ -2762,15 +2764,16 @@ export const EN: Record<string, string> = {
   /* the mines: one card and the rig drawn on it                         */
   /* ------------------------------------------------------------------ */
   "שיא": "max",
-  "תפוקה לעדכון רגיל": "Output per regular update",
-  " (כולל בונוסים)": " (bonuses included)",
-  "תפוקה לעבד מכרות": "Output per mine slave",
-  "תפוקת בסיס לעדכון": "Base output per update",
+  "עובדים במכרה": "Crew on the mine",
+  "פנויים": "free",
+  "הצב": "Assign",
+  /* the folded breakdown — where the figure on the rig's plate comes from */
+  "מאיפה המספר הזה": "Where this figure comes from",
+  "תפוקה לכל עובד": "Per worker",
+  "תפוקת בסיס": "Base output",
+  "סה״כ לעדכון": "Total per update",
   "בונוסים פעילים": "Live bonuses",
-  "סה״כ בפועל": "Actual total",
-  "ניהול עובדים (פנויים:": "Crew (free:",
   "מעדכן...": "Updating…",
-  "עדכן חלוקה": "Update the crew",
   "המכונה משודרגת למקסימום": "This machine is fully upgraded",
   "שדרג רמה": "Upgrade a level",
   "שדרג למקסימום": "Upgrade to max",
@@ -3989,13 +3992,20 @@ export const EN: Record<string, string> = {
   "ניצלת את כל {max} המכות שלך השבוע.":
     "You have used all {max} of your strikes this week.",
   "{boss} כבר הופלה השבוע.": "{boss} has already been felled this week.",
-  "פגעת ב{boss} ב-{damage} נזק. נותרו לה {hp} חיים.":
-    "You hit {boss} for {damage} damage. It has {hp} health left.",
   "המכה שלך הפילה את {boss}! {diamonds} יהלומים על המכה האחרונה.":
     "Your blow felled {boss}! {diamonds} diamonds for the killing strike.",
 
+  /* your standing in the fight, pinned to the beast */
+  "הנזק שלך": "Your damage",
+
   /* the kill and the spoils */
   "המפלצת הופלה!": "The beast is down!",
+  "חלקך בשלל": "Your share of the spoils",
+  "החלק שלך אם היא תיפול עכשיו": "Your share if it falls right now",
+  "אומדן חי — החלק השווה קטן ככל שמצטרפים עוד שחקנים, וחלק הנזק גדל עם כל מכה שלך":
+    "A live estimate — the even share shrinks as more players join, and the damage share grows with every blow you land",
+  "ייאסף בכפתור כאן ברגע שהיא תיפול — גם אם לא אתה תפיל אותה.":
+    "Collected with a button right here the moment it falls — even if you are not the one who fells it.",
   "המכה האחרונה: {name}": "Killing blow: {name}",
   "המפלצת עדיין עומדת — אין שלל לחלק.":
     "The beast is still standing — there are no spoils to divide.",
@@ -4015,6 +4025,14 @@ export const EN: Record<string, string> = {
     "Nobody has struck yet. Be the first.",
   "חצי מהשלל מתחלק שווה בשווה בין כל מי שהכה, וחצי לפי נזק. מי שמפיל אותה מקבל {diamonds} יהלומים לעצמו.":
     "Half the spoils are split evenly among everyone who struck, and half by damage. Whoever fells it takes {diamonds} diamonds for themselves.",
+  "מכה אחת מספיקה כדי לקבל חלק בשלל — לא חייבים להפיל אותה, וגם לא להיות בין המובילים.":
+    "One blow is enough to earn a share of the spoils — you do not have to fell it, and you do not have to be near the top.",
+  "חצי מהשלל מתחלק שווה בשווה בין כל {count} המכים, וחצי לפי אחוז הנזק שלך. ככל שפחות שחקנים משתתפים, החלק השווה של כל אחד גדול יותר.":
+    "Half the spoils are split evenly among all {count} strikers, and half by your share of the damage. The fewer players take part, the larger each even share is.",
+  "רק מי שמנחית את המכה האחרונה מקבל {diamonds} יהלומים לעצמו. אי אפשר לתכנן אותה — הנזק נפרש, אז אף אחד לא יודע איזו מכה תסיים.":
+    "Only whoever lands the killing blow takes {diamonds} diamonds for themselves. It cannot be planned — damage is scattered, so nobody knows which blow will finish it.",
+  "כל מכה מסתיימת מיד ונרשמת בו במקום. אין כאן קרב שממשיך ברקע, ואפשר להכות גם בזמן שמצור על בוס העיר רץ.":
+    "Every strike resolves and is recorded instantly. There is no battle running in the background here, and you can strike while a city-boss siege is under way.",
 
   /* the six beasts */
   "תולעת האפר": "The Ashworm",

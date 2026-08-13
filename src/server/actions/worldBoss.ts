@@ -424,6 +424,15 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
         diamonds: hit.slain ? WORLD_BOSS_KILL_DIAMONDS : 0,
       };
 
+      // Only the kill says anything in words.
+      //
+      // An ordinary blow used to come back as "you hit it for 10,011, it has
+      // 135,112 left", and the arena printed it under the card — a line that
+      // appeared and vanished on every strike, moving the whole page twice, to
+      // restate the health bar that is permanently on screen above it. The
+      // figure now lives beside the beast instead (see the note at the head of
+      // WorldBossArena), and there is nothing left for a sentence to add. The
+      // kill is different: it pays diamonds, which the bar cannot show.
       return {
         reveal,
         success: hit.slain
@@ -431,11 +440,7 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
               boss: t(definition.name),
               diamonds: WORLD_BOSS_KILL_DIAMONDS,
             })
-          : t("פגעת ב{boss} ב-{damage} נזק. נותרו לה {hp} חיים.", {
-              boss: t(definition.name),
-              damage: formatNumber(damage),
-              hp: formatNumber(Math.round(hit.hp)),
-            }),
+          : undefined,
       };
     });
 

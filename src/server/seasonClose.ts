@@ -15,6 +15,8 @@ import {
   seasonLengthMs,
 } from "@/lib/game/seasonCycle";
 import { restartWorld } from "@/server/seasonRestart";
+import { ensureCityBots } from "@/server/bots";
+import { BOT_SEED_CITY } from "@/lib/game/bots";
 import { makeT } from "@/i18n/translate";
 import { DEFAULT_LOCALE } from "@/i18n/locale";
 
@@ -958,6 +960,8 @@ export interface SeasonOpened {
   /** Empires rebuilt from scratch — 0 when the world was carried over. */
   empiresRebuilt: number;
   botsRemoved: number;
+  /** Garrisons planted in the opening city afterwards (`season.openBots`). */
+  botsPlanted: number;
   /** Whether the world was wiped (`season.autoRestart`). */
   restarted: boolean;
 }
@@ -987,6 +991,14 @@ export interface SeasonOpened {
  * was down for a month, an admin scheduled it and forgot) is **pushed forward**
  * rather than opened into its own grave — opening it unchanged would seal the
  * game again on the very next page load, and the cycle would stop for good.
+ *
+ * **And then it plants the opening field.** A wiped world puts everybody back in
+ * the first city, and for its first hours that ladder holds only whoever has
+ * logged in so far — one row, on the first screen of the season. So once the
+ * wipe has committed, `season.openBots` garrisons are planted there (see
+ * lib/game/bots.ts): a board with pages to it and a target for every player from
+ * the first minute. Outside the transaction, and its failure is swallowed, for
+ * the reason given at the call.
  *
  * Returns null when this caller was not the one that opened it.
  */
@@ -1039,6 +1051,23 @@ export async function openSeason(
 
   if (!opened) return null;
 
+  // The opening field: garrisons standing in the first city, so the very first
+  // player through the door finds a ladder with three pages on it rather than
+  // one row — their own — and has somebody to raid before anybody else logs in.
+  //
+  // Outside the transaction, and deliberately: each bot is planted in its own
+  // small transaction (see createBots), so a name that collides costs one
+  // garrison instead of rolling back a season that has already opened. For the
+  // same reason its failure is swallowed — a season is open once the wipe
+  // commits, and no amount of trouble planting scenery may undo that.
+  let botsPlanted = 0;
+  try {
+    const seeded = await ensureCityBots(BOT_SEED_CITY, tunables.season.openBots);
+    botsPlanted = seeded.created;
+  } catch (e) {
+    console.error("[season] failed to plant the opening field", e);
+  }
+
   // After the commit, and only by the caller that won the claim — the same rule
   // the close follows. `announceToDiscord` swallows its own failures, so a
   // Discord outage can never undo a season that has already opened.
@@ -1051,6 +1080,7 @@ export async function openSeason(
     seasonId: season.id,
     seasonName: season.name,
     restarted: restart,
+    botsPlanted,
     ...opened,
   };
 }

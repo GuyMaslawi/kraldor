@@ -5,6 +5,7 @@
  */
 
 import type { T } from "@/i18n/translate";
+import { botOnline } from "./bots";
 import { clampChars, stripInvisible } from "./text";
 
 /** Longest single line. A chat line is a shout, not a letter — the inbox
@@ -147,26 +148,30 @@ export function typingLabel(t: T, names: string[]): string | null {
 }
 
 /**
- * Whether an empire shows the green dot: a heartbeat recent enough, or a bot.
+ * Whether an empire shows the green dot: a heartbeat recent enough, or — for a
+ * bot — whether it is inside one of its rostered sessions.
  *
  * Takes the row rather than the timestamp so that the bot rule cannot be
- * forgotten at one call site — every surface that draws the dot reads presence
+ * forgotten at one call site: every surface that draws the dot reads presence
  * through here, and a garrison must never be the one row on the city ladder
  * that is permanently "לא מחובר". A bot has no browser to stamp `lastSeenAt`,
  * so left to the column alone it would advertise itself as a bot on the very
- * board it was planted to populate (see src/lib/bot.ts). Being always at the
- * keyboard is also the honest answer for something the server settles on
- * demand: a bot's garrison rebuilds whenever anyone looks at it.
+ * board it was planted to populate (see src/lib/bot.ts).
+ *
+ * It used to answer "always here" for a bot, which was the same mistake from
+ * the other side once a season opens with three pages of them — thirty rows lit
+ * green at once, permanently, is not what a live city looks like. `botOnline`
+ * gives each garrison its own hours instead; see src/lib/game/bots.ts.
  *
  * The row is nullable for callers resolving a name that may no longer exist —
  * a deleted empire reads as away.
  */
 export function isOnline(
-  empire: { lastSeenAt: Date | null; isBot: boolean } | null | undefined,
+  empire: { id: string; lastSeenAt: Date | null; isBot: boolean } | null | undefined,
   now: Date = new Date()
 ): boolean {
   if (!empire) return false;
-  if (empire.isBot) return true;
+  if (empire.isBot) return botOnline(empire.id, now);
   if (!empire.lastSeenAt) return false;
   return now.getTime() - empire.lastSeenAt.getTime() < PRESENCE_ONLINE_MS;
 }

@@ -52,13 +52,14 @@ export async function restartWorld(
 ): Promise<WorldRestart> {
   // Bots do not survive a world restart, and are removed rather than rebuilt.
   //
-  // Rebuilding one is not an option: `newEmpireData` produces a starter empire
-  // with no garrison and no `EmpireBot` row (the old one cascades away with the
-  // empire), so the loop below would leave a flagged husk that the refill can
-  // never repair. Nor should they carry over on principle — a restart puts
-  // every player back at one city, the one situation where the city ladder is
-  // crowded and nobody needs a target planted for them. The admin plants fresh
-  // ones once the field spreads out again.
+  // Rebuilding one here is not an option: `newEmpireData` produces a starter
+  // empire with no garrison and no `EmpireBot` row (the old one cascades away
+  // with the empire), so the loop below would leave a flagged husk that the
+  // refill can never repair. They are *replanted* instead, from scratch and
+  // after this transaction commits — `ensureCityBots` fills the first city back
+  // up to `season.openBots` (see server/seasonClose.ts and the admin's reset).
+  // That is not the same as carrying them over: a new season's garrisons are
+  // new empires with fresh names and full garrisons, not last season's husks.
   //
   // Deleting the *user* is what takes the empire with it (cascade), and it also
   // keeps the restart from leaving accounts behind that inflate every player

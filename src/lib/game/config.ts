@@ -105,22 +105,66 @@ export interface GameTunables {
      * a season really is a fresh race. 0 carries everyone over untouched.
      */
     autoRestart: number;
+    /**
+     * Bot garrisons standing in the first city when a season opens.
+     *
+     * The problem is the first hour of a new season: the world has just been
+     * wiped, the ladder for the tier everybody starts in holds whoever has
+     * logged back in so far, and the first player through the door finds a
+     * board with one row on it. A game nobody else appears to be playing is one
+     * players leave, and they leave before the others arrive.
+     *
+     * At ten rows to a page (server/rankingsLadder.ts) the default fills three
+     * and a half of them, so the opening ladder is something to scroll and every
+     * player has targets to raid from the first minute. 0 turns the seeding off
+     * and leaves planting to the admin.
+     */
+    openBots: number;
   };
 }
 
 export const DEFAULT_TUNABLES: GameTunables = {
+  /**
+   * The opening bundle, sized so the first session ends in a *purchase* rather
+   * than in waiting. The old one (3,000/2,000/1,500/1,500, 60 citizens, 50
+   * turns) did not reach the first rung of any ladder: the cheapest mine
+   * upgrade is 5,000 gold / 2,800 wood / 2,800 iron / 2,300 stone
+   * (MINE_UPGRADE_BASE), and at the starting five slaves a mine a fresh empire
+   * earns 2,880 of a resource a day — so the very first upgrade was almost two
+   * days away and nothing but a warehouse level was affordable on day one.
+   *
+   * Each resource line is now `first mine rung + first warehouse rung + change
+   * for weapons`, and the gold line is deliberately capped at the capacity of
+   * the level-1 warehouse it ships with (storageCapacityForLevel(1) = 10,000):
+   * the whole purse fits under cover, so a newcomer cannot be plundered out of
+   * their opening before they have spent it.
+   *
+   * `soldiers` stays *below* battle.enslaveMinSoldiers (20) for the same reason
+   * bots field nineteen — a starter army at or above that floor would make
+   * every fresh empire farmable for slaves the moment its 48-hour shield drops.
+   * Raise this line and that is what it buys.
+   *
+   * `diamonds` is the one line that is not derived from a price: 400 buys a
+   * genuine first taste of the diamond economy (a 24h raid shield at 350, or
+   * ~1,200 turns across the packs) and costs roughly ₪12 at store rates, which
+   * is the deliberate trade — a newcomer who has *used* diamonds is the one who
+   * later buys them.
+   */
   starting: {
-    gold: 3000,
-    wood: 2000,
-    iron: 1500,
-    stone: 1500,
-    diamonds: 10,
-    citizens: 60,
-    turns: 50,
+    gold: 10_000,
+    wood: 6_000,
+    iron: 5_000,
+    stone: 4_500,
+    diamonds: 400,
+    citizens: 150,
+    turns: 150,
     soldiers: 10,
-    spies: 2,
-    mineSlaves: 20,
-    slavesPerMine: 5,
+    spies: 5,
+    // 10 a mine rather than 5: doubles day-one output to 5,760 a resource a
+    // day, so the mines visibly pay from the first tick and the first upgrade
+    // is reachable by income as well as by the purse.
+    mineSlaves: 40,
+    slavesPerMine: 10,
     wheelSpins: 4,
   },
   daily: {
@@ -161,6 +205,8 @@ export const DEFAULT_TUNABLES: GameTunables = {
     lengthDays: 30,
     autoNext: 1,
     autoRestart: 1,
+    // Three and a half pages of the opening city ladder.
+    openBots: 35,
   },
 };
 
@@ -238,6 +284,11 @@ const TUNABLE_BOUNDS: {
     // Read as `>= 1`, like every other switch here, so a stray 0.5 is "off".
     autoNext: [0, 1],
     autoRestart: [0, 1],
+    // Planted one empire at a time, in the request that opens the season, so
+    // the ceiling is a time budget as much as a balance one: a hundred is
+    // already a ten-page ladder and about as much work as that request can
+    // carry (see ensureCityBots).
+    openBots: [0, 100],
   },
 };
 

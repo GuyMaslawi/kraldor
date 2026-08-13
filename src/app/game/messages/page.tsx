@@ -57,10 +57,12 @@ export default async function MessagesPage() {
       // The sender is selected down to a name and a heartbeat, and the heartbeat
       // is collapsed to a boolean below — the timestamp itself never crosses.
       // `isStaff` rides along so a letter from the game's own account is named
-      // in molten gold — the one channel staff still share with players.
+      // in molten gold — the one channel staff still share with players. `id` and
+      // `isBot` are what presence is read off (see isOnline); the id is already
+      // public here — the name beside it links to the profile it names.
       include: {
         sender: {
-          select: { name: true, lastSeenAt: true, isStaff: true, isBot: true },
+          select: { id: true, name: true, lastSeenAt: true, isStaff: true, isBot: true },
         },
       },
     }),

@@ -96,6 +96,7 @@ export const TUNABLE_META: Record<
       lengthDays: { label: "אורך העונה הבאה (ימים)" },
       autoNext: { label: "פתיחת העונה הבאה אוטומטית (1 = כן, 0 = לא)" },
       autoRestart: { label: "איפוס העולם בפתיחת עונה (1 = כן, 0 = לא)" },
+      openBots: { label: "בוטים בעיר הראשונה בפתיחת עונה (0 = בלי)" },
     },
   },
 };

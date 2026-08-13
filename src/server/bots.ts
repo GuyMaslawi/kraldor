@@ -50,6 +50,18 @@ const BOT_EMAIL_DOMAIN = "bots.kraldor.invalid";
 /** Attempts to find a free generated name before falling back to an ordinal. */
 const NAME_ATTEMPTS = 12;
 
+/**
+ * How long the unattended seeding is allowed to spend planting.
+ *
+ * The season opening is a page load like any other — one player's, whoever
+ * happened to arrive first — and it has already paid for the world rebuild by
+ * the time it gets here. Thirty-five garrisons is a few seconds of small
+ * transactions; the budget is there so a slow database costs the field its tail
+ * rather than costing that player an error page on the first screen of the
+ * season.
+ */
+const BOT_SEED_BUDGET_MS = 20_000;
+
 export interface BotPlan {
   /** City tier this bot is planted in (`Empire.cities`). */
   cities: number;
@@ -255,18 +267,32 @@ async function plantBot(
  * across fifty empire creations while the game is being played around it.
  */
 export async function createBots(
-  plans: BotPlan[]
-): Promise<{ created: number; failed: number; reason?: string }> {
+  plans: BotPlan[],
+  budgetMs?: number
+): Promise<{ created: number; failed: number; skipped: number; reason?: string }> {
   const { starting } = await getTunables();
   const season = await prisma.gameSeason.findFirst({
     where: { isActive: true },
     select: { id: true },
   });
 
+  // A wall-clock budget for callers that are not an admin waiting on a form —
+  // the season opening plants its field inside the page load that opened the
+  // season, and that request must come back. Untimed by default: the admin's
+  // own batch is bounded by BOT_BATCH_MAX and is allowed to take what it takes.
+  const deadline = budgetMs === undefined ? Infinity : Date.now() + budgetMs;
+
   let created = 0;
   let failed = 0;
+  let skipped = 0;
   let reason: string | undefined;
   for (const plan of plans) {
+    if (Date.now() >= deadline) {
+      // Not a failure: a short field is a playable field, and `ensureCityBots`
+      // plants the rest the next time it is asked for them.
+      skipped++;
+      continue;
+    }
     try {
       await prisma.$transaction((tx) => plantBot(tx, plan, season?.id, starting));
       created++;
@@ -282,7 +308,38 @@ export async function createBots(
       reason ??= e instanceof Error ? e.message.split("\n").slice(-1)[0].trim() : String(e);
     }
   }
-  return { created, failed, reason };
+  return { created, failed, skipped, reason };
+}
+
+/**
+ * Bring a city tier up to a standing number of garrisons, planting only the
+ * shortfall — the opening field of a new season.
+ *
+ * Written as "make it so" rather than "plant thirty-five" because it runs
+ * unattended, after the transaction that opened the season has already
+ * committed. If the request that ran it dies halfway through, the world is left
+ * with fewer bots and not with none, and calling it again tops the tier up
+ * instead of doubling it. That is also what makes it safe on the carry-over
+ * path, where last season's garrisons are still standing: they are counted, and
+ * nothing is planted on top of them.
+ *
+ * Not a mutex. Two callers racing it would each plant the shortfall and
+ * overshoot, which is why the one caller is inside the season-open claim (see
+ * server/seasonClose.ts) — the only writer at that moment, by construction.
+ */
+export async function ensureCityBots(
+  cities: number,
+  target: number,
+  budgetMs = BOT_SEED_BUDGET_MS
+): Promise<{ created: number; failed: number; skipped: number; standing: number }> {
+  const wanted = Math.max(0, Math.floor(target));
+  const standing = await prisma.empire.count({ where: { isBot: true, cities } });
+  const missing = wanted - standing;
+  if (missing <= 0) return { created: 0, failed: 0, skipped: 0, standing };
+
+  const plans = await planBots({ cities: [cities], perCity: missing });
+  const result = await createBots(plans, budgetMs);
+  return { ...result, standing: standing + result.created };
 }
 
 /* ------------------------------ refilling ------------------------------ */

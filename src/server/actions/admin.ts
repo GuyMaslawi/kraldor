@@ -70,7 +70,7 @@ import {
 } from "@/lib/game/constants";
 import { formatNumber } from "@/lib/game/format";
 import { POTION_STACK_CAP } from "@/lib/game/potions";
-import { BOT_BATCH_MAX, BOT_SOLDIERS } from "@/lib/game/bots";
+import { BOT_BATCH_MAX, BOT_SEED_CITY, BOT_SOLDIERS } from "@/lib/game/bots";
 import { applyPendingUpdates } from "@/lib/game/updates";
 import {
   castBankInterest,
@@ -110,7 +110,7 @@ import { DEFAULT_LOCALE } from "@/i18n/locale";
 import { newEmpireData } from "@/lib/game/createEmpire";
 import { hashPassword } from "@/lib/password";
 import { syncEmpirePower } from "@/server/empirePower";
-import { createBots, deleteBot, planBots, rearmBot } from "@/server/bots";
+import { createBots, deleteBot, ensureCityBots, planBots, rearmBot } from "@/server/bots";
 import { repairGuildLeadership } from "@/server/guildLeadership";
 import {
   announceSeasonStart,
@@ -3209,15 +3209,30 @@ export async function resetSeason(
       { timeout: 120_000 }
     );
 
+    // The same opening field the automatic season opening plants, for the same
+    // reason: the reset just emptied the first city's ladder of everything but
+    // the players themselves, and this is the button that does it by hand. It
+    // runs after the wipe has committed and cannot undo it — a reset that
+    // succeeded must not report failure because a garrison would not plant.
+    let botsPlanted = 0;
+    try {
+      botsPlanted = (await ensureCityBots(BOT_SEED_CITY, tunables.season.openBots)).created;
+    } catch (e) {
+      console.error("[admin] failed to plant the opening field", e);
+    }
+
     await logAdmin(admin, {
       action: "season.reset",
       targetType: "season",
       summary: `אופסה העונה — ${empiresRebuilt} אימפריות אותחלו, כל הגילדות נמחקו${
         botsRemoved > 0 ? `, ${botsRemoved} בוטים הוסרו` : ""
-      }${archived > 0 ? " (הדירוג נשמר)" : ""}`,
+      }${botsPlanted > 0 ? `, ${botsPlanted} בוטים נשתלו בעיר הראשונה` : ""}${
+        archived > 0 ? " (הדירוג נשמר)" : ""
+      }`,
       details: {
         empiresReset: empiresRebuilt,
         botsRemoved,
+        botsPlanted,
         archivedChampions: archived,
       },
     });
@@ -3229,6 +3244,7 @@ export async function resetSeason(
       success:
         `העונה אופסה — ${empiresRebuilt} שחקנים התחילו מחדש` +
         (botsRemoved > 0 ? `, ${botsRemoved} בוטים הוסרו` : "") +
+        (botsPlanted > 0 ? `, ${botsPlanted} בוטים חדשים נשתלו בעיר הראשונה` : "") +
         (archived > 0 ? ", והדירוג הסופי נשמר בהיכל התהילה" : ""),
     };
   } catch (e) {

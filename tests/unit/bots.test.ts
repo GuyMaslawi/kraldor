@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BOT_MINE_SLAVES,
+  BOT_ONLINE_SHARE,
   BOT_NAME_SPACE,
   BOT_SOLDIERS,
   botFallbackName,
@@ -8,6 +9,7 @@ import {
   botHeroLevel,
   botMineSetup,
   botName,
+  botOnline,
   botRealisedPower,
   botWeaponKeys,
   botWeaponTier,
@@ -145,5 +147,83 @@ describe("bot names", () => {
   it("falls back to an ordinal that cannot collide", () => {
     expect(botFallbackName("בני הנחושת", 2)).toBe("בני הנחושת 2");
     expect(botFallbackName("בני הנחושת", 2)).not.toBe(botFallbackName("בני הנחושת", 3));
+  });
+});
+
+describe("bot presence", () => {
+  const ids = Array.from({ length: 300 }, (_, i) => `bot-${i}`);
+  const at = (ms: number) => new Date(ms);
+
+  it("is the same answer for the same bot at the same instant", () => {
+    // Nothing stores it, so two renders of the same board — two tabs, two
+    // servers — agree only because they compute the same thing.
+    const now = at(1_770_000_000_000);
+    for (const id of ids.slice(0, 20)) {
+      expect(botOnline(id, now)).toBe(botOnline(id, now));
+    }
+  });
+
+  it("lights roughly the declared share of a planted city", () => {
+    // Sampled across a day, because the share is an average over the rota and
+    // not a promise about any one minute.
+    const start = 1_770_000_000_000;
+    let lit = 0;
+    let seen = 0;
+    for (let step = 0; step < 24 * 4; step++) {
+      const now = at(start + step * 15 * 60 * 1000);
+      for (const id of ids) {
+        seen++;
+        if (botOnline(id, now)) lit++;
+      }
+    }
+    expect(lit / seen).toBeGreaterThan(BOT_ONLINE_SHARE - 0.08);
+    expect(lit / seen).toBeLessThan(BOT_ONLINE_SHARE + 0.08);
+  });
+
+  it("never lights all of them and never lights none", () => {
+    const start = 1_770_000_000_000;
+    for (let step = 0; step < 48; step++) {
+      const now = at(start + step * 20 * 60 * 1000);
+      const lit = ids.filter((id) => botOnline(id, now)).length;
+      expect(lit).toBeGreaterThan(0);
+      expect(lit).toBeLessThan(ids.length);
+    }
+  });
+
+  it("holds a session steady across a refresh of the ladder", () => {
+    // The board re-reads every 30 seconds; a dot that flickered between two of
+    // those would read as a bug rather than as somebody leaving.
+    const start = 1_770_000_000_000;
+    let flips = 0;
+    for (const id of ids) {
+      const before = botOnline(id, at(start));
+      if (botOnline(id, at(start + 30_000)) !== before) flips++;
+    }
+    // A handful of genuine boundary crossings in three hundred, not a shuffle.
+    expect(flips).toBeLessThan(ids.length * 0.02);
+  });
+
+  it("turns the roster over as the hours pass", () => {
+    // The other half of the point: come back later and a different set of names
+    // is at the keyboard. The threshold is deliberately strict — most of the
+    // roster must have changed after three hours, not one name of it. A rota
+    // whose seeds differ only in their last digit is exactly where a weak hash
+    // hands back the same set every cycle (see hashUnit), and "not literally
+    // identical" would have passed while that bug was live.
+    const start = 1_770_000_000_000;
+    const now = ids.filter((id) => botOnline(id, at(start)));
+    const later = ids.filter((id) => botOnline(id, at(start + 3 * 60 * 60 * 1000)));
+    const same = now.filter((id) => later.includes(id)).length;
+    expect(same).toBeLessThan(now.length * 0.6);
+  });
+
+  it("runs a session past the top of the hour rather than cutting it off", () => {
+    // A window that opened at :52 has to survive the cycle boundary — without
+    // the previous cycle's test every bot would go dark on the hour.
+    const hour = 60 * 60 * 1000;
+    const boundary = Math.ceil(1_770_000_000_000 / hour) * hour;
+    const before = ids.filter((id) => botOnline(id, at(boundary - 60_000)));
+    const after = before.filter((id) => botOnline(id, at(boundary + 60_000)));
+    expect(after.length).toBeGreaterThan(0);
   });
 });

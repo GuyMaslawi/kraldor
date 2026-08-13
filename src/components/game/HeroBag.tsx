@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { HeroRarity } from "@prisma/client";
-import Link from "next/link";
+import { NavLink } from "@/components/ui/NavLink";
 import { discardHeroItems, upgradeHeroItems } from "@/server/actions/hero";
 import type { ActionState } from "@/server/actions/game";
 import { ItemTile } from "@/components/game/ItemTile";
@@ -153,21 +153,20 @@ export function HeroBag({
             tip={t("נפחייה: פרק ציוד לרסיסים, הזמן פריט למשבצת שחסרה לך, ולטש פריט קיים")}
             side="bottom"
           >
-            <Link
+            <NavLink
               href="/game/hero/forge"
-              prefetch={false}
               className="btn btn-ghost px-2.5 py-1 text-xs"
             >
               {t("נפחייה")}
-            </Link>
+            </NavLink>
           </Tip>
           <Tip
             tip={t("הקטלוג המלא: כל החפצים הקיימים במשחק, מרמה 1 עד 100 בכל הדרגות")}
             side="bottom"
           >
-            <Link href="/game/hero/items" className="btn btn-ghost px-2.5 py-1 text-xs">
+            <NavLink href="/game/hero/items" className="btn btn-ghost px-2.5 py-1 text-xs">
               {t("לכל הפריטים")}
-            </Link>
+            </NavLink>
           </Tip>
         </div>
       </div>

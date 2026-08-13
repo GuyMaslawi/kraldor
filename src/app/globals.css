@@ -742,6 +742,59 @@ body {
 .nav-glow-gold {
   animation: nav-glow-gold 2.4s ease-in-out infinite;
 }
+
+/* --- A navigation link that is waiting on the server (see NavLink) ---------
+
+   Every link in the game's navigation is `prefetch={false}` on sight, so a
+   click on a route the player has not shown intent for has nothing cached to
+   swap in — not even the destination's loading skeleton, which lives inside
+   the payload the router has yet to fetch. Until the first bytes arrive the
+   screen does not change at all, which reads as a dead link.
+
+   This is the answer: a hairline that runs along the bottom edge of the link
+   itself, so the click is acknowledged where it happened rather than by a
+   progress bar somewhere else on the screen.
+
+   Three properties earn their place:
+   - `position: absolute` — an indicator in the flow would resize the tile the
+     instant it is pressed, which is the one thing worse than no feedback.
+   - `opacity: 0` at rest with the animation carrying it to 1, plus a delay:
+     a navigation that lands in under 140ms never flashes anything, which is
+     most of them once the link is prefetched on hover.
+   - a moving `background-position` rather than a translated bar, so the box
+     never leaves the link's own rounded corners and needs no overflow clip on
+     a parent that may be relying on its own. */
+.link-pending {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  opacity: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--gold-bright) 50%,
+    transparent 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 55% 100%;
+  background-position: -55% 0;
+}
+.link-pending.is-pending {
+  animation: link-pending 900ms 140ms linear infinite;
+}
+@keyframes link-pending {
+  0% {
+    opacity: 1;
+    background-position: -55% 0;
+  }
+  100% {
+    opacity: 1;
+    background-position: 155% 0;
+  }
+}
+
 /* --- Top-bar Discord pill — the one thing in the command bar that is alive
    without waiting for you to do something.
 
@@ -903,6 +956,20 @@ body {
      would otherwise sit frozen across the middle of the pill. */
   .discord-pill::before {
     opacity: 0;
+  }
+  /* The pending hint keeps its job — a click still has to be acknowledged —
+     but stops sweeping: a steady bar across the link's foot says the same
+     thing without motion. The delay is kept, so a fast navigation is still
+     silent. */
+  .link-pending.is-pending {
+    animation: none;
+    opacity: 1;
+    background-size: 100% 100%;
+    background-position: 0 0;
+    transition: opacity 0s 140ms;
+  }
+  .link-pending {
+    transition: opacity 0s;
   }
 }
 

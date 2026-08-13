@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
+import { NavLink } from "@/components/ui/NavLink";
 import { Tip } from "@/components/ui/Tip";
 import { getSupportPulse } from "@/server/actions/support";
 import { useT, useDir } from "@/i18n/client";
@@ -105,11 +105,12 @@ export function AdminNav({ waitingSupport = 0 }: { waitingSupport?: number }) {
           )}
           side="bottom"
         >
-          <Link
+          <NavLink
             href="/admin/support"
             // Same reasoning as the inbox pills: a prefetch from every game
-            // screen would server-render the whole inbox on every page load.
-            prefetch={false}
+            // screen would server-render the whole inbox on every page load,
+            // while never prefetching leaves the click with nothing to show
+            // until the server answers. See NavLink.
             aria-label={t("תמיכה — {count} ממתינות", { count: waiting })}
             className="res-pill inbox-glow-red relative gap-1.5 px-2 py-1.5 font-bold text-red-300/90 transition-colors hover:text-white sm:px-2.5"
           >
@@ -121,11 +122,11 @@ export function AdminNav({ waitingSupport = 0 }: { waitingSupport?: number }) {
             >
               {waiting > 99 ? "99+" : waiting}
             </span>
-          </Link>
+          </NavLink>
         </Tip>
       )}
       <Tip tip={t("מרכז השליטה — ניהול שחקנים, אימפריות, מתנות, איזון והכרזות")} side="bottom">
-        <Link
+        <NavLink
           href="/admin"
           aria-label={t("מרכז שליטה")}
           className={`res-pill gap-1.5 border-gold/50 px-2 py-1.5 font-bold transition-colors sm:px-2.5 ${
@@ -134,7 +135,7 @@ export function AdminNav({ waitingSupport = 0 }: { waitingSupport?: number }) {
         >
           <Icon name="shield" size={18} className="shrink-0" />
           <span className="hidden text-xs md:inline">{t("מרכז שליטה")}</span>
-        </Link>
+        </NavLink>
       </Tip>
     </div>
   );

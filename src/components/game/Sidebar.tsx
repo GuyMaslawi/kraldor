@@ -10,6 +10,7 @@ import { Tip } from "@/components/ui/Tip";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { formatCompact } from "@/lib/game/format";
 import { useScrollLock } from "@/components/ui/scrollLock";
+import { NavLink } from "@/components/ui/NavLink";
 import { useT, useDir } from "@/i18n/client";
 import { LivingPortrait } from "@/components/game/LivingPortrait";
 
@@ -350,23 +351,33 @@ function SidebarContent({
   // list. History lives in the top command bar (see InboxNav), so it
   // deliberately has no entry here.
   //
-  // Every row below renders with `prefetch={false}`, which is not the usual
-  // advice and is deliberate. Next prefetches a <Link> the moment it enters the
-  // viewport, and this whole list is in the viewport on every screen of the
-  // game — so one page view asked the server to render fifteen more. None of
-  // them are static, so each prefetch is a real function invocation with real
-  // queries behind it, and a dynamic prefetch is not reused for long, so
-  // navigating re-fires the entire list.
+  // Every tile below renders through <NavLink>, not a plain <Link>, and the
+  // reason is worth keeping in one piece.
   //
-  // What that cost in production: during one player's evening session, 2,106 of
-  // his 2,328 requests were prefetches — a 10:1 ratio of speculative renders to
-  // pages he actually opened. Attacking is the worst case, because the action
-  // redirects to a fresh battle report and the sidebar re-mounts each time; two
-  // or three attacks in a row were enough to cross Vercel's per-IP ceiling and
-  // hand him a 429 on the report he had just earned.
+  // Next prefetches a <Link> the moment it enters the viewport, and this whole
+  // list is in the viewport on every screen of the game — so one page view
+  // asked the server to render fifteen more. None of them are static, so each
+  // prefetch is a real function invocation with real queries behind it, and a
+  // dynamic prefetch is not reused for long, so navigating re-fires the entire
+  // list. During one player's evening session, 2,106 of his 2,328 requests were
+  // prefetches — a 10:1 ratio of speculative renders to pages he actually
+  // opened. Attacking is the worst case, because the action redirects to a
+  // fresh battle report and the sidebar re-mounts each time; two or three
+  // attacks in a row were enough to cross Vercel's per-IP ceiling and hand him
+  // a 429 on the report he had just earned.
   //
-  // The navigation still feels instant without it: every /game route has a
-  // loading.tsx, so the skeleton paints immediately on click.
+  // The first answer was a flat `prefetch={false}`, and it did stop the storm —
+  // but it also bought the complaint that a tile "needs clicking a few times
+  // before it responds". `false` disables prefetching on hover as well as on
+  // sight, so a click had nothing cached to swap in: not the page, and not even
+  // the destination's loading.tsx skeleton, which only exists inside the
+  // payload the router had yet to fetch. Nothing on screen changed until the
+  // server answered, so the tile looked dead and got clicked again — and a
+  // second click discards the round trip the first one was halfway through.
+  //
+  // NavLink keeps the storm shut and gives the click an answer: prefetch is
+  // armed by hover/press/focus rather than by sight, and a hairline runs along
+  // the tile's foot while the navigation is in flight. See NavLink.
   const navGroups: NavGroup[] = [
     {
       // The four screens a returning player touches before anything else, in
@@ -681,12 +692,13 @@ function SidebarContent({
                 const calling = hasBadge && item.badgeTone === "attention" && !active;
                 return (
                   <li key={item.href}>
-                    <Link
+                    <NavLink
                       href={item.href}
-                      // Prefetch off — see the note above `navGroups`. Every
-                      // tile here is in the viewport at all times, so the
-                      // default would fire a request per tile on every render.
-                      prefetch={false}
+                      // Not a plain <Link>: prefetching is off on sight and on
+                      // only once the player reaches for a tile, and the click
+                      // gets an answer while the server is still working. Both
+                      // halves are explained in NavLink — the second is why a
+                      // tile used to need clicking two or three times.
                       // Names the current screen for a screen reader, and is
                       // what the mobile drawer scrolls to when it opens.
                       aria-current={active ? "page" : undefined}
@@ -731,7 +743,7 @@ function SidebarContent({
                           {item.badgeText ?? formatCompact(item.badge!)}
                         </span>
                       )}
-                    </Link>
+                    </NavLink>
                   </li>
                 );
               })}

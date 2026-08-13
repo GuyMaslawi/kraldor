@@ -13,6 +13,7 @@ import { rememberDevice } from "@/lib/device";
 import { consumePendingReferral } from "@/server/referralGuard";
 import { verifyGoogleIdToken } from "@/lib/google";
 import { newEmpireData } from "@/lib/game/createEmpire";
+import { normalizeName } from "@/lib/game/text";
 import { getTunables } from "@/lib/game/config";
 import { appBaseUrl, sendMail } from "@/server/mailer";
 import { seasonClosedError } from "@/server/seasonGuard";
@@ -252,9 +253,29 @@ const heroClassSchema = z.enum(["WARLORD", "GUARDIAN", "MERCHANT", "SHADOW"], {
   message: "בחר דמות גיבור",
 });
 
+/**
+ * A name field, normalised before it is measured.
+ *
+ * `.trim()` is not enough on its own and the order matters — see
+ * `normalizeName`. The length check has to run on what is left, or a name padded
+ * with zero-width spaces clears a minimum it does not actually meet.
+ *
+ * Shared by `register` and by the Google onboarding step below, which name the
+ * same column and must not drift apart: an empire named through one path and an
+ * empire named through the other have to answer to the same unique index.
+ */
+function nameField(min: number, max: number, tooShort: string) {
+  return z.preprocess(
+    (raw) => (typeof raw === "string" ? normalizeName(raw) : raw),
+    z.string().min(min, tooShort).max(max)
+  );
+}
+
+const EMPIRE_NAME_FIELD = nameField(2, 40, "שם האימפריה חייב להכיל לפחות 2 תווים");
+
 const registerSchema = z.object({
-  name: z.string().trim().min(2, "שם חייב להכיל לפחות 2 תווים").max(40),
-  empireName: z.string().trim().min(2, "שם האימפריה חייב להכיל לפחות 2 תווים").max(40),
+  name: nameField(2, 40, "שם חייב להכיל לפחות 2 תווים"),
+  empireName: EMPIRE_NAME_FIELD,
   heroClass: heroClassSchema,
   // .max(254) is the RFC 5321 address limit. Without it Zod's email check passes
   // a megabyte-long local part, which reaches both an unbounded Postgres text
@@ -916,7 +937,7 @@ export async function resendVerificationEmail(
 }
 
 const onboardingSchema = z.object({
-  empireName: z.string().trim().min(2, "שם האימפריה חייב להכיל לפחות 2 תווים").max(40),
+  empireName: EMPIRE_NAME_FIELD,
   heroClass: heroClassSchema,
 });
 

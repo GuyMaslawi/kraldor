@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { NavLink } from "@/components/ui/NavLink";
 import { requireEmpire } from "@/lib/auth";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
@@ -31,14 +31,13 @@ export default async function ForgePage() {
       />
 
       <div className="flex justify-center">
-        <Link
+        <NavLink
           href="/game/hero"
-          prefetch={false}
           className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-400 transition-colors hover:text-gold-bright"
         >
           <Icon name="hero" size={14} />
           {t("חזרה לגיבור")}
-        </Link>
+        </NavLink>
       </div>
 
       {state ? (

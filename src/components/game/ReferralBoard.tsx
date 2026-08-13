@@ -2,10 +2,8 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { Input } from "@/components/ui/Input";
 import { Meter } from "@/components/ui/Meter";
 import { Tip } from "@/components/ui/Tip";
-import { SubmitButton } from "@/components/ui/SubmitButton";
 import { FormMessage } from "@/components/ui/FormMessage";
 import { PlayerLink } from "@/components/ui/PlayerLink";
 import { formatCompact } from "@/lib/game/format";
@@ -14,13 +12,17 @@ import type { ReferralState, ReferralStanding } from "@/lib/game/referral";
 import {
   collectJoinerReward,
   collectReferrerReward,
-  nameReferrer,
 } from "@/server/actions/referral";
 import type { ActionState } from "@/server/actions/game";
 import { useT } from "@/i18n/client";
 
 /**
- * /game/referrals — your link, who you brought in, and who brought you.
+ * /game/referrals — your link and who you brought in.
+ *
+ * There is no "name the player who invited you" form: the link binds the
+ * referrer at sign-up and that is the only way a bond is made. A newcomer who
+ * arrived through one still gets a card here to collect their own half, so the
+ * joiner reward is never stranded — it just is not something they can declare.
  *
  * The page has one job the copy has to do rather than the layout: make it
  * obvious that nothing is paid for a *signup*. Both halves are gated on the
@@ -36,11 +38,12 @@ import { useT } from "@/i18n/client";
  * anyway. See src/server/referralGuard.ts.
  */
 export function ReferralBoard({ state }: { state: ReferralState }) {
-  const t = useT();
   return (
     <div className="space-y-6">
       <CodeCard state={state} />
-      {(state.mayName || state.referrerName) && <JoinerCard state={state} />}
+      {state.referrerName && (
+        <JoinerCard state={state} referrerName={state.referrerName} />
+      )}
       <InviteeList state={state} />
     </div>
   );
@@ -192,12 +195,14 @@ function CodeCard({ state }: { state: ReferralState }) {
 
 /* ------------------------------ who brought me ------------------------------ */
 
-function JoinerCard({ state }: { state: ReferralState }) {
+function JoinerCard({
+  state,
+  referrerName,
+}: {
+  state: ReferralState;
+  referrerName: string;
+}) {
   const t = useT();
-  const [nameState, nameAction] = useActionState<ActionState, FormData>(
-    nameReferrer,
-    {}
-  );
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ error?: string; success?: string }>({});
 
@@ -216,77 +221,53 @@ function JoinerCard({ state }: { state: ReferralState }) {
         {t("מי הזמין אותך")}
       </h3>
 
-      {state.referrerName ? (
-        <>
-          <p className="mt-1 text-sm text-bone/90">
-            {t("הצטרפת דרך {name}.", { name: state.referrerName })}
-          </p>
+      <p className="mt-1 text-sm text-bone/90">
+        {t("הצטרפת דרך {name}.", { name: referrerName })}
+      </p>
 
-          <div className="mt-3">
-            <div className="flex items-baseline justify-between gap-2 text-[11px] font-semibold">
-              <span className="text-zinc-400">{t("ההתקדמות שלך")}</span>
-              <span className="nums text-gold-bright" dir="ltr">
-                {state.cities}/{state.goalCities} {t("ערים")}
-              </span>
-            </div>
-            <Meter
-              value={Math.min(state.cities, state.goalCities)}
-              max={state.goalCities}
-              tone="xp"
-              className="mt-1 w-full"
-            />
-          </div>
+      <div className="mt-3">
+        <div className="flex items-baseline justify-between gap-2 text-[11px] font-semibold">
+          <span className="text-zinc-400">{t("ההתקדמות שלך")}</span>
+          <span className="nums text-gold-bright" dir="ltr">
+            {state.cities}/{state.goalCities} {t("ערים")}
+          </span>
+        </div>
+        <Meter
+          value={Math.min(state.cities, state.goalCities)}
+          max={state.goalCities}
+          tone="xp"
+          className="mt-1 w-full"
+        />
+      </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <RewardChips rewards={state.joinerReward} />
-            {state.joinerClaimed ? (
-              <span className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-300">
-                <Icon name="check" size={15} />
-                {t("נאסף")}
-              </span>
-            ) : state.joinerClaimable ? (
-              <button
-                type="button"
-                onClick={collect}
-                disabled={pending}
-                className="btn btn-gold px-4 py-2 text-sm disabled:opacity-60"
-              >
-                {pending ? t("אוסף…") : t("אסוף")}
-              </button>
-            ) : state.standing === "ok" ? (
-              <span className="text-xs text-zinc-500">
-                {t("נפתח ב-{goal} ערים", { goal: state.goalCities })}
-              </span>
-            ) : null}
-          </div>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <RewardChips rewards={state.joinerReward} />
+        {state.joinerClaimed ? (
+          <span className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-300">
+            <Icon name="check" size={15} />
+            {t("נאסף")}
+          </span>
+        ) : state.joinerClaimable ? (
+          <button
+            type="button"
+            onClick={collect}
+            disabled={pending}
+            className="btn btn-gold px-4 py-2 text-sm disabled:opacity-60"
+          >
+            {pending ? t("אוסף…") : t("אסוף")}
+          </button>
+        ) : state.standing === "ok" ? (
+          <span className="text-xs text-zinc-500">
+            {t("נפתח ב-{goal} ערים", { goal: state.goalCities })}
+          </span>
+        ) : null}
+      </div>
 
-          <StandingNote standing={state.standing} />
+      <StandingNote standing={state.standing} />
 
-          <div className="mt-3">
-            <FormMessage error={message.error} success={message.success} />
-          </div>
-        </>
-      ) : (
-        <>
-          <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-            {t("הגעת דרך קישור? הקישור נקשר לבד בהרשמה. אם מישהו נתן לך רק קוד או שם אימפריה — רשום אותו כאן. אפשר פעם אחת בלבד, ורק בתחילת הדרך.")}
-          </p>
-          <form action={nameAction} className="mt-3 flex flex-wrap items-end gap-2">
-            <label className="min-w-[12rem] flex-1">
-              <span className="mb-1 block text-[11px] font-bold text-zinc-400">
-                {t("קוד הזמנה או שם האימפריה שהזמינה אותך")}
-              </span>
-              <Input name="name" type="text" maxLength={64} autoComplete="off" />
-            </label>
-            <SubmitButton className="btn btn-dark" pendingText={t("רושם...")}>
-              {t("רשום")}
-            </SubmitButton>
-          </form>
-          <div className="mt-3">
-            <FormMessage error={nameState.error} success={nameState.success} />
-          </div>
-        </>
-      )}
+      <div className="mt-3">
+        <FormMessage error={message.error} success={message.success} />
+      </div>
     </section>
   );
 }

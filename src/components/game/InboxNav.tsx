@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { NavLink } from "@/components/ui/NavLink";
 import { Tip } from "@/components/ui/Tip";
 import { useInboxPulse } from "./inboxPulse";
 import { useT, useDir } from "@/i18n/client";
@@ -178,13 +178,14 @@ export function InboxNav({
         const tone = TONE[e.tone];
         return (
           <Tip key={e.href} tip={e.tip} side="bottom">
-            <Link
+            <NavLink
               href={e.href}
-              // Same reasoning as the sidebar rows (see Sidebar's navItems):
+              // Same reasoning as the sidebar tiles (see Sidebar's navGroups):
               // these pills sit in the command bar on every screen, so the
               // default viewport prefetch renders each destination on the
-              // server again every time any page in the game is opened.
-              prefetch={false}
+              // server again every time any page in the game is opened —
+              // while a flat `prefetch={false}` leaves the click with nothing
+              // to show until the server answers. NavLink is both halves.
               aria-label={
                 e.count > 0
                   ? t("{label} — {count} חדשים", { label: e.label, count: e.count })
@@ -204,7 +205,7 @@ export function InboxNav({
                   {e.count > 99 ? "99+" : e.count}
                 </span>
               )}
-            </Link>
+            </NavLink>
           </Tip>
         );
       })}

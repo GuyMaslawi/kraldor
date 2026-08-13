@@ -48,17 +48,32 @@ export function UpdateTimers({
   const regularRemaining = nextRegularAt - now;
   const expired = regularRemaining <= 0;
 
-  // The countdown hit 00:00 — refresh so the server applies the tick, and
-  // keep retrying until a fresh nextRegularAt arrives (network hiccups,
-  // slight clock drift).
+  // The countdown hit 00:00 — refresh so the server applies the tick, and keep
+  // retrying until a fresh nextRegularAt arrives (network hiccups, slight clock
+  // drift).
+  //
+  // Backing off rather than a flat `setInterval(refresh, 4000)`, and this is
+  // the one component in the game where that distinction matters: it rides in
+  // the game layout, so it is mounted on every screen, and it expires on the
+  // clock for everybody at once. A fixed interval keeps firing while the
+  // previous refresh is still in the air — router.refresh() returns nothing to
+  // await, so there is no way to skip a beat — and each one re-renders the
+  // whole layout, which is fifteen-odd queries. On a slow answer that stacks
+  // into a queue of identical full-layout renders that all still have to run.
+  // Doubling the wait keeps the first attempt just as prompt and lets a server
+  // having a bad minute recover instead of being asked again every four
+  // seconds.
   useEffect(() => {
     if (!expired) return;
-    const timeout = setTimeout(() => router.refresh(), 1000);
-    const retry = setInterval(() => router.refresh(), 4000);
-    return () => {
-      clearTimeout(timeout);
-      clearInterval(retry);
+    let delay = 1000;
+    let timer: ReturnType<typeof setTimeout>;
+    const attempt = () => {
+      router.refresh();
+      delay = Math.min(delay * 2, 30_000);
+      timer = setTimeout(attempt, delay);
     };
+    timer = setTimeout(attempt, delay);
+    return () => clearTimeout(timer);
   }, [expired, router]);
 
   const t = useT();

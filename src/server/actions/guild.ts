@@ -6,6 +6,7 @@ import type { GuildRole, GuildSpellType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getActiveEmpireId } from "@/lib/auth";
 import { applyPendingUpdates } from "@/lib/game/updates";
+import { normalizeName } from "@/lib/game/text";
 import {
   GUILD_AID_MAX_LEVEL,
   GUILD_CAPACITY_MAX_LEVEL,
@@ -153,15 +154,22 @@ async function runMemberAction(
 
 /* ------------------------------ create / join / leave ------------------------------ */
 
-const guildNameSchema = z
-  .string()
-  .trim()
-  // The two messages below are surfaced verbatim (see createGuild), so they are
-  // keyed through the dictionary at the point they are read rather than here —
-  // a zod schema is built once at module load, with no request to read a
-  // language from.
-  .min(GUILD_NAME_MIN_LENGTH, "שם הברית קצר מדי")
-  .max(GUILD_NAME_MAX_LENGTH, "שם הברית ארוך מדי");
+// The two messages below are surfaced verbatim (see createGuild), so they are
+// keyed through the dictionary at the point they are read rather than here —
+// a zod schema is built once at module load, with no request to read a
+// language from.
+//
+// Normalised before it is measured, for the reason spelled out in
+// `normalizeName`: a guild name carries the same uniqueness promise an empire
+// name does, and a length check run before the invisible characters come out is
+// measuring padding.
+const guildNameSchema = z.preprocess(
+  (raw) => (typeof raw === "string" ? normalizeName(raw) : raw),
+  z
+    .string()
+    .min(GUILD_NAME_MIN_LENGTH, "שם הברית קצר מדי")
+    .max(GUILD_NAME_MAX_LENGTH, "שם הברית ארוך מדי")
+);
 
 export async function createGuild(
   _prev: ActionState,
@@ -186,7 +194,14 @@ export async function createGuild(
       });
       if (existingMembership) return { error: t("אתה כבר חבר בברית.") };
 
-      const nameTaken = await tx.guild.findUnique({ where: { name } });
+      // Insensitive, to match the index that actually enforces this (see the
+      // case_insensitive_names migration): an exact-match pre-check would wave
+      // "MyGuild" past an existing "myguild" and let the insert below fail with
+      // the generic message instead of this one.
+      const nameTaken = await tx.guild.findFirst({
+        where: { name: { equals: name, mode: "insensitive" } },
+        select: { id: true },
+      });
       if (nameTaken) return { error: t("שם הברית כבר תפוס — בחר שם אחר.") };
 
       const tooPoor = {
@@ -220,6 +235,21 @@ export async function createGuild(
     revalidateGuild();
     return result;
   } catch (err) {
+    // The pre-check above is not atomic with the insert — two founders can clear
+    // it with the same name and only one can have it. The unique index is the
+    // one that decides, so its verdict gets the same friendly wording rather
+    // than the generic failure. Matched on the constraint name because the
+    // nested member row carries a unique of its own (GuildMember_empireId_key),
+    // and "you are already in a guild" must not read as "name taken".
+    //
+    // Nothing was charged: the diamonds were spent inside the transaction that
+    // just rolled back.
+    if (err && typeof err === "object" && (err as { code?: string }).code === "P2002") {
+      const target = String((err as { meta?: { target?: unknown } }).meta?.target ?? "");
+      if (target.includes("name")) {
+        return { error: t("שם הברית כבר תפוס — בחר שם אחר.") };
+      }
+    }
     await logError("guild.createGuild", err);
     return { error: t("אירעה שגיאה, נסה שוב") };
   }

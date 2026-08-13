@@ -462,6 +462,11 @@ model Empire {
   id                  String         @id @default(cuid())
   userId              String         @unique
   seasonId            String?
+  /// Unique twice over: this `@unique` is exact-byte, and a second unique index
+  /// on `lower(name)` — hand-written, because Prisma cannot declare an
+  /// expression index — makes it case-insensitive too. See the
+  /// case_insensitive_names migration, and normalizeName for the invisible
+  /// characters neither index can see past.
   name                String         @unique
   level               Int            @default(1)
   gold                Float          @default(2000)
@@ -1366,6 +1371,7 @@ enum GuildSpellType {
 
 model Guild {
   id            String   @id @default(cuid())
+  /// Case-insensitively unique as well — same arrangement as Empire.name.
   name          String   @unique
   /// Member capacity = 1 + level, so a fresh guild (level 1) holds 2 members.
   capacityLevel Int      @default(1)

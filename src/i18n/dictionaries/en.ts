@@ -5030,8 +5030,8 @@ export const EN: Record<string, string> = {
   "<0> איך מחממים": "<0> How to stoke it",
   "<0> איפוס (יוקרה ↻)": "<0> Prestige reset (↻)",
   "<0> גלגל המזל": "<0> The wheel of fortune",
-  "<0> דרגות, כל אחת ב־ <1> נקודות ניסיון —  <2> לסבב מלא. הסולם <3>, כלומר שני סבבים מלאים ביום. הפרסים גדלים ב־ <4> מהבסיס בכל יום עונה. המסלול הפרימיום נקנה פעם אחת לעונה ב־ <5> יהלומים.":
-    "<0> tiers, each at <1> experience points — <2> for a full cycle. The ladder <3>, which is two full cycles a day. Prizes grow by <4> of the base with every day of the season. The premium track is bought once a season for <5> diamonds.",
+  "<0> דרגות, כל אחת ב־ <1> נקודות ניסיון —  <2> לסבב מלא. הסולם <3>, כלומר שני סבבים מלאים ביום. הפרסים גדלים לאורך העונה: הדרגה הגבוהה בסולם משלמת <4> זהב ביום הראשון ו־ <5> ביום האחרון. המסלול הפרימיום נקנה פעם אחת לעונה ב־ <6> יהלומים.":
+    "<0> tiers, each at <1> experience points — <2> for a full cycle. The ladder <3>, which is two full cycles a day. Prizes grow all season long: the top rung of the ladder pays <4> gold on the first day and <5> on the last. The premium track is bought once a season for <6> diamonds.",
   "<0> דרך התהילה": "<0> The Road to Glory",
   "<0> הדרגות": "<0> The tiers",
   "<0> הוא נמצא ב <1>  — שולחים אותו, ומי שנרשם דרכו נקשר אליך לבד. אין מה למלא בטופס ההרשמה. מי שקיבל רק את הקוד או את שם האימפריה יכול לרשום אותו ידנית באותו עמוד, כל עוד הוא בתחילת הדרך. שני הצדדים מקבלים את הפרס רק כשהחדש מגיע ל־ <2> ערים — כלומר כששחקן אמיתי נשאר, לא כשנפתח חשבון.":

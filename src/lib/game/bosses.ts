@@ -30,9 +30,10 @@ import { MAX_CITIES, type StorableResource } from "./constants";
  *    game already uses for `cityCost`. It no longer decides the fight on its own
  *    (see `bossBattle.ts`); it sets the boss's health pool and scales the damage
  *    a round deals, so a bigger army fells the tyrant faster and bleeds less.
- * 3. **Reward** — scales with the tier *and* with the current season day, on the
- *    same daily-growth idea as the season pass (see `seasonPassRewardAmount`),
- *    so the haul is always meaningful for where the season actually is. What
+ * 3. **Reward** — scales with the tier *and* with the current season day, the
+ *    same idea (though not the same curve — the pass now rides a geometric one,
+ *    see `seasonPassRewardAmount`) so the haul is always meaningful for where
+ *    the season actually is. What
  *    `bossReward` returns is the haul for a *whole cycle*, which a sortie earns
  *    a share of: pro-rata as it wears the boss down, plus the hoard on the kill
  *    (see `BOSS_CHIP_SHARE` / `BOSS_KILL_SHARE`).

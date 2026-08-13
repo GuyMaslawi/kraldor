@@ -12,6 +12,7 @@ import {
 import { Icon, RESOURCE_ICON, RESOURCE_ICON_COLOR } from "@/components/ui/Icon";
 import { useScrollLock } from "@/components/ui/scrollLock";
 import { useDir, useT } from "@/i18n/client";
+import { formatNumber } from "@/lib/game/format";
 import {
   SEASON_PASS_HAUL_ORDER,
   SEASON_PASS_PREMIUM_MULTIPLIER,
@@ -28,7 +29,6 @@ import {
   type SeasonPassTierView,
 } from "@/server/actions/seasonPass";
 
-const heNum = (n: number) => Math.round(n).toLocaleString("he-IL");
 
 /**
  * The premium-unlock cascade pops rows one after another. At 50 tiers a
@@ -110,7 +110,7 @@ function RewardChips({
       {entries.map((e) => (
         <span
           key={e.kind}
-          title={`${heNum(e.amount)} ${t(SEASON_PASS_REWARD_LABEL[e.kind])}`}
+          title={`${formatNumber(e.amount)} ${t(SEASON_PASS_REWARD_LABEL[e.kind])}`}
           className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/55 px-1.5 py-0.5"
         >
           <Icon
@@ -119,7 +119,7 @@ function RewardChips({
             className={RESOURCE_ICON_COLOR[e.kind]}
           />
           <span className="text-[11px] font-black text-bone-bright nums">
-            +{heNum(e.amount)}
+            +{formatNumber(e.amount)}
           </span>
           <span className="sr-only">{t(SEASON_PASS_REWARD_LABEL[e.kind])}</span>
         </span>
@@ -177,7 +177,7 @@ function HaulPanel({
               className={RESOURCE_ICON_COLOR[entry.kind]}
             />
             <span className="text-sm font-black text-emerald-200 nums">
-              +{heNum(entry.amount)}
+              +{formatNumber(entry.amount)}
             </span>
             <span className="text-[10px] font-bold leading-none text-zinc-400">
               {t(SEASON_PASS_REWARD_LABEL[entry.kind])}
@@ -344,7 +344,7 @@ function TierTile({
         }`}
       />
       <span aria-hidden className={`text-[13px] font-black leading-none nums ${amountTone}`}>
-        {heNum(reward.amount)}
+        {formatNumber(reward.amount)}
       </span>
       <span
         aria-hidden
@@ -655,7 +655,7 @@ function CycleClearedOverlay({
                     className={RESOURCE_ICON_COLOR[entry.kind]}
                   />
                   <span className="text-sm font-black text-emerald-200 nums">
-                    +{heNum(entry.amount)}
+                    +{formatNumber(entry.amount)}
                   </span>
                   <span className="text-[10px] font-bold leading-none text-zinc-400">
                     {t(SEASON_PASS_REWARD_LABEL[entry.kind])}

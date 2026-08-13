@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 /**
@@ -49,6 +50,19 @@ const nextConfig: NextConfig = {
   // Drop the framework banner — it tells an attacker which version to look up
   // advisories for.
   poweredByHeader: false,
+
+  /**
+   * Pin the project root, or Turbopack infers it.
+   *
+   * There is a stray `package-lock.json` in the home directory, and with more
+   * than one lockfile in the tree Turbopack picked *that* directory as the
+   * root — which means the dev file-watcher was subscribed to the whole home
+   * folder instead of this repo. The docs are explicit about what the root
+   * buys ("reduce filesystem watching overhead", 05-config/turbopack), and an
+   * over-wide watcher is a rebuild on every unrelated file that changes
+   * anywhere under ~.
+   */
+  turbopack: { root: path.join(__dirname) },
 
   /**
    * `/game` is a bare alias for `/game/base` — there is no dashboard at the top

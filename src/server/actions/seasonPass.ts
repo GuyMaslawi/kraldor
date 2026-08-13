@@ -7,6 +7,7 @@ import { getActiveEmpireId } from "@/lib/auth";
 import { logError } from "@/server/errorLog";
 import { applyPendingUpdates } from "@/lib/game/updates";
 import { grantCitizens } from "@/lib/game/grants";
+import { formatNumber } from "@/lib/game/format";
 import { lastDailyUpdate, nextDailyUpdate } from "@/lib/game/time";
 import { getT, type T } from "@/i18n/server";
 import {
@@ -15,14 +16,13 @@ import {
   SEASON_PASS_REWARD_LABEL,
   SEASON_PASS_TIERS,
   SEASON_PASS_XP_MAX,
-  seasonPassDay,
+  seasonPassPricing,
   seasonPassRewardAmount,
   tierForXp,
+  type SeasonPassPricing,
   type SeasonPassReward,
   type SeasonPassRewardKind,
 } from "@/lib/game/seasonPass";
-
-const num = (n: number) => Math.round(n).toLocaleString("en-US");
 
 async function requireOwnEmpireId(): Promise<string> {
   // Enforces the ban on every action (not just page loads); see getActiveEmpireId.
@@ -161,19 +161,19 @@ export interface SeasonPassState {
   tiers: SeasonPassTierView[];
 }
 
-/** A reward priced at `day`, as both a number and a display string. */
+/** A reward priced at `pricing`, as both a number and a display string. */
 function rewardView(
   reward: SeasonPassReward,
-  day: number,
+  pricing: SeasonPassPricing,
   claimed: boolean,
   t: T
 ): SeasonPassRewardView {
-  const amount = seasonPassRewardAmount(reward, day);
+  const amount = seasonPassRewardAmount(reward, pricing);
   return {
     kind: reward.kind,
     amount,
     label: t("{amount} {resource}", {
-      amount: num(amount),
+      amount: formatNumber(amount),
       resource: t(SEASON_PASS_REWARD_LABEL[reward.kind]),
     }),
     claimed,
@@ -183,7 +183,7 @@ function rewardView(
 function buildState(
   progress: SeasonPassProgress,
   diamonds: number,
-  day: number,
+  pricing: SeasonPassPricing,
   now: Date,
   t: T
 ): SeasonPassState {
@@ -194,8 +194,8 @@ function buildState(
   const tiers = SEASON_PASS_TIERS.map((tier) => ({
     tier: tier.tier,
     reached: tier.tier <= level,
-    free: rewardView(tier.free, day, claimedFree.has(tier.tier), t),
-    premium: rewardView(tier.premium, day, claimedPremium.has(tier.tier), t),
+    free: rewardView(tier.free, pricing, claimedFree.has(tier.tier), t),
+    premium: rewardView(tier.premium, pricing, claimedPremium.has(tier.tier), t),
   }));
 
   const collectable = tiers.filter(
@@ -210,7 +210,7 @@ function buildState(
     premium: progress.premium,
     price: SEASON_PASS_PREMIUM_PRICE,
     diamonds,
-    day,
+    day: pricing.day,
     cycleEndsAt: nextDailyUpdate(now).getTime(),
     collectable,
     cleared: level >= SEASON_PASS_TIERS.length && collectable === 0,
@@ -225,7 +225,7 @@ function buildState(
  */
 function claimedHaul(
   progress: SeasonPassProgress,
-  day: number
+  pricing: SeasonPassPricing
 ): SeasonPassHaulEntry[] {
   const claimedFree = new Set(progress.claimedFree);
   const claimedPremium = new Set(progress.claimedPremium);
@@ -233,7 +233,7 @@ function claimedHaul(
   const add = (reward: SeasonPassReward) =>
     totals.set(
       reward.kind,
-      (totals.get(reward.kind) ?? 0) + seasonPassRewardAmount(reward, day)
+      (totals.get(reward.kind) ?? 0) + seasonPassRewardAmount(reward, pricing)
     );
 
   for (const t of SEASON_PASS_TIERS) {
@@ -265,8 +265,8 @@ export async function getSeasonPassState(): Promise<SeasonPassState | null> {
   if (!empire) return null;
 
   const progress = await loadCycle(prisma, empireId, season?.id ?? null, now);
-  const day = seasonPassDay(season, now.getTime());
-  return buildState(progress, empire.diamonds, day, now, await getT());
+  const pricing = seasonPassPricing(season, now.getTime());
+  return buildState(progress, empire.diamonds, pricing, now, await getT());
 }
 
 /* ------------------------------ premium purchase ------------------------------ */
@@ -371,11 +371,11 @@ export async function buySeasonPassPremium(): Promise<SeasonPassResult> {
       const fresh = await tx.seasonPassProgress.findUniqueOrThrow({
         where: { empireId },
       });
-      const day = seasonPassDay(season, now.getTime());
+      const pricing = seasonPassPricing(season, now.getTime());
       return {
         ok: true as const,
         message: t("מסלול הפרימיום נפתח לכל העונה! 👑"),
-        state: buildState(fresh, empire.diamonds, day, now, t),
+        state: buildState(fresh, empire.diamonds, pricing, now, t),
       };
     });
 
@@ -409,9 +409,9 @@ async function grantReward(
   tx: Prisma.TransactionClient,
   empireId: string,
   reward: SeasonPassReward,
-  day: number
+  pricing: SeasonPassPricing
 ): Promise<number> {
-  const amount = seasonPassRewardAmount(reward, day);
+  const amount = seasonPassRewardAmount(reward, pricing);
   const field = reward.kind; // gold | wood | iron | stone | turns | citizens
   if (field === "citizens") {
     // Citizens are capped by city count; a raw increment here would breach the
@@ -448,7 +448,7 @@ export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
         select: { id: true, startsAt: true, endsAt: true },
       });
       const progress = await loadCycle(tx, empireId, season?.id ?? null, now);
-      const day = seasonPassDay(season, now.getTime());
+      const pricing = seasonPassPricing(season, now.getTime());
       const level = tierForXp(progress.xp);
       if (level === 0) {
         return {
@@ -479,7 +479,7 @@ export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
           data: { claimedFree: { push: t.tier } },
         });
         if (tookFree.count > 0) {
-          credit(t.free.kind, await grantReward(tx, empireId, t.free, day), t.tier);
+          credit(t.free.kind, await grantReward(tx, empireId, t.free, pricing), t.tier);
         }
 
         if (!progress.premium) continue;
@@ -488,7 +488,7 @@ export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
           data: { claimedPremium: { push: t.tier } },
         });
         if (tookPremium.count > 0) {
-          credit(t.premium.kind, await grantReward(tx, empireId, t.premium, day), t.tier);
+          credit(t.premium.kind, await grantReward(tx, empireId, t.premium, pricing), t.tier);
         }
       }
 
@@ -510,7 +510,7 @@ export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
         kind,
         amount: granted.get(kind)!,
       }));
-      const state = buildState(fresh, empire.diamonds, day, now, t);
+      const state = buildState(fresh, empire.diamonds, pricing, now, t);
       return {
         ok: true as const,
         // Kept as a plain-text fallback for anything that only reads `message`;
@@ -519,7 +519,7 @@ export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
           haul: haul
             .map((h) =>
               t("{amount} {resource}", {
-                amount: num(h.amount),
+                amount: formatNumber(h.amount),
                 resource: t(SEASON_PASS_REWARD_LABEL[h.kind]),
               })
             )
@@ -527,7 +527,7 @@ export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
         }),
         haul,
         haulTiers: tiersTaken.size,
-        cycleHaul: state.cleared ? claimedHaul(fresh, day) : undefined,
+        cycleHaul: state.cleared ? claimedHaul(fresh, pricing) : undefined,
         state,
       };
     });

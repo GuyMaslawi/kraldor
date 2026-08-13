@@ -7,7 +7,7 @@ import { applyPendingUpdates } from "@/lib/game/updates";
 import { getTunables } from "@/lib/game/config";
 import { gameWeek, nextGameWeekStart } from "@/lib/game/time";
 import { formatNumber } from "@/lib/game/format";
-import { notStaffOrBot } from "@/lib/bot";
+import { notStaffOrBot, notStaffOrBotEmpire } from "@/lib/bot";
 import { POLL_LIMIT, POLL_WINDOW_MS, localRateLimit } from "@/lib/rateLimit";
 import { REWARD_LABEL, type Reward } from "@/lib/game/rewards";
 import {
@@ -146,9 +146,17 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
   // every other keyed table here follows.
   if (!definition) return null;
 
-  const [strikes, participants, damageTotal, mine, blows] = await Promise.all([
+  // Everything read here is filtered to contenders — neither staff nor bots.
+  // The strike itself refuses them (see `strikeWorldBoss`), but that guard only
+  // covers blows landed *after* it existed: rows an admin's empire left behind
+  // beforehand still carried its name through the live feed and the damage
+  // board, and its damage still sat in the denominator every player's share is
+  // divided by. Staff are out of the game (src/lib/staff.ts), so they are
+  // filtered on the way out as well as on the way in — the feed and the board
+  // are the same kind of ranked view as every other place that spreads this.
+  const [strikes, participants, damageTotal, mine, blows, slayer] = await Promise.all([
     prisma.worldBossStrike.findMany({
-      where: { bossId: boss.id },
+      where: { bossId: boss.id, ...notStaffOrBotEmpire },
       orderBy: { damage: "desc" },
       take: BOARD_SIZE,
       select: {
@@ -158,9 +166,11 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
         empire: { select: { name: true, title: true } },
       },
     }),
-    prisma.worldBossStrike.count({ where: { bossId: boss.id } }),
+    prisma.worldBossStrike.count({
+      where: { bossId: boss.id, ...notStaffOrBotEmpire },
+    }),
     prisma.worldBossStrike.aggregate({
-      where: { bossId: boss.id },
+      where: { bossId: boss.id, ...notStaffOrBotEmpire },
       _sum: { damage: true },
     }),
     prisma.worldBossStrike.findUnique({
@@ -168,7 +178,7 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
       select: { damage: true, hits: true, claimed: true },
     }),
     prisma.worldBossBlow.findMany({
-      where: { bossId: boss.id },
+      where: { bossId: boss.id, ...notStaffOrBotEmpire },
       orderBy: { createdAt: "desc" },
       take: FEED_SIZE,
       select: {
@@ -182,6 +192,15 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
         createdAt: true,
       },
     }),
+    // `slayerId` is deliberately not a relation (see the model), so the kill
+    // line cannot be filtered in the query above. Asked for only once there is
+    // a slayer to check, which on the polled path is after the fight is over.
+    boss.slayerId === null
+      ? Promise.resolve(null)
+      : prisma.empire.findUnique({
+          where: { id: boss.slayerId },
+          select: { isStaff: true, isBot: true },
+        }),
   ]);
 
   const total = damageTotal._sum.damage ?? 0;
@@ -220,7 +239,9 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
     hp: Math.max(0, boss.hp),
     phase: worldBossPhase(boss.hp, boss.maxHp).key,
     defeated: boss.defeatedAt !== null,
-    slayerName: boss.slayerName,
+    // A boss felled by a staff empire is still felled — but nobody is named for
+    // it. The arena hides the line when there is no name.
+    slayerName: slayer && (slayer.isStaff || slayer.isBot) ? null : boss.slayerName,
 
     endsAt: nextGameWeekStart(now).getTime(),
     serverNow: now.getTime(),
@@ -586,12 +607,16 @@ export async function collectWorldBoss(): Promise<ActionState> {
       }
       if (mine.claimed) return { error: t("כבר אספת את חלקך.") };
 
+      // Contenders only, exactly as the arena counts them — a claim must be paid
+      // against the same denominator the board showed.
       const [totals, participants] = await Promise.all([
         tx.worldBossStrike.aggregate({
-          where: { bossId: boss.id },
+          where: { bossId: boss.id, ...notStaffOrBotEmpire },
           _sum: { damage: true },
         }),
-        tx.worldBossStrike.count({ where: { bossId: boss.id } }),
+        tx.worldBossStrike.count({
+          where: { bossId: boss.id, ...notStaffOrBotEmpire },
+        }),
       ]);
       const total = totals._sum.damage ?? 0;
       const share = total > 0 ? mine.damage / total : 0;

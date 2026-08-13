@@ -238,7 +238,8 @@ import {
   SEASON_PASS_TIER_COUNT,
   SEASON_PASS_XP,
   SEASON_PASS_XP_PER_TIER,
-  SEASON_PASS_DAILY_GROWTH,
+  SEASON_PASS_DAY1_PEAK,
+  SEASON_PASS_FINAL_PEAK,
 } from "@/lib/game/seasonPass";
 import {
   WHEEL_CITIZEN_BASE,
@@ -3360,7 +3361,7 @@ export async function GuideContent({
 
                 <div className="panel-gold rounded-xl p-4">
                   <p className="mb-2 flex items-center gap-2 font-black text-gold-bright"><RichText text={t("<0> דרך התהילה")} slots={[<><Icon name="gift" size={18} /></>]} /></p>
-                  <p className="text-[11px] leading-relaxed text-zinc-400"><RichText text={t("<0> דרגות, כל אחת ב־ <1> נקודות ניסיון —  <2> לסבב מלא. הסולם <3>, כלומר שני סבבים מלאים ביום. הפרסים גדלים ב־ <4> מהבסיס בכל יום עונה. המסלול הפרימיום נקנה פעם אחת לעונה ב־ <5> יהלומים.")} slots={[<><b className="nums">{SEASON_PASS_TIER_COUNT}</b></>, <><b className="nums">{SEASON_PASS_XP_PER_TIER}</b></>, <><b className="nums">{SEASON_PASS_TIER_COUNT * SEASON_PASS_XP_PER_TIER}</b></>, <><b>{t("מתאפס בכל עדכון יומי")}</b></>, <><b className="nums">{Math.round(SEASON_PASS_DAILY_GROWTH * 100)}%</b></>, <><b className="nums">{nf(SEASON_PASS_PREMIUM_PRICE)}</b></>]} /></p>
+                  <p className="text-[11px] leading-relaxed text-zinc-400"><RichText text={t("<0> דרגות, כל אחת ב־ <1> נקודות ניסיון —  <2> לסבב מלא. הסולם <3>, כלומר שני סבבים מלאים ביום. הפרסים גדלים לאורך העונה: הדרגה הגבוהה בסולם משלמת <4> זהב ביום הראשון ו־ <5> ביום האחרון. המסלול הפרימיום נקנה פעם אחת לעונה ב־ <6> יהלומים.")} slots={[<><b className="nums">{SEASON_PASS_TIER_COUNT}</b></>, <><b className="nums">{SEASON_PASS_XP_PER_TIER}</b></>, <><b className="nums">{SEASON_PASS_TIER_COUNT * SEASON_PASS_XP_PER_TIER}</b></>, <><b>{t("מתאפס בכל עדכון יומי")}</b></>, <><b className="nums">{formatNumber(SEASON_PASS_DAY1_PEAK.gold)}</b></>, <><b className="nums">{formatNumber(SEASON_PASS_FINAL_PEAK.gold)}</b></>, <><b className="nums">{nf(SEASON_PASS_PREMIUM_PRICE)}</b></>]} /></p>
                   <div className="mt-3 grid grid-cols-2 gap-1 text-[10px] sm:grid-cols-3">
                     {(
                       [

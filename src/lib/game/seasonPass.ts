@@ -15,9 +15,10 @@ import type { GameSeason } from "@prisma/client";
  *    (07:30 and 19:30), so a player gets two full ladders per day and is meant
  *    to be able to clear all fifty tiers inside one ~12h cycle. XP and claimed
  *    tiers reset at each boundary; see `cycleStartOf`.
- * 2. **Payouts scale with the season day**, exactly like the wheel does — the
- *    ladder is worth little on day 1 and a lot on day 60, so a fresh empire is
- *    not handed a game-breaking pile on its first login.
+ * 2. **Payouts scale with the season day** — the ladder is worth little on day
+ *    1 and a fortune on the season's last day, so a fresh empire is not handed
+ *    a game-breaking pile on its first login. The curve is geometric and
+ *    stretched over the season's *actual* length; see `SEASON_PASS_FINAL_PEAK`.
  * 3. **Premium is bought once per season, not once per cycle.** The purchase
  *    lives on the progress row and survives every reset until the season
  *    itself changes.
@@ -30,8 +31,30 @@ import type { GameSeason } from "@prisma/client";
  * ladder instead.
  */
 
-/** Fraction of the base amount added for each day elapsed in the season. */
-export const SEASON_PASS_DAILY_GROWTH = 0.25;
+/**
+ * What the *biggest* rung of each kind pays on the season's final day, on the
+ * free track. Together with `CYCLE_BUDGET` (which prices day 1) these two knobs
+ * define the whole curve: everything in between is a geometric ride from one to
+ * the other, stretched over however many days the season actually runs.
+ *
+ * Why geometric and not the old linear +25%-of-base a day: the game's own
+ * economy is multiplicative (every upgrade ladder is geometric — see
+ * `upgradeCost`), so a linear pass that felt fair on day 1 was pocket change by
+ * the endgame, when a single hero-item rung costs hundreds of billions. The
+ * pass now tracks the curve the rest of the game is already on.
+ *
+ * Only `gold` is stated for resources: wood, iron and stone ride the *same*
+ * multiplier, so the mix the ladder pays never shifts. On the last day that
+ * puts wood at ~3.9B and iron/stone at ~1.4B per top rung.
+ *
+ * Turns and citizens deliberately grow far less. They are not inflationary
+ * currencies — turns gate actions (ATTACK_TURN_COST) and citizens are capped by
+ * city count (grantCitizens) — so scaling them like gold would hand out an
+ * action economy nobody could spend rather than a bigger prize.
+ */
+const RESOURCE_FINAL_PEAK = 5_000_000_000;
+const TURNS_FINAL_PEAK = 1_000;
+const CITIZENS_FINAL_PEAK = 100;
 
 /**
  * XP required for each successive tier — tier N unlocks at N × this.
@@ -94,8 +117,8 @@ export type SeasonPassAction = keyof typeof SEASON_PASS_XP;
  * picks the quantity, so paying per call made the whole ladder farmable for
  * almost nothing: 40 × `buyWeapon(quantity: 1)` on the cheapest always-unlocked
  * weapon cost ~5,000 resources and cleared all eight tiers, which pay ~21,000
- * back on day 1 and 15.75× that by day 60 — twice a day, forever. The pass was
- * net-positive on its own input.
+ * back on day 1 and orders of magnitude more by the season's end — twice a day,
+ * forever. The pass was net-positive on its own input.
  *
  * So these actions earn XP per unit of value actually spent, floored. A
  * quantity-1 purchase falls under `per` and earns exactly nothing, which is
@@ -178,21 +201,22 @@ export const SEASON_PASS_PREMIUM_MULTIPLIER = 3;
 /**
  * Total the **free** track pays across a whole cycle, per kind, at day 1.
  *
- * This is the balance knob — and it is deliberately the *same* total the old
- * 8-tier ladder paid. Lengthening the ladder to 50 tiers must not multiply the
- * payout by six: XP per clear is unchanged (400), so a bigger total would be
- * pure inflation, and this pass has already had to be retuned once for being
- * net-positive against its own inputs (see SEASON_PASS_SPEND_XP). Fifty tiers
- * is a pacing change, not an economy change. Raise these numbers only if you
- * mean to make the pass more generous.
+ * This is the balance knob. Tune generosity here and nowhere else — individual
+ * tier amounts are derived from these totals, so editing a row silently shifts
+ * what a full clear is worth. Fifty tiers was a pacing change, not an economy
+ * change: XP per clear is unchanged (400), so these numbers alone decide how
+ * much the pass pays.
+ *
+ * 2026-08-13: raised ×10 across the board (user call — the ladder was reading
+ * as pocket change next to what the rest of the game pays by then).
  */
 const CYCLE_BUDGET: Record<SeasonPassRewardKind, number> = {
-  gold: 9_000,
-  wood: 7_000,
-  iron: 2_500,
-  stone: 2_500,
-  turns: 40,
-  citizens: 25,
+  gold: 90_000,
+  wood: 70_000,
+  iron: 25_000,
+  stone: 25_000,
+  turns: 400,
+  citizens: 250,
 };
 
 /** Rounding step per kind, so amounts read as clean numbers. */
@@ -274,6 +298,51 @@ function buildLadder(): SeasonPassTier[] {
 
 export const SEASON_PASS_TIERS: SeasonPassTier[] = buildLadder();
 
+/** The fattest day-1 rung of each kind on the free track — the curve's anchor. */
+export const SEASON_PASS_DAY1_PEAK: Record<SeasonPassRewardKind, number> = (() => {
+  const peak = {} as Record<SeasonPassRewardKind, number>;
+  for (const tier of SEASON_PASS_TIERS) {
+    const { kind, base } = tier.free;
+    peak[kind] = Math.max(peak[kind] ?? 0, base);
+  }
+  return peak;
+})();
+
+/**
+ * How much a kind's reward is multiplied by between day 1 and the season's last
+ * day. Derived, not written: each is the ratio between the final-day peak we
+ * want and the day-1 peak the budget already produces, so editing either knob
+ * moves the curve without anyone recomputing a rate by hand.
+ */
+const TOTAL_GROWTH: Record<SeasonPassRewardKind, number> = (() => {
+  const target = (kind: SeasonPassRewardKind) =>
+    kind === "turns"
+      ? TURNS_FINAL_PEAK
+      : kind === "citizens"
+        ? CITIZENS_FINAL_PEAK
+        : // One multiplier for all four resources, taken off gold, so their
+          // relative sizes stay exactly as CYCLE_BUDGET set them.
+          (RESOURCE_FINAL_PEAK * SEASON_PASS_DAY1_PEAK[kind]) / SEASON_PASS_DAY1_PEAK.gold;
+  const growth = {} as Record<SeasonPassRewardKind, number>;
+  for (const kind of Object.keys(SEASON_PASS_DAY1_PEAK) as SeasonPassRewardKind[]) {
+    growth[kind] = Math.max(1, target(kind) / SEASON_PASS_DAY1_PEAK[kind]);
+  }
+  return growth;
+})();
+
+/** What the top rung of each kind pays on the last day. For the guide's copy. */
+export const SEASON_PASS_FINAL_PEAK: Record<SeasonPassRewardKind, number> =
+  (() => {
+    const peak = {} as Record<SeasonPassRewardKind, number>;
+    for (const kind of Object.keys(SEASON_PASS_DAY1_PEAK) as SeasonPassRewardKind[]) {
+      peak[kind] = roundReward(
+        SEASON_PASS_DAY1_PEAK[kind] * TOTAL_GROWTH[kind],
+        REWARD_STEP[kind]
+      );
+    }
+    return peak;
+  })();
+
 /**
  * Canonical display order for any per-kind reward summary — a claim's haul, the
  * ladder's cycle total, the premium upsell. Shared so two summaries rendered
@@ -298,6 +367,8 @@ export const SEASON_PASS_REWARD_LABEL: Record<SeasonPassRewardKind, string> = {
   citizens: "אזרחים",
 };
 
+const DAY_MS = 86_400_000;
+
 /**
  * Current day of the season (1-based), clamped to the season's length so an
  * expired season keeps paying its final-day amounts rather than growing
@@ -312,21 +383,67 @@ export function seasonPassDay(
   now: number
 ): number {
   if (!season) return 1;
-  const dayMs = 86_400_000;
-  const elapsed = Math.floor((now - season.startsAt.getTime()) / dayMs) + 1;
-  const total = Math.max(
-    1,
-    Math.ceil((season.endsAt.getTime() - season.startsAt.getTime()) / dayMs)
-  );
-  return Math.min(Math.max(elapsed, 1), total);
+  const elapsed = Math.floor((now - season.startsAt.getTime()) / DAY_MS) + 1;
+  return Math.min(Math.max(elapsed, 1), seasonPassDays(season));
 }
 
-/** Quantity a reward pays on a given season day. */
+/** How many days the season runs, at least 1. */
+export function seasonPassDays(
+  season: Pick<GameSeason, "startsAt" | "endsAt"> | null | undefined
+): number {
+  if (!season) return 1;
+  return Math.max(
+    1,
+    Math.ceil((season.endsAt.getTime() - season.startsAt.getTime()) / DAY_MS)
+  );
+}
+
+/**
+ * Everything a payout needs to be priced: which day of the season it is, and
+ * how long the season is. Both, because the growth curve is stretched to fit
+ * the season — the last day pays SEASON_PASS_FINAL_PEAK whether the season runs
+ * for 30 days or 90, rather than a fixed daily rate that would leave a short
+ * season never reaching its ceiling and a long one blowing straight past it.
+ */
+export interface SeasonPassPricing {
+  day: number;
+  days: number;
+}
+
+export function seasonPassPricing(
+  season: Pick<GameSeason, "startsAt" | "endsAt"> | null | undefined,
+  now: number
+): SeasonPassPricing {
+  return { day: seasonPassDay(season, now), days: seasonPassDays(season) };
+}
+
+/** Quantity a reward pays at a given point in the season. */
 export function seasonPassRewardAmount(
   reward: SeasonPassReward,
-  day: number
+  pricing: SeasonPassPricing
 ): number {
-  const grown =
-    reward.base * (1 + SEASON_PASS_DAILY_GROWTH * (Math.max(day, 1) - 1));
-  return Math.max(reward.step, Math.round(grown / reward.step) * reward.step);
+  // 0 on day 1, 1 on the last day — the season's length only sets the pace.
+  const progress =
+    pricing.days <= 1
+      ? 1
+      : Math.min(
+          1,
+          Math.max(0, (Math.max(pricing.day, 1) - 1) / (pricing.days - 1))
+        );
+  const grown = reward.base * TOTAL_GROWTH[reward.kind] ** progress;
+  return roundReward(grown, reward.step);
+}
+
+/**
+ * Round a grown amount to something a player can read at a glance: the kind's
+ * own step while the numbers are small, then three significant digits once it
+ * outgrows it. A late-season rung reading "4,860,000,000" is a prize; the same
+ * rung reading "4,863,271,940" is noise.
+ */
+function roundReward(value: number, step: number): number {
+  const unit = Math.max(
+    step,
+    value > 0 ? 10 ** Math.max(0, Math.floor(Math.log10(value)) - 2) : step
+  );
+  return Math.max(step, Math.round(value / unit) * unit);
 }

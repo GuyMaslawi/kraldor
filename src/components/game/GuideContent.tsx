@@ -44,6 +44,7 @@ import {
 } from "@/lib/game/constants";
 import { cityAt } from "@/lib/game/cities";
 import { formatNumber, formatShort } from "@/lib/game/format";
+import { formatWaitDuration } from "@/lib/game/time";
 import {
   INITIAL_WEAPON_UNLOCKED_TIER,
   TIERS_PER_CATEGORY,
@@ -511,9 +512,7 @@ export async function GuideContent({
         <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-gold-dim">
           everything, explained
         </p>
-        <h2 className="mt-2 text-2xl font-black tracking-wide text-gold-bright sm:text-4xl">
-          כל מה שצריך לדעת כדי לשלוט
-        </h2>
+        <h2 className="mt-2 text-2xl font-black tracking-wide text-gold-bright sm:text-4xl">{t("כל מה שצריך לדעת כדי לשלוט")}</h2>
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-bone/85">{t("כל חוק, כל נוסחה וכל מספר במשחק — כפי שהשרת באמת מחשב אותם. המדריך חי: הערכים שמוצגים כאן נקראים מהאיזון הפעיל של השרת, ובכל מקום שיש בו חישוב מחכה לך מחשבון שאפשר לשחק איתו.")}</p>
 
         <div className="mx-auto mt-6 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-4">
@@ -570,7 +569,7 @@ export async function GuideContent({
                 ))}
               </div>
 
-              <Note tone="green" icon="shield" title={t("הגנת שחקן חדש")}><RichText text={t("אימפריה טרייה מוגנת מתקיפה ומריגול למשך  <0> שעות מהרישום. המגן נשבר ברגע שאתה עצמך תוקף או מרגל — אי אפשר להסתתר מאחוריו ולפעול בתוקפנות באותו הזמן.")} slots={[<><b className="nums">{NEWBIE_PROTECTION_MS / 3_600_000}</b></>]} /></Note>
+              <Note tone="green" icon="shield" title={t("הגנת שחקן חדש")}><RichText text={t("אימפריה טרייה מוגנת מתקיפה ומריגול למשך  <0> מהרישום. המגן נשבר ברגע שאתה עצמך תוקף או מרגל — אי אפשר להסתתר מאחוריו ולפעול בתוקפנות באותו הזמן.")} slots={[<><b>{formatWaitDuration(t, NEWBIE_PROTECTION_MS)}</b></>]} /></Note>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Fact icon="gold" label={t("זהב פתיחה")} value={formatShort(tunables.starting.gold)} />
@@ -619,20 +618,19 @@ export async function GuideContent({
                   <>
                     <N>{tunables.daily.citizensBase}</N>
                     <O>+</O>
-                    <V>רמת שדרוג קבלת אזרחים</V>
+                    <V>{t("רמת שדרוג קבלת אזרחים")}</V>
                     <O>×</O>
                     <N>{tunables.daily.citizensPerLevel}</N>
                     <O>=</O>
-                    <R>אזרחים</R>
-                    <O>× עדכונים שהוחמצו</O>
+                    <R>{t("אזרחים")}</R>
+                    <O>{t("× עדכונים שהוחמצו")}</O>
                   </>
                 }
                 example={
                   <>
-                    ברמת שדרוג <N>10</N> תקבל{" "}
-                    <N>{citizensPerDailyUpdate(10, tunables.daily)}</N> אזרחים בכל עדכון —{" "}
-                    <N>{citizensPerDailyUpdate(10, tunables.daily) * 2}</N> ביממה. אם לא נכנסת שבוע,
-                    כל העדכונים שהוחמצו נצברים ומשולמים בכניסה הבאה.
+                    {t("ברמת שדרוג")} <N>10</N> {t("תקבל")}{" "}
+                    <N>{citizensPerDailyUpdate(10, tunables.daily)}</N> {t("אזרחים בכל עדכון —")}{" "}
+                    <N>{citizensPerDailyUpdate(10, tunables.daily) * 2}</N> {t("ביממה. אם לא נכנסת שבוע, כל העדכונים שהוחמצו נצברים ומשולמים בכניסה הבאה.")}
                   </>
                 }
               />
@@ -642,7 +640,7 @@ export async function GuideContent({
 
             {/* ============================ 03 daily ============================ */}
             <GuideSection meta={sections.daily} index={INDEX.daily}>
-              <Lead><RichText text={t("<0>  הוא המסך היחיד שכל תוכנו פג. עליו ארבעה דברים:  <1> (רצף הכניסה),  <2> משימות יומיות,  <3> שבועיות, ו<4>  המשותף. הכול נמדד ב<5> — חצות עד חצות — ולא בפעמון העדכון היומי.")} slots={[<><Link href={gameHref("/game/daily")} className="text-gold underline"> לוח היום </Link></>, <><b>מפקד הנאמנים</b></>, <><b className="nums">{MISSIONS_PER_BOARD}</b></>, <><b className="nums">{MISSIONS_PER_BOARD}</b></>, <><b>חוזה הברית</b></>, <><b>יום לוח ירושלמי</b></>]} /></Lead>
+              <Lead><RichText text={t("<0>  הוא המסך היחיד שכל תוכנו פג. עליו ארבעה דברים:  <1> (רצף הכניסה),  <2> משימות יומיות,  <3> שבועיות, ו<4>  המשותף. הכול נמדד ב<5> — חצות עד חצות — ולא בפעמון העדכון היומי.")} slots={[<><Link href={gameHref("/game/daily")} className="text-gold underline"> {t("לוח היום")} </Link></>, <><b>{t("מפקד הנאמנים")}</b></>, <><b className="nums">{MISSIONS_PER_BOARD}</b></>, <><b className="nums">{MISSIONS_PER_BOARD}</b></>, <><b>{t("חוזה הברית")}</b></>, <><b>{t("יום לוח ירושלמי")}</b></>]} /></Lead>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Fact
@@ -678,11 +676,11 @@ export async function GuideContent({
                 label={t("התקדמות במשימה")}
                 expr={
                   <>
-                    <V>המונה שלך עכשיו</V>
+                    <V>{t("המונה שלך עכשיו")}</V>
                     <O>−</O>
-                    <V>המונה ברגע שהלוח נפתח</V>
+                    <V>{t("המונה ברגע שהלוח נפתח")}</V>
                     <O>=</O>
-                    <R>ההתקדמות</R>
+                    <R>{t("ההתקדמות")}</R>
                   </>
                 }
                 legend={[
@@ -705,16 +703,16 @@ export async function GuideContent({
                 ]}
                 example={
                   <>
-                    אותה משימה בדיוק —{" "}
+                    {t("אותה משימה בדיוק —")}{" "}
                     <b>
                       {fillParams(MISSION_SHAPES[0].name, {
                         goal: missionGoal(MISSION_SHAPES[0], "DAY", 1),
                       })}
                     </b>{" "}
-                    — משלמת <b className="nums">{nf(missionRewards(MISSION_SHAPES[0], "DAY", 1)[0].amount)}</b>{" "}
-                    {REWARD_LABEL[missionRewards(MISSION_SHAPES[0], "DAY", 1)[0].kind]} בעיר אחת, ו־
+                    {t("— משלמת")} <b className="nums">{nf(missionRewards(MISSION_SHAPES[0], "DAY", 1)[0].amount)}</b>{" "}
+                    {REWARD_LABEL[missionRewards(MISSION_SHAPES[0], "DAY", 1)[0].kind]} {t("בעיר אחת, ו־")}
                     <b className="nums">{nf(missionRewards(MISSION_SHAPES[0], "DAY", 5)[0].amount)}</b>{" "}
-                    {REWARD_LABEL[missionRewards(MISSION_SHAPES[0], "DAY", 5)[0].kind]} בעיר חמש.
+                    {REWARD_LABEL[missionRewards(MISSION_SHAPES[0], "DAY", 5)[0].kind]} {t("בעיר חמש.")}
                   </>
                 }
               />
@@ -723,9 +721,9 @@ export async function GuideContent({
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>יום</th>
-                      <th>השלב</th>
-                      <th>מה מחכה שם</th>
+                      <th>{t("יום")}</th>
+                      <th>{t("השלב")}</th>
+                      <th>{t("מה מחכה שם")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -746,16 +744,16 @@ export async function GuideContent({
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <Note tone="red" icon="turns" title={t("יום שהוחמץ שובר את הרצף")}><RichText text={t("הרצף חוזר ל־<0>, והשיא האישי נשמר לצידו. אין דרך לקנות את הפער בחזרה — רצף שאפשר לשלם עליו הוא לא סיבה לחזור מחר.")} slots={[<><b className="nums">1</b></>]} /></Note>
-                <Note tone="green" icon="guild" title={t("חוזה הברית")}><RichText text={t("יעד יומי אחד לכל ברית, שנמדד ב<0>. הוא ננעל לפי מספר החברים ברגע שנפתח (מינימום  <1> משימות, ולכל היותר  <2> לחבר), וכשהוא נסגר  <3> מקבל את מלוא הפרס — לא חלק ממנו.")} slots={[<><b>משימות היומיות שהחברים סיימו</b></>, <><b className="nums">{GUILD_CONTRACT_MIN_GOAL}</b></>, <><b className="nums">{GUILD_CONTRACT_MAX_PER_MEMBER}</b></>, <><b>כל חבר שהיה בברית באותו רגע</b></>]} /></Note>
+                <Note tone="green" icon="guild" title={t("חוזה הברית")}><RichText text={t("יעד יומי אחד לכל ברית, שנמדד ב<0>. הוא ננעל לפי מספר החברים ברגע שנפתח (מינימום  <1> משימות, ולכל היותר  <2> לחבר), וכשהוא נסגר  <3> מקבל את מלוא הפרס — לא חלק ממנו.")} slots={[<><b>{t("משימות היומיות שהחברים סיימו")}</b></>, <><b className="nums">{GUILD_CONTRACT_MIN_GOAL}</b></>, <><b className="nums">{GUILD_CONTRACT_MAX_PER_MEMBER}</b></>, <><b>{t("כל חבר שהיה בברית באותו רגע")}</b></>]} /></Note>
               </div>
 
               <TableWrap>
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>חוזה</th>
-                      <th>יעד לברית של 5</th>
-                      <th>לכל חבר</th>
+                      <th>{t("חוזה")}</th>
+                      <th>{t("יעד לברית של 5")}</th>
+                      <th>{t("לכל חבר")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -813,11 +811,9 @@ export async function GuideContent({
               </div>
 
               <Note tone="gold" icon="storage" title={t("זמין מול מאוחסן")}>
-                לכל משאב יש שתי יתרות: <b>זמין</b> (מה שאפשר להוציא — וגם מה שנבזז
-                בתקיפה) ו<b>מאוחסן</b> במחסן (מוגן לחלוטין מביזה, אבל לא ניתן להוציא
-                אותו עד שתמשוך). ראה{" "}
+                {t("לכל משאב יש שתי יתרות:")} <b>{t("זמין")}</b> {t("(מה שאפשר להוציא — וגם מה שנבזז בתקיפה) ו")}<b>{t("מאוחסן")}</b> {t("במחסן (מוגן לחלוטין מביזה, אבל לא ניתן להוציא אותו עד שתמשוך). ראה")}{" "}
                 <a href={`#${SECTIONS.storage.id}`} className="text-gold underline">
-                  מחסנים
+                  {t("מחסנים")}
                 </a>
                 .
               </Note>
@@ -825,29 +821,29 @@ export async function GuideContent({
 
             {/* ============================ 05 mines ============================ */}
             <GuideSection meta={sections.mines} index={INDEX.mines}>
-              <Lead><RichText text={t("ארבעת המכרות הם מנוע הכלכלה. מכרה לא מייצר כלום מעצמו — הוא מייצר לפי כמות <0> שהצבת בו, כפול התפוקה לעבד שנקבעת מרמת המכרה.")} slots={[<><b>עבדי המכרות</b></>]} /></Lead>
+              <Lead><RichText text={t("ארבעת המכרות הם מנוע הכלכלה. מכרה לא מייצר כלום מעצמו — הוא מייצר לפי כמות <0> שהצבת בו, כפול התפוקה לעבד שנקבעת מרמת המכרה.")} slots={[<><b>{t("עבדי המכרות")}</b></>]} /></Lead>
 
               <Formula
                 label={t("תפוקת מכרה בכל עדכון רגיל")}
                 expr={
                   <>
-                    <V>עבדים</V>
+                    <V>{t("עבדים")}</V>
                     <O>×</O>
                     <O>(</O>
-                    <V>רמת המכרה</V>
+                    <V>{t("רמת המכרה")}</V>
                     <O>×</O>
                     <N>2</N>
                     <O>)</O>
                     <O>×</O>
-                    <V>ערים</V>
+                    <V>{t("ערים")}</V>
                     <O>×</O>
-                    <V>בונוס גיבור</V>
+                    <V>{t("בונוס גיבור")}</V>
                     <O>×</O>
-                    <V>קסם ברית</V>
+                    <V>{t("קסם ברית")}</V>
                     <O>×</O>
-                    <V>שיקוי</V>
+                    <V>{t("שיקוי")}</V>
                     <O>+</O>
-                    <V>חפץ</V>
+                    <V>{t("חפץ")}</V>
                   </>
                 }
                 legend={[
@@ -864,10 +860,10 @@ export async function GuideContent({
                 ]}
                 example={
                   <>
-                    <N>60</N> עבדים במכרה ברמה <N>40</N> ={" "}
-                    <N>{nf(60 * 80)}</N> בבסיס; עם <N>3</N> ערים ובונוס גיבור{" "}
-                    <N>20%</N> — <R>{nf(60 * 80 * 3 * 1.2)}</R> בכל 5 דקות, כלומר{" "}
-                    <R>{formatShort(60 * 80 * 3 * 1.2 * 288)}</R> ביממה.
+                    <N>60</N> {t("עבדים במכרה ברמה")} <N>40</N> ={" "}
+                    <N>{nf(60 * 80)}</N> {t("בבסיס; עם")} <N>3</N> {t("ערים ובונוס גיבור")}{" "}
+                    <N>20%</N> — <R>{nf(60 * 80 * 3 * 1.2)}</R> {t("בכל 5 דקות, כלומר")}{" "}
+                    <R>{formatShort(60 * 80 * 3 * 1.2 * 288)}</R> {t("ביממה.")}
                   </>
                 }
               />
@@ -876,17 +872,17 @@ export async function GuideContent({
 
               <div>
                 <p className="mb-2 text-sm font-black text-gold-bright">{t("מחיר שדרוג מכרה")}</p>
-                <p className="mb-2 text-xs text-zinc-400"><RichText text={t("כל מכרה משודרג <0> — מכרה זהב בזהב, מחצבת אבן באבן. כל רמה עולה פי {p0} מקודמתה, כך שהדרגות הראשונות זולות והטיפוס לרמה {p1} הוא פרויקט של עונה.", { p0: MINE_UPGRADE_COST_GROWTH, p1: MINE_MAX_LEVEL })} slots={[<><b>במשאב שלו בלבד</b></>]} /></p>
+                <p className="mb-2 text-xs text-zinc-400"><RichText text={t("כל מכרה משודרג <0> — מכרה זהב בזהב, מחצבת אבן באבן. כל רמה עולה פי {p0} מקודמתה, כך שהדרגות הראשונות זולות והטיפוס לרמה {p1} הוא פרויקט של עונה.", { p0: MINE_UPGRADE_COST_GROWTH, p1: MINE_MAX_LEVEL })} slots={[<><b>{t("במשאב שלו בלבד")}</b></>]} /></p>
                 <TableWrap maxHeight={320}>
                   <table className="guide-table">
                     <thead>
                       <tr>
-                        <th className="text-right">רמה</th>
-                        <th className="text-right">תפוקה לעבד</th>
-                        <th className="text-right">מכרה זהב</th>
-                        <th className="text-right">מכרה עץ</th>
-                        <th className="text-right">מכרה ברזל</th>
-                        <th className="text-right">מחצבת אבן</th>
+                        <th className="text-right">{t("רמה")}</th>
+                        <th className="text-right">{t("תפוקה לעבד")}</th>
+                        <th className="text-right">{t("מכרה זהב")}</th>
+                        <th className="text-right">{t("מכרה עץ")}</th>
+                        <th className="text-right">{t("מכרה ברזל")}</th>
+                        <th className="text-right">{t("מחצבת אבן")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -921,11 +917,11 @@ export async function GuideContent({
                 <table className="guide-table">
                   <thead>
                     <tr>
-                      <th className="text-right">עיר</th>
-                      <th className="text-right">מכפיל תפוקה</th>
-                      <th className="text-right">אזרחים לעדכון</th>
-                      <th className="text-right">רמת גיבור נדרשת</th>
-                      <th className="text-right">עלות המעבר</th>
+                      <th className="text-right">{t("עיר")}</th>
+                      <th className="text-right">{t("מכפיל תפוקה")}</th>
+                      <th className="text-right">{t("אזרחים לעדכון")}</th>
+                      <th className="text-right">{t("רמת גיבור נדרשת")}</th>
+                      <th className="text-right">{t("עלות המעבר")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -971,7 +967,7 @@ export async function GuideContent({
                                 ]}
                               />
                             ) : (
-                              <span className="text-[11px] text-zinc-500">העיר האחרונה</span>
+                              <span className="text-[11px] text-zinc-500">{t("העיר האחרונה")}</span>
                             )}
                           </td>
                         </tr>
@@ -985,12 +981,12 @@ export async function GuideContent({
                 label={t("מחיר עיר")}
                 expr={
                   <>
-                    <V>מחיר העיר השנייה</V>
+                    <V>{t("מחיר העיר השנייה")}</V>
                     <O>×</O>
                     <N>2.5</N>
-                    <sup className="text-gold-dim">(דרגה)</sup>
+                    <sup className="text-gold-dim">{t("(דרגה)")}</sup>
                     <O>—</O>
-                    <V>גם המשאבים וגם דרישת החיילים</V>
+                    <V>{t("גם המשאבים וגם דרישת החיילים")}</V>
                   </>
                 }
                 legend={[
@@ -999,10 +995,10 @@ export async function GuideContent({
                 ]}
                 example={
                   <>
-                    העיר השנייה: <N>{formatShort(cityCost(1).gold)}</N> זהב +{" "}
-                    <N>{formatShort(cityCost(1).wood)}</N> מכל שאר המשאבים +{" "}
-                    <N>{cityCost(1).soldiers}</N> חיילים. העיר העשירית כבר עולה{" "}
-                    <N>{formatShort(cityCost(9).gold)}</N> זהב.
+                    {t("העיר השנייה:")} <N>{formatShort(cityCost(1).gold)}</N> {t("זהב +")}{" "}
+                    <N>{formatShort(cityCost(1).wood)}</N> {t("מכל שאר המשאבים +")}{" "}
+                    <N>{cityCost(1).soldiers}</N> {t("חיילים. העיר העשירית כבר עולה")}{" "}
+                    <N>{formatShort(cityCost(9).gold)}</N> {t("זהב.")}
                   </>
                 }
               />
@@ -1010,27 +1006,27 @@ export async function GuideContent({
 
             {/* ============================ 07 storage ============================ */}
             <GuideSection meta={sections.storage} index={INDEX.storage}>
-              <Lead><RichText text={t("מחסן הוא הכספת מפני תוקפים. משאב שהופקד במחסן <0> — אבל גם לא ניתן להוציא אותו עד שתמשוך אותו בחזרה ליתרה הזמינה.")} slots={[<><b>לא נבזז לעולם</b></>]} /></Lead>
+              <Lead><RichText text={t("מחסן הוא הכספת מפני תוקפים. משאב שהופקד במחסן <0> — אבל גם לא ניתן להוציא אותו עד שתמשוך אותו בחזרה ליתרה הזמינה.")} slots={[<><b>{t("לא נבזז לעולם")}</b></>]} /></Lead>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <Formula
                   label={t("קיבולת מחסן")}
                   expr={
                     <>
-                      <V>רמת המחסן</V>
+                      <V>{t("רמת המחסן")}</V>
                       <O>×</O>
                       <N>{nf(STORAGE_CAPACITY_PER_LEVEL)}</N>
                       <O>×</O>
                       <N>{STORAGE_GROWTH}</N>
-                      <sup className="text-[10px]">רמה−1</sup>
+                      <sup className="text-[10px]">{t("רמה−1")}</sup>
                       <O>=</O>
-                      <R>קיבולת מוגנת</R>
+                      <R>{t("קיבולת מוגנת")}</R>
                     </>
                   }
                   example={
                     <>
-                      מחסן ברמה <N>25</N> מגן על{" "}
-                      <N>{formatShort(storageCapacityForLevel(25))}</N> יחידות מהמשאב שלו.
+                      {t("מחסן ברמה")} <N>25</N> {t("מגן על")}{" "}
+                      <N>{formatShort(storageCapacityForLevel(25))}</N> {t("יחידות מהמשאב שלו.")}
                     </>
                   }
                 />
@@ -1039,9 +1035,9 @@ export async function GuideContent({
                   <table className="guide-table">
                     <thead>
                       <tr>
-                        <th className="text-right">רמה</th>
-                        <th className="text-right">קיבולת</th>
-                        <th className="text-right">עלות</th>
+                        <th className="text-right">{t("רמה")}</th>
+                        <th className="text-right">{t("קיבולת")}</th>
+                        <th className="text-right">{t("עלות")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1073,12 +1069,12 @@ export async function GuideContent({
                 </div>
               </div>
 
-              <Note tone="red" icon="attack" title={t("הכלל החשוב ביותר לפני שינה")}><RichText text={t("תוקף לוקח  <0> מכל משאב <1> שלך. לפני שאתה מתנתק — הפקד במחסנים ובבנק. מה שנשאר בחוץ הוא הזמנה פתוחה.")} slots={[<><b className="nums">{Math.round(tunables.battle.plunderRate * 100)}%</b></>, <><b>זמין</b></>]} /></Note>
+              <Note tone="red" icon="attack" title={t("הכלל החשוב ביותר לפני שינה")}><RichText text={t("תוקף לוקח  <0> מכל משאב <1> שלך. לפני שאתה מתנתק — הפקד במחסנים ובבנק. מה שנשאר בחוץ הוא הזמנה פתוחה.")} slots={[<><b className="nums">{Math.round(tunables.battle.plunderRate * 100)}%</b></>, <><b>{t("זמין")}</b></>]} /></Note>
             </GuideSection>
 
             {/* ============================ 08 bank ============================ */}
             <GuideSection meta={sections.bank} index={INDEX.bank}>
-              <Lead><RichText text={t("הבנק מקבל <0>, מגן עליו מביזה, ומשלם עליו ריבית דריבית בכל עדכון יומי — פעמיים ביום. זה הנכס היחיד במשחק שגדל מעצמו.")} slots={[<><b>זהב בלבד</b></>]} /></Lead>
+              <Lead><RichText text={t("הבנק מקבל <0>, מגן עליו מביזה, ומשלם עליו ריבית דריבית בכל עדכון יומי — פעמיים ביום. זה הנכס היחיד במשחק שגדל מעצמו.")} slots={[<><b>{t("זהב בלבד")}</b></>]} /></Lead>
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <Fact
@@ -1107,18 +1103,18 @@ export async function GuideContent({
                 label={t("ריבית בעדכון יומי")}
                 expr={
                   <>
-                    <V>יתרה</V>
+                    <V>{t("יתרה")}</V>
                     <O>×</O>
                     <O>min(</O>
                     <N>{`${Math.round(BANK_INTEREST_MAX_RATE * 100)}%`}</N>
                     <O>,</O>
-                    <V>רמת שדרוג</V>
+                    <V>{t("רמת שדרוג")}</V>
                     <O>×</O>
                     <N>{`${Math.round(BANK_INTEREST_PER_LEVEL * 100)}%`}</N>
                     <O>)</O>
                     <O>=</O>
-                    <R>ריבית</R>
-                    <O>(מעוגל כלפי מטה)</O>
+                    <R>{t("ריבית")}</R>
+                    <O>{t("(מעוגל כלפי מטה)")}</O>
                   </>
                 }
                 legend={[
@@ -1132,7 +1128,7 @@ export async function GuideContent({
 
             {/* ============================ 09 army ============================ */}
             <GuideSection meta={sections.army} index={INDEX.army}>
-              <Lead><RichText text={t("אימון יחידות לא עולה משאבים — הוא עולה <0>. כל אזרח הופך ליחידה אחת, וההחלטה מה לאמן היא הבחירה האסטרטגית האמיתית: כוח, מודיעין או כלכלה.")} slots={[<><b>אזרחים</b></>]} /></Lead>
+              <Lead><RichText text={t("אימון יחידות לא עולה משאבים — הוא עולה <0>. כל אזרח הופך ליחידה אחת, וההחלטה מה לאמן היא הבחירה האסטרטגית האמיתית: כוח, מודיעין או כלכלה.")} slots={[<><b>{t("אזרחים")}</b></>]} /></Lead>
 
               <div className="grid gap-3 md:grid-cols-3">
                 {(Object.keys(UNIT_META) as (keyof typeof UNIT_META)[]).map((key) => {
@@ -1149,16 +1145,16 @@ export async function GuideContent({
                       </p>
                       <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
                         <span className="rounded bg-black/50 px-2 py-0.5 text-bone">
-                          עלות: <b className="nums">{unit.citizenCost}</b> אזרח
+                          {t("עלות:")} <b className="nums">{unit.citizenCost}</b> {t("אזרח")}
                         </span>
                         {power > 0 && (
                           <span className="rounded bg-black/50 px-2 py-0.5 text-red-300">
-                            כוח: <b className="nums">{power}</b>
+                            {t("כוח:")} <b className="nums">{power}</b>
                           </span>
                         )}
                         {key === "mineSlaves" && (
                           <span className="rounded bg-black/50 px-2 py-0.5 text-emerald-300">
-                            תפוקה במכרה
+                            {t("תפוקה במכרה")}
                           </span>
                         )}
                       </div>
@@ -1186,32 +1182,32 @@ export async function GuideContent({
 
             {/* ============================ 10 weapons ============================ */}
             <GuideSection meta={sections.weapons} index={INDEX.weapons}>
-              <Lead><RichText text={t("נשק הוא הדרך להפוך משאבים לכוח. יש  <0> דרגות בכל אחת משלוש הקטגוריות — התקפה, הגנה וריגול. בכל דרגה המחיר  <1> (×{p0}) אבל הכוח גדל  <2> — ולכן כל דרגה נותנת  <3>  יותר כוח לכל זהב מזו שמתחתיה. תמיד שווה לקנות את הדרגה הגבוהה ביותר שנפתחה לך.", { p0: WEAPON_COST_GROWTH })} slots={[<><b className="nums">{TIERS_PER_CATEGORY}</b></>, <><b>מוכפל</b></>, <><b>×{WEAPON_POWER_GROWTH}</b></>, <><b className="nums"> {Math.round((WEAPON_POWER_GROWTH / WEAPON_COST_GROWTH - 1) * 100)}% </b></>]} /></Lead>
+              <Lead><RichText text={t("נשק הוא הדרך להפוך משאבים לכוח. יש  <0> דרגות בכל אחת משלוש הקטגוריות — התקפה, הגנה וריגול. בכל דרגה המחיר  <1> (×{p0}) אבל הכוח גדל  <2> — ולכן כל דרגה נותנת  <3>  יותר כוח לכל זהב מזו שמתחתיה. תמיד שווה לקנות את הדרגה הגבוהה ביותר שנפתחה לך.", { p0: WEAPON_COST_GROWTH })} slots={[<><b className="nums">{TIERS_PER_CATEGORY}</b></>, <><b>{t("מוכפל")}</b></>, <><b>×{WEAPON_POWER_GROWTH}</b></>, <><b className="nums"> {Math.round((WEAPON_POWER_GROWTH / WEAPON_COST_GROWTH - 1) * 100)}% </b></>]} /></Lead>
 
               <Formula
                 label={t("דרגה t")}
                 expr={
                   <>
-                    <V>כוח</V>
+                    <V>{t("כוח")}</V>
                     <O>=</O>
                     <N>5</N>
                     <O>×</O>
                     <N>{WEAPON_POWER_GROWTH}</N>
                     <sup className="text-gold-dim">(t−1)</sup>
                     <O>|</O>
-                    <V>מחיר</V>
+                    <V>{t("מחיר")}</V>
                     <O>=</O>
                     <N>50</N>
                     <O>×</O>
                     <N>{WEAPON_COST_GROWTH}</N>
                     <sup className="text-gold-dim">(t−1)</sup>
-                    <V> זהב</V>
+                    <V> {t("זהב")}</V>
                     <O>+</O>
                     <N>25</N>
                     <O>×</O>
                     <N>{WEAPON_COST_GROWTH}</N>
                     <sup className="text-gold-dim">(t−1)</sup>
-                    <V> מכל שאר</V>
+                    <V> {t("מכל שאר")}</V>
                   </>
                 }
                 legend={[
@@ -1227,34 +1223,33 @@ export async function GuideContent({
                 ]}
                 example={
                   <>
-                    דרגה <N>1</N>: <N>5</N> כוח ב־<N>50</N> זהב. דרגה <N>20</N>:{" "}
-                    <N>{formatShort(Math.round(5 * WEAPON_POWER_GROWTH ** 19))}</N> כוח
-                    ב־
-                    <N>{formatShort(50 * WEAPON_COST_GROWTH ** 19)}</N> זהב — פי{" "}
+                    {t("דרגה")} <N>1</N>: <N>5</N> {t("כוח ב־")}<N>50</N> {t("זהב. דרגה")} <N>20</N>:{" "}
+                    <N>{formatShort(Math.round(5 * WEAPON_POWER_GROWTH ** 19))}</N> {t("כוח ב־")}
+                    <N>{formatShort(50 * WEAPON_COST_GROWTH ** 19)}</N> {t("זהב — פי")}{" "}
                     <N>
                       {formatShort(
                         (WEAPON_POWER_GROWTH / WEAPON_COST_GROWTH) ** 19
                       )}
                     </N>{" "}
-                    כוח לכל זהב.
+                    {t("כוח לכל זהב.")}
                   </>
                 }
               />
 
               <div>
                 <p className="mb-2 text-sm font-black text-gold-bright">{t("סולם הדרגות — כוח, מחיר ותנאי פתיחה")}</p>
-                <p className="mb-2 text-xs text-zinc-400"><RichText text={t("פתיחת דרגה היא <0> — פתחת דרגה 7? היא נפתחה להתקפה, להגנה ולריגול יחד. מתחילים עם דרגות  <1> פתוחות, וכל  <2> דרגות נדרשת רמת עיר גבוהה יותר ורמת גיבור גבוהה יותר.")} slots={[<><b>משותפת לשלוש הקטגוריות</b></>, <><span className="nums">1–{INITIAL_WEAPON_UNLOCKED_TIER}</span></>, <><span className="nums">{WEAPON_GATE_EVERY}</span></>]} /></p>
+                <p className="mb-2 text-xs text-zinc-400"><RichText text={t("פתיחת דרגה היא <0> — פתחת דרגה 7? היא נפתחה להתקפה, להגנה ולריגול יחד. מתחילים עם דרגות  <1> פתוחות, וכל  <2> דרגות נדרשת רמת עיר גבוהה יותר ורמת גיבור גבוהה יותר.")} slots={[<><b>{t("משותפת לשלוש הקטגוריות")}</b></>, <><span className="nums">1–{INITIAL_WEAPON_UNLOCKED_TIER}</span></>, <><span className="nums">{WEAPON_GATE_EVERY}</span></>]} /></p>
                 <TableWrap maxHeight={420}>
                   <table className="guide-table">
                     <thead>
                       <tr>
-                        <th className="text-right">דרגה</th>
-                        <th className="text-right">נשק התקפה</th>
-                        <th className="text-right">כוח (התקפה/הגנה)</th>
-                        <th className="text-right">כוח ריגול</th>
-                        <th className="text-right">מחיר ליחידה</th>
-                        <th className="text-right">פתיחת הדרגה</th>
-                        <th className="text-right">דרישות</th>
+                        <th className="text-right">{t("דרגה")}</th>
+                        <th className="text-right">{t("נשק התקפה")}</th>
+                        <th className="text-right">{t("כוח (התקפה/הגנה)")}</th>
+                        <th className="text-right">{t("כוח ריגול")}</th>
+                        <th className="text-right">{t("מחיר ליחידה")}</th>
+                        <th className="text-right">{t("פתיחת הדרגה")}</th>
+                        <th className="text-right">{t("דרישות")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1289,7 +1284,7 @@ export async function GuideContent({
                             </td>
                             <td>
                               {w.tier <= INITIAL_WEAPON_UNLOCKED_TIER ? (
-                                <span className="text-[11px] text-emerald-400">פתוח מההתחלה</span>
+                                <span className="text-[11px] text-emerald-400">{t("פתוח מההתחלה")}</span>
                               ) : (
                                 <Cost
                                   amounts={[
@@ -1302,9 +1297,9 @@ export async function GuideContent({
                               )}
                             </td>
                             <td className="whitespace-nowrap text-[11px]">
-                              <span className="text-sky-300 nums">עיר {gate.cities}</span>
+                              <span className="text-sky-300 nums">{t("עיר")} {gate.cities}</span>
                               {gate.heroLevel > 0 && (
-                                <span className="text-purple-300 nums"> · גיבור {gate.heroLevel}</span>
+                                <span className="text-purple-300 nums"> {t("· גיבור")} {gate.heroLevel}</span>
                               )}
                             </td>
                           </tr>
@@ -1340,10 +1335,10 @@ export async function GuideContent({
                 <table className="guide-table">
                   <thead>
                     <tr>
-                      <th className="text-right">שדרוג</th>
-                      <th className="text-right">מה הוא עושה</th>
-                      <th className="text-right">תקרה</th>
-                      <th className="text-right">עלות כל הסולם עד התקרה</th>
+                      <th className="text-right">{t("שדרוג")}</th>
+                      <th className="text-right">{t("מה הוא עושה")}</th>
+                      <th className="text-right">{t("תקרה")}</th>
+                      <th className="text-right">{t("עלות כל הסולם עד התקרה")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1418,18 +1413,18 @@ export async function GuideContent({
                   <>
                     <N>1,700</N>
                     <O>×</O>
-                    <V>רמה</V>
-                    <V> זהב</V>
+                    <V>{t("רמה")}</V>
+                    <V> {t("זהב")}</V>
                     <O>+</O>
                     <N>900</N>
                     <O>×</O>
-                    <V>רמה</V>
-                    <V> עץ/ברזל</V>
+                    <V>{t("רמה")}</V>
+                    <V> {t("עץ/ברזל")}</V>
                     <O>+</O>
                     <N>600</N>
                     <O>×</O>
-                    <V>רמה</V>
-                    <V> אבן</V>
+                    <V>{t("רמה")}</V>
+                    <V> {t("אבן")}</V>
                   </>
                 }
                 legend={[
@@ -1455,7 +1450,7 @@ export async function GuideContent({
 
             {/* ============================ 12 monuments ============================ */}
             <GuideSection meta={sections.monuments} index={INDEX.monuments}>
-              <Lead><RichText text={t("בשליש האחרון של עונה השדרוגים נגמרים והזהב ממשיך להיערם. מבנה הוא התשובה לזה, והוא הסוג היחיד של תשובה שמחזיק לנצח:  <0>. חמישה מבנים,  <1> רמות לכל אחד,  <2> לרמה.")} slots={[<><b>בור זהב שמשלם באחוזים</b></>, <><b className="nums">{MONUMENT_MAX_LEVEL}</b></>, <><b className="nums">+{MONUMENT_PCT_PER_LEVEL}%</b></>]} /></Lead>
+              <Lead><RichText text={t("בשליש האחרון של עונה השדרוגים נגמרים והזהב ממשיך להיערם. מבנה הוא התשובה לזה, והוא הסוג היחיד של תשובה שמחזיק לנצח:  <0>. חמישה מבנים,  <1> רמות לכל אחד,  <2> לרמה.")} slots={[<><b>{t("בור זהב שמשלם באחוזים")}</b></>, <><b className="nums">{MONUMENT_MAX_LEVEL}</b></>, <><b className="nums">+{MONUMENT_PCT_PER_LEVEL}%</b></>]} /></Lead>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {MONUMENTS.map((monument) => (
@@ -1508,14 +1503,14 @@ export async function GuideContent({
                 label={t("למה הסולם לא בורח")}
                 expr={
                   <>
-                    <V>מחיר</V>
+                    <V>{t("מחיר")}</V>
                     <O>×</O>
                     <N>{MONUMENT_COST_GROWTH.toFixed(2)}</N>
-                    <O>לרמה, מול</O>
-                    <V>תשואה</V>
+                    <O>{t("לרמה, מול")}</O>
+                    <V>{t("תשואה")}</V>
                     <O>+</O>
                     <N>{MONUMENT_PCT_PER_LEVEL}</N>
-                    <O>נקודות אחוז לרמה</O>
+                    <O>{t("נקודות אחוז לרמה")}</O>
                   </>
                 }
                 legend={[
@@ -1538,9 +1533,9 @@ export async function GuideContent({
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>רמה</th>
-                      <th>מחיר הרמה</th>
-                      <th>הבונוס אחריה</th>
+                      <th>{t("רמה")}</th>
+                      <th>{t("מחיר הרמה")}</th>
+                      <th>{t("הבונוס אחריה")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1561,12 +1556,12 @@ export async function GuideContent({
                 </table>
               </TableWrap>
 
-              <Note tone="gold" icon="attack" title={t("אף מבנה לא נוגע בקרב")}><RichText text={t("לא בתקיפה, לא בהגנה ולא בריגול. מבנה קונה <0> — מכרות, תורות, אזרחים, ריבית וסיבובי גלגל — והקריאה הישרה של זה היא שזהב קנה לך עוד זהב, לא ניצחון. דוח הקרב מפרט כל מרכיב של חישוב הכוח, ומודיפייר שהיה מסתתר מחוץ לדוח היה הופך אותו לשקר.")} slots={[<><b>הכנסה</b></>]} /></Note>
+              <Note tone="gold" icon="attack" title={t("אף מבנה לא נוגע בקרב")}><RichText text={t("לא בתקיפה, לא בהגנה ולא בריגול. מבנה קונה <0> — מכרות, תורות, אזרחים, ריבית וסיבובי גלגל — והקריאה הישרה של זה היא שזהב קנה לך עוד זהב, לא ניצחון. דוח הקרב מפרט כל מרכיב של חישוב הכוח, ומודיפייר שהיה מסתתר מחוץ לדוח היה הופך אותו לשקר.")} slots={[<><b>{t("הכנסה")}</b></>]} /></Note>
             </GuideSection>
 
             {/* ============================ 13 battle ============================ */}
             <GuideSection meta={sections.battle} index={INDEX.battle}>
-              <Lead><RichText text={t("קרב בקראלדור הוא <0> — אין קובייה ואין מזל. שני מספרים מושווים, והגדול מנצח. זה אומר שכל תקיפה ניתנת לחישוב מראש, וזה בדיוק מה שהמחשבון למטה עושה.")} slots={[<><b>דטרמיניסטי</b></>]} /></Lead>
+              <Lead><RichText text={t("קרב בקראלדור הוא <0> — אין קובייה ואין מזל. שני מספרים מושווים, והגדול מנצח. זה אומר שכל תקיפה ניתנת לחישוב מראש, וזה בדיוק מה שהמחשבון למטה עושה.")} slots={[<><b>{t("דטרמיניסטי")}</b></>]} /></Lead>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <Formula
@@ -1574,18 +1569,18 @@ export async function GuideContent({
                   expr={
                     <>
                       <O>(</O>
-                      <V>חיילים</V>
+                      <V>{t("חיילים")}</V>
                       <O>×</O>
                       <N>{SOLDIER_POWER}</N>
                       <O>+</O>
-                      <V>נשקי התקפה</V>
+                      <V>{t("נשקי התקפה")}</V>
                       <O>)</O>
                       <O>×</O>
-                      <V>גיבור</V>
+                      <V>{t("גיבור")}</V>
                       <O>×</O>
-                      <V>קסם ברית</V>
+                      <V>{t("קסם ברית")}</V>
                       <O>+</O>
-                      <V>עזרת ברית</V>
+                      <V>{t("עזרת ברית")}</V>
                     </>
                   }
                 />
@@ -1594,20 +1589,20 @@ export async function GuideContent({
                   expr={
                     <>
                       <O>(</O>
-                      <V>חיילים</V>
+                      <V>{t("חיילים")}</V>
                       <O>×</O>
                       <N>{SOLDIER_POWER}</N>
                       <O>+</O>
-                      <V>נשקי הגנה</V>
+                      <V>{t("נשקי הגנה")}</V>
                       <O>)</O>
                       <O>×</O>
                       <N>{tunables.battle.defenseBonus}</N>
                       <O>×</O>
-                      <V>גיבור</V>
+                      <V>{t("גיבור")}</V>
                       <O>×</O>
-                      <V>קסם ברית</V>
+                      <V>{t("קסם ברית")}</V>
                       <O>+</O>
-                      <V>עזרת ברית</V>
+                      <V>{t("עזרת ברית")}</V>
                     </>
                   }
                   legend={[
@@ -1620,11 +1615,11 @@ export async function GuideContent({
               </div>
 
               <div className="panel-inset rounded-xl px-4 py-3 text-center text-sm">
-                <span className="font-black text-red-300">כוח התקפה</span>
+                <span className="font-black text-red-300">{t("כוח התקפה")}</span>
                 <span className="mx-2 text-2xl font-black text-gold-bright">&gt;</span>
-                <span className="font-black text-sky-300">כוח הגנה</span>
+                <span className="font-black text-sky-300">{t("כוח הגנה")}</span>
                 <span className="mx-3 text-zinc-500">⟵</span>
-                <span className="text-zinc-300">שוויון = המגן מנצח</span>
+                <span className="text-zinc-300">{t("שוויון = המגן מנצח")}</span>
               </div>
 
               <BattleCalc
@@ -1675,7 +1670,7 @@ export async function GuideContent({
 
             {/* ========================== 14 fervor ========================== */}
             <GuideSection meta={sections.fervor} index={INDEX.fervor}>
-              <Lead><RichText text={t("התורות שלך נצברות כרגיל גם כשאתה לא מחובר — זה לא משתנה, ולא ישתנה. להט הקרב לא נותן לך יותר תורות; הוא קובע כמה כל תורה שאתה מוציא <0>. כל פעולה שאתה עושה מחממת את המד, וכשהוא לוהט — הביזה שאתה לוקח מאימפריה מובסת גדולה יותר.")} slots={[<><b> שווה</b></>]} /></Lead>
+              <Lead><RichText text={t("התורות שלך נצברות כרגיל גם כשאתה לא מחובר — זה לא משתנה, ולא ישתנה. להט הקרב לא נותן לך יותר תורות; הוא קובע כמה כל תורה שאתה מוציא <0>. כל פעולה שאתה עושה מחממת את המד, וכשהוא לוהט — הביזה שאתה לוקח מאימפריה מובסת גדולה יותר.")} slots={[<><b> {t("שווה")}</b></>]} /></Lead>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="panel-gold rounded-xl p-4">
@@ -1705,42 +1700,43 @@ export async function GuideContent({
                   <>
                     <N>{Math.round(tunables.battle.plunderRate * 100)}%</N>
                     <O>×</O>
-                    <V>להט הקרב</V>
+                    <V>{t("להט הקרב")}</V>
                     <O>×</O>
-                    <V>שיקוי השפע</V>
+                    <V>{t("שיקוי השפע")}</V>
                     <O>×</O>
-                    <V>שעה שמחה</V>
+                    <V>{t("שעה שמחה")}</V>
                     <O>=</O>
-                    <R>אחוז מהמשאבים הלא-מופקדים של המגן</R>
+                    <R>{t("אחוז מהמשאבים הלא-מופקדים של המגן")}</R>
                   </>
                 }
                 example={
-                  <>
-                    בלי להט תיקח{" "}
-                    <N>{Math.round(tunables.battle.plunderRate * 100)}%</N>. ב
-                    <b>שריפה</b> תיקח{" "}
-                    <N>
-                      {Math.round(
-                        tunables.battle.plunderRate *
-                          FERVOR_TIERS[FERVOR_TIERS.length - 1].mult *
-                          100
-                      )}
-                      %
-                    </N>{" "}
-                    — מאויב עם <N>10,000</N> זהב זה ההבדל בין{" "}
-                    <N>
-                      {(10_000 * tunables.battle.plunderRate).toLocaleString("en-US")}
-                    </N>{" "}
-                    ל-
-                    <N>
-                      {(
-                        10_000 *
-                        tunables.battle.plunderRate *
-                        FERVOR_TIERS[FERVOR_TIERS.length - 1].mult
-                      ).toLocaleString("en-US")}
-                    </N>
-                    . מה שבמחסן מוגן תמיד.
-                  </>
+                  <RichText
+                    text={t(
+                      "בלי להט תיקח <0>. ב**שריפה** תיקח <1> — מאויב עם <2> זהב זה ההבדל בין <3> ל־<4>."
+                    )}
+                    slots={[
+                      <N key="cold">{Math.round(tunables.battle.plunderRate * 100)}%</N>,
+                      <N key="hot">
+                        {Math.round(
+                          tunables.battle.plunderRate *
+                            FERVOR_TIERS[FERVOR_TIERS.length - 1].mult *
+                            100
+                        )}
+                        %
+                      </N>,
+                      <N key="pot">10,000</N>,
+                      <R key="from">
+                        {nf(10_000 * tunables.battle.plunderRate)}
+                      </R>,
+                      <R key="to">
+                        {nf(
+                          10_000 *
+                            tunables.battle.plunderRate *
+                            FERVOR_TIERS[FERVOR_TIERS.length - 1].mult
+                        )}
+                      </R>,
+                    ]}
+                  />
                 }
               />
 
@@ -1759,21 +1755,21 @@ export async function GuideContent({
                 expr={
                   <>
                     <O>(</O>
-                    <V>מרגלים</V>
+                    <V>{t("מרגלים")}</V>
                     <O>×</O>
                     <N>{SPY_POWER}</N>
                     <O>+</O>
-                    <V>נשקי ריגול</V>
+                    <V>{t("נשקי ריגול")}</V>
                     <O>)</O>
                     <O>×</O>
                     <O>(</O>
                     <N>1</N>
                     <O>+</O>
-                    <V>רמת מודיעין</V>
+                    <V>{t("רמת מודיעין")}</V>
                     <O>×</O>
                     <N>0.1</N>
                     <O>+</O>
-                    <V>גיבור%</V>
+                    <V>{t("גיבור%")}</V>
                     <O>)</O>
                   </>
                 }
@@ -1783,9 +1779,9 @@ export async function GuideContent({
                 ]}
                 example={
                   <>
-                    <N>300</N> מרגלים + <N>8,000</N> כוח נשק ={" "}
-                    <N>11,000</N>; עם מודיעין רמה <N>8</N> ובונוס גיבור{" "}
-                    <N>15%</N> — <R>{nf(11000 * (1.8 + 0.15))}</R> כוח מודיעין.
+                    <N>300</N> {t("מרגלים +")} <N>8,000</N> {t("כוח נשק =")}{" "}
+                    <N>11,000</N>{t("; עם מודיעין רמה")} <N>8</N> {t("ובונוס גיבור")}{" "}
+                    <N>15%</N> — <R>{nf(11000 * (1.8 + 0.15))}</R> {t("כוח מודיעין.")}
                   </>
                 }
               />
@@ -1793,24 +1789,24 @@ export async function GuideContent({
               <SpyCalc />
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Note tone="purple" icon="spy" title={t("הצלחה = התיק המלא")}><RichText text={t("ריגול מוצלח מביא <0>: משאבים גלויים ומחסנים, יתרת הבנק, כל פריט נשק, המבנים, השדרוגים, הצבא, הגיבור וציודו — וכל קסם, שיקוי ומגן שפועלים עליו, עם <1>. <2>.")} slots={[<><b>הכל</b></>, <><b>הזמן שנותר לכל אחד</b></>, <><b>והיעד לא יודע שרוגל</b></>]} /></Note>
+                <Note tone="purple" icon="spy" title={t("הצלחה = התיק המלא")}><RichText text={t("ריגול מוצלח מביא <0>: משאבים גלויים ומחסנים, יתרת הבנק, כל פריט נשק, המבנים, השדרוגים, הצבא, הגיבור וציודו — וכל קסם, שיקוי ומגן שפועלים עליו, עם <1>. <2>.")} slots={[<><b>{t("הכל")}</b></>, <><b>{t("הזמן שנותר לכל אחד")}</b></>, <><b>{t("והיעד לא יודע שרוגל")}</b></>]} /></Note>
                 <Note tone="red" icon="messages" title={t("כישלון = התראה")}>{t("מרגל שנתפס מפעיל התראה אצל היעד, שרואה מי ניסה. זה גם מה שפותח לו את האפשרות לשלוח לך הודעה.")}</Note>
               </div>
             </GuideSection>
 
             {/* ============================ 15 sabotage ============================ */}
             <GuideSection meta={sections.sabotage} index={INDEX.sabotage}>
-              <Lead><RichText text={t("ריגול רגיל רק מסתכל. <0> היא מה שהמרגלים שלך עושים כשאתה מפסיק לבקש מהם להסתכל: שלוש משימות שיוצאות מאותו לוח דוסיה של היעד, נפתרות לפי אותה השוואת מודיעין, ולוקחות משהו אמיתי. הן חולקות כל כלל של ריגול — אותה דרגת ערים בלבד, אותו מגן שחקן חדש, ותקיפה שמפילה את המגן שלך.")} slots={[<><b>חבלה</b></>]} /></Lead>
+              <Lead><RichText text={t("ריגול רגיל רק מסתכל. <0> היא מה שהמרגלים שלך עושים כשאתה מפסיק לבקש מהם להסתכל: שלוש משימות שיוצאות מאותו לוח דוסיה של היעד, נפתרות לפי אותה השוואת מודיעין, ולוקחות משהו אמיתי. הן חולקות כל כלל של ריגול — אותה דרגת ערים בלבד, אותו מגן שחקן חדש, ותקיפה שמפילה את המגן שלך.")} slots={[<><b>{t("חבלה")}</b></>]} /></Lead>
 
               <TableWrap>
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>משימה</th>
-                      <th>מרגלים</th>
-                      <th>תורות</th>
-                      <th>מה נלקח</th>
-                      <th>נחסמת על ידי</th>
+                      <th>{t("משימה")}</th>
+                      <th>{t("מרגלים")}</th>
+                      <th>{t("תורות")}</th>
+                      <th>{t("מה נלקח")}</th>
+                      <th>{t("נחסמת על ידי")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1845,9 +1841,9 @@ export async function GuideContent({
                 label={t("האם המשימה נכנסת")}
                 expr={
                   <>
-                    <V>המודיעין שלך</V>
+                    <V>{t("המודיעין שלך")}</V>
                     <O>&gt;</O>
-                    <V>המודיעין של היעד</V>
+                    <V>{t("המודיעין של היעד")}</V>
                     <O>×</O>
                     <N>{SABOTAGE_INTEL_MARGIN}</N>
                   </>
@@ -1872,7 +1868,7 @@ export async function GuideContent({
                 ]}
               />
 
-              <Note tone="red" icon="army" title={t("חבלה לעולם לא נוגעת בצבא")}><RichText text={t("לא בחיילים, לא בנשקים ולא בכוח. הסיבה היא החוזה של המשחק מול השחקנים: צבא נהרס בקרבות שיש עליהם <0>. מרגל שיכול היה למחוק צבא בשקט היה הופך את הדירוג ללא קריא ואת הדוחות לשקר. מה שנלקח הוא הכלכלה — מלאי, זהב ועבדי מכרות — והיא חוזרת.")} slots={[<><b>דוח</b></>]} /></Note>
+              <Note tone="red" icon="army" title={t("חבלה לעולם לא נוגעת בצבא")}><RichText text={t("לא בחיילים, לא בנשקים ולא בכוח. הסיבה היא החוזה של המשחק מול השחקנים: צבא נהרס בקרבות שיש עליהם <0>. מרגל שיכול היה למחוק צבא בשקט היה הופך את הדירוג ללא קריא ואת הדוחות לשקר. מה שנלקח הוא הכלכלה — מלאי, זהב ועבדי מכרות — והיא חוזרת.")} slots={[<><b>{t("דוח")}</b></>]} /></Note>
             </GuideSection>
 
             {/* ============================ 16 hero ============================ */}
@@ -1938,7 +1934,7 @@ export async function GuideContent({
                     <N>120</N>
                     <O>+</O>
                     <O>(</O>
-                    <V>רמה</V>
+                    <V>{t("רמה")}</V>
                     <O>−</O>
                     <N>1</N>
                     <O>)</O>
@@ -1954,11 +1950,19 @@ export async function GuideContent({
                   { term: t("+{p0} אזרחים", { p0: CITIZENS_PER_LEVEL }), desc: t("כל עליית רמה מביאה גם אזרחים.") },
                 ]}
                 example={
-                  <>
-                    רמה <N>1</N> דורשת <N>{xpToNextLevel(1)}</N> נק׳, רמה{" "}
-                    <N>50</N> דורשת <N>{nf(xpToNextLevel(50))}</N>, ורמה{" "}
-                    <N>99</N> דורשת <N>{nf(xpToNextLevel(99))}</N>.
-                  </>
+                  <RichText
+                    text={t(
+                      "רמה <0> דורשת <1> נק׳, רמה <2> דורשת <3>, ורמה <4> דורשת <5>."
+                    )}
+                    slots={[
+                      <N key="l1">1</N>,
+                      <N key="x1">{xpToNextLevel(1)}</N>,
+                      <N key="l50">50</N>,
+                      <N key="x50">{nf(xpToNextLevel(50))}</N>,
+                      <N key="l99">99</N>,
+                      <N key="x99">{nf(xpToNextLevel(99))}</N>,
+                    ]}
+                  />
                 }
               />
 
@@ -1969,14 +1973,14 @@ export async function GuideContent({
                     <O>(</O>
                     <N>40</N>
                     <O>+</O>
-                    <V>רמת הגיבור שלך</V>
+                    <V>{t("רמת הגיבור שלך")}</V>
                     <O>×</O>
                     <N>10</N>
                     <O>)</O>
                     <O>×</O>
-                    <V>פער רמות</V>
+                    <V>{t("פער רמות")}</V>
                     <O>×</O>
-                    <V>יחס קרב</V>
+                    <V>{t("יחס קרב")}</V>
                   </>
                 }
                 legend={[
@@ -2091,7 +2095,7 @@ export async function GuideContent({
               <div className="panel-inset rounded-xl p-4">
                 <p className="mb-2 text-sm font-black text-gold-bright">{t("עשרת הסטים")}</p>
                 <p className="mb-3 text-[11px] leading-relaxed text-zinc-400">{t("כל עשר רמות מתחלף הסט: תשעת החפצים מצוירים מחדש בחומר יקר יותר, מעור ונחושת ועד לזהב לבן זוהר. הרמה קובעת את הבונוס — הסט קובע איך זה נראה על הגיבור.")}</p>
-                <p className="mb-3 text-[11px] leading-relaxed text-amber-300/90"><RichText text={t("<0> זהב מעלה חפץ רק בתוך הסט שלו — פשוט → מתקדם → אליט → אגדי — ושם הוא נעצר. אגדי לא משודרג יותר, ולא משנה באיזו רמה הוא. הדרך היחידה לסט הבא היא לשלול חפץ ממנו בקרב.")} slots={[<><b>לכל סט יש מקסימום משלו:</b></>]} /></p>
+                <p className="mb-3 text-[11px] leading-relaxed text-amber-300/90"><RichText text={t("<0> זהב מעלה חפץ רק בתוך הסט שלו — פשוט → מתקדם → אליט → אגדי — ושם הוא נעצר. אגדי לא משודרג יותר, ולא משנה באיזו רמה הוא. הדרך היחידה לסט הבא היא לשלול חפץ ממנו בקרב.")} slots={[<><b>{t("לכל סט יש מקסימום משלו:")}</b></>]} /></p>
                 <div className="grid grid-cols-5 gap-2 lg:grid-cols-10">
                   {HERO_ITEM_SETS.map((set) => (
                     <div key={set.dir} className="text-center">
@@ -2120,9 +2124,9 @@ export async function GuideContent({
                   <table className="guide-table">
                     <thead>
                       <tr>
-                        <th className="text-right">דרגה</th>
-                        <th className="text-right">מיקום בעשור</th>
-                        <th className="text-right">סיכוי בתקיפה מנצחת</th>
+                        <th className="text-right">{t("דרגה")}</th>
+                        <th className="text-right">{t("מיקום בעשור")}</th>
+                        <th className="text-right">{t("סיכוי בתקיפה מנצחת")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2160,12 +2164,12 @@ export async function GuideContent({
                   label={t("הבונוס של חפץ — משאבים בסולם גיאומטרי, אחוזים בקו ישר")}
                   expr={
                     <>
-                      <V>ערך בדרגה 1</V>
+                      <V>{t("ערך בדרגה 1")}</V>
                       <O>×</O>
                       <V>{flatCurveGrowth("resources")!.toFixed(3)}</V>
-                      <sup className="text-gold-dim">דרגה − 1</sup>
+                      <sup className="text-gold-dim">{t("דרגה − 1")}</sup>
                       <O>×</O>
-                      <V>משקל (ראשי / משני)</V>
+                      <V>{t("משקל (ראשי / משני)")}</V>
                     </>
                   }
                   legend={[
@@ -2192,17 +2196,24 @@ export async function GuideContent({
                     },
                   ]}
                   example={
-                    <>
-                      פרי שטן ברמה <N>1</N> = דרגה <N>1</N> מתוך <N>40</N>, ובכל זאת{" "}
-                      <R>+{formatNumber(itemPrimaryBonus("RELIC", 1).value)}</R> זהב בכל
-                      עדכון רגיל — יותר ממה שמכרה של אימפריה בת עיר אחת מפיק. חרב ברמה{" "}
-                      <N>50</N> = דרגה <N>20</N>, כלומר <N>חצי</N> מהתקרה באחוזים:{" "}
-                      <R>+{itemPrimaryBonus("SWORD", 50).value}%</R> התקפה, ועוד{" "}
-                      <R>+{itemStatBonus("SWORD", 50, "resources")}%</R> תפוקת מכרות ו־
-                      <R>+{itemStatBonus("SWORD", 50, "citizens")}</R> אזרחים כמשניים;
-                      אותה רמה בכנפיים = <R>+{itemPrimaryBonus("WINGS", 50).value}</R> תורות
-                      בכל עדכון יומי.
-                    </>
+                    <RichText
+                      text={t(
+                        "פרי שטן ברמה <0> = דרגה <1> מתוך <2>, ובכל זאת <3> זהב בכל עדכון רגיל — יותר ממה שמכרה של אימפריה בת עיר אחת מפיק. חרב ברמה <4> = דרגה <5>, כלומר <6> מהתקרה באחוזים: <7> התקפה, ועוד <8> תפוקת מכרות ו־<9> אזרחים כמשניים; אותה רמה בכנפיים = <10> תורות בכל עדכון יומי."
+                      )}
+                      slots={[
+                        <N key="rl">1</N>,
+                        <N key="rs">1</N>,
+                        <N key="rt">40</N>,
+                        <R key="rv">+{formatNumber(itemPrimaryBonus("RELIC", 1).value)}</R>,
+                        <N key="sl">50</N>,
+                        <N key="ss">20</N>,
+                        <N key="half">{t("חצי")}</N>,
+                        <R key="atk">+{itemPrimaryBonus("SWORD", 50).value}%</R>,
+                        <R key="res">+{itemStatBonus("SWORD", 50, "resources")}%</R>,
+                        <R key="cit">+{itemStatBonus("SWORD", 50, "citizens")}</R>,
+                        <R key="wng">+{itemPrimaryBonus("WINGS", 50).value}</R>,
+                      ]}
+                    />
                   }
                 />
               </div>
@@ -2214,9 +2225,9 @@ export async function GuideContent({
                     <N>{formatShort(UPGRADE_COST_AT_LEVEL_10)}</N>
                     <O>×</O>
                     <N>{UPGRADE_COST_GROWTH.toFixed(4)}</N>
-                    <sup className="text-gold-dim">(רמת יעד − 10)</sup>
+                    <sup className="text-gold-dim">{t("(רמת יעד − 10)")}</sup>
                     <O>=</O>
-                    <R>זהב</R>
+                    <R>{t("זהב")}</R>
                   </>
                 }
                 legend={[
@@ -2230,17 +2241,17 @@ export async function GuideContent({
 
               <div className="flex flex-wrap justify-center gap-3">
                 <Link href={gameHref("/game/hero/items")} className="btn btn-ghost px-4 py-2 text-sm">
-                  <Icon name="spark" size={16} className="inline align-[-2px]" /> קטלוג החפצים המלא
+                  <Icon name="spark" size={16} className="inline align-[-2px]" /> {t("קטלוג החפצים המלא")}
                 </Link>
                 <Link href={gameHref("/game/hero")} className="btn btn-gold px-4 py-2 text-sm">
-                  <Icon name="hero" size={16} className="inline align-[-2px]" /> לגיבור שלי
+                  <Icon name="hero" size={16} className="inline align-[-2px]" /> {t("לגיבור שלי")}
                 </Link>
               </div>
             </GuideSection>
 
             {/* ============================ 18 forge ============================ */}
             <GuideSection meta={sections.forge} index={INDEX.forge}>
-              <Lead><RichText text={t("חפצים נופלים בדרגה אקראית, ולכן לכל שחקן יש בסוף תשע חרבות ואפס מגפיים.  <0>  היא שער החליפין בין שתי העובדות האלה, והיא עושה דבר אחד:  <1>. מפרקים חפצים שאין בהם צורך לרסיסים, ומזמינים בהם חפץ <2>.")} slots={[<><Link href={gameHref("/game/hero/forge")} className="text-gold underline"> הנפחייה </Link></>, <><b>הופכת רוחב לכיוון</b></>, <><b>במשבצת שאתה בוחר</b></>]} /></Lead>
+              <Lead><RichText text={t("חפצים נופלים בדרגה אקראית, ולכן לכל שחקן יש בסוף תשע חרבות ואפס מגפיים.  <0>  היא שער החליפין בין שתי העובדות האלה, והיא עושה דבר אחד:  <1>. מפרקים חפצים שאין בהם צורך לרסיסים, ומזמינים בהם חפץ <2>.")} slots={[<><Link href={gameHref("/game/hero/forge")} className="text-gold underline"> {t("הנפחייה")} </Link></>, <><b>{t("הופכת רוחב לכיוון")}</b></>, <><b>{t("במשבצת שאתה בוחר")}</b></>]} /></Lead>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Fact
@@ -2276,9 +2287,9 @@ export async function GuideContent({
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>נדירות</th>
-                      <th>פירוק נותן</th>
-                      <th>ליטוש לדרגה הבאה</th>
+                      <th>{t("נדירות")}</th>
+                      <th>{t("פירוק נותן")}</th>
+                      <th>{t("ליטוש לדרגה הבאה")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2305,14 +2316,14 @@ export async function GuideContent({
                 label={t("שני הספסלים")}
                 expr={
                   <>
-                    <V>הזמנה</V>
+                    <V>{t("הזמנה")}</V>
                     <O>=</O>
                     <N>{COMMISSION_SHARDS}</N>
-                    <V> רסיסים</V>
+                    <V> {t("רסיסים")}</V>
                     <O>+</O>
-                    <V>זהב</V>
+                    <V>{t("זהב")}</V>
                     <O>→</O>
-                    <R>משבצת לבחירתך</R>
+                    <R>{t("משבצת לבחירתך")}</R>
                   </>
                 }
                 legend={[
@@ -2335,12 +2346,12 @@ export async function GuideContent({
                 ]}
               />
 
-              <Note tone="gold" icon="spark" title={t("אגדי הוא התקרה של הסט שלו")}><RichText text={t("שום כמות של זהב או רסיסים לא מעבירה חפץ לסט שמעליו. הדרך היחידה לעשור הבא היא <0> חפץ ממנו — והנפחייה לא נועדה לעקוף את זה, אלא לחסוך לך את החרב העשירית.")} slots={[<><b>למצוא</b></>]} /></Note>
+              <Note tone="gold" icon="spark" title={t("אגדי הוא התקרה של הסט שלו")}><RichText text={t("שום כמות של זהב או רסיסים לא מעבירה חפץ לסט שמעליו. הדרך היחידה לעשור הבא היא <0> חפץ ממנו — והנפחייה לא נועדה לעקוף את זה, אלא לחסוך לך את החרב העשירית.")} slots={[<><b>{t("למצוא")}</b></>]} /></Note>
             </GuideSection>
 
             {/* ============================ 19 potions ============================ */}
             <GuideSection meta={sections.potions} index={INDEX.potions}>
-              <Lead><RichText text={t("שיקוי הוא לא ציוד — הוא <0>. נופל מתקיפות מנצחות בסיכוי  <1>, ושתייה בזמן שהחלון כבר פתוח מאריכה אותו במקום לבזבז בקבוק.")} slots={[<><b>חלון זמן שבו חוק אחד במשחק מתעקם</b></>, <><b className="nums">{Math.round(POTION_DROP_CHANCE * 100)}%</b></>]} /></Lead>
+              <Lead><RichText text={t("שיקוי הוא לא ציוד — הוא <0>. נופל מתקיפות מנצחות בסיכוי  <1>, ושתייה בזמן שהחלון כבר פתוח מאריכה אותו במקום לבזבז בקבוק.")} slots={[<><b>{t("חלון זמן שבו חוק אחד במשחק מתעקם")}</b></>, <><b className="nums">{Math.round(POTION_DROP_CHANCE * 100)}%</b></>]} /></Lead>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {POTION_KINDS.map((kind) => {
@@ -2379,7 +2390,7 @@ export async function GuideContent({
 
             {/* ============================ 20 hero quests ============================ */}
             <GuideSection meta={sections.quests} index={INDEX.quests}>
-              <Lead><RichText text={t("בין קרב לקרב הגיבור לא חייב לשבת בבית. מסע שולח אותו לזמן אמת ומשלם כשהוא חוזר — <0>, כי יש גיבור אחד. כל עיר שאתה מקים פותחת דרגה ארוכה יותר, מ<1> ועד <2>, והדרגות הישנות נשארות פתוחות.")} slots={[<><b>מסע אחד בכל פעם</b></>, <><b>שעה</b></>, <><b>יממה</b></>]} /></Lead>
+              <Lead><RichText text={t("בין קרב לקרב הגיבור לא חייב לשבת בבית. מסע שולח אותו לזמן אמת ומשלם כשהוא חוזר — <0>, כי יש גיבור אחד. כל עיר שאתה מקים פותחת דרגה ארוכה יותר, מ<1> ועד <2>, והדרגות הישנות נשארות פתוחות.")} slots={[<><b>{t("מסע אחד בכל פעם")}</b></>, <><b>{t("שעה")}</b></>, <><b>{t("יממה")}</b></>]} /></Lead>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Fact
@@ -2421,18 +2432,18 @@ export async function GuideContent({
                 label={t("השלל של מסע")}
                 expr={
                   <>
-                    <V>תשלום לשעה</V>
+                    <V>{t("תשלום לשעה")}</V>
                     <O>×</O>
-                    <V>שעות המסע</V>
+                    <V>{t("שעות המסע")}</V>
                     <O>×</O>
                     <N>{HERO_QUEST_REWARD_CITY_MULTIPLIER}</N>
-                    <sup className="text-gold-dim">(ערים−1)</sup>
+                    <sup className="text-gold-dim">{t("(ערים−1)")}</sup>
                     <O>×</O>
-                    <V>צמיחת העונה</V>
+                    <V>{t("צמיחת העונה")}</V>
                     <O>×</O>
-                    <V>מזל המסע</V>
+                    <V>{t("מזל המסע")}</V>
                     <O>=</O>
-                    <R>שלל</R>
+                    <R>{t("שלל")}</R>
                   </>
                 }
                 legend={[
@@ -2463,9 +2474,7 @@ export async function GuideContent({
                 ]}
                 example={
                   <>
-                    מסע של <b>{heroQuestDurationLabel(t, 3)}</b> מביא בממוצע פי שלושה ממסע
-                    של שעה באותן ערים — אבל שעה עם <b>מזל אגדי</b> תכה בקלות שלוש שעות
-                    של דרך קשה.
+                    {t("מסע של")} <b>{heroQuestDurationLabel(t, 3)}</b> {t("מביא בממוצע פי שלושה ממסע של שעה באותן ערים — אבל שעה עם")} <b>{t("מזל אגדי")}</b> {t("תכה בקלות שלוש שעות של דרך קשה.")}
                   </>
                 }
               />
@@ -2474,10 +2483,10 @@ export async function GuideContent({
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>מזל המסע</th>
-                      <th>סיכוי</th>
-                      <th>מכפיל השלל</th>
-                      <th>מה זה אומר</th>
+                      <th>{t("מזל המסע")}</th>
+                      <th>{t("סיכוי")}</th>
+                      <th>{t("מכפיל השלל")}</th>
+                      <th>{t("מה זה אומר")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2508,12 +2517,12 @@ export async function GuideContent({
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>מסע</th>
-                      <th>משך</th>
-                      <th>תורות</th>
-                      <th>תורות לשעה</th>
-                      <th>ניסיון</th>
-                      <th>חפץ / שיקוי</th>
+                      <th>{t("מסע")}</th>
+                      <th>{t("משך")}</th>
+                      <th>{t("תורות")}</th>
+                      <th>{t("תורות לשעה")}</th>
+                      <th>{t("ניסיון")}</th>
+                      <th>{t("חפץ / שיקוי")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2547,16 +2556,16 @@ export async function GuideContent({
                 </table>
               </TableWrap>
 
-              <Note tone="green" icon="quest"><RichText text={t("שליחה עולה תורות בלבד — הגיבור <0> גם בזמן שהוא בדרכים, ומסע שכבר יצא לדרך מסתיים גם אם הגיבור נופל בינתיים. מה שהוא לא יכול לעשות זה לצאת למסע כשהוא מת.")} slots={[<><b>ממשיך להעניק את כל הבונוסים שלו</b></>]} /></Note>
+              <Note tone="green" icon="quest"><RichText text={t("שליחה עולה תורות בלבד — הגיבור <0> גם בזמן שהוא בדרכים, ומסע שכבר יצא לדרך מסתיים גם אם הגיבור נופל בינתיים. מה שהוא לא יכול לעשות זה לצאת למסע כשהוא מת.")} slots={[<><b>{t("ממשיך להעניק את כל הבונוסים שלו")}</b></>]} /></Note>
 
               <Note tone="gold" icon="hero">{t("השלל מוגרל ונחתם ברגע היציאה — האימפריה שממנה שלחת אותו היא זו שמשלמת, גם אם הקמת (או איבדת) עיר בזמן שהוא היה בדרך. מה שהוגרל שמור אצל הגיבור בלבד: אין דרך להציץ בשק לפני שהוא נכנס בשער, ואין דרך לגלגל אותו מחדש.")}</Note>
             </GuideSection>
 
             {/* ============================ 21 bosses ============================ */}
             <GuideSection meta={sections.bosses} index={INDEX.bosses}>
-              <Lead><RichText text={t("לכל אחת מעשר דרגות הערים יש שליט אחד — קיר PvE שכוחו  <0>. לוחצים <1> פעם אחת, והצבא יוצא לקרב של  <2> סבבים שרץ כ־ <3> שניות בזמן אמת. אפשר לצפות, ואפשר לעבור לדף אחר ולהמשיך לשחק — כשהקרב נגמר מגיעה הודעה עם כל השלל. לבוס יש <4>, וכשהוא נופל הוא קם לתחייה אחרי  <5> דקות.")} slots={[<><b>פומבי וקבוע</b></>, <><b>תקיפה</b></>, <><b className="nums">{BOSS_SORTIE_ROUNDS}</b></>, <><b className="nums">{Math.round(BOSS_ASSAULT_DURATION_MS / 1000)}</b></>, <><b>מאגר חיים שנשמר בין תקיפות</b></>, <><b className="nums">{Math.round(BOSS_REVIVE_MS / 60000)}</b></>]} /></Lead>
+              <Lead><RichText text={t("לכל אחת מעשר דרגות הערים יש שליט אחד — קיר PvE שכוחו  <0>. לוחצים <1> פעם אחת, והצבא יוצא לקרב של  <2> סבבים שרץ כ־ <3> שניות בזמן אמת. אפשר לצפות, ואפשר לעבור לדף אחר ולהמשיך לשחק — כשהקרב נגמר מגיעה הודעה עם כל השלל. לבוס יש <4>, וכשהוא נופל הוא קם לתחייה אחרי  <5> דקות.")} slots={[<><b>{t("פומבי וקבוע")}</b></>, <><b>{t("תקיפה")}</b></>, <><b className="nums">{BOSS_SORTIE_ROUNDS}</b></>, <><b className="nums">{Math.round(BOSS_ASSAULT_DURATION_MS / 1000)}</b></>, <><b>{t("מאגר חיים שנשמר בין תקיפות")}</b></>, <><b className="nums">{Math.round(BOSS_REVIVE_MS / 60000)}</b></>]} /></Lead>
 
-              <Note tone="red" icon="attack" title={t("שליט הוא מצור, לא לחיצה")}><RichText text={t("אף שליט לא נופל בתקיפה אחת. צבא שעומד <0> צריך בערך <1> תקיפות כדי לרוקן את מאגר החיים, צבא בכפול מהכוח — <2>, ובפי שלושה — אחת. צבא מתחת לקיר פשוט מכרסם לאורך יותר תקיפות, <3>: השלל משולם לפי הנזק, כך שאף תקיפה לא הולכת לאיבוד. בתמורה למצור הארוך, מה שיש לשליט בכיסים גדול בהתאם — הפלה אחת שווה יותר מיום שלם של תקיפות רגילות.")} slots={[<><b>בדיוק על הכוח המודפס שלו</b></>, <><b className="nums">3</b></>, <><b className="nums">2</b></>, <><b>ומקבל שלל על כל אחת מהן</b></>]} /></Note>
+              <Note tone="red" icon="attack" title={t("שליט הוא מצור, לא לחיצה")}><RichText text={t("אף שליט לא נופל בתקיפה אחת. צבא שעומד <0> צריך בערך <1> תקיפות כדי לרוקן את מאגר החיים, צבא בכפול מהכוח — <2>, ובפי שלושה — אחת. צבא מתחת לקיר פשוט מכרסם לאורך יותר תקיפות, <3>: השלל משולם לפי הנזק, כך שאף תקיפה לא הולכת לאיבוד. בתמורה למצור הארוך, מה שיש לשליט בכיסים גדול בהתאם — הפלה אחת שווה יותר מיום שלם של תקיפות רגילות.")} slots={[<><b>{t("בדיוק על הכוח המודפס שלו")}</b></>, <><b className="nums">3</b></>, <><b className="nums">2</b></>, <><b>{t("ומקבל שלל על כל אחת מהן")}</b></>]} /></Note>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Fact
@@ -2618,14 +2627,14 @@ export async function GuideContent({
                     <N>{Math.round(BOSS_CHIP_SHARE * 100)}%</N>
                     <O>×</O>
                     <O>(</O>
-                    <V>הנזק שגרמת</V>
+                    <V>{t("הנזק שגרמת")}</V>
                     <O>÷</O>
-                    <V>מאגר החיים</V>
+                    <V>{t("מאגר החיים")}</V>
                     <O>)</O>
                     <O>+</O>
                     <N>{Math.round(BOSS_KILL_SHARE * 100)}%</N>
                     <O>×</O>
-                    <V>דירוג ההפלה</V>
+                    <V>{t("דירוג ההפלה")}</V>
                   </>
                 }
                 legend={[
@@ -2678,14 +2687,14 @@ export async function GuideContent({
                 hpMultiplier={tunables.boss.hpMultiplier}
               />
 
-              <Note tone="gold" icon="rankings"><RichText text={t("כל {p0} השליטים מוצגים בדף  <0>  עם הכוח המדויק שלהם — אפשר לתכנן מולם מראש. מד הזעם של הגיבור נטען בכל סבב, וברגע שהוא מתמלא הגיבור משתחרר מעצמו במכה אחת גדולה.", { p0: CITY_BOSSES.length })} slots={[<><Link href={gameHref("/game/rankings")} className="text-gold underline"> הדירוג </Link></>]} /></Note>
+              <Note tone="gold" icon="rankings"><RichText text={t("כל {p0} השליטים מוצגים בדף  <0>  עם הכוח המדויק שלהם — אפשר לתכנן מולם מראש. מד הזעם של הגיבור נטען בכל סבב, וברגע שהוא מתמלא הגיבור משתחרר מעצמו במכה אחת גדולה.", { p0: CITY_BOSSES.length })} slots={[<><Link href={gameHref("/game/rankings")} className="text-gold underline"> {t("הדירוג")} </Link></>]} /></Note>
 
               <Note tone="red" icon="heart" title={t("אל תשלח צבא בלי גיבור")}><RichText text={t("גיבור מת לא קורא את השליט ולא משחרר זעם: הקריאה יורדת מ־ {p0}–{p1}% לניחוש עיוור של  <0> — אחד משלושה — וכל סבב שנקרא לא נכון  {p2}. תחייה לפני התקיפה, לא אחריה.", { p0: Math.round(BOSS_READ_CHANCE_BASE * 100), p1: Math.round(BOSS_READ_CHANCE_MAX * 100), p2: BOSS_CASUALTIES ? t("גם מכפיל את האבדות") : t("מוריד את הנזק לשליש") })} slots={[<><b className="nums">{Math.round(BOSS_READ_CHANCE_NO_HERO * 100)}%</b></>]} /></Note>
             </GuideSection>
 
             {/* ============================ 22 arena ============================ */}
             <GuideSection meta={sections.arena} index={INDEX.arena}>
-              <Lead><RichText text={t("הדירוג אומר לך איפה אתה עומד; הוא אף פעם לא אומר לך אם היית  <0>.  <1>  היא הקרב ההוגן הזה, <2>, לכל מי שנרשם: בחצות (שעון ישראל) כל נרשם פוגש <3>, והטבלה היא התוצאה. אף אחד לא לוחץ תקיפה ואף אחד לא צריך להיות מחובר.")} slots={[<><b>מנצח</b></>, <><Link href={gameHref("/game/arena")} className="text-gold underline"> הזירה </Link></>, <><b>כל יום</b></>, <><b>כל נרשם אחר בדיוק פעם אחת</b></>]} /></Lead>
+              <Lead><RichText text={t("הדירוג אומר לך איפה אתה עומד; הוא אף פעם לא אומר לך אם היית  <0>.  <1>  היא הקרב ההוגן הזה, <2>, לכל מי שנרשם: בחצות (שעון ישראל) כל נרשם פוגש <3>, והטבלה היא התוצאה. אף אחד לא לוחץ תקיפה ואף אחד לא צריך להיות מחובר.")} slots={[<><b>{t("מנצח")}</b></>, <><Link href={gameHref("/game/arena")} className="text-gold underline"> {t("הזירה")} </Link></>, <><b>{t("כל יום")}</b></>, <><b>{t("כל נרשם אחר בדיוק פעם אחת")}</b></>]} /></Lead>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Fact
@@ -2721,19 +2730,19 @@ export async function GuideContent({
                 label={t("הסיכוי לנצח דו־קרב")}
                 expr={
                   <>
-                    <V>חלקך</V>
+                    <V>{t("חלקך")}</V>
                     <O>=</O>
-                    <V>√כוחך</V>
+                    <V>{t("√כוחך")}</V>
                     <O>÷</O>
                     <O>(</O>
-                    <V>√כוחך</V>
+                    <V>{t("√כוחך")}</V>
                     <O>+</O>
-                    <V>√כוחו</V>
+                    <V>{t("√כוחו")}</V>
                     <O>)</O>
                     <O>,</O>
-                    <R>סיכוי</R>
+                    <R>{t("סיכוי")}</R>
                     <O>=</O>
-                    <V>חלקך</V>
+                    <V>{t("חלקך")}</V>
                     <O>×</O>
                     <N>{(1 - ARENA_LUCK).toFixed(2)}</N>
                     <O>+</O>
@@ -2764,8 +2773,8 @@ export async function GuideContent({
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>מקום</th>
-                      <th>הפרס (בעיר אחת, לכל קלף)</th>
+                      <th>{t("מקום")}</th>
+                      <th>{t("הפרס (בעיר אחת, לכל קלף)")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2801,7 +2810,7 @@ export async function GuideContent({
 
             {/* ============================ 23 worldboss ============================ */}
             <GuideSection meta={sections.worldboss} index={INDEX.worldboss}>
-              <Lead><RichText text={t("כל קרב אחר במשחק הוא בין שני שחקנים או בין שחקן לשליט העיר שלו.  <0>  היא המקום היחיד שבו <1>: מפלצת אחת לשבוע, מאגר חיים משותף שגדל עם מספר האימפריות, וכל אימפריה שהנחיתה מכה מקבלת חלק בשלל. אין כפתור מנהלים — היא עולה על השעון.")} slots={[<><Link href={gameHref("/game/worldboss")} className="text-gold underline"> מפלצת העולם </Link></>, <><b>כל השרת נמצא באותו צד</b></>]} /></Lead>
+              <Lead><RichText text={t("כל קרב אחר במשחק הוא בין שני שחקנים או בין שחקן לשליט העיר שלו.  <0>  היא המקום היחיד שבו <1>: מפלצת אחת לשבוע, מאגר חיים משותף שגדל עם מספר האימפריות, וכל אימפריה שהנחיתה מכה מקבלת חלק בשלל. אין כפתור מנהלים — היא עולה על השעון.")} slots={[<><Link href={gameHref("/game/worldboss")} className="text-gold underline"> {t("מפלצת העולם")} </Link></>, <><b>{t("כל השרת נמצא באותו צד")}</b></>]} /></Lead>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Fact
@@ -2837,7 +2846,7 @@ export async function GuideContent({
                 label={t("נזק של מכה")}
                 expr={
                   <>
-                    <V>√הכוח הצבאי שלך</V>
+                    <V>{t("√הכוח הצבאי שלך")}</V>
                     <O>×</O>
                     <N>{WORLD_BOSS_DAMAGE_PER_POWER}</N>
                     <O>×</O>
@@ -2847,7 +2856,7 @@ export async function GuideContent({
                     <N>{Math.round(WORLD_BOSS_DAMAGE_SPREAD * 100)}%</N>
                     <O>)</O>
                     <O>=</O>
-                    <R>נזק</R>
+                    <R>{t("נזק")}</R>
                   </>
                 }
                 legend={[
@@ -2876,13 +2885,13 @@ export async function GuideContent({
                   <>
                     <N>{WORLD_BOSS_FLOOR_SHARE}</N>
                     <O>÷</O>
-                    <V>מספר המשתתפים</V>
+                    <V>{t("מספר המשתתפים")}</V>
                     <O>+</O>
                     <N>{(1 - WORLD_BOSS_FLOOR_SHARE).toFixed(1)}</N>
                     <O>×</O>
-                    <V>חלקך בנזק</V>
+                    <V>{t("חלקך בנזק")}</V>
                     <O>=</O>
-                    <R>חלקך בקופה</R>
+                    <R>{t("חלקך בקופה")}</R>
                   </>
                 }
                 legend={[
@@ -2909,9 +2918,9 @@ export async function GuideContent({
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>מצב</th>
-                      <th>חיים</th>
-                      <th>מה קורה</th>
+                      <th>{t("מצב")}</th>
+                      <th>{t("חיים")}</th>
+                      <th>{t("מה קורה")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2938,15 +2947,15 @@ export async function GuideContent({
                 </table>
               </TableWrap>
 
-              <Note tone="purple" icon="heart" title={t("המצב משתנה, המספרים לא")}><RichText text={t("ככל שהמפלצת נשחקת היא עוברת בין ארבעה מצבים, וכל השרת חוצה כל סף יחד — מי שהמכה שלו שברה את הסף הוא שרואה את ההכרזה. המצב משנה איך הזירה נראית ומה היא אומרת, ו<0>: לא את מאגר החיים, לא את הנזק ולא את הקופה. זו החלטה ולא השמטה — כל השלושה מכוילים זה מול זה, ו״זעם״ שהיה מכפיל חיים באמצע השבוע היה מכייל מחדש את הפיקסצ׳ר דווקא לשרת שכבר מפגר.")} slots={[<><b>לא משנה שום מספר</b></>]} /></Note>
+              <Note tone="purple" icon="heart" title={t("המצב משתנה, המספרים לא")}><RichText text={t("ככל שהמפלצת נשחקת היא עוברת בין ארבעה מצבים, וכל השרת חוצה כל סף יחד — מי שהמכה שלו שברה את הסף הוא שרואה את ההכרזה. המצב משנה איך הזירה נראית ומה היא אומרת, ו<0>: לא את מאגר החיים, לא את הנזק ולא את הקופה. זו החלטה ולא השמטה — כל השלושה מכוילים זה מול זה, ו״זעם״ שהיה מכפיל חיים באמצע השבוע היה מכייל מחדש את הפיקסצ׳ר דווקא לשרת שכבר מפגר.")} slots={[<><b>{t("לא משנה שום מספר")}</b></>]} /></Note>
 
               <TableWrap>
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>המפלצת</th>
-                      <th>קושי</th>
-                      <th>הסיפור</th>
+                      <th>{t("המפלצת")}</th>
+                      <th>{t("קושי")}</th>
+                      <th>{t("הסיפור")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2973,7 +2982,7 @@ export async function GuideContent({
 
             {/* ============================ 24 guild ============================ */}
             <GuideSection meta={sections.guild} index={INDEX.guild}>
-              <Lead><RichText text={t("ברית היא כוח משותף. הקמה עולה  <0> יהלומים, והיא נותנת שני דברים שונים לגמרי: <1> אישיים שנמשכים שעות ספורות, ו <2> שמחזקת כל חבר בכל קרב.")} slots={[<><b className="nums">{GUILD_CREATION_COST_DIAMONDS}</b></>, <><b>קסמים</b></>, <><b>עזרה פסיבית</b></>]} /></Lead>
+              <Lead><RichText text={t("ברית היא כוח משותף. הקמה עולה  <0> יהלומים, והיא נותנת שני דברים שונים לגמרי: <1> אישיים שנמשכים שעות ספורות, ו <2> שמחזקת כל חבר בכל קרב.")} slots={[<><b className="nums">{GUILD_CREATION_COST_DIAMONDS}</b></>, <><b>{t("קסמים")}</b></>, <><b>{t("עזרה פסיבית")}</b></>]} /></Lead>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {GUILD_SPELL_TYPES.map((type) => {
@@ -2998,18 +3007,18 @@ export async function GuideContent({
                   label={t("קסם ברית")}
                   expr={
                     <>
-                      <V>רמת הקסם</V>
+                      <V>{t("רמת הקסם")}</V>
                       <O>=</O>
-                      <V>אחוז הבונוס</V>
+                      <V>{t("אחוז הבונוס")}</V>
                       <O>·</O>
-                      <V>הטלה</V>
+                      <V>{t("הטלה")}</V>
                       <O>=</O>
                       <N>10</N>
                       <O>+</O>
-                      <V>אחוז</V>
+                      <V>{t("אחוז")}</V>
                       <O>×</O>
                       <N>2</N>
-                      <V> יהלומים</V>
+                      <V> {t("יהלומים")}</V>
                     </>
                   }
                   legend={[
@@ -3028,11 +3037,11 @@ export async function GuideContent({
                   label={t("עזרת ברית (פסיבית)")}
                   expr={
                     <>
-                      <V>רמת עזרה %</V>
+                      <V>{t("רמת עזרה %")}</V>
                       <O>×</O>
-                      <V>הכוח הצבאי הכולל של הברית</V>
+                      <V>{t("הכוח הצבאי הכולל של הברית")}</V>
                       <O>=</O>
-                      <R>כוח קבוע לכל חבר</R>
+                      <R>{t("כוח קבוע לכל חבר")}</R>
                     </>
                   }
                   legend={[
@@ -3050,9 +3059,9 @@ export async function GuideContent({
                 <table className="guide-table">
                   <thead>
                     <tr>
-                      <th className="text-right">רמת הרחבה</th>
-                      <th className="text-right">מקומות בברית</th>
-                      <th className="text-right">עלות ההרחבה</th>
+                      <th className="text-right">{t("רמת הרחבה")}</th>
+                      <th className="text-right">{t("מקומות בברית")}</th>
+                      <th className="text-right">{t("עלות ההרחבה")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3073,16 +3082,16 @@ export async function GuideContent({
                 </table>
               </TableWrap>
 
-              <Note tone="gold" icon="guild" title={t("אוצר הברית")}><RichText text={t("קופת זהב משותפת שממנה נקנות שתי הסולמות שלמעלה — <0>. כל חבר יכול לתרום (מינימום  <1> זהב לתרומה, כדי שלוח התורמים ימדוד נתינה ולא לחיצות), ומה שנתת נרשם על שמך לתמיד גם אחרי שהאוצר מתרוקן. <2>: זהב שנכנס שייך לברית, וההנהגה מחליטה מה הוא <3> — לא מי מקבל אותו בחזרה.")} slots={[<><b>ההרחבה והעזרה</b></>, <><b className="nums">{formatShort(GUILD_DONATION_MIN)}</b></>, <><b>אין משיכה</b></>, <><b>קונה</b></>]} /></Note>
+              <Note tone="gold" icon="guild" title={t("אוצר הברית")}><RichText text={t("קופת זהב משותפת שממנה נקנות שתי הסולמות שלמעלה — <0>. כל חבר יכול לתרום (מינימום  <1> זהב לתרומה, כדי שלוח התורמים ימדוד נתינה ולא לחיצות), ומה שנתת נרשם על שמך לתמיד גם אחרי שהאוצר מתרוקן. <2>: זהב שנכנס שייך לברית, וההנהגה מחליטה מה הוא <3> — לא מי מקבל אותו בחזרה.")} slots={[<><b>{t("ההרחבה והעזרה")}</b></>, <><b className="nums">{formatShort(GUILD_DONATION_MIN)}</b></>, <><b>{t("אין משיכה")}</b></>, <><b>{t("קונה")}</b></>]} /></Note>
 
-              <Note tone="green" icon="check" title={t("חוזה יומי")}><RichText text={t("לכל ברית יש יעד יומי משותף שנמדד במשימות היומיות של החברים, והוא משלם לכל חבר בנפרד. הוא מופיע גם כאן וגם על  <0> .")} slots={[<><Link href={gameHref("/game/daily")} className="text-gold underline"> לוח היום </Link></>]} /></Note>
+              <Note tone="green" icon="check" title={t("חוזה יומי")}><RichText text={t("לכל ברית יש יעד יומי משותף שנמדד במשימות היומיות של החברים, והוא משלם לכל חבר בנפרד. הוא מופיע גם כאן וגם על  <0> .")} slots={[<><Link href={gameHref("/game/daily")} className="text-gold underline"> {t("לוח היום")} </Link></>]} /></Note>
 
-              <Note tone="gold" icon="guild" title={t("אין תקיפות בין חברי ברית")}><RichText text={t("חבר לברית אינו יעד: כפתור התקיפה בפרופיל שלו כבוי, וגם שליחה ישירה נחסמת. הסיבה פשוטה — עזרת הברית והקסמים מחזקים את שני הצדדים, כך שקרב פנימי הוא שוד של הכוח שלכם עצמכם. <0> נשארים פתוחים, ומי שעוזב את הברית חוזר להיות יעד לגיטימי.")} slots={[<><b>ריגול ודואר</b></>]} /></Note>
+              <Note tone="gold" icon="guild" title={t("אין תקיפות בין חברי ברית")}><RichText text={t("חבר לברית אינו יעד: כפתור התקיפה בפרופיל שלו כבוי, וגם שליחה ישירה נחסמת. הסיבה פשוטה — עזרת הברית והקסמים מחזקים את שני הצדדים, כך שקרב פנימי הוא שוד של הכוח שלכם עצמכם. <0> נשארים פתוחים, ומי שעוזב את הברית חוזר להיות יעד לגיטימי.")} slots={[<><b>{t("ריגול ודואר")}</b></>]} /></Note>
             </GuideSection>
 
             {/* ============================ 25 chat ============================ */}
             <GuideSection meta={sections.chat} index={INDEX.chat}>
-              <Lead><RichText text={t("בפינה השמאלית התחתונה של כל מסך יושב <0>. הוא לא דף אלא חלונית צפה: אפשר לדבר תוך כדי בנייה, תקיפה או קריאת דוח, והיא נשארת פתוחה גם כשעוברים מסך. שתי לשוניות — <1> שכל השרת רואה, ו <2> אחד על אחד.")} slots={[<><b>הצ׳אט</b></>, <><b>החדר הפומבי</b></>, <><b>שיחות פרטיות</b></>]} /></Lead>
+              <Lead><RichText text={t("בפינה השמאלית התחתונה של כל מסך יושב <0>. הוא לא דף אלא חלונית צפה: אפשר לדבר תוך כדי בנייה, תקיפה או קריאת דוח, והיא נשארת פתוחה גם כשעוברים מסך. שתי לשוניות — <1> שכל השרת רואה, ו <2> אחד על אחד.")} slots={[<><b>{t("הצ׳אט")}</b></>, <><b>{t("החדר הפומבי")}</b></>, <><b>{t("שיחות פרטיות")}</b></>]} /></Lead>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Fact
@@ -3124,18 +3133,18 @@ export async function GuideContent({
                 expr={
                   <>
                     <N>{CHAT_BURST_LIMIT}</N>
-                    <O> הודעות ב־</O>
+                    <O> {t("הודעות ב־")}</O>
                     <N>{Math.round(CHAT_BURST_WINDOW_MS / 1000)}</N>
-                    <O> שניות</O>
+                    <O> {t("שניות")}</O>
                     <O>·</O>
                     <N>{CHAT_GLOBAL_LIMIT}</N>
-                    <V> בחדר לדקה</V>
+                    <V> {t("בחדר לדקה")}</V>
                     <O>·</O>
                     <N>{CHAT_DIRECT_LIMIT}</N>
-                    <V> בפרטי לדקה</V>
+                    <V> {t("בפרטי לדקה")}</V>
                     <O>·</O>
                     <N>{CHAT_PAIR_LIMIT}</N>
-                    <V> לאותו שחקן</V>
+                    <V> {t("לאותו שחקן")}</V>
                   </>
                 }
                 legend={[
@@ -3191,14 +3200,14 @@ export async function GuideContent({
 
               <div className="flex justify-center">
                 <Link href={gameHref("/game/community")} className="btn btn-gold px-5 py-2 text-sm">
-                  <Icon name="discord" size={16} className="inline align-[-2px]" /> לעמוד הקהילה
+                  <Icon name="discord" size={16} className="inline align-[-2px]" /> {t("לעמוד הקהילה")}
                 </Link>
               </div>
             </GuideSection>
 
             {/* ============================ 27 referrals ============================ */}
             <GuideSection meta={sections.referrals} index={INDEX.referrals}>
-              <Lead><RichText text={t("<0> הוא נמצא ב <1>  — שולחים אותו, ומי שנרשם דרכו נקשר אליך לבד. אין מה למלא בטופס ההרשמה. מי שקיבל רק את הקוד או את שם האימפריה יכול לרשום אותו ידנית באותו עמוד, כל עוד הוא בתחילת הדרך. שני הצדדים מקבלים את הפרס רק כשהחדש מגיע ל־ <2> ערים — כלומר כששחקן אמיתי נשאר, לא כשנפתח חשבון.")} slots={[<><b>לכל שחקן יש קישור הזמנה משלו.</b></>, <><Link href={gameHref("/game/referrals")} className="text-gold underline"> דף ההזמנות </Link></>, <><b className="nums">{REFERRAL_GOAL_CITIES}</b></>]} /></Lead>
+              <Lead><RichText text={t("<0> הוא נמצא ב <1>  — שולחים אותו, ומי שנרשם דרכו נקשר אליך לבד. אין מה למלא בטופס ההרשמה. מי שקיבל רק את הקוד או את שם האימפריה יכול לרשום אותו ידנית באותו עמוד, כל עוד הוא בתחילת הדרך. שני הצדדים מקבלים את הפרס רק כשהחדש מגיע ל־ <2> ערים — כלומר כששחקן אמיתי נשאר, לא כשנפתח חשבון.")} slots={[<><b>{t("לכל שחקן יש קישור הזמנה משלו.")}</b></>, <><Link href={gameHref("/game/referrals")} className="text-gold underline"> {t("דף ההזמנות")} </Link></>, <><b className="nums">{REFERRAL_GOAL_CITIES}</b></>]} /></Lead>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="panel-gold rounded-xl p-4">
@@ -3217,11 +3226,11 @@ export async function GuideContent({
                 label={t("החלון לרישום מזמין")}
                 expr={
                   <>
-                    <V>הערים שלך</V>
+                    <V>{t("הערים שלך")}</V>
                     <O>≤</O>
                     <N>{REFERRAL_NAME_MAX_CITIES}</N>
                     <O>→</O>
-                    <R>אפשר לרשום מזמין</R>
+                    <R>{t("אפשר לרשום מזמין")}</R>
                   </>
                 }
                 legend={[
@@ -3245,32 +3254,26 @@ export async function GuideContent({
               />
 
               <Note tone="red" icon="shield" title={t("חשבון שני שלך הוא לא חבר")}>
-                הזמנה משלמת יהלומים, ולכן היא נבדקת. שני חשבונות שהם בבירור אותו אדם —
-                אותה תיבת דואר (כולל תעלולי נקודות ו־<span dir="ltr">+תווית</span>{" "}
-                בג׳ימייל), או שניהם נכנסו למשחק מאותו דפדפן — לא נקשרים בכלל, והפרס פשוט
-                לא נוצר.
+                {t("הזמנה משלמת יהלומים, ולכן היא נבדקת. שני חשבונות שהם בבירור אותו אדם — אותה תיבת דואר (כולל תעלולי נקודות ו־")}<span dir="ltr">{t("+תווית")}</span>{" "}
+                {t("בג׳ימייל), או שניהם נכנסו למשחק מאותו דפדפן — לא נקשרים בכלל, והפרס פשוט לא נוצר.")}
                 <br />
-                דברים שרק <b>נראים</b> חשודים מטופלים אחרת בכוונה. שני שחקנים מאותה כתובת
-                IP הם לרוב אחים, שותפים לדירה, משרד או פשוט אותה רשת סלולרית — וזה גם
-                המקרה הכי נפוץ של הזמנה אמיתית. במצב כזה הקישור נוצר וההתקדמות נספרת, אבל
-                הפרס ממתין לאישור אנושי לפני שהוא משולם. אותו דבר קורה ליותר מ־
-                <b className="nums">{REFERRAL_BURST_LIMIT}</b> מוזמנים ביממה אחת, או
-                כששני הצדדים מתחילים לתקוף ולרגל אחד את השני.
+                {t("דברים שרק")} <b>{t("נראים")}</b> {t("חשודים מטופלים אחרת בכוונה. שני שחקנים מאותה כתובת IP הם לרוב אחים, שותפים לדירה, משרד או פשוט אותה רשת סלולרית — וזה גם המקרה הכי נפוץ של הזמנה אמיתית. במצב כזה הקישור נוצר וההתקדמות נספרת, אבל הפרס ממתין לאישור אנושי לפני שהוא משולם. אותו דבר קורה ליותר מ־")}
+                <b className="nums">{REFERRAL_BURST_LIMIT}</b> {t("מוזמנים ביממה אחת, או כששני הצדדים מתחילים לתקוף ולרגל אחד את השני.")}
               </Note>
             </GuideSection>
 
             {/* ============================ 28 titles ============================ */}
             <GuideSection meta={sections.titles} index={INDEX.titles}>
-              <Lead><RichText text={t("<0>  הוא השורה שמתחת לשם שלך — בדוסיה ובדירוגים. הוא <1>, וזה כל העניין: זו הדרך הבטוחה היחידה למכור משהו, כי הוא לא משנה שום מספר במשחק. שני סוגים, וההבדל ביניהם מכוון להיות ברור מהניסוח:  <2>  <3> ולא נמכרים בשום מחיר, ו־ <4>  <5> וכתובים כהתרברבות ולא כהישג. הנצברים מסודרים בשלוש דרגות קושי — <6>, <7> ו<8> — ובכל דרגה הדרישה גדולה יותר מזו שמעליה בטבלה.")} slots={[<><Link href={gameHref("/game/titles")} className="text-gold underline"> תואר </Link></>, <><b>לא מכפיל כלום</b></>, <><b className="nums">{TITLES.filter((title) => title.kind === "earned").length}</b></>, <><b>נצברים</b></>, <><b className="nums">{TITLES.filter((title) => title.kind === "bought").length}</b></>, <><b>נקנים</b></>, <><b>רגיל</b></>, <><b>נדיר</b></>, <><b>אגדי</b></>]} /></Lead>
+              <Lead><RichText text={t("<0>  הוא השורה שמתחת לשם שלך — בדוסיה ובדירוגים. הוא <1>, וזה כל העניין: זו הדרך הבטוחה היחידה למכור משהו, כי הוא לא משנה שום מספר במשחק. שני סוגים, וההבדל ביניהם מכוון להיות ברור מהניסוח:  <2>  <3> ולא נמכרים בשום מחיר, ו־ <4>  <5> וכתובים כהתרברבות ולא כהישג. הנצברים מסודרים בשלוש דרגות קושי — <6>, <7> ו<8> — ובכל דרגה הדרישה גדולה יותר מזו שמעליה בטבלה.")} slots={[<><Link href={gameHref("/game/titles")} className="text-gold underline"> {t("תואר")} </Link></>, <><b>{t("לא מכפיל כלום")}</b></>, <><b className="nums">{TITLES.filter((title) => title.kind === "earned").length}</b></>, <><b>{t("נצברים")}</b></>, <><b className="nums">{TITLES.filter((title) => title.kind === "bought").length}</b></>, <><b>{t("נקנים")}</b></>, <><b>{t("רגיל")}</b></>, <><b>{t("נדיר")}</b></>, <><b>{t("אגדי")}</b></>]} /></Lead>
 
               <TableWrap>
                 <table className="guide-table w-full text-right text-[0.78rem]">
                   <thead>
                     <tr>
-                      <th>תואר</th>
-                      <th>דרגה</th>
-                      <th>איך משיגים</th>
-                      <th>מחיר</th>
+                      <th>{t("תואר")}</th>
+                      <th>{t("דרגה")}</th>
+                      <th>{t("איך משיגים")}</th>
+                      <th>{t("מחיר")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3292,7 +3295,7 @@ export async function GuideContent({
                         </td>
                         <td>
                           {title.kind === "earned" ? (
-                            <span className="text-emerald-300">נצבר</span>
+                            <span className="text-emerald-300">{t("נצבר")}</span>
                           ) : (
                             <Cost amounts={[{ key: "diamonds", value: title.price }]} />
                           )}
@@ -3304,10 +3307,10 @@ export async function GuideContent({
               </TableWrap>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Note tone="gold" icon="achievements" title={t("תואר נצבר לא נמכר")}><RichText text={t("התנאים שלו נבדקים מחדש בכל טעינה מול אותם מוני חיים שההישגים והמשימות קוראים — אין מה למלא ואין מה לגבות. הם מכוונים <0> מדרגת ההישג המקבילה, כי תואר צריך להיות נדיר יותר מסולם הפרסים או שהדירוג הופך לקיר של אותה כותרת: <1> יושב מעל אמצע סולם ההישגים,  <2> בקצה העליון שלו, ו<3> מעבר לסולם כולו.")} slots={[<><b>גבוה יותר</b></>, <><b>רגיל</b></>, <><b>נדיר</b></>, <><b>אגדי</b></>]} /></Note>
+                <Note tone="gold" icon="achievements" title={t("תואר נצבר לא נמכר")}><RichText text={t("התנאים שלו נבדקים מחדש בכל טעינה מול אותם מוני חיים שההישגים והמשימות קוראים — אין מה למלא ואין מה לגבות. הם מכוונים <0> מדרגת ההישג המקבילה, כי תואר צריך להיות נדיר יותר מסולם הפרסים או שהדירוג הופך לקיר של אותה כותרת: <1> יושב מעל אמצע סולם ההישגים,  <2> בקצה העליון שלו, ו<3> מעבר לסולם כולו.")} slots={[<><b>{t("גבוה יותר")}</b></>, <><b>{t("רגיל")}</b></>, <><b>{t("נדיר")}</b></>, <><b>{t("אגדי")}</b></>]} /></Note>
                 <Note tone="purple" icon="crown" title={t("עונדים אחד בכל פעם")}>{t("אפשר להחזיק כמה שרוצים ולענוד אחד. תואר שהוסר מהמשחק פשוט מפסיק להופיע מתחת לשם, בלי לשבור שום דירוג.")}</Note>
-                <Note tone="gold" icon="rankings" title={t("איפה התואר נראה")}><RichText text={t("בכל מקום שבו <0>: בדוסיה, בסולם העיר ובטבלאות המובילים, ברשימת חברי הברית, בזירה ובלוח מלחמת הבריתות, בפודיום העונה ובשיאי העולם. הוא <1> מופיע בצ׳אט, בדואר ובהיסטוריית הקרבות והריגול — מילה צבועה בכל שורה של פיד נגללת מפסיקה להיות הבחנה.")} slots={[<><b>משווים בין שחקנים</b></>, <><b>לא</b></>]} /></Note>
-                <Note tone="red" icon="spark" title={t("נצבר זוהר, נקנה לא")}><RichText text={t("תואר נצבר נמשך בהילה משלו וקנוי נצבע בצבע שטוח בלבד, כדי שמי שקורא דירוג יבדיל בלי להכיר את הקטלוג. נדיר בוער חזק יותר מרגיל, ושלושת האגדיים  <0>  — פעימה איטית בצבע התואר. אין תואר קנוי שנושם: הדבר היחיד שיהלומים לא קונים כאן הוא מראה של הישג.")} slots={[<><span className="title-worn-inline" data-kind="earned" data-tier="legendary" style={{ "--accent": "228 195 90" } as CSSProperties} > נושמים </span></>]} /></Note>
+                <Note tone="gold" icon="rankings" title={t("איפה התואר נראה")}><RichText text={t("בכל מקום שבו <0>: בדוסיה, בסולם העיר ובטבלאות המובילים, ברשימת חברי הברית, בזירה ובלוח מלחמת הבריתות, בפודיום העונה ובשיאי העולם. הוא <1> מופיע בצ׳אט, בדואר ובהיסטוריית הקרבות והריגול — מילה צבועה בכל שורה של פיד נגללת מפסיקה להיות הבחנה.")} slots={[<><b>{t("משווים בין שחקנים")}</b></>, <><b>{t("לא")}</b></>]} /></Note>
+                <Note tone="red" icon="spark" title={t("נצבר זוהר, נקנה לא")}><RichText text={t("תואר נצבר נמשך בהילה משלו וקנוי נצבע בצבע שטוח בלבד, כדי שמי שקורא דירוג יבדיל בלי להכיר את הקטלוג. נדיר בוער חזק יותר מרגיל, ושלושת האגדיים  <0>  — פעימה איטית בצבע התואר. אין תואר קנוי שנושם: הדבר היחיד שיהלומים לא קונים כאן הוא מראה של הישג.")} slots={[<><span className="title-worn-inline" data-kind="earned" data-tier="legendary" style={{ "--accent": "228 195 90" } as CSSProperties} > {t("נושמים")} </span></>]} /></Note>
               </div>
             </GuideSection>
 
@@ -3318,7 +3321,7 @@ export async function GuideContent({
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="panel-gold rounded-xl p-4">
                   <p className="mb-2 flex items-center gap-2 font-black text-gold-bright"><RichText text={t("<0> גלגל המזל")} slots={[<><Icon name="wheel" size={18} /></>]} /></p>
-                  <p className="text-[11px] leading-relaxed text-zinc-400"><RichText text={t("<0> סיבובים בכל עדכון יומי, נצברים בלי הגבלה — שבוע היעדרות לא מבזבז כלום.  {p0} פרסים, וכל פרס <1> מהערך שלו ביום הראשון עד הערך שלו בעדכון האחרון של העונה — בלי קפיצות ובלי תקרה שנתקעים בה באמצע. ארבעת המשאבים הולכים מ־ <2> ל־ <3> כל אחד (גדילה מוכפלת, כמו הכלכלה עצמה), היהלומים מ־ <4> ל־ <5> והאזרחים מ־ <6> ל־ <7> (תוספת קבועה בכל עדכון). עונה קצרה יותר פשוט מטפסת מהר יותר — הסוף תמיד אותו סוף.", { p0: WHEEL_PRIZES.length })} slots={[<><b className="nums">{tunables.daily.wheelSpins}</b></>, <><b>גדל בכל עדכון יומי</b></>, <><b className="nums">{nf(WHEEL_RESOURCE_BASE)}</b></>, <><b className="nums">{nf(WHEEL_RESOURCE_FINAL)}</b></>, <><b className="nums">{WHEEL_DIAMOND_BASE}</b></>, <><b className="nums">{WHEEL_DIAMOND_FINAL}</b></>, <><b className="nums">{WHEEL_CITIZEN_BASE}</b></>, <><b className="nums">{WHEEL_CITIZEN_FINAL}</b></>]} /></p>
+                  <p className="text-[11px] leading-relaxed text-zinc-400"><RichText text={t("<0> סיבובים בכל עדכון יומי, נצברים בלי הגבלה — שבוע היעדרות לא מבזבז כלום.  {p0} פרסים, וכל פרס <1> מהערך שלו ביום הראשון עד הערך שלו בעדכון האחרון של העונה — בלי קפיצות ובלי תקרה שנתקעים בה באמצע. ארבעת המשאבים הולכים מ־ <2> ל־ <3> כל אחד (גדילה מוכפלת, כמו הכלכלה עצמה), היהלומים מ־ <4> ל־ <5> והאזרחים מ־ <6> ל־ <7> (תוספת קבועה בכל עדכון). עונה קצרה יותר פשוט מטפסת מהר יותר — הסוף תמיד אותו סוף.", { p0: WHEEL_PRIZES.length })} slots={[<><b className="nums">{tunables.daily.wheelSpins}</b></>, <><b>{t("גדל בכל עדכון יומי")}</b></>, <><b className="nums">{nf(WHEEL_RESOURCE_BASE)}</b></>, <><b className="nums">{nf(WHEEL_RESOURCE_FINAL)}</b></>, <><b className="nums">{WHEEL_DIAMOND_BASE}</b></>, <><b className="nums">{WHEEL_DIAMOND_FINAL}</b></>, <><b className="nums">{WHEEL_CITIZEN_BASE}</b></>, <><b className="nums">{WHEEL_CITIZEN_FINAL}</b></>]} /></p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {WHEEL_PRIZES.map((p) => (
                       <span
@@ -3334,7 +3337,7 @@ export async function GuideContent({
 
                 <div className="panel-gold rounded-xl p-4">
                   <p className="mb-2 flex items-center gap-2 font-black text-gold-bright"><RichText text={t("<0> דרך התהילה")} slots={[<><Icon name="gift" size={18} /></>]} /></p>
-                  <p className="text-[11px] leading-relaxed text-zinc-400"><RichText text={t("<0> דרגות, כל אחת ב־ <1> נקודות ניסיון —  <2> לסבב מלא. הסולם <3>, כלומר שני סבבים מלאים ביום. הפרסים גדלים ב־ <4> מהבסיס בכל יום עונה. המסלול הפרימיום נקנה פעם אחת לעונה ב־ <5> יהלומים.")} slots={[<><b className="nums">{SEASON_PASS_TIER_COUNT}</b></>, <><b className="nums">{SEASON_PASS_XP_PER_TIER}</b></>, <><b className="nums">{SEASON_PASS_TIER_COUNT * SEASON_PASS_XP_PER_TIER}</b></>, <><b>מתאפס בכל עדכון יומי</b></>, <><b className="nums">{Math.round(SEASON_PASS_DAILY_GROWTH * 100)}%</b></>, <><b className="nums">{nf(SEASON_PASS_PREMIUM_PRICE)}</b></>]} /></p>
+                  <p className="text-[11px] leading-relaxed text-zinc-400"><RichText text={t("<0> דרגות, כל אחת ב־ <1> נקודות ניסיון —  <2> לסבב מלא. הסולם <3>, כלומר שני סבבים מלאים ביום. הפרסים גדלים ב־ <4> מהבסיס בכל יום עונה. המסלול הפרימיום נקנה פעם אחת לעונה ב־ <5> יהלומים.")} slots={[<><b className="nums">{SEASON_PASS_TIER_COUNT}</b></>, <><b className="nums">{SEASON_PASS_XP_PER_TIER}</b></>, <><b className="nums">{SEASON_PASS_TIER_COUNT * SEASON_PASS_XP_PER_TIER}</b></>, <><b>{t("מתאפס בכל עדכון יומי")}</b></>, <><b className="nums">{Math.round(SEASON_PASS_DAILY_GROWTH * 100)}%</b></>, <><b className="nums">{nf(SEASON_PASS_PREMIUM_PRICE)}</b></>]} /></p>
                   <div className="mt-3 grid grid-cols-2 gap-1 text-[10px] sm:grid-cols-3">
                     {(
                       [
@@ -3361,8 +3364,8 @@ export async function GuideContent({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Note tone="purple" icon="dice" title={t("מיני־משחקים")}><RichText text={t('אירועים שהמנהלים פותחים בזמן אמת, בארבעה טעמים:  <0> (הרם את הכוס הנכונה),  <1> (פצח קוד; כל ניסיון מסמן איזו ספרה נכונה במקומה, איזו נכונה במקום אחר ואיזו לא בקוד כלל), <2> (חפור במשבצת ברשת, וכל חפירה חוזרת עם "חם או קר" לפי המרחק) ו<3>  (שאלה אחת, תשובה אחת). כשמשחק נפתח מופיע כפתור זהוב בסרגל העליון עם שעון וספירת הניסיונות שנותרו — לחיצה פותחת את המשחק, לוח המתחרים ורשימת הזוכים. מספר הניסיונות נגזר מהמשחק: בכוסות זה כמעט תמיד ניסיון אחד; בכספת ובמפה כל ניסיון הוא רמז, ולכן יש כמה — אבל אף פעם לא מספיק כדי לסרוק את הלוח.')} slots={[<><b>מצא את הכדור</b></>, <><b>פריצת הכספת</b></>, <><b>מפת האוצר</b></>, <><b>חידה</b></>]} /></Note>
-                <Note tone="gold" icon="achievements" title={t("הישגים")}><RichText text={t("ציוני דרך שנפתחים מעצמם תוך כדי משחק ומחכים לאיסוף. תג זהוב בסרגל העליון אומר שיש פרס שממתין —  <0> .")} slots={[<><Link href={gameHref("/game/achievements")} className="text-gold underline"> לדף ההישגים </Link></>]} /></Note>
+                <Note tone="purple" icon="dice" title={t("מיני־משחקים")}><RichText text={t('אירועים שהמנהלים פותחים בזמן אמת, בארבעה טעמים:  <0> (הרם את הכוס הנכונה),  <1> (פצח קוד; כל ניסיון מסמן איזו ספרה נכונה במקומה, איזו נכונה במקום אחר ואיזו לא בקוד כלל), <2> (חפור במשבצת ברשת, וכל חפירה חוזרת עם "חם או קר" לפי המרחק) ו<3>  (שאלה אחת, תשובה אחת). כשמשחק נפתח מופיע כפתור זהוב בסרגל העליון עם שעון וספירת הניסיונות שנותרו — לחיצה פותחת את המשחק, לוח המתחרים ורשימת הזוכים. מספר הניסיונות נגזר מהמשחק: בכוסות זה כמעט תמיד ניסיון אחד; בכספת ובמפה כל ניסיון הוא רמז, ולכן יש כמה — אבל אף פעם לא מספיק כדי לסרוק את הלוח.')} slots={[<><b>{t("מצא את הכדור")}</b></>, <><b>{t("פריצת הכספת")}</b></>, <><b>{t("מפת האוצר")}</b></>, <><b>{t("חידה")}</b></>]} /></Note>
+                <Note tone="gold" icon="achievements" title={t("הישגים")}><RichText text={t("ציוני דרך שנפתחים מעצמם תוך כדי משחק ומחכים לאיסוף. תג זהוב בסרגל העליון אומר שיש פרס שממתין —  <0> .")} slots={[<><Link href={gameHref("/game/achievements")} className="text-gold underline"> {t("לדף ההישגים")} </Link></>]} /></Note>
               </div>
             </GuideSection>
 
@@ -3434,7 +3437,7 @@ export async function GuideContent({
 
               <div className="flex justify-center">
                 <Link href={gameHref("/game/diamonds")} className="btn btn-gold px-5 py-2 text-sm">
-                  <Icon name="diamond" size={16} className="inline align-[-2px]" /> לחנות היהלומים
+                  <Icon name="diamond" size={16} className="inline align-[-2px]" /> {t("לחנות היהלומים")}
                 </Link>
               </div>
             </GuideSection>
@@ -3446,7 +3449,7 @@ export async function GuideContent({
               <ol className="space-y-3">
                 {[
                   {
-                    title: t("48 השעות הראשונות — בונים, לא נלחמים"),
+                    title: t("השעתיים הראשונות — בונים, לא נלחמים"),
                     body: t("אתה מוגן. נצל את זה: הצב את כל עבדי המכרות, שדרג מכרות (כל אחד במשאב שלו), והשאר את התורות לצבירה. תקיפה ראשונה שוברת את המגן."),
                   },
                   {
@@ -3494,10 +3497,10 @@ export async function GuideContent({
 
               <div className="flex flex-wrap justify-center gap-3 pt-2">
                 <Link href={gameHref("/game/base")} className="btn btn-gold px-5 py-2 text-sm">
-                  <Icon name="base" size={16} className="inline align-[-2px]" /> חזרה לבסיס
+                  <Icon name="base" size={16} className="inline align-[-2px]" /> {t("חזרה לבסיס")}
                 </Link>
                 <Link href={gameHref("/game/rankings")} className="btn btn-ghost px-5 py-2 text-sm">
-                  <Icon name="rankings" size={16} className="inline align-[-2px]" /> למצוא יעד
+                  <Icon name="rankings" size={16} className="inline align-[-2px]" /> {t("למצוא יעד")}
                 </Link>
               </div>
             </GuideSection>

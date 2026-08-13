@@ -141,7 +141,7 @@ export async function planBots(params: {
  * NOT survive:
  *
  *   - `protectedUntil`, the new-player shield, which would make the target
- *     unattackable for its first 48 hours — the one thing a bot must never be;
+ *     unattackable for its first couple of hours — the one thing a bot must never be;
  *   - `diamonds`, because a bot that can be gifted or spied for a diamond
  *     balance is a bot that looks like it might spend one;
  *   - the welcome message, which is addressed to a person.

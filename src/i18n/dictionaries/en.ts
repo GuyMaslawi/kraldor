@@ -4912,7 +4912,7 @@ export const EN: Record<string, string> = {
     "0.3 + the cube root of (the rival's power ÷ yours) × 1.4, clamped to 0.3–2.0. The root reads the gap in orders of magnitude rather than in percentages — so even a battle where the rival is several times weaker than you still pays more than the minimum.",
   "1 + רמת שדרוג": "1 + upgrade level",
   "10% לרמה, עד רמה {p0}": "10% per level, up to level {p0}",
-  "48 השעות הראשונות — בונים, לא נלחמים": "The first 48 hours — build, do not fight",
+  "השעתיים הראשונות — בונים, לא נלחמים": "The first two hours — build, do not fight",
   "<0>  הוא המסך היחיד שכל תוכנו פג. עליו ארבעה דברים:  <1> (רצף הכניסה),  <2> משימות יומיות,  <3> שבועיות, ו<4>  המשותף. הכול נמדד ב<5> — חצות עד חצות — ולא בפעמון העדכון היומי.":
     "<0> is the only screen whose whole contents expire. There are four things on it: <1> (the sign-in streak), <2> daily missions, <3> weekly ones, and <4> the shared one. Everything is measured in <5> — midnight to midnight — and not by the daily update bell.",
   "<0>  הוא השורה שמתחת לשם שלך — בדוסיה ובדירוגים. הוא <1>, וזה כל העניין: זו הדרך הבטוחה היחידה למכור משהו, כי הוא לא משנה שום מספר במשחק. שני סוגים, וההבדל ביניהם מכוון להיות ברור מהניסוח:  <2>  <3> ולא נמכרים בשום מחיר, ו־ <4>  <5> וכתובים כהתרברבות ולא כהישג. הנצברים מסודרים בשלוש דרגות קושי — <6>, <7> ו<8> — ובכל דרגה הדרישה גדולה יותר מזו שמעליה בטבלה.":
@@ -5668,5 +5668,360 @@ export const EN: Record<string, string> = {
   "{name} — {title}": "{name} — {title}",
   "{game} — {title}": "{game} — {title}",
   "{title} — {multiplier}": "{title} — {multiplier}",
+
+
+  /* The manual's shorter runs — a formula's variable names, a table header, a
+     term bolded mid-sentence. One key each, and that is right here: unlike a
+     paragraph, each of these is a whole unit of meaning on its own. */
+
+  "(דרגה)": "(tier)",
+  "(מה שאפשר להוציא — וגם מה שנבזז בתקיפה) ו":
+    "(what you can spend — and what is plundered in an attack) and ",
+  "(מעוגל כלפי מטה)": "(rounded down)",
+  "(ערים−1)": "(cities−1)",
+  "(רמת יעד − 10)": "(target level − 10)",
+  "+תווית": "+tag",
+  ", ובכל זאת": ", and yet",
+  ", ורמה": ", and level",
+  ", כלומר": ", that is",
+  ". ב": ". In ",
+  ". מה שבמחסן מוגן תמיד.": ". What is in a warehouse is always protected.",
+  "; עם מודיעין רמה": "; with intelligence level",
+  "= דרגה": "= tier",
+  "· גיבור": "· hero",
+  "× עדכונים שהוחמצו": "× missed updates",
+  "אותה משימה בדיוק —": "The very same mission —",
+  "אזרח": "citizen",
+  "אזרחים בכל עדכון —": "citizens per update —",
+  "אזרחים כמשניים; אותה רמה בכנפיים =":
+    "citizens as a secondary; the same level on wings =",
+  "אזרחים לעדכון": "Citizens per update",
+  'אזרחים נצברים בלי גבול, בדיוק כמו משאבים — שום עדכון לא הולך לאיבוד אם לא רוקנת את המאגר. עדיין כדאי להמיר אותם: אזרח שיושב במאגר לא כורה, לא נלחם ולא מרגל. הערים כבר לא מגבילות כמה יש לך, רק כמה מהר הם מגיעים — דרך רמות שדרוג "קבלת אזרחים" שהן פותחות.':
+    'Citizens bank up without limit, exactly like resources — no update is ever lost because you did not empty the pool. It is still worth converting them: a citizen sitting in the pool does not mine, does not fight and does not spy. Cities no longer cap how many you have, only how fast they arrive — through the "Citizen Income" upgrade levels they unlock.',
+  "אחוז": "percentage",
+  "אחוז הבונוס": "Bonus percentage",
+  "אחוז מהמשאבים הלא-מופקדים של המגן": "per cent of the defender's undeposited resources",
+  "איזו מפלצת מופיעה נגזר מהשבוע עצמו, כך שכל שחקן בעולם רואה את אותה מפלצת בלי שאף אחד ״פתח״ אותה. מה שלא הופל עד סוף השבוע פשוט נעלם, והשבוע הבא מביא חדשה — עם מאגר חיים חדש ומכסת מכות חדשה.":
+    'Which monster appears follows from the week itself, so every player in the world sees the same one without anybody having "opened" it. Whatever is not felled by the end of the week simply vanishes, and the next week brings a new one — with a fresh health pool and a fresh quota of blows.',
+  "איך משיגים": "How to get one",
+  "אימפריה טרייה מוגנת מתקיפה ומריגול למשך  <0> מהרישום. המגן נשבר ברגע שאתה עצמך תוקף או מרגל — אי אפשר להסתתר מאחוריו ולפעול בתוקפנות באותו הזמן.":
+    "A fresh empire is shielded from attack and from spying for <0> after registering. The shield breaks the moment *you* attack or spy — you cannot hide behind it and act aggressively at the same time.",
+  "אימפריה שמצטרפת לערוץ אוספת <0>  יהלומים, פעם אחת בחיי החשבון. אין בוט שבודק — הכפתור עובד על אמון. מתנת פתיחה, כל עוד הערוץ צעיר. הכפתור נמצא בעמוד הקהילה.":
+    "An empire that joins the channel collects <0> diamonds, once in the life of the account. No bot checks — the button runs on trust. An opening gift, while the channel is young. The button is on the community page.",
+  "אין משיכה": "No withdrawal",
+  'אירועים שהמנהלים פותחים בזמן אמת, בארבעה טעמים:  <0> (הרם את הכוס הנכונה),  <1> (פצח קוד; כל ניסיון מסמן איזו ספרה נכונה במקומה, איזו נכונה במקום אחר ואיזו לא בקוד כלל), <2> (חפור במשבצת ברשת, וכל חפירה חוזרת עם "חם או קר" לפי המרחק) ו<3>  (שאלה אחת, תשובה אחת). כשמשחק נפתח מופיע כפתור זהוב בסרגל העליון עם שעון וספירת הניסיונות שנותרו — לחיצה פותחת את המשחק, לוח המתחרים ורשימת הזוכים. מספר הניסיונות נגזר מהמשחק: בכוסות זה כמעט תמיד ניסיון אחד; בכספת ובמפה כל ניסיון הוא רמז, ולכן יש כמה — אבל אף פעם לא מספיק כדי לסרוק את הלוח.':
+    'Events the staff open in real time, in four flavours: <0> (lift the right cup), <1> (crack a code; every attempt marks which digit is right where it stands, which is right elsewhere and which is not in the code at all), <2> (dig a square on a grid, and every dig comes back "warm or cold" by distance) and <3> (one question, one answer). When a game opens, a gold button appears in the top bar with a clock and the attempts you have left — clicking it opens the game, the leaderboard and the list of winners. How many attempts you get follows from the game: with the cups it is almost always one; with the safe and the map every attempt is a clue, so there are several — but never enough to sweep the board.',
+  "אף צד לא מאבד חיילים — לא בקרב מול שחקן{p0}. הסיכון היחיד הוא התורות, ולמגן גם הביזה והשבויים.":
+    "Neither side loses soldiers — not in a fight against a player{p0}. The only risk is the turns, and for the defender the plunder and the captives too.",
+  "אף שליט לא נופל בתקיפה אחת. צבא שעומד <0> צריך בערך <1> תקיפות כדי לרוקן את מאגר החיים, צבא בכפול מהכוח — <2>, ובפי שלושה — אחת. צבא מתחת לקיר פשוט מכרסם לאורך יותר תקיפות, <3>: השלל משולם לפי הנזק, כך שאף תקיפה לא הולכת לאיבוד. בתמורה למצור הארוך, מה שיש לשליט בכיסים גדול בהתאם — הפלה אחת שווה יותר מיום שלם של תקיפות רגילות.":
+    "No boss falls in a single attack. An army standing at <0> needs roughly <1> attacks to empty the health pool, an army at twice the power — <2>, and at three times — one. An army below the wall simply gnaws at it over more attacks, <3>: the spoils are paid for the damage, so no attack is wasted. In return for the long siege, what the boss carries is larger to match — one kill is worth more than a whole day of ordinary attacks.",
+  "אפשר להחזיק כמה שרוצים ולענוד אחד. תואר שהוסר מהמשחק פשוט מפסיק להופיע מתחת לשם, בלי לשבור שום דירוג.":
+    "You may hold as many as you like and wear one. A title withdrawn from the game simply stops appearing under the name, without breaking any ranking.",
+  "אפשר לרשום מזמין": "You may name an inviter",
+  "בבסיס; עם": "at base; with",
+  "בג׳ימייל), או שניהם נכנסו למשחק מאותו דפדפן — לא נקשרים בכלל, והפרס פשוט לא נוצר.":
+    "in Gmail), or both signed in from the same browser — are not linked at all, and the prize is simply never created.",
+  "בדיוק על הכוח המודפס שלו": "exactly on its printed power",
+  "בור זהב שמשלם באחוזים": "A gold pit that pays in percentages",
+  "בחדר לדקה": "in the room per minute",
+  "ביממה.": "a day.",
+  "ביממה. אם לא נכנסת שבוע, כל העדכונים שהוחמצו נצברים ומשולמים בכניסה הבאה.":
+    "a day. If you have not been in for a week, every missed update banks up and is paid out on your next visit.",
+  "בכל 5 דקות, כלומר": "every 5 minutes, that is",
+  "בכל מקום שבו <0>: בדוסיה, בסולם העיר ובטבלאות המובילים, ברשימת חברי הברית, בזירה ובלוח מלחמת הבריתות, בפודיום העונה ובשיאי העולם. הוא <1> מופיע בצ׳אט, בדואר ובהיסטוריית הקרבות והריגול — מילה צבועה בכל שורה של פיד נגללת מפסיקה להיות הבחנה.":
+    "Everywhere <0>: on a dossier, on the city ladder and the leaderboards, in a guild's member list, in the arena and on the guild-war board, on the season podium and in the world records. It <1> appears in chat, in mail or in the battle and spy history — a coloured word on every line of a scrolling feed stops being a distinction.",
+  "בלי להט תיקח": "Without fervor you would take",
+  "במחסן (מוגן לחלוטין מביזה, אבל לא ניתן להוציא אותו עד שתמשוך). ראה":
+    "in a warehouse (wholly safe from plunder, but you cannot spend it until you withdraw). See",
+  "במשאב שלו בלבד": "in its own resource only",
+  "במשבצת שאתה בוחר": "in a square of your choosing",
+  "בעיר אחת, ו־": "at one city, and",
+  "בעיר חמש.": "at city five.",
+  "בפרטי לדקה": "in a private thread per minute",
+  "ברמת שדרוג": "At upgrade level",
+  "גבוה יותר": "higher",
+  "גדל בכל עדכון יומי": "grows with every daily update",
+  "גיבור מת לא קורא את השליט ולא משחרר זעם: הקריאה יורדת מ־ {p0}–{p1}% לניחוש עיוור של  <0> — אחד משלושה — וכל סבב שנקרא לא נכון  {p2}. תחייה לפני התקיפה, לא אחריה.":
+    "A dead hero neither reads the boss nor unleashes his rage: the read drops from {p0}–{p1}% to a blind guess of <0> — one in three — and every round read wrongly {p2}. Revive before the attack, not after it.",
+  "גיבור%": "hero%",
+  "גם המשאבים וגם דרישת החיילים": "both the resources and the soldier requirement",
+  "דברים שרק": "Things only",
+  "דוח": "report",
+  "דורשת": "requires",
+  "דטרמיניסטי": "deterministic",
+  "דירוג ההפלה": "Kill grade",
+  "דף ההזמנות": "the invites page",
+  "דרגה − 1": "tier − 1",
+  "דרגת ערים גבוהה היא לפעמים אימפריה אחת בעולם, ומקום ראשון בטבלה של שורה אחת הוא ברז יהלומים בלי יריב ובלי סיכון — וקלף יומי פותח את הברז הזה כל בוקר מחדש. מתחת ל־ <0> נרשמים הזירה עדיין רצה ועדיין משלמת — פרס השתתפות וזהב לכל ניצחון — אבל בלי יהלומים.":
+    "A high city tier is sometimes one empire in the world, and first place on a table of one row is a diamond tap with no rival and no risk — and a daily card would open that tap fresh every morning. Below <0> entrants the arena still runs and still pays — a participation prize and gold for every win — but without diamonds.",
+  "דרישות": "Requirements",
+  "דרך התהילה ושליטי הערים לא מחלקים יהלומים בכוונה, והגלגל מחלק אותם מווג׳ יחיד שעולה לאט: <0> ביום הראשון, ועולה בהדרגה עד  <1> בעדכון האחרון של העונה. בכוונה זו תוספת קבועה ולא הכפלה כמו המשאבים: מקור חוזר ומתפוצץ של מטבע פרימיום היה מרוקן מתוכן כל מה שנקנה בו.":
+    "The Road to Glory and the city bosses deliberately hand out no diamonds, and the wheel hands them out from a single wedge that climbs slowly: <0> on day one, rising gradually to <1> on the season's last update. Deliberately a fixed step rather than a doubling like the resources: a repeating, exploding source of premium currency would hollow out everything bought with it.",
+  "הבונוס אחריה": "The bonus after it",
+  "ההרחבה והעזרה": "The expansion and the aid",
+  "ההתקדמות": "the progress",
+  "הוא לא מוסיף למשחק שום פעולה חדשה — הוא פותח את כפתורי ״הכל״ שכבר יש בו: ״הפקד הכל״ ו״משוך הכל״ בבנק, ״הפקד הכל״ ו״משוך הכל״ בכל מחסן, ״הצב הכל״ ו״חלק שווה״ בעבדי המכרות ו״שדרג למקסימום״ במכרה — ועוד כפתור ״מפקדה״ בסרגל העליון שמפעיל את כולם מכל מסך. בלי החותם אותן פעולות עדיין פתוחות לך ידנית: מקליד סכום ומפקיד, מציב עבדים מכרה־מכרה, קונה למכרה רמה בכל לחיצה — ומגיע בדיוק לאותו מצב. החותם לא נותן משאב אחד, לא נקודת עוצמה אחת, לא מקצר קירור ולא מגן על האימפריה.":
+    'It adds no new action to the game — it opens the "All" buttons that are already in it: "Deposit all" and "Withdraw all" in the bank, "Deposit all" and "Withdraw all" in every warehouse, "Assign all" and "Split evenly" for mine slaves and "Upgrade to max" in a mine — plus a "Command" button in the top bar that fires all of them from any screen. Without the seal those same actions are still open to you by hand: type an amount and deposit, assign slaves mine by mine, buy a mine one level per click — and arrive at exactly the same state. The seal gives not one resource, not one point of power, shortens no cooldown and shields no empire.',
+  "הודעות ב־": "messages in",
+  "הופכת רוחב לכיוון": "turns width into direction",
+  "הזמן שנותר לכל אחד": "how long each has left",
+  "הזמנה": "invite",
+  "הזמנה משלמת יהלומים, ולכן היא נבדקת. שני חשבונות שהם בבירור אותו אדם — אותה תיבת דואר (כולל תעלולי נקודות ו־":
+    "An invite pays diamonds, so it is checked. Two accounts that are plainly the same person — the same mailbox (dot tricks and +tags",
+  "החדר הפומבי": "The public room",
+  "הטלה": "Casting",
+  "הכוח הצבאי הכולל של הברית": "the guild's total military power",
+  "הכנסה": "Income",
+  "הלהט משלם על  <0> תקיפות מנצחות ביום, ולא יותר. אם לא הגעת למספר הזה — הוא לא נוגע בך בכלל, וכל פשיטה שלך לוהטת. תקיפה שהפסדת, או שלא הביאה כלום, לא מבזבזת מהמכסה.":
+    "Fervor pays on <0> winning attacks a day, and no more. If you never reach that number it does not touch you at all, and every raid of yours burns hot. An attack you lost, or one that brought nothing home, does not spend from the quota.",
+  "המודיעין של היעד": "the target's intelligence",
+  "המונה ברגע שהלוח נפתח": "your counter when the board opened",
+  "המונה שלך עכשיו": "your counter now",
+  "המפלצת": "The monster",
+  "הנזק שגרמת": "the damage you did",
+  "הנפחייה": "The forge",
+  "הסיפור": "The story",
+  "הסתרה, לא מחיקה: השורה נעלמת מהחדר של כולם ונרשמת ביומן הניהול עם השם של מי שהסתיר אותה. שחקן חסום לא מופיע ברשימה ואי אפשר לכתוב אליו.":
+    "Hiding, not deleting: the line disappears from everybody's room and is recorded in the admin log with the name of whoever hid it. A banned player does not appear in the list and cannot be written to.",
+  "העיר האחרונה": "The last city",
+  "העיר השנייה:": "The second city:",
+  "הערים שלך": "your cities",
+  "הפרס (בעיר אחת, לכל קלף)": "The prize (at one city, per card)",
+  "הצ׳אט": "The chat",
+  "הרצף חוזר ל־<0>, והשיא האישי נשמר לצידו. אין דרך לקנות את הפער בחזרה — רצף שאפשר לשלם עליו הוא לא סיבה לחזור מחר.":
+    "The streak returns to <0>, and your personal best is kept beside it. There is no way to buy the gap back — a streak you can pay for is not a reason to come back tomorrow.",
+  "השלב": "The stage",
+  "השלל מוגרל ונחתם ברגע היציאה — האימפריה שממנה שלחת אותו היא זו שמשלמת, גם אם הקמת (או איבדת) עיר בזמן שהוא היה בדרך. מה שהוגרל שמור אצל הגיבור בלבד: אין דרך להציץ בשק לפני שהוא נכנס בשער, ואין דרך לגלגל אותו מחדש.":
+    "The haul is rolled and sealed the moment he leaves — the empire you sent him from is the one that pays, even if you founded (or lost) a city while he was on the road. What was rolled is with the hero alone: there is no way to peek into the sack before it comes through the gate, and no way to reroll it.",
+  "התנאים שלו נבדקים מחדש בכל טעינה מול אותם מוני חיים שההישגים והמשימות קוראים — אין מה למלא ואין מה לגבות. הם מכוונים <0> מדרגת ההישג המקבילה, כי תואר צריך להיות נדיר יותר מסולם הפרסים או שהדירוג הופך לקיר של אותה כותרת: <1> יושב מעל אמצע סולם ההישגים,  <2> בקצה העליון שלו, ו<3> מעבר לסולם כולו.":
+    "Its conditions are re-checked on every load against the same lifetime counters the achievements and missions read — there is nothing to fill in and nothing to claim. They are deliberately pitched <0> than the matching achievement grade, because a title has to be rarer than the reward ladder or the rankings become a wall of the same heading: <1> sits above the middle of the achievement ladder, <2> at its top end, and <3> beyond the ladder altogether.",
+  "התקפה, ועוד": "attack, plus",
+  "ובונוס גיבור": "and a hero bonus of",
+  "והיעד לא יודע שרוגל": "and the target never knows it was scouted",
+  "ומקבל שלל על כל אחת מהן": "and is paid spoils for every one of them",
+  "זהב +": "gold +",
+  "זהב בכל עדכון רגיל — יותר ממה שמכרה של אימפריה בת עיר אחת מפיק. חרב ברמה":
+    "gold on every regular update — more than a one-city empire's mine produces. A sword at level",
+  "זהב בלבד": "gold only",
+  "זהב זה ההבדל בין": "gold is the difference between",
+  "זהב — פי": "gold — ×",
+  "זהב.": "gold.",
+  "זהב. דרגה": "gold. Tier",
+  "זמין": "available",
+  "חבר לברית אינו יעד: כפתור התקיפה בפרופיל שלו כבוי, וגם שליחה ישירה נחסמת. הסיבה פשוטה — עזרת הברית והקסמים מחזקים את שני הצדדים, כך שקרב פנימי הוא שוד של הכוח שלכם עצמכם. <0> נשארים פתוחים, ומי שעוזב את הברית חוזר להיות יעד לגיטימי.":
+    "A guildmate is not a target: the attack button on his profile is dead, and a direct send is blocked too. The reason is simple — the guild aid and the spells strengthen both sides, so an internal fight is a robbery of your own strength. <0> stay open, and anyone who leaves the guild becomes a legitimate target again.",
+  "חוזה": "Contract",
+  "חייל שנלקח בשעבוד לא מת — הוא עובר להיות עבד מכרות אצל התוקף.":
+    "A soldier taken into slavery does not die — he becomes a mine slave for the attacker.",
+  "חיילים **כן** מתים בקרב מול שליט עיר.":
+    "Soldiers **do** die in a fight against a city boss.",
+  "חיילים. העיר העשירית כבר עולה": "soldiers. The tenth city already costs",
+  "חלון זמן שבו חוק אחד במשחק מתעקם":
+    "a window of time in which one of the game's rules bends",
+  "חלקך": "your share",
+  "חלקך בנזק": "your share of the damage",
+  "חלקך בקופה": "your share of the purse",
+  "חפץ / שיקוי": "Item / potion",
+  "חצי": "half",
+  "חשודים מטופלים אחרת בכוונה. שני שחקנים מאותה כתובת IP הם לרוב אחים, שותפים לדירה, משרד או פשוט אותה רשת סלולרית — וזה גם המקרה הכי נפוץ של הזמנה אמיתית. במצב כזה הקישור נוצר וההתקדמות נספרת, אבל הפרס ממתין לאישור אנושי לפני שהוא משולם. אותו דבר קורה ליותר מ־":
+    "Suspects are handled differently on purpose. Two players on the same IP address are usually siblings, flatmates, an office or simply the same mobile network — and that is also the commonest case of a genuine invite. There the link is created and the progress is counted, but the prize waits for a human to approve it before it is paid. The same happens with more than",
+  "יום לוח ירושלמי": "Jerusalem calendar day",
+  "יחידות מהמשאב שלו.": "units of its own resource.",
+  "יממה": "a day",
+  "יעד יומי אחד לכל ברית, שנמדד ב<0>. הוא ננעל לפי מספר החברים ברגע שנפתח (מינימום  <1> משימות, ולכל היותר  <2> לחבר), וכשהוא נסגר  <3> מקבל את מלוא הפרס — לא חלק ממנו.":
+    "One daily goal per guild, measured in <0>. It is locked to the number of members the moment it opens (a minimum of <1> missions, and at most <2> per member), and when it closes <3> is paid the full prize — not a share of it.",
+  "יעד לברית של 5": "Goal for a guild of 5",
+  "יצאת ליומיים? כל התורות ממתינות לך, עד האחרונה. להט הקרב לא לוקח ממך שום דבר שהיה לך — הוא רק מוסיף למי שנמצא כאן עכשיו. שחקן שנכנס פעם ביום מבצע בדיוק את אותן תקיפות.":
+    "Away for two days? Every turn is waiting for you, down to the last. Battle fervor takes nothing from you that you had — it only adds for whoever is here now. A player who signs in once a day makes exactly the same attacks.",
+  "יתרה": "Balance",
+  "כוח (התקפה/הגנה)": "Power (attack/defence)",
+  "כוח ב־": "power at",
+  "כוח לכל זהב.": "power per gold.",
+  "כוח מודיעין.": "intelligence power.",
+  "כוח נשק =": "Weapon power =",
+  "כוח קבוע לכל חבר": "flat power for every member",
+  "כוח:": "Power:",
+  "ככל שהמפלצת נשחקת היא עוברת בין ארבעה מצבים, וכל השרת חוצה כל סף יחד — מי שהמכה שלו שברה את הסף הוא שרואה את ההכרזה. המצב משנה איך הזירה נראית ומה היא אומרת, ו<0>: לא את מאגר החיים, לא את הנזק ולא את הקופה. זו החלטה ולא השמטה — כל השלושה מכוילים זה מול זה, ו״זעם״ שהיה מכפיל חיים באמצע השבוע היה מכייל מחדש את הפיקסצ׳ר דווקא לשרת שכבר מפגר.":
+    "As the monster is worn down it passes through four states, and the whole server crosses each threshold together — whoever's blow broke the threshold is the one who sees the announcement. The state changes how the arena looks and what it says, and <0>: not the health pool, not the damage and not the purse. That is a decision rather than an omission — all three are calibrated against each other, and a \"rage\" that doubled health mid-week would recalibrate the fixture against the very server already falling behind.",
+  "כל {p0} השליטים מוצגים בדף  <0>  עם הכוח המדויק שלהם — אפשר לתכנן מולם מראש. מד הזעם של הגיבור נטען בכל סבב, וברגע שהוא מתמלא הגיבור משתחרר מעצמו במכה אחת גדולה.":
+    "All {p0} bosses are listed on the <0> page with their exact power — you can plan against them in advance. The hero's rage meter charges every round, and the moment it fills he lets go by himself in one great blow.",
+  "כל השרת נמצא באותו צד": "the whole server is on the same side",
+  "כל חבר שהיה בברית באותו רגע": "every member who was in the guild at that moment",
+  "כל יום": "every day",
+  "כל מה שצריך לדעת כדי לשלוט": "Everything you need to know in order to rule",
+  "כל נרשם אחר בדיוק פעם אחת": "every other entrant exactly once",
+  "כל תקיפה שפורצת את ההגנה שלך מורידה  <0> נקודות חיים מהגיבור. באפס — הוא מת, וכל הבונוסים שלו כבים.":
+    "Every attack that breaches your defence takes <0> health off the hero. At zero he dies, and every bonus of his goes out.",
+  "ל-": "to",
+  "לא": "not",
+  "לא בדיסקורד, לא בצ׳אט של המשחק ולא בהודעה פרטית. כל בקשה כזו — גם אם היא מגיעה משם שנראה מוכר — היא ניסיון גניבת חשבון. אותו כלל חל על קודי אימות ופרטי תשלום.":
+    "Not on Discord, not in the game's chat and not in a private message. Any such request — even from a name that looks familiar — is an attempt to steal your account. The same rule covers verification codes and payment details.",
+  "לא בחיילים, לא בנשקים ולא בכוח. הסיבה היא החוזה של המשחק מול השחקנים: צבא נהרס בקרבות שיש עליהם <0>. מרגל שיכול היה למחוק צבא בשקט היה הופך את הדירוג ללא קריא ואת הדוחות לשקר. מה שנלקח הוא הכלכלה — מלאי, זהב ועבדי מכרות — והיא חוזרת.":
+    "Not soldiers, not weapons and not power. The reason is the game's contract with its players: an army is destroyed in fights that have <0>. A spy who could quietly erase an army would make the rankings unreadable and the reports a lie. What is taken is the economy — stock, gold and mine slaves — and that comes back.",
+  "לא בתקיפה, לא בהגנה ולא בריגול. מבנה קונה <0> — מכרות, תורות, אזרחים, ריבית וסיבובי גלגל — והקריאה הישרה של זה היא שזהב קנה לך עוד זהב, לא ניצחון. דוח הקרב מפרט כל מרכיב של חישוב הכוח, ומודיפייר שהיה מסתתר מחוץ לדוח היה הופך אותו לשקר.":
+    "Not in attack, not in defence and not in spying. A monument buys <0> — mines, turns, citizens, interest and wheel spins — and the honest reading of that is that gold bought you more gold, not a victory. The battle report itemises every term of the power sum, and a modifier hiding outside the report would make it a lie.",
+  "לא מכפיל כלום": "multiplies nothing",
+  "לא משנה שום מספר": "changes no number",
+  "לא נבזז לעולם": "is never plundered",
+  "לאותו שחקן": "to the same player",
+  "לגיבור שלי": "to my hero",
+  "לדף ההישגים": "to the achievements page",
+  "ליטוש לדרגה הבאה": "Polish to the next grade",
+  "לכל ברית יש יעד יומי משותף שנמדד במשימות היומיות של החברים, והוא משלם לכל חבר בנפרד. הוא מופיע גם כאן וגם על  <0> .":
+    "Every guild has a shared daily goal measured by its members' daily missions, and it pays each member separately. It appears both here and on <0>.",
+  "לכל חבר": "per member",
+  "לכל משאב יש שתי יתרות:": "Every resource has two balances:",
+  "לכל סט יש מקסימום משלו:": "Every set has a maximum of its own:",
+  "לכל שחקן יש קישור הזמנה משלו.": "Every player has an invite link of their own.",
+  "למצוא": "Find",
+  "למצוא יעד": "Find a target",
+  "לעמוד הקהילה": "to the community page",
+  "לרמה, מול": "per level, against",
+  "מאגר החיים": "The health pool",
+  "מאגר חיים שנשמר בין תקיפות": "a health pool kept between attacks",
+  "מאוחסן": "stored",
+  "מביא בממוצע פי שלושה ממסע של שעה באותן ערים — אבל שעה עם":
+    "brings on average three times what an hour's expedition brings at the same cities — but an hour with",
+  "מגן לא ניתן לחידוש ולא להארכה כל עוד הוא פעיל — צריך לתת לו להיגמר, ואז עוברות עוד <0>  דקות שבהן אתה חשוף לגמרי לפני שאפשר לקנות מחדש. זה מכוון: מגנים רצופים היו הופכים שחקן משלם לבלתי ניתן לתקיפה לצמיתות, וחלון החשיפה הזה הוא ההזדמנות של שאר העיר. אם אתה מתכנן להיות מוגן — שים לב מתי המגן נגמר, כי בדיוק אז תוקפים ממתינים.":
+    "A shield cannot be renewed or extended while it is running — you have to let it lapse, and then another <0> minutes pass in which you are wholly exposed before you can buy again. That is deliberate: back-to-back shields would make a paying player permanently unattackable, and that window of exposure is the rest of the city's chance. If you plan to be shielded, watch when the shield ends — because that is exactly when attackers are waiting.",
+  "מגן משאבים ומגן חיילים לא הופכים אותך לבלתי ניתן לתקיפה — הם מוציאים את הרכוש מהישג ידו של התוקף: מי שינצח אותך לא ייקח משאבים (מגן משאבים) ולא ישעבד חיילים (מגן חיילים). הקרב עצמו עדיין מתרחש, הגיבור שלך עדיין סופג, והתוקף עדיין מרוויח ניסיון. כל שחקן בעיר רואה בדירוג שיש לך מגן — וזה בדיוק מה שמרתיע תוקפים מלבזבז עליך תורות.":
+    "A resource shield and a soldier shield do not make you unattackable — they put your property out of the attacker's reach: whoever beats you takes no resources (resource shield) and enslaves no soldiers (soldier shield). The battle still happens, your hero still takes damage, and the attacker still earns experience. Every player in the city can see on the ladder that you are shielded — which is exactly what deters attackers from spending turns on you.",
+  "מגן על": "protects",
+  "מה הוא עושה": "What it does",
+  "מה זה אומר": "What that means",
+  "מה מחכה שם": "What is waiting there",
+  "מה נלקח": "What is taken",
+  "מה קורה": "What happens",
+  "מהתקרה באחוזים:": "of the ceiling, as a percentage:",
+  "מוזמנים ביממה אחת, או כששני הצדדים מתחילים לתקוף ולרגל אחד את השני.":
+    "invitees in a single day, or when the two sides start attacking and spying on each other.",
+  "מוכפל": "doubled",
+  "מזל אגדי": "Legendary luck",
+  "מחיר העיר השנייה": "The second city's price",
+  "מחיר הרמה": "Price per level",
+  "מחיר ליחידה": "Price per unit",
+  "מחסן ברמה": "A warehouse at level",
+  "מיקום בעשור": "Position in the decade",
+  "מכל שאר": "of every other",
+  "מכל שאר המשאבים +": "of every other resource +",
+  "מכפיל השלל": "Spoils multiplier",
+  "מכפיל תפוקה": "Output multiplier",
+  "ממשיך להעניק את כל הבונוסים שלו": "keeps granting every one of his bonuses",
+  "מנצח": "wins",
+  "מסע": "Expedition",
+  "מסע אחד בכל פעם": "One expedition at a time",
+  "מסע של": "An expedition of",
+  "מספר המשתתפים": "Number of entrants",
+  "מצב": "State",
+  "מקום": "Place",
+  "מקומות בברית": "seats in the guild",
+  "מרגל שנתפס מפעיל התראה אצל היעד, שרואה מי ניסה. זה גם מה שפותח לו את האפשרות לשלוח לך הודעה.":
+    "A caught spy raises an alert with the target, who sees who tried. That is also what opens the door for them to send you a message.",
+  "מרגלים +": "Spies +",
+  "משבצת לבחירתך": "a slot of your choosing",
+  "משווים בין שחקנים": "compares players",
+  "משותפת לשלוש הקטגוריות": "shared by all three categories",
+  "משימה": "Mission",
+  "משימות היומיות שהחברים סיימו": "the daily missions the members finished",
+  "משך": "Duration",
+  "משקל (ראשי / משני)": "Weight (primary / secondary)",
+  "מתאפס בכל עדכון יומי": "resets on every daily update",
+  "נדירות": "Rarity",
+  "נושמים": "breathe",
+  "נחסמת על ידי": "blocked by",
+  "נצבר": "earned",
+  "נצברים": "earned",
+  "נקודות אחוז לרמה": "percentage points per level",
+  "נקנים": "bought",
+  "נק׳, רמה": "pts, level",
+  "נראים": "seen",
+  "נשק התקפה": "Attack weapon",
+  "סיכוי": "Chance",
+  "סיכוי בתקיפה מנצחת": "Chance on a winning attack",
+  "עבדי המכרות": "The mine slaves",
+  "עבדים במכרה ברמה": "slaves in a mine at level",
+  "עזרה פסיבית": "Passive aid",
+  "עלות ההרחבה": "Expansion cost",
+  "עלות המעבר": "Cost of the move",
+  "עלות כל הסולם עד התקרה": "Cost of the whole ladder to the ceiling",
+  "עץ/ברזל": "Wood/iron",
+  "ערים ובונוס גיבור": "cities and a hero bonus of",
+  "ערך בדרגה 1": "Value at tier 1",
+  "פומבי וקבוע": "public and fixed",
+  "פירוק נותן": "Breaking one gives",
+  "פרי שטן ברמה": "A devil's fruit at level",
+  "פרס ההשתתפות שווה יותר מ־<0>  התורות שעלתה הכניסה, וקלף חזק של שלושים ניצחונות שווה יותר זהב מהפודיום עצמו — הפודיום מוכר את היהלומים, הניצחונות מוכרים את העבודה.":
+    "The participation prize is worth more than the <0> turns entry cost, and a strong card of thirty wins is worth more gold than the podium itself — the podium sells the diamonds, the wins sell the work.",
+  "פתוח מההתחלה": "Open from the start",
+  "פתיחת הדרגה": "Unlocking the tier",
+  "ציוני דרך שנפתחים מעצמם תוך כדי משחק ומחכים לאיסוף. תג זהוב בסרגל העליון אומר שיש פרס שממתין —  <0> .":
+    "Milestones that open by themselves as you play and wait to be collected. A gold badge in the top bar means a reward is waiting — <0>.",
+  "צמיחת העונה": "Season growth",
+  "קונה": "buys",
+  "קופת זהב משותפת שממנה נקנות שתי הסולמות שלמעלה — <0>. כל חבר יכול לתרום (מינימום  <1> זהב לתרומה, כדי שלוח התורמים ימדוד נתינה ולא לחיצות), ומה שנתת נרשם על שמך לתמיד גם אחרי שהאוצר מתרוקן. <2>: זהב שנכנס שייך לברית, וההנהגה מחליטה מה הוא <3> — לא מי מקבל אותו בחזרה.":
+    "A shared gold purse that the two ladders above are bought from — <0>. Any member may contribute (a minimum of <1> gold per contribution, so the contributors' board measures giving rather than clicks), and what you gave is recorded under your name forever, even after the treasury empties. <2>: gold that goes in belongs to the guild, and the leadership decides what it <3> — not who gets it back.",
+  "קושי": "Difficulty",
+  "קטלוג החפצים המלא": "the full item catalogue",
+  "קיבולת": "Capacity",
+  "קיבולת מוגנת": "Protected capacity",
+  "קסמים": "Spells",
+  "ריגול ודואר": "Spying and mail",
+  "ריגול מוצלח מביא <0>: משאבים גלויים ומחסנים, יתרת הבנק, כל פריט נשק, המבנים, השדרוגים, הצבא, הגיבור וציודו — וכל קסם, שיקוי ומגן שפועלים עליו, עם <1>. <2>.":
+    "A successful spy mission brings back <0>: visible resources and warehouses, the bank balance, every weapon, the buildings, the upgrades, the army, the hero and his gear — and every spell, potion and shield running on him, with <1>. <2>.",
+  "רמה−1": "level−1",
+  "רמת גיבור נדרשת": "Hero level required",
+  "רמת המחסן": "Warehouse level",
+  "רמת הקסם": "Spell level",
+  "רמת הרחבה": "Expansion level",
+  "רמת מודיעין": "Intelligence level",
+  "רמת עזרה %": "Aid level %",
+  "רמת שדרוג": "Upgrade level",
+  "רמת שדרוג קבלת אזרחים": "Citizen-income upgrade level",
+  "שווה": "equals",
+  "שוויון = המגן מנצח": "A tie means the defender wins",
+  "שום כמות של זהב או רסיסים לא מעבירה חפץ לסט שמעליו. הדרך היחידה לעשור הבא היא <0> חפץ ממנו — והנפחייה לא נועדה לעקוף את זה, אלא לחסוך לך את החרב העשירית.":
+    "No amount of gold or shards moves an item into the set above it. The only way into the next decade is to <0> one off somebody — and the forge is not there to get round that, but to save you the tenth sword.",
+  "שיקוי": "Potion",
+  "שליחה עולה תורות בלבד — הגיבור <0> גם בזמן שהוא בדרכים, ומסע שכבר יצא לדרך מסתיים גם אם הגיבור נופל בינתיים. מה שהוא לא יכול לעשות זה לצאת למסע כשהוא מת.":
+    "Sending costs turns alone — the hero <0> even while he is on the road, and an expedition already underway finishes even if the hero falls meanwhile. What he cannot do is set out while dead.",
+  "שני הגורמים מוכפלים זה בזה, אז המכפלה גדלה הכי מהר כשהם מתקדמים יחד. עבדי מכרות עולים אזרח אחד בלבד ומגיעים גם כשבויים מתקיפות מנצחות — אבל רמת המכרה היא זו שמכפילה את כל העבדים בבת אחת.":
+    "The two factors multiply each other, so the product grows fastest when they advance together. A mine slave costs one citizen and also arrives as a captive from winning attacks — but it is the mine's level that multiplies every slave at once.",
+  "שני ערוצים שונים בכוונה. הצ׳אט הוא שיחה חיה וקצרה שנקראת עכשיו; תיבת ההודעות בסרגל העליון היא הארכיון — דוחות קרב, ריגול, שלל של שליטי ערים והודעות ארוכות, שממתינות שם עד שתקרא אותן. הודעה פרטית בצ׳אט מדליקה מונה על הלשונית, לא בתיבה.":
+    "Two deliberately different channels. The chat is a live, short conversation read now; the message box in the top bar is the archive — battle reports, spy reports, city-boss spoils and long messages, waiting there until you read them. A private message in the chat lights a counter on the tab, not in the box.",
+  "שעה שמחה": "Happy Hour",
+  "שעות המסע": "Hours on the road",
+  "תואר": "Title",
+  "תואר נצבר נמשך בהילה משלו וקנוי נצבע בצבע שטוח בלבד, כדי שמי שקורא דירוג יבדיל בלי להכיר את הקטלוג. נדיר בוער חזק יותר מרגיל, ושלושת האגדיים  <0>  — פעימה איטית בצבע התואר. אין תואר קנוי שנושם: הדבר היחיד שיהלומים לא קונים כאן הוא מראה של הישג.":
+    "An earned title is drawn with a glow of its own and a bought one is painted flat, so a reader of the rankings can tell them apart without knowing the catalogue. A rare one burns brighter than a common one, and the three legendary ones <0> — a slow pulse in the title's colour. No bought title breathes: the one thing diamonds do not buy here is the look of an achievement.",
+  "תוקף לוקח  <0> מכל משאב <1> שלך. לפני שאתה מתנתק — הפקד במחסנים ובבנק. מה שנשאר בחוץ הוא הזמנה פתוחה.":
+    "An attacker takes <0> of every <1> resource of yours. Before you sign off, deposit into the warehouses and the bank. What is left outside is an open invitation.",
+  "תורות בכל עדכון יומי.": "turns per daily update.",
+  "תורות לשעה": "Turns per hour",
+  "תיקח": "you would take",
+  "תכה בקלות שלוש שעות של דרך קשה.": "will beat three hours of a hard road easily.",
+  "תפוקה במכרה": "Output at the mine",
+  "תפוקה לעבד": "Output per slave",
+  "תפוקת מכרות ו־": "Mine output and",
+  "תקבל": "you receive",
+  "תקיפה עולה <0> תורות, בין אם ניצחת ובין אם נהדפת. ריגול עולה  <1>.":
+    "An attack costs <0> turns, whether you won or were repelled. A spy mission costs <1>.",
+  "תשלום לשעה": "Pay per hour",
+  "״{game}״": '"{game}"',
+  "— מאויב עם": "— from an enemy with",
+  "— משלמת": "— pays",
+  "√הכוח הצבאי שלך": "√your military power",
+  "√כוחו": "√its power",
+  "√כוחך": "√your power",
+
+
+  /* Three of the manual's worked examples, rewritten as whole sentences with
+     slots. They were the only places the paragraph pass left as fragments, and
+     the fragments would not have reordered into English. */
+  "בלי להט תיקח <0>. ב**שריפה** תיקח <1> — מאויב עם <2> זהב זה ההבדל בין <3> ל־<4>.":
+    "Without fervor you take <0>. In a **Blaze** you take <1> — against an enemy holding <2> gold that is the difference between <3> and <4>.",
+  "רמה <0> דורשת <1> נק׳, רמה <2> דורשת <3>, ורמה <4> דורשת <5>.":
+    "Level <0> needs <1> points, level <2> needs <3>, and level <4> needs <5>.",
+  "פרי שטן ברמה <0> = דרגה <1> מתוך <2>, ובכל זאת <3> זהב בכל עדכון רגיל — יותר ממה שמכרה של אימפריה בת עיר אחת מפיק. חרב ברמה <4> = דרגה <5>, כלומר <6> מהתקרה באחוזים: <7> התקפה, ועוד <8> תפוקת מכרות ו־<9> אזרחים כמשניים; אותה רמה בכנפיים = <10> תורות בכל עדכון יומי.":
+    "A devil's fruit at level <0> is step <1> of <2>, and still pays <3> gold on every regular update — more than a one-city empire's mine produces. A sword at level <4> is step <5>, that is <6> of the percentage ceiling: <7> attack, plus <8> mine output and <9> citizens as secondaries; the same level on wings is <10> turns per daily update.",
 
 };

@@ -688,7 +688,7 @@ export const SPY_TURN_COST = 5;
  * It ends early the instant the player launches their own first attack/spy —
  * you can't hide behind the shield while acting aggressively.
  */
-export const NEWBIE_PROTECTION_MS = 48 * 60 * 60 * 1000; // 48 hours
+export const NEWBIE_PROTECTION_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 export const TURNS_UPGRADE_MAX_LEVEL = 5;
 

@@ -249,6 +249,7 @@ async function createEmpireForUser(
 
 /** The character chosen at signup — must be one of the four playable classes. */
 const heroClassSchema = z.enum(["WARLORD", "GUARDIAN", "MERCHANT", "SHADOW"], {
+  // i18n-keys: a zod message, run through t() where issues[0].message is read
   message: "בחר דמות גיבור",
 });
 
@@ -270,6 +271,9 @@ function nameField(min: number, max: number, tooShort: string) {
   );
 }
 
+// i18n-keys-start: zod messages are dictionary keys — a schema is built at
+// module load, with no request to read a language from, so every action runs
+// `parsed.error.issues[0].message` through t() where it surfaces it.
 const EMPIRE_NAME_FIELD = nameField(2, 40, "שם האימפריה חייב להכיל לפחות 2 תווים");
 
 const registerSchema = z.object({
@@ -281,6 +285,7 @@ const registerSchema = z.object({
   // column and — on login — a Map key in the in-process rate limiter.
   email: z.string().trim().toLowerCase().max(254).email("כתובת אימייל לא תקינה"),
   password: z.string().min(8, "סיסמה חייבת להכיל לפחות 8 תווים").max(100),
+  // i18n-keys-end
 });
 
 export async function register(
@@ -414,8 +419,10 @@ export async function register(
 }
 
 const loginSchema = z.object({
+  // i18n-keys-start: zod messages, translated where they surface — see above
   email: z.string().trim().toLowerCase().max(254).email("כתובת אימייל לא תקינה"),
   password: z.string().min(1, "יש להזין סיסמה"),
+  // i18n-keys-end
 });
 
 
@@ -577,8 +584,10 @@ export async function logout(): Promise<void> {
 }
 
 const changePasswordSchema = z.object({
+  // i18n-keys-start: zod messages, translated where they surface — see above
   currentPassword: z.string().min(1, "יש להזין את הסיסמה הנוכחית"),
   newPassword: z.string().min(8, "סיסמה חדשה חייבת להכיל לפחות 8 תווים").max(100),
+  // i18n-keys-end
 });
 
 export interface AccountActionState {

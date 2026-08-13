@@ -970,7 +970,13 @@ function CornerNotes({
               <>
                 {" "}
                 {t("ב־")}
-                <span className="font-bold text-gold-bright">״{note.game}״</span>
+                {/* The quotation marks are the dictionary's, not the markup's:
+                    Hebrew quotes with ״ and English with " . The name inside is
+                    free text an admin typed in the control centre — a proper
+                    noun, like an empire's, so it rides in as a param. */}
+                <span className="font-bold text-gold-bright">
+                  {t("״{game}״", { game: note.game })}
+                </span>
               </>
             )}
           </span>

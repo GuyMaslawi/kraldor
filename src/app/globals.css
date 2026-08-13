@@ -994,7 +994,10 @@ body {
   width: 340px;
   height: 340px;
 }
-/* the light the wheel throws on the panel behind it */
+/* The light the wheel throws on the panel behind it. It is a fixed, quiet pool
+   OUTSIDE the bezel and it does not brighten while the wheel turns: ramping it
+   up mid-spin washed a haze over the whole object exactly when the player is
+   trying to read it. A spinning wheel has to stay hard-edged. */
 .wheel-stage::before {
   content: "";
   position: absolute;
@@ -1002,16 +1005,12 @@ body {
   border-radius: 999px;
   background: radial-gradient(
     circle,
-    rgba(196, 160, 50, 0.16),
-    rgba(196, 160, 50, 0.05) 44%,
+    rgba(196, 160, 50, 0.14),
+    rgba(196, 160, 50, 0.04) 44%,
     transparent 70%
   );
-  opacity: 0.65;
-  transition: opacity 0.6s ease;
+  opacity: 0.6;
   pointer-events: none;
-}
-.wheel-stage.is-spinning::before {
-  opacity: 1;
 }
 
 /* --- the bezel. Turned brass: bright bands where the light catches the
@@ -1060,10 +1059,11 @@ body {
     inset 0 -1px 1px rgba(0, 0, 0, 0.5);
   transition: box-shadow 0.4s ease;
 }
+/* While it turns they catch the light — as a hard bright rim, not a 10px bloom.
+   The bloom bled over the bezel and read as the wheel going soft focus. */
 .is-spinning .wheel-rivet {
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.6),
-    0 0 10px 1px rgba(247, 230, 170, 0.6),
+    0 0 0 1px rgba(255, 244, 202, 0.85),
     inset 0 -1px 1px rgba(0, 0, 0, 0.5);
 }
 
@@ -1077,11 +1077,11 @@ body {
   background: conic-gradient(
     from 0deg,
     transparent 0deg,
-    rgba(255, 248, 219, 0.55) 12deg,
-    transparent 30deg,
-    transparent 175deg,
-    rgba(255, 248, 219, 0.32) 190deg,
-    transparent 208deg
+    rgba(255, 248, 219, 0.6) 7deg,
+    transparent 16deg,
+    transparent 182deg,
+    rgba(255, 248, 219, 0.34) 190deg,
+    transparent 199deg
   );
   -webkit-mask: radial-gradient(circle, transparent 0 152px, #000 154px, #000 168px, transparent 170px);
   mask: radial-gradient(circle, transparent 0 152px, #000 154px, #000 168px, transparent 170px);
@@ -1096,16 +1096,18 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* the rotating face, driven inline by transform alone. No motion blur and no
+/* The rotating face, driven inline by transform alone. No motion blur and no
    filter of any kind: the wedge labels are children of this element, so a
-   filter here made every prize on the wheel soft to read. */
+   filter here made every prize on the wheel soft to read.
+   `backface-visibility: hidden` is gone with them — it pushes the layer down a
+   texture path that resamples the hairline dividers and the 9px labels while
+   the face turns, which is the softness you see mid-spin and nowhere else. */
 .wheel-face {
   position: absolute;
   inset: 21px;
   border-radius: 999px;
   transform-origin: 50% 50%;
   will-change: transform;
-  backface-visibility: hidden;
 }
 
 /* the dome. A fixed specular sheen over a rotating face is the single cheapest

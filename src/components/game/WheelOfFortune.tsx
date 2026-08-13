@@ -23,14 +23,26 @@ type HaulEntry = { prize: WheelPrizeDef; total: number; count: number };
 const SEG = 360 / WHEEL_PRIZES.length;
 
 /**
- * The spin is two movements, because a real wheel does not simply stop.
- * It coasts down to a hair past its resting angle (OVERSHOOT), the pawl catches
- * the peg it just cleared, and the wheel is pushed back into the detent. That
- * settle is the difference between "an element finished a CSS transition" and
- * "a heavy thing came to rest".
+ * The wheel must be turning on the frame the player clicks — waiting for the
+ * server round-trip (ten of them, on a batch) before the first degree of motion
+ * read as a broken button. So the spin is three movements:
+ *
+ *   windup  a constant-speed free run started immediately on the click. It is
+ *           deliberately long enough to outlast any round-trip; nobody ever
+ *           sees it end.
+ *   land    once the server's prize is known we retarget from wherever the face
+ *           actually is right now, and coast down onto that wedge.
+ *   settle  a real wheel does not simply stop: it goes a hair past its resting
+ *           angle (OVERSHOOT), the pawl catches the peg it just cleared and
+ *           pushes the wheel back into the detent.
  */
-const SPIN_MS = 4600;
+const WINDUP_TURNS = 44;
+const WINDUP_MS = 20_000;
+const LAND_MS = 3000;
+/** Whole turns to burn on the way down, before the resting wedge. */
+const LAND_TURNS = 3.5;
 const SETTLE_MS = 620;
+const ABORT_MS = 700;
 const OVERSHOOT = 5.5;
 
 const SOUND_KEY = "kraldor-wheel-sound";
@@ -102,9 +114,11 @@ export function WheelOfFortune({
   useScrollLock(true);
 
   const [rotation, setRotation] = useState(0);
-  /** "spin" is the long coast, "settle" the short push back into the detent. */
-  const [phase, setPhase] = useState<"idle" | "spin" | "settle">("idle");
+  const [phase, setPhase] = useState<"idle" | "windup" | "land" | "settle" | "abort">("idle");
   const [spinning, setSpinning] = useState(false);
+  /** How far the resting wedge sits off dead-centre, so the winner's beam is
+   *  drawn over the wedge the wheel actually stopped on. */
+  const [restOffset, setRestOffset] = useState(0);
   const [result, setResult] = useState<{
     prize: WheelPrizeDef;
     index: number;
@@ -129,6 +143,9 @@ export function WheelOfFortune({
   const pawlRef = useRef<HTMLDivElement | null>(null);
   const timersRef = useRef<number[]>([]);
   const rafRef = useRef<number | null>(null);
+  /** Where the face is *right now*, unwrapped — the free run is retargeted off
+   *  this, not off the transition's end value. Kept by `trackPawl`. */
+  const liveRef = useRef(0);
   const audioRef = useRef<AudioContext | null>(null);
   /** Mirror of `sound` the audio callbacks can read without re-binding. */
   const soundRef = useRef(sound);
@@ -234,7 +251,7 @@ export function WheelOfFortune({
    * the instant the peg clears. That single detail is most of what makes the
    * spin read as mechanical rather than decorative.
    */
-  function trackPawl() {
+  function trackPawl(from: number) {
     const face = faceRef.current;
     const pawl = pawlRef.current;
     if (!face || !pawl) return;
@@ -253,6 +270,7 @@ export function WheelOfFortune({
       else if (d < -180) d += 360;
       prevAngle = angle;
       travelled += d;
+      liveRef.current = from + travelled;
 
       const dt = Math.max(t - prevT, 1);
       prevT = t;
@@ -287,17 +305,36 @@ export function WheelOfFortune({
 
   /* ------------------------------------------------------------ the motion */
 
-  /** Coast to `target`, overshoot, settle back, then reveal. */
-  function launch(target: number, reveal: () => void) {
-    setPhase("spin");
-    setRotation(target + OVERSHOOT);
-    requestAnimationFrame(trackPawl);
+  /** Break the wheel loose on the click itself, at constant speed, with no idea
+   *  yet what it will land on. */
+  function windup() {
+    const from = rotation;
+    liveRef.current = from;
+    setPhase("windup");
+    setRotation(from + 360 * WINDUP_TURNS);
+    requestAnimationFrame(() => trackPawl(from));
+  }
 
-    after(SPIN_MS, () => {
+  /** Coast down onto wedge `idx` from wherever the face is at this instant,
+   *  overshoot, settle back into the detent, then reveal. */
+  function land(idx: number, reveal: () => void) {
+    // A little jitter inside the wedge so it never stops dead-centre twice.
+    const jitter = (Math.random() - 0.5) * SEG * 0.5;
+    const rest = 360 - idx * SEG + jitter;
+    // First angle congruent to `rest` at least LAND_TURNS ahead of the live
+    // position — the face never jumps backwards to reach its prize.
+    const live = liveRef.current;
+    const target = rest + Math.ceil((live + 360 * LAND_TURNS - rest) / 360) * 360;
+
+    setRestOffset(jitter);
+    setPhase("land");
+    setRotation(target + OVERSHOOT);
+
+    after(LAND_MS, () => {
       setPhase("settle");
       setRotation(target);
     });
-    after(SPIN_MS + SETTLE_MS, () => {
+    after(LAND_MS + SETTLE_MS, () => {
       releasePawl();
       setPhase("idle");
       setSpinning(false);
@@ -307,13 +344,17 @@ export function WheelOfFortune({
     });
   }
 
-  /** Where the face must come to rest for wedge `idx` to sit under the pawl,
-   *  as an absolute rotation ahead of where it is now. */
-  function restingRotation(idx: number): number {
-    // A little jitter inside the wedge so it never stops dead-centre twice.
-    const jitter = (Math.random() - 0.5) * SEG * 0.5;
-    const rest = 360 - idx * SEG + jitter;
-    return rotation - (rotation % 360) + 360 * 6 + rest;
+  /** The spin was already running when the server said no — brake it to a stop
+   *  rather than freeze it mid-turn. */
+  function abort(message: string) {
+    setPhase("abort");
+    setRotation(liveRef.current + 240);
+    after(ABORT_MS, () => {
+      releasePawl();
+      setPhase("idle");
+      setSpinning(false);
+      setError(message);
+    });
   }
 
   async function spin() {
@@ -324,18 +365,19 @@ export function WheelOfFortune({
     setResult(null);
     setError(null);
     setSparks([]);
+    windup();
 
-    // The server owns the roll and the payout — we only animate to its result.
+    // The server owns the roll and the payout — we only animate to its result,
+    // which lands on a wheel that has been turning since the click.
     const outcome = await spinWheel();
     if (!outcome.ok) {
-      setSpinning(false);
-      setError(outcome.error);
+      abort(outcome.error);
       return;
     }
 
     const idx = outcome.prizeIndex;
     setSpinsLeft(outcome.spinsLeft);
-    launch(restingRotation(idx), () =>
+    land(idx, () =>
       setResult({ prize: WHEEL_PRIZES[idx], index: idx, message: outcome.message })
     );
   }
@@ -353,6 +395,7 @@ export function WheelOfFortune({
     setResult(null);
     setError(null);
     setSparks([]);
+    windup();
 
     let left = spinsLeft;
     let lastIdx = 0;
@@ -367,8 +410,7 @@ export function WheelOfFortune({
       if (!outcome.ok) {
         setSpinsLeft(left);
         if (done === 0) {
-          setSpinning(false);
-          setError(outcome.error);
+          abort(outcome.error);
           return;
         }
         break; // partial batch succeeded — reveal what we won so far
@@ -391,7 +433,7 @@ export function WheelOfFortune({
     setSpinsLeft(left);
 
     const spun = done;
-    launch(restingRotation(lastIdx), () =>
+    land(lastIdx, () =>
       setResult({
         prize: WHEEL_PRIZES[lastIdx],
         index: lastIdx,
@@ -403,12 +445,20 @@ export function WheelOfFortune({
 
   // No motion blur: the wedge labels ride this same element, and any filter on
   // it left them soft to read for the whole spin. The face stays pin-sharp.
+  //
+  // The landing curve leaves at the free run's own speed (~790°/s over the
+  // ~1400° it has left to travel, i.e. an initial slope near 1.7) so the handover
+  // from windup to landing is a coast, not a visible gear change.
   const faceTransition =
-    phase === "spin"
-      ? `transform ${SPIN_MS}ms cubic-bezier(0.15, 0.72, 0.12, 1)`
-      : phase === "settle"
-        ? `transform ${SETTLE_MS}ms cubic-bezier(0.36, 1.32, 0.5, 1)`
-        : "none";
+    phase === "windup"
+      ? `transform ${WINDUP_MS}ms linear`
+      : phase === "land"
+        ? `transform ${LAND_MS}ms cubic-bezier(0.18, 0.3, 0.22, 1)`
+        : phase === "settle"
+          ? `transform ${SETTLE_MS}ms cubic-bezier(0.36, 1.32, 0.5, 1)`
+          : phase === "abort"
+            ? `transform ${ABORT_MS}ms cubic-bezier(0.2, 0.6, 0.3, 1)`
+            : "none";
 
   return (
     <div
@@ -622,12 +672,17 @@ export function WheelOfFortune({
               })}
             </div>
 
-            {/* the winning wedge lit from below, held while the result shows */}
+            {/* The winning wedge lit from below, held while the result shows.
+                It is drawn from `restOffset` — the wheel stops a little off
+                dead-centre on purpose, and a beam pinned to 12 o'clock lit the
+                gap between two wedges instead of the one that won. Brightest
+                down the wedge's own centre line, dying out on both edges, so it
+                reads as the wedge glowing rather than a triangle laid on top. */}
             {result && (
               <div
                 className="wheel-beam"
                 style={{
-                  background: `conic-gradient(from -${SEG / 2}deg, rgba(255,238,180,0.6) 0deg, rgba(255,230,160,0.28) ${SEG * 0.68}deg, transparent ${SEG}deg 360deg)`,
+                  background: `conic-gradient(from ${(restOffset - SEG / 2).toFixed(2)}deg, rgba(255,238,180,0) 0deg, rgba(255,240,190,0.62) ${(SEG / 2).toFixed(2)}deg, rgba(255,238,180,0) ${SEG.toFixed(2)}deg, transparent 360deg)`,
                 }}
               />
             )}

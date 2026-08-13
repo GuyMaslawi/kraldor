@@ -13,6 +13,13 @@ import {
 } from "@/lib/rateLimit";
 import { formatGameTime } from "@/lib/game/time";
 import { logError } from "@/server/errorLog";
+// The pinned "צוות קראלדור" row is a support thread, not a ChatMessage one —
+// the two conversations share a dock, not a table. See server/supportThread.ts.
+import {
+  getSupportSummary,
+  getSupportUnread,
+  type SupportSummary,
+} from "@/server/supportThread";
 import { getT } from "@/i18n/server";
 import {
   CHAT_BODY_MAX,
@@ -102,6 +109,16 @@ export type ChatPulse = {
   /** When the public room last spoke — the launcher's "new activity" dot
    *  compares it against the client's own high-water mark. */
   latestGlobalAt: number;
+  /**
+   * Unanswered replies from the game's staff, in the pinned conversation the
+   * private tab opens on.
+   *
+   * It rides in the same heartbeat as the rest, and it has to: an answer from us
+   * that only appears once the player thinks to open the dock is an answer they
+   * will read tomorrow. See getSupportUnread for what it costs a player who has
+   * never written in — one index probe that finds nothing.
+   */
+  staffUnread: number;
 };
 
 async function requireOwnEmpireId(): Promise<string> {
@@ -196,24 +213,31 @@ function toLine(row: LineRow, meId: string): ChatLine {
 export async function getChatPulse(): Promise<ChatPulse> {
   try {
     const empireId = await requireOwnEmpireId();
-    if (!pollAllowed("pulse", empireId)) return { unread: 0, latestGlobalAt: 0 };
+    if (!pollAllowed("pulse", empireId)) return EMPTY_PULSE;
     // The shut dock is the heartbeat that matters: it is the only poll a player
     // who never opens the chat still runs, and presence has to be true for them.
     await touchPresence(empireId);
-    const [unread, latest] = await Promise.all([
+    const [unread, latest, staffUnread] = await Promise.all([
       countUnread(empireId),
       prisma.chatMessage.findFirst({
         where: { channel: "GLOBAL", hiddenAt: null },
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       }),
+      getSupportUnread(),
     ]);
-    return { unread, latestGlobalAt: latest?.createdAt.getTime() ?? 0 };
+    return {
+      unread,
+      latestGlobalAt: latest?.createdAt.getTime() ?? 0,
+      staffUnread,
+    };
   } catch {
     // A missed round just retries — never surface a polling failure as an error.
-    return { unread: 0, latestGlobalAt: 0 };
+    return EMPTY_PULSE;
   }
 }
+
+const EMPTY_PULSE: ChatPulse = { unread: 0, latestGlobalAt: 0, staffUnread: 0 };
 
 /** How many private lines are waiting for this empire. */
 function countUnread(empireId: string): Promise<number> {
@@ -744,7 +768,13 @@ export async function getChatRoster(): Promise<ChatPlayer[]> {
   }
 }
 
-export type ChatDirectory = { threads: ChatThread[]; roster: ChatPlayer[] };
+export type ChatDirectory = {
+  threads: ChatThread[];
+  roster: ChatPlayer[];
+  /** The pinned conversation with the game's staff, or null when the player has
+   *  never opened one. The row is drawn either way — see ChatDock. */
+  staff: SupportSummary;
+};
 
 /**
  * Everything the private tab shows, in one round trip: the conversations you
@@ -753,11 +783,12 @@ export type ChatDirectory = { threads: ChatThread[]; roster: ChatPlayer[] };
  * would be two requests every eight seconds for one screen.
  */
 export async function getChatDirectory(): Promise<ChatDirectory> {
-  const [threads, roster] = await Promise.all([
+  const [threads, roster, staff] = await Promise.all([
     getChatThreads(),
     getChatRoster(),
+    getSupportSummary(),
   ]);
-  return { threads, roster };
+  return { threads, roster, staff };
 }
 
 /**

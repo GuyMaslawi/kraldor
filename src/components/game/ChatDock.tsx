@@ -18,11 +18,14 @@ import {
   CHAT_BODY_MAX,
   CHAT_SEARCH_MIN,
   TYPING_PING_MS,
-  clampChatBody,
   typingLabel,
 } from "@/lib/game/chat";
 import { ChatEmojiPicker } from "@/components/game/ChatEmojiPicker";
 import { useDir, useT } from "@/i18n/client";
+// The composer clamps to two different caps now — the chat's and the ticket's —
+// so it counts characters itself rather than through clampChatBody.
+import { clampChars } from "@/lib/game/text";
+import { SUPPORT_BODY_MAX } from "@/lib/support";
 import {
   getChatDirectory,
   getChatPulse,
@@ -36,6 +39,12 @@ import {
   type ChatPlayer,
   type ChatThread,
 } from "@/server/actions/chat";
+import {
+  getSupportChat,
+  sendSupportMessage,
+  type SupportLine,
+} from "@/server/actions/support";
+import type { SupportSummary } from "@/server/supportThread";
 
 /**
  * The live chat dock: a launcher in the bottom-left corner that opens a pane
@@ -125,6 +134,47 @@ function mergeLines(current: ChatLine[], incoming: ChatLine[], cap: number) {
 
 const LINE_CAP = 120;
 
+/**
+ * "Open the conversation with the staff" — dispatched from anywhere on the page,
+ * because the dock is mounted once in the game shell and the doors into it are
+ * elsewhere (the mailbox, the compose dialog).
+ *
+ * The support widget in front of the login screen has an event of its own with
+ * the same shape; the two docks never share a screen, and the names are kept
+ * apart so a stray listener cannot answer for the other one.
+ */
+export const STAFF_CHAT_EVENT = "kraldor:staff-chat";
+
+export type StaffChatDetail = { prefill?: string };
+
+/** Open the staff conversation from another client component. */
+export function openStaffChat(detail: StaffChatDetail = {}): void {
+  window.dispatchEvent(new CustomEvent(STAFF_CHAT_EVENT, { detail }));
+}
+
+/**
+ * A support line, in the shape the dock already draws.
+ *
+ * The staff conversation is not a `ChatMessage` — it lives in its own table so
+ * that it can outlive the empire, the account and the season (see SupportThread)
+ * — but inside the panel it is a conversation like any other, so it is converted
+ * once, on arrival, rather than rendered by a second copy of the bubble markup.
+ * `mine` is "not from staff": in this thread there are exactly two sides.
+ */
+function fromSupport(line: SupportLine): ChatLine {
+  return {
+    id: line.id,
+    // No profile behind it: the team answers as the game, not as an empire.
+    empireId: null,
+    name: line.name,
+    body: line.body,
+    at: line.at,
+    time: line.time,
+    mine: !line.fromStaff,
+    staff: line.fromStaff,
+  };
+}
+
 export function ChatDock({
   canModerate = false,
   discordUrl = null,
@@ -170,6 +220,19 @@ export function ChatDock({
   const [unread, setUnread] = useState(0);
   const [roomDot, setRoomDot] = useState(false);
 
+  /* The conversation with the game's staff. It sits in the private tab beside
+   * the player's own conversations because that is what it is — a private
+   * conversation, with the one correspondent every player has from the moment
+   * they sign up — but everything behind it is its own channel (see
+   * server/actions/support.ts), so it carries its own transcript and its own
+   * badge rather than being folded into `threads`. */
+  const [staffOpen, setStaffOpen] = useState(false);
+  const [staffLines, setStaffLines] = useState<ChatLine[]>([]);
+  const [staffUnread, setStaffUnread] = useState(0);
+  const [staffClosed, setStaffClosed] = useState(false);
+  /** The pinned row's preview, or null until this player has ever written in. */
+  const [staffSummary, setStaffSummary] = useState<SupportSummary>(null);
+
   const [typing, setTypingNames] = useState<string[]>([]);
 
   const [draft, setDraft] = useState("");
@@ -196,12 +259,17 @@ export function ChatDock({
   // current lists into a closure that only depends on which surface is open.
   const globalLinesRef = useRef<ChatLine[]>([]);
   const threadLinesRef = useRef<ChatLine[]>([]);
+  const staffLinesRef = useRef<ChatLine[]>([]);
   useEffect(() => {
     globalLinesRef.current = globalLines;
     threadLinesRef.current = threadLines;
-  }, [globalLines, threadLines]);
+    staffLinesRef.current = staffLines;
+  }, [globalLines, threadLines, staffLines]);
 
-  const lines = partner ? threadLines : globalLines;
+  const lines = staffOpen ? staffLines : partner ? threadLines : globalLines;
+  /** The cap the composer clamps to — a ticket is a letter, a chat line is a
+   *  shout across a room, and they are not the same length. */
+  const bodyMax = staffOpen ? SUPPORT_BODY_MAX : CHAT_BODY_MAX;
 
   /* ---------------------------------------------------------------- polling */
 
@@ -215,6 +283,7 @@ export function ChatDock({
       const next = await getChatPulse();
       if (cancelled) return;
       setUnread(next.unread);
+      setStaffUnread(next.staffUnread);
       setRoomDot(next.latestGlobalAt > roomSeen());
     };
 
@@ -223,6 +292,23 @@ export function ChatDock({
 
       if (!open) {
         await pulse();
+        return;
+      }
+
+      if (staffOpen) {
+        const since = staffLinesRef.current.at(-1)?.at;
+        // `reading: true` is the read receipt — the words are on screen.
+        const view = await getSupportChat({ sinceMs: since, reading: true });
+        if (cancelled) return;
+        // No thread yet (nothing written from this account), or a refused
+        // round: keep whatever is on screen rather than blanking it.
+        if (view.exists) {
+          setStaffLines((prev) =>
+            since ? mergeLines(prev, view.lines.map(fromSupport), LINE_CAP) : view.lines.map(fromSupport)
+          );
+          setStaffClosed(view.status === "CLOSED");
+        }
+        setStaffUnread(0);
         return;
       }
 
@@ -255,6 +341,8 @@ export function ChatDock({
         if (cancelled) return;
         setThreads(directory.threads);
         setRoster(directory.roster);
+        setStaffSummary(directory.staff);
+        setStaffUnread(directory.staff?.unread ?? 0);
         setUnread(
           directory.threads.reduce((sum, thread) => sum + thread.unread, 0)
         );
@@ -278,7 +366,7 @@ export function ChatDock({
 
     void poll();
     const every =
-      open && !partner && tab === "direct"
+      open && !partner && !staffOpen && tab === "direct"
         ? POLL_THREADS_MS
         : open
           ? POLL_OPEN_MS
@@ -295,7 +383,7 @@ export function ChatDock({
       window.removeEventListener("focus", onWake);
       document.removeEventListener("visibilitychange", onWake);
     };
-  }, [mounted, open, tab, partner]);
+  }, [mounted, open, tab, partner, staffOpen]);
 
   /* --------------------------------------------------------------- scrolling */
 
@@ -303,7 +391,7 @@ export function ChatDock({
     const el = scrollRef.current;
     if (!el || !stickRef.current) return;
     el.scrollTop = el.scrollHeight;
-  }, [lines, open, partner, tab]);
+  }, [lines, open, partner, tab, staffOpen]);
 
   const onScroll = () => {
     const el = scrollRef.current;
@@ -343,6 +431,7 @@ export function ChatDock({
     setPartner({ id, name });
     setPartnerOnline(online);
     setThreadLines([]);
+    setStaffOpen(false);
     setTypingNames([]);
     store(TAB_KEY, "direct");
     openDock();
@@ -355,6 +444,44 @@ export function ChatDock({
   };
 
   /**
+   * Open the conversation with the staff — from the pinned row, or from a
+   * doorway somewhere else on the page (see openStaffChat).
+   *
+   * The transcript is dropped rather than kept, so the next poll loads the
+   * thread from its start: it is short by nature, and a stale tail from an hour
+   * ago is the wrong thing to be looking at when you have just decided to ask
+   * for help.
+   */
+  const openStaff = useCallback(
+    (prefill?: string) => {
+      setPartner(null);
+      setStaffOpen(true);
+      setStaffLines([]);
+      setTypingNames([]);
+      store(TAB_KEY, "direct");
+      openDock();
+      setError(null);
+      setSearch("");
+      setResults({ query: "", list: [] });
+      stickRef.current = true;
+      // Never over something already half-written: whoever is mid-sentence is
+      // describing the same problem, better.
+      if (prefill) setDraft((prev) => (prev.trim().length > 0 ? prev : prefill));
+      setTimeout(() => inputRef.current?.focus(), 50);
+    },
+    [openDock]
+  );
+
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      const detail = (event as CustomEvent<StaffChatDetail>).detail ?? {};
+      openStaff(detail.prefill);
+    };
+    window.addEventListener(STAFF_CHAT_EVENT, onOpen);
+    return () => window.removeEventListener(STAFF_CHAT_EVENT, onOpen);
+  }, [openStaff]);
+
+  /**
    * Drop an emoji where the cursor is — not at the end. Someone who has clicked
    * back into the middle of a sentence expects it there, and the selection is
    * restored after the state update so typing continues from the right place.
@@ -363,9 +490,9 @@ export function ChatDock({
     const el = inputRef.current;
     const start = el?.selectionStart ?? draft.length;
     const end = el?.selectionEnd ?? draft.length;
-    const next = clampChatBody(draft.slice(0, start) + emoji + draft.slice(end));
+    const next = clampChars(draft.slice(0, start) + emoji + draft.slice(end), bodyMax);
     setDraft(next);
-    pingTyping();
+    if (!staffOpen) pingTyping();
     requestAnimationFrame(() => {
       const caret = Math.min(start + emoji.length, next.length);
       el?.focus();
@@ -378,6 +505,37 @@ export function ChatDock({
     if (!body || sending) return;
     setSending(true);
     setError(null);
+
+    // A letter to the staff goes down its own channel: a different table, its
+    // own rate limits, and a Discord ping on the other end. Nothing about it
+    // touches the game's chat.
+    if (staffOpen) {
+      const answer = await sendSupportMessage({
+        body,
+        // The screen the player was on when they wrote is half of most bug
+        // reports, and the server can only guess it from a referer.
+        path: window.location.pathname,
+      });
+      setSending(false);
+      if ("error" in answer) {
+        setError(answer.error);
+        return;
+      }
+      setDraft("");
+      stickRef.current = true;
+      setStaffClosed(false);
+      const line = fromSupport(answer.line);
+      setStaffLines((prev) => mergeLines(prev, [line], LINE_CAP));
+      setStaffSummary({
+        unread: 0,
+        preview: line.body,
+        at: line.at,
+        time: line.time,
+        closed: false,
+      });
+      return;
+    }
+
     const result = await sendChat({
       body,
       toEmpireId: partner ? partner.id : null,
@@ -454,7 +612,11 @@ export function ChatDock({
 
   if (!mounted || typeof document === "undefined") return null;
 
-  const badge = unread > 99 ? "99+" : String(unread);
+  // The launcher carries one number, and an answer from the staff counts in it:
+  // a reply that is only visible after opening the dock is a reply the player
+  // reads tomorrow.
+  const totalUnread = unread + staffUnread;
+  const badge = totalUnread > 99 ? "99+" : String(totalUnread);
   const typingLine = typingLabel(t, typing);
   // Counted in characters: one emoji is two UTF-16 units and must not read as
   // two of the three hundred a player is allowed.
@@ -481,7 +643,7 @@ export function ChatDock({
     >
       <Icon name="chat" size={20} />
       <span className="text-sm font-black tracking-wide">{t("צ׳אט")}</span>
-      {unread > 0 ? (
+      {totalUnread > 0 ? (
         <span className="min-w-5 rounded-full bg-red-600 px-1.5 py-px text-center text-[10px] font-black text-white">
           {badge}
         </span>
@@ -517,8 +679,10 @@ export function ChatDock({
           ref={inputRef}
           value={draft}
           onChange={(e) => {
-            setDraft(clampChatBody(e.target.value));
-            if (e.target.value.trim().length > 0) pingTyping();
+            setDraft(clampChars(e.target.value, bodyMax));
+            // Nobody is watching a typing indicator on the other side of a
+            // support ticket.
+            if (!staffOpen && e.target.value.trim().length > 0) pingTyping();
           }}
           onKeyDown={(e) => {
             // Enter sends, Shift+Enter breaks the line — the convention every
@@ -528,11 +692,13 @@ export function ChatDock({
               void send();
             }
           }}
-          rows={1}
+          rows={staffOpen ? 2 : 1}
           placeholder={
-            partner
-              ? t("הודעה אל {name}…", { name: partner.name })
-              : t("דבר אל האימפריה…")
+            staffOpen
+              ? t("מה קרה? כתוב כאן…")
+              : partner
+                ? t("הודעה אל {name}…", { name: partner.name })
+                : t("דבר אל האימפריה…")
           }
           className="chat-scroll max-h-24 min-h-9 flex-1 resize-none rounded-lg border border-border-subtle bg-panel-inset px-2.5 py-2 text-sm text-bone-bright outline-none placeholder:text-bone-dim/70 focus:border-gold/60"
         />
@@ -545,9 +711,9 @@ export function ChatDock({
           {sending ? "…" : t("שלח")}
         </button>
       </div>
-      {draftLength > CHAT_BODY_MAX - 60 && (
+      {draftLength > bodyMax - 60 && (
         <p className="mt-1 text-left text-[10px] text-bone-dim">
-          {draftLength}/{CHAT_BODY_MAX}
+          {draftLength}/{bodyMax}
         </p>
       )}
     </div>
@@ -561,13 +727,29 @@ export function ChatDock({
       aria-live="polite"
       className="chat-scroll flex-1 space-y-2 overflow-y-auto px-2.5 py-3"
     >
-      {lines.length === 0 && (
-        <p className="mt-8 text-center text-xs text-bone-dim">
-          {partner
-            ? t("אין עדיין הודעות בשיחה הזו — כתוב ראשון.")
-            : t("החדר שקט. תהיה הראשון שמדבר.")}
-        </p>
-      )}
+      {lines.length === 0 &&
+        (staffOpen ? (
+          /* The first thing a player sees after deciding to ask for help. It
+             says what this channel is *for* — a report, a complaint, a payment
+             that went wrong — because "write to the management" on its own gets
+             either nothing or an apology for bothering us. */
+          <div className="mt-2 space-y-2 rounded-xl border border-border-subtle bg-panel-inset px-3 py-3">
+            <p className="text-xs font-bold text-gold-bright">
+              {t("מה תרצה לספר לנו?")}
+            </p>
+            <p className="text-[11px] leading-relaxed text-bone-dim">
+              {t(
+                "באג במשחק, שחקן שמתנהג לא יפה, רכישה שלא נכנסה, הצעה לשיפור או כל דבר אחר — כתוב כאן וזה יגיע ישירות אלינו. אנחנו עונים באותו מקום."
+              )}
+            </p>
+          </div>
+        ) : (
+          <p className="mt-8 text-center text-xs text-bone-dim">
+            {partner
+              ? t("אין עדיין הודעות בשיחה הזו — כתוב ראשון.")
+              : t("החדר שקט. תהיה הראשון שמדבר.")}
+          </p>
+        ))}
       {lines.map((line) => (
         <div
           key={line.id}
@@ -648,7 +830,10 @@ export function ChatDock({
               <span className="nums text-[10px] text-bone-dim/70">
                 {line.time}
               </span>
-              {canModerate && !line.mine && (
+              {/* Moderation is the chat's broom and only the chat's: a line in
+                  the staff thread is not a ChatMessage and its id would not
+                  name one. */}
+              {canModerate && !line.mine && !staffOpen && (
                 <button
                   type="button"
                   onClick={() => void hide(line.id)}
@@ -674,11 +859,61 @@ export function ChatDock({
           </div>
         </div>
       ))}
+      {staffOpen && staffClosed && lines.length > 0 && (
+        <p className="pt-2 text-center text-[11px] text-bone-dim">
+          {t("הפנייה סומנה כטופלה. אם זה עדיין לא נפתר — כתוב שוב כאן.")}
+        </p>
+      )}
     </div>
+  );
+
+  /* The door to the management, pinned above everything else in the private
+     tab and drawn whether or not a conversation exists yet.
+
+     It is deliberately the first thing in the list rather than a link buried in
+     a settings page: the moment a player wants to report a cheat, a broken
+     purchase or a bug is the moment they are least willing to go looking, and
+     the private-conversations tab is where a person already goes to say
+     something to somebody. Gold-cased and marked "צוות" so it does not read as
+     another player. */
+  const staffRow = (
+    <button
+      type="button"
+      onClick={() => openStaff()}
+      className="mb-3 flex w-full items-center gap-2 rounded-lg border border-gold/45 bg-gold-deep/20 px-2.5 py-2 text-start transition-colors hover:border-gold hover:bg-gold-deep/35"
+    >
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-gold/50 bg-[#12100b] text-gold-bright">
+        <Icon name="crown" size={14} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <span className="staff-name truncate text-[13px] font-black text-gold-bright">
+            {t("צוות קראלדור")}
+          </span>
+          <span className="shrink-0 rounded bg-gold/20 px-1 text-[9px] font-black text-gold-bright">
+            {t("הנהלה")}
+          </span>
+          {staffSummary && (
+            <span className="nums shrink-0 text-[10px] text-bone-dim">
+              {staffSummary.time}
+            </span>
+          )}
+        </span>
+        <span className="mt-0.5 block truncate text-[11px] text-bone-dim">
+          {staffSummary?.preview || t("פנייה להנהלה — תקלה, דיווח או שאלה")}
+        </span>
+      </span>
+      {staffUnread > 0 && (
+        <span className="min-w-5 shrink-0 rounded-full bg-red-600 px-1.5 py-px text-center text-[10px] font-black text-white">
+          {staffUnread > 9 ? "9+" : staffUnread}
+        </span>
+      )}
+    </button>
   );
 
   const threadList = (
     <div className="chat-scroll flex-1 overflow-y-auto p-2">
+      {staffRow}
       <div className="mb-2">
         <input
           value={search}
@@ -813,7 +1048,30 @@ export function ChatDock({
       className="chat-panel flex h-[min(72dvh,30rem)] w-[min(92vw,22.5rem)] flex-col overflow-hidden rounded-2xl border border-gold/40 bg-[#0f0e12]/97 shadow-[0_20px_60px_rgba(0,0,0,0.85)] backdrop-blur-sm"
     >
       <div className="flex items-center gap-2 border-b border-gold/25 bg-gradient-to-l from-transparent to-gold-deep/25 px-2.5 py-2">
-        {partner ? (
+        {staffOpen ? (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setStaffOpen(false);
+                setError(null);
+              }}
+              aria-label={t("חזרה לרשימת השיחות")}
+              className="flex h-6 w-6 items-center justify-center rounded text-bone-dim transition-colors hover:bg-white/10 hover:text-gold-bright"
+            >
+              ›
+            </button>
+            <Icon name="crown" size={14} className="shrink-0 text-gold" />
+            <div className="min-w-0 flex-1">
+              <p className="staff-name truncate text-sm font-black text-gold-bright">
+                {t("צוות קראלדור")}
+              </p>
+              <p className="truncate text-[10px] text-bone-dim">
+                {t("פנייה להנהלה — נשיב כאן, בדרך כלל תוך כמה שעות")}
+              </p>
+            </div>
+          </>
+        ) : partner ? (
           <>
             <button
               type="button"
@@ -862,7 +1120,7 @@ export function ChatDock({
                 }`}
               >
                 {t("שיחות פרטיות")}
-                {unread > 0 && (
+                {totalUnread > 0 && (
                   <span className="min-w-4 rounded-full bg-red-600 px-1 text-center text-[9px] font-black text-white">
                     {badge}
                   </span>
@@ -884,7 +1142,7 @@ export function ChatDock({
       {/* The public room is exactly where someone is already looking for other
           players, so it is where the bigger room is worth mentioning — once,
           quietly, above the log and never inside a private conversation. */}
-      {tab === "global" && !partner && (
+      {tab === "global" && !partner && !staffOpen && (
         <DiscordLink
           url={discordUrl}
           variant="strip"
@@ -892,8 +1150,8 @@ export function ChatDock({
         />
       )}
 
-      {tab === "direct" && !partner ? threadList : messageList}
-      {(tab === "global" || partner) && composer}
+      {tab === "direct" && !partner && !staffOpen ? threadList : messageList}
+      {(tab === "global" || partner || staffOpen) && composer}
     </div>
   );
 

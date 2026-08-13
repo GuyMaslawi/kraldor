@@ -16,6 +16,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { FormMessage } from "@/components/ui/FormMessage";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Icon } from "@/components/ui/Icon";
+import { ContactStaff } from "@/components/game/ContactStaff";
 import { useT } from "@/i18n/client";
 
 export type PlayerOption = { id: string; name: string };
@@ -314,6 +315,16 @@ export function MessageCompose({
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] text-zinc-500">
               {t("ההודעה תגיע לתיבת הדואר של הנמענים.")}
+              {/* Somebody who opened this box to report a player or a broken
+                  purchase is in the wrong place — mail addressed at a guess to
+                  an admin's own empire is a letter, not a ticket. One line
+                  here, pointing at the channel that is actually watched. */}
+              <br />
+              <ContactStaff
+                label="רוצה לפנות להנהלה?"
+                className="font-bold text-gold-bright underline-offset-2 hover:underline"
+                onOpen={() => setOpen(false)}
+              />
             </p>
             <SubmitButton
               className="btn btn-gold"

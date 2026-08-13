@@ -1,6 +1,6 @@
 "use server";
 
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/auth";
@@ -18,6 +18,11 @@ import { formatGameTime } from "@/lib/game/time";
 import { logError } from "@/server/errorLog";
 import { announceToDiscord } from "@/server/discord";
 import { appBaseUrl } from "@/server/mailer";
+import {
+  countSupportUnread,
+  findMySupportThread,
+  hashSupportToken,
+} from "@/server/supportThread";
 import { getT } from "@/i18n/server";
 import {
   SUPPORT_BODY_MAX,
@@ -58,6 +63,11 @@ import {
  *  - identity is a cookie, and the cookie is a *secret*, so only its hash is
  *    stored. Anyone holding the token reads that conversation and no other; the
  *    database holds nothing that reconstructs it.
+ *
+ * The same channel is also the game's "write to the management" door, reached
+ * from the chat dock's pinned row inside `/game` — where the caller does have an
+ * account, and identity beats the cookie. Which thread is "mine" is therefore
+ * decided in one place for both halves: see findMySupportThread.
  */
 
 /* --------------------------------- shapes -------------------------------- */
@@ -96,27 +106,6 @@ const EMPTY: SupportView = {
 };
 
 /* -------------------------------- identity ------------------------------- */
-
-function hashToken(raw: string): string {
-  return createHash("sha256").update(raw).digest("hex");
-}
-
-/**
- * The visitor's token, from their cookie. Never trusted for anything but a
- * hashed lookup: it names a row, it does not assert anything about who is
- * holding it.
- */
-async function readToken(): Promise<string | null> {
-  try {
-    const store = await cookies();
-    const raw = store.get(SUPPORT_COOKIE)?.value;
-    if (!raw || raw.length === 0 || raw.length > SUPPORT_ID_MAX) return null;
-    return raw;
-  } catch {
-    // No request in scope (a script, a test). There is no visitor either.
-    return null;
-  }
-}
 
 /** Mint a fresh token and hand it to the browser. 32 random bytes, hex. */
 async function issueToken(): Promise<string> {
@@ -228,22 +217,16 @@ function toLine(row: MessageRow): SupportLine {
 /* ------------------------------ visitor side ----------------------------- */
 
 /**
- * Whether this browser already has a conversation.
+ * Whether this caller already has a conversation.
  *
  * Called from the auth shell so the widget knows, at first paint, whether to
- * poll at all. Every visitor to the login page runs this; a visitor with no
- * cookie costs one cookie read and no query, which is the whole point of asking
- * it here rather than letting the widget find out by polling.
+ * poll at all. Every visitor to the login page runs this; an anonymous visitor
+ * with no cookie costs one cookie read and no query, which is the whole point of
+ * asking it here rather than letting the widget find out by polling.
  */
 export async function hasSupportThread(): Promise<boolean> {
-  const token = await readToken();
-  if (!token) return false;
   try {
-    const found = await prisma.supportThread.findUnique({
-      where: { tokenHash: hashToken(token) },
-      select: { id: true },
-    });
-    return found !== null;
+    return (await findMySupportThread()) !== null;
   } catch {
     return false;
   }
@@ -263,14 +246,7 @@ export async function getSupportChat(input?: {
   reading?: boolean;
 }): Promise<SupportView> {
   try {
-    const token = await readToken();
-    if (!token) return EMPTY;
-    const tokenHash = hashToken(token);
-
-    const thread = await prisma.supportThread.findUnique({
-      where: { tokenHash },
-      select: { id: true, status: true, email: true, visitorReadAt: true },
-    });
+    const thread = await findMySupportThread();
     if (!thread) return EMPTY;
 
     // Free, per-instance ceiling on a polled read — see localRateLimit. A
@@ -293,13 +269,7 @@ export async function getSupportChat(input?: {
       select: MESSAGE_SELECT,
     });
 
-    const unread = await prisma.supportMessage.count({
-      where: {
-        threadId: thread.id,
-        fromStaff: true,
-        ...(thread.visitorReadAt ? { createdAt: { gt: thread.visitorReadAt } } : {}),
-      },
-    });
+    const unread = await countSupportUnread(thread);
 
     if (input?.reading && unread > 0) {
       await prisma.supportThread.update({
@@ -367,13 +337,7 @@ export async function sendSupportMessage(input: {
   }
 
   try {
-    const token = await readToken();
-    const existing = token
-      ? await prisma.supportThread.findUnique({
-          where: { tokenHash: hashToken(token) },
-          select: { id: true, email: true, status: true, notifiedAt: true },
-        })
-      : null;
+    const existing = await findMySupportThread();
 
     const email = normalizeSupportEmail(input?.email);
     const visitor = await describeVisitor();
@@ -453,7 +417,7 @@ export async function sendSupportMessage(input: {
 
       const created = await prisma.supportThread.create({
         data: {
-          tokenHash: hashToken(fresh),
+          tokenHash: hashSupportToken(fresh),
           email,
           userId: visitor.userId,
           empireName: visitor.empireName,

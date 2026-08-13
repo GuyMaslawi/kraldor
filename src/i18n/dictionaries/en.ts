@@ -2267,6 +2267,18 @@ export const EN: Record<string, string> = {
   "הפנייה סומנה כטופלה. אם זה עדיין לא נפתר — כתוב שוב כאן.":
     "This ticket was marked as handled. If it is still not fixed — write here again.",
   "אורח": "Guest",
+  /* the same channel, entered from inside the game: the pinned row at the top
+     of the chat dock's private tab, and the door to it in the mailbox */
+  "הנהלה": "Management",
+  "פנייה להנהלה": "Write to the management",
+  "רוצה לפנות להנהלה?": "Want to write to the management?",
+  "פנייה להנהלה — תקלה, דיווח או שאלה":
+    "Write to the management — a fault, a report or a question",
+  "פנייה להנהלה — נשיב כאן, בדרך כלל תוך כמה שעות":
+    "Write to the management — we answer here, usually within a few hours",
+  "מה תרצה לספר לנו?": "What would you like to tell us?",
+  "באג במשחק, שחקן שמתנהג לא יפה, רכישה שלא נכנסה, הצעה לשיפור או כל דבר אחר — כתוב כאן וזה יגיע ישירות אלינו. אנחנו עונים באותו מקום.":
+    "A bug in the game, a player behaving badly, a purchase that never arrived, an idea for something better — anything at all. Write it here and it reaches us directly. We answer in the same place.",
   /* the "stuck?" line under a form that just refused something */
   "משהו לא עובד?": "Something not working?",
   "דבר איתנו בצ׳אט": "Talk to us in chat",

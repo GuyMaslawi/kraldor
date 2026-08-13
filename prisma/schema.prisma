@@ -2645,6 +2645,10 @@ model SupportThread {
   @@index([status, lastMessageAt])
   /// The same read without the status filter, for the "all" tab.
   @@index([lastMessageAt])
+  /// "Which conversation is mine?", asked by the chat dock's badge poll on
+  /// every game screen — so it has to be an index probe, not a scan. Sorted by
+  /// activity because a player with two tickets means the newest one.
+  @@index([userId, lastMessageAt])
 }
 
 model SupportMessage {

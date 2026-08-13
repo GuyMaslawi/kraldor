@@ -12,6 +12,7 @@ import { markMessagesRead } from "@/server/actions/messages";
 import { MESSAGE_ROSTER_SEED } from "@/lib/game/messages";
 import { MarkSeen } from "@/components/game/MarkSeen";
 import { MessageCompose, type PlayerOption } from "@/components/game/MessageCompose";
+import { ContactStaff } from "@/components/game/ContactStaff";
 import type { MessageKind } from "@prisma/client";
 import type { CSSProperties, ReactNode } from "react";
 import { getI18n, getT } from "@/i18n/server";
@@ -160,7 +161,16 @@ export default async function MessagesPage() {
         <p className="text-sm text-zinc-500">
             {t("תיבת הדואר שלך — הודעות משחקנים והתראות מהמערכת.")}
         </p>
-        <MessageCompose players={players} />
+        <div className="flex flex-wrap items-center gap-2">
+          {/* The one address in the game that is not another player. It sits
+              beside "שלח הודעה" because this is the screen a player is on when
+              they have something to say and are looking for who to say it to —
+              and a report about a cheat or a broken purchase must not depend on
+              knowing that an admin has an empire and what it is called. It
+              opens the staff conversation in the chat dock; see ContactStaff. */}
+          <ContactStaff />
+          <MessageCompose players={players} />
+        </div>
       </div>
 
       {messages.length === 0 ? (

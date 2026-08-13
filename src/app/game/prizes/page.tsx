@@ -233,7 +233,7 @@ export default async function PrizesPage() {
                     {MEDALS[prize.rank - 1]}
                   </span>
                   <p className="mt-1 text-xs font-bold tracking-[0.2em] text-gold-dim">
-                    {prize.label}
+                    {t(prize.label)}
                   </p>
 
                   <p className="mt-3 flex items-center justify-center gap-1.5">

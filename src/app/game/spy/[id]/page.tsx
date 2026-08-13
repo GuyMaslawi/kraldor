@@ -906,17 +906,17 @@ function FullDossier({
               </h4>
               <dl className="space-y-2 text-sm">
                 <Line
-                  label={<><Icon name={HERO_STAT_META.attack.icon} size={15} className="inline-block align-middle" /> {HERO_STAT_META.attack.label}</>}
+                  label={<><Icon name={HERO_STAT_META.attack.icon} size={15} className="inline-block align-middle" /> {t(HERO_STAT_META.attack.label)}</>}
                   value={`+${Math.round(intel.hero.pct.attack)}%`}
                   tone="text-red-400"
                 />
                 <Line
-                  label={<><Icon name={HERO_STAT_META.defense.icon} size={15} className="inline-block align-middle" /> {HERO_STAT_META.defense.label}</>}
+                  label={<><Icon name={HERO_STAT_META.defense.icon} size={15} className="inline-block align-middle" /> {t(HERO_STAT_META.defense.label)}</>}
                   value={`+${Math.round(intel.hero.pct.defense)}%`}
                   tone="text-sky-300"
                 />
                 <Line
-                  label={<><Icon name={HERO_STAT_META.spy.icon} size={15} className="inline-block align-middle" /> {HERO_STAT_META.spy.label}</>}
+                  label={<><Icon name={HERO_STAT_META.spy.icon} size={15} className="inline-block align-middle" /> {t(HERO_STAT_META.spy.label)}</>}
                   value={`+${Math.round(intel.hero.pct.spy)}%`}
                   tone="text-gold"
                 />
@@ -950,7 +950,7 @@ function FullDossier({
                         {meta.icon}
                       </span>
                     </div>
-                    <span className="text-[11px] text-zinc-600">{meta.label}</span>
+                    <span className="text-[11px] text-zinc-600">{t(meta.label)}</span>
                   </div>
                 );
               }
@@ -960,7 +960,7 @@ function FullDossier({
                   slug={meta.slug}
                   icon={meta.icon}
                   level={item.level}
-                  name={meta.label}
+                  name={t(meta.label)}
                   rarity={uiRarityForLevel(item.level)}
                   details={itemDetails(t, item, intel.hero!.level, { worn: true })}
                 />

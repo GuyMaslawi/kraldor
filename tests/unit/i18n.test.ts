@@ -57,6 +57,36 @@ describe("the English dictionary", () => {
     expect(broken).toEqual([]);
   });
 
+  it("never drops a `<0>` slot its key carries", () => {
+    // A slot is a piece of markup the sentence wraps around — a styled number,
+    // a link, an icon (see components/ui/RichText.tsx). An English value that
+    // loses one loses the thing the sentence was about, and it fails silently:
+    // the prose still reads, it just no longer says how much.
+    const slots = (s: string) => new Set([...s.matchAll(/<(\d+)>/g)].map((m) => m[1]));
+    const broken: string[] = [];
+    for (const [key, value] of Object.entries(EN)) {
+      for (const n of slots(key)) {
+        if (!slots(value).has(n)) broken.push(`${key.slice(0, 60)}… → missing <${n}>`);
+      }
+    }
+    expect(broken).toEqual([]);
+  });
+
+  it("keeps `**emphasis**` balanced in both halves", () => {
+    // An odd number of markers renders a literal `**` on the page, and a value
+    // that dropped the emphasis entirely quietly flattens a sentence the Hebrew
+    // deliberately stressed.
+    const marks = (s: string) => (s.match(/\*\*/g) ?? []).length;
+    const broken: string[] = [];
+    for (const [key, value] of Object.entries(EN)) {
+      if (marks(key) % 2 || marks(value) % 2) broken.push(`unbalanced: ${key.slice(0, 60)}`);
+      else if (marks(key) > 0 && marks(value) === 0) {
+        broken.push(`emphasis lost: ${key.slice(0, 60)}`);
+      }
+    }
+    expect(broken).toEqual([]);
+  });
+
   it("has no entry that translates to itself", () => {
     // A key whose value is the same Hebrew is a line that looks translated in
     // the coverage report and is not.

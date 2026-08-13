@@ -1,6 +1,9 @@
+"use client";
+
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Tip } from "@/components/ui/Tip";
 import { SHIELDS, shieldMeta, type ShieldKey } from "@/lib/game/diamondShop";
+import { useT } from "@/i18n/client";
 
 /**
  * The glyph and tint each raid shield wears — one source of truth so a shield
@@ -45,16 +48,17 @@ export function ShieldGlyph({
   /** Override the tooltip; defaults to the shield's badge line. */
   tip?: string;
 }) {
+  const t = useT();
   const meta = shieldMeta(shieldKey);
   return (
     // shrink-0 on the Tip wrapper as well as the pill: the wrapper is the flex
     // child, so without it a tight row squeezes the badge instead of the name.
-    <Tip className="shrink-0" tip={tip ?? meta.badge}>
+    <Tip className="shrink-0" tip={tip ?? t(meta.badge)}>
       <span
         // The pill is the whole meaning here, so it needs its own name for a
         // reader who never sees the tint or the tooltip.
         role="img"
-        aria-label={meta.label}
+        aria-label={t(meta.label)}
         className={`inline-flex shrink-0 cursor-help items-center rounded-md border px-2 py-0.5 ${SHIELD_TONE[shieldKey]}`}
       >
         <Icon name="shield" size={size} />

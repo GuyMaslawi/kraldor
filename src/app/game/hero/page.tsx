@@ -158,7 +158,7 @@ export default async function HeroPage() {
           <div className="relative mx-auto w-full max-w-[16rem] sm:max-w-[18rem] md:max-w-none">
             <HeroPaperdoll
               portrait={heroClassImage(hero.heroClass)}
-              portraitAlt={classMeta.label}
+              portraitAlt={t(classMeta.label)}
               portraitAccent={classMeta.accent}
               equipped={equippedItems}
               bag={bagItems}
@@ -227,14 +227,14 @@ export default async function HeroPage() {
           <div className="flex flex-col gap-3.5 p-4 md:p-5">
             {/* identity — one compact line; the long class blurb is a tooltip */}
             <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-              <p className="text-xl font-black text-gold-bright">{classMeta.label}</p>
-              <Tip tip={classMeta.description}>
+              <p className="text-xl font-black text-gold-bright">{t(classMeta.label)}</p>
+              <Tip tip={t(classMeta.description)}>
                 <span className="cursor-help text-xs text-zinc-500 underline decoration-dotted underline-offset-2">
                 {t("על המחלקה")}
                 </span>
               </Tip>
             </div>
-            <p className="-mt-2 text-xs text-zinc-400">{classMeta.tagline}</p>
+            <p className="-mt-2 text-xs text-zinc-400">{t(classMeta.tagline)}</p>
 
             {/* permanent class bonuses */}
             <div className="flex flex-wrap gap-1.5">
@@ -242,7 +242,7 @@ export default async function HeroPage() {
               <Tip key={line.label} tip={t("יתרון המחלקה — בונוס קבוע שנבחר בעת ההרשמה")}>
                   <span className="flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-950/40 px-2 py-0.5 text-xs font-bold text-emerald-300">
                     <span aria-hidden>{line.icon}</span>
-                    {line.label}
+                    {t(line.label)}
                     <span className="nums" dir="ltr">+{line.pct}%</span>
                   </span>
                 </Tip>

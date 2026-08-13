@@ -203,7 +203,10 @@ export function BossArena({ initial }: { initial: BossArenaState }) {
             </div>
             <LivingPortrait
               src={bossImage(state.boss.key)}
-              alt={`${state.boss.name} — ${state.boss.title}`}
+              alt={t("{name} — {title}", {
+                name: t(state.boss.name),
+                title: t(state.boss.title),
+              })}
               className={`absolute inset-0 ${
                 flash ? (flash.correct ? "ba-boss-hit" : "ba-boss-roar") : ""
               }`}
@@ -233,7 +236,7 @@ export function BossArena({ initial }: { initial: BossArenaState }) {
           <div className="flex min-w-0 flex-col justify-center gap-3">
             <div className="min-w-0">
               <p className="text-xl font-black leading-tight text-[rgb(var(--boss-accent))] sm:text-2xl">
-                {state.boss.name}
+                {t(state.boss.name)}
               </p>
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-bone-dim">
                 {t(state.boss.title)} · {t("עיר {city}", { city: cityName(t, state.cityTier) })}

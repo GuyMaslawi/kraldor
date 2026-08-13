@@ -172,7 +172,10 @@ function Takeover({ state, onDone }: { state: HappyHourState; onDone: () => void
       data-leaving={leaving}
       onClick={close}
       role="alertdialog"
-      aria-label={`${state.title} — ${state.multiplierLabel}`}
+      aria-label={t("{title} — {multiplier}", {
+        title: t(state.title),
+        multiplier: state.multiplierLabel,
+      })}
       dir="rtl"
     >
       <div className="hh-rays" aria-hidden />

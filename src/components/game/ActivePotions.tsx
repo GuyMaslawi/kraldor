@@ -8,6 +8,7 @@ import { PotionBottle } from "@/components/game/PotionBottle";
 import { useServerNow } from "@/components/game/HeroPotions";
 import { Tip } from "@/components/ui/Tip";
 import { POTION_KINDS, POTION_META } from "@/lib/game/potions";
+import { useT } from "@/i18n/client";
 
 /**
  * Running potions, in the command bar beside the update timers.
@@ -38,6 +39,8 @@ export function ActivePotions({
     const at = activeUntil[kind];
     return at !== undefined && at > now;
   });
+
+  const t = useT();
 
   // The soonest window to close; when it does, re-render so the strip (and
   // every number the potion was inflating) tells the truth again.
@@ -78,7 +81,14 @@ export function ActivePotions({
           </>
         );
         return (
-          <Tip key={kind} tip={`${meta.label} — ${meta.tagline}`} side="bottom">
+          <Tip
+            key={kind}
+            tip={t("{name} — {tagline}", {
+              name: t(meta.label),
+              tagline: t(meta.tagline),
+            })}
+            side="bottom"
+          >
             {href === null ? (
               <span className={className} style={style}>
                 {face}

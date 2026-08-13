@@ -4891,4 +4891,782 @@ export const EN: Record<string, string> = {
   /* the public bar */
   "תקנון": "Terms",
 
+
+  /* ------------------------------------------------------------------ */
+  /* the manual — /game/guide and the public /guide                      */
+  /* ------------------------------------------------------------------ */
+
+  /* The longest section by far, and the one where the `{placeholders}`,
+     `**emphasis**` and `<0>` slots matter most: the guide quotes live tunables,
+     so a value that drops one loses the number the sentence was about. See
+     components/ui/RichText.tsx for what the markers render as. */
+
+  " ו־": " and ",
+  "+200 לכל דרגת עיר · אין מכסת תקיפות": "+200 per city tier · no attack quota",
+  "+{p0} אזרחים": "+{p0} citizens",
+  "+{p0}% למשאב, עד +{p1}% ל־24 שעות": "+{p0}% to a resource, up to +{p1}% for 24 hours",
+  "+{p0}% לרמה": "+{p0}% per level",
+  "0.25 + (הרמה האפקטיבית של היריב ÷ שלך) × 0.75, חסום ב־{p0}–{p1}. יריב שקול = ×1, גבוה ממך = יותר, נמוך ממך = קצת.":
+    "0.25 + (the rival's effective level ÷ yours) × 0.75, clamped to {p0}–{p1}. An even rival = ×1, higher than you = more, lower than you = a little.",
+  "0.3 + שורש שלישי של (כוח היריב ÷ כוחך) × 1.4, חסום ב־0.3–2.0. השורש קורא את הפער בסדרי גודל ולא באחוזים — כך שגם קרב שבו היריב חלש ממך פי כמה עדיין משלם יותר מהמינימום.":
+    "0.3 + the cube root of (the rival's power ÷ yours) × 1.4, clamped to 0.3–2.0. The root reads the gap in orders of magnitude rather than in percentages — so even a battle where the rival is several times weaker than you still pays more than the minimum.",
+  "1 + רמת שדרוג": "1 + upgrade level",
+  "10% לרמה, עד רמה {p0}": "10% per level, up to level {p0}",
+  "48 השעות הראשונות — בונים, לא נלחמים": "The first 48 hours — build, do not fight",
+  "<0>  הוא המסך היחיד שכל תוכנו פג. עליו ארבעה דברים:  <1> (רצף הכניסה),  <2> משימות יומיות,  <3> שבועיות, ו<4>  המשותף. הכול נמדד ב<5> — חצות עד חצות — ולא בפעמון העדכון היומי.":
+    "<0> is the only screen whose whole contents expire. There are four things on it: <1> (the sign-in streak), <2> daily missions, <3> weekly ones, and <4> the shared one. Everything is measured in <5> — midnight to midnight — and not by the daily update bell.",
+  "<0>  הוא השורה שמתחת לשם שלך — בדוסיה ובדירוגים. הוא <1>, וזה כל העניין: זו הדרך הבטוחה היחידה למכור משהו, כי הוא לא משנה שום מספר במשחק. שני סוגים, וההבדל ביניהם מכוון להיות ברור מהניסוח:  <2>  <3> ולא נמכרים בשום מחיר, ו־ <4>  <5> וכתובים כהתרברבות ולא כהישג. הנצברים מסודרים בשלוש דרגות קושי — <6>, <7> ו<8> — ובכל דרגה הדרישה גדולה יותר מזו שמעליה בטבלה.":
+    "<0> is the line under your name — on your dossier and in the rankings. It is <1>, and that is the whole point: it is the one safe thing to sell, because it changes no number in the game. There are two kinds, and the difference between them is meant to be plain from the wording: <2> <3> and are not sold at any price, and <4> <5> and are written as a boast rather than as an achievement. The earned ones come in three difficulty grades — <6>, <7> and <8> — and each grade asks more than the one above it in the table.",
+  "<0> איך מחממים": "<0> How to stoke it",
+  "<0> איפוס (יוקרה ↻)": "<0> Prestige reset (↻)",
+  "<0> גלגל המזל": "<0> The wheel of fortune",
+  "<0> דרגות, כל אחת ב־ <1> נקודות ניסיון —  <2> לסבב מלא. הסולם <3>, כלומר שני סבבים מלאים ביום. הפרסים גדלים ב־ <4> מהבסיס בכל יום עונה. המסלול הפרימיום נקנה פעם אחת לעונה ב־ <5> יהלומים.":
+    "<0> tiers, each at <1> experience points — <2> for a full cycle. The ladder <3>, which is two full cycles a day. Prizes grow by <4> of the base with every day of the season. The premium track is bought once a season for <5> diamonds.",
+  "<0> דרך התהילה": "<0> The Road to Glory",
+  "<0> הדרגות": "<0> The tiers",
+  "<0> הוא נמצא ב <1>  — שולחים אותו, ומי שנרשם דרכו נקשר אליך לבד. אין מה למלא בטופס ההרשמה. מי שקיבל רק את הקוד או את שם האימפריה יכול לרשום אותו ידנית באותו עמוד, כל עוד הוא בתחילת הדרך. שני הצדדים מקבלים את הפרס רק כשהחדש מגיע ל־ <2> ערים — כלומר כששחקן אמיתי נשאר, לא כשנפתח חשבון.":
+    "<0> It is on your <1> — send it, and whoever registers through it is attached to you automatically. There is nothing to fill in on the sign-up form. Anyone who was given only the code or the empire name can enter it by hand on that same page, as long as they are still starting out. Both sides are paid only once the newcomer reaches <2> cities — that is, when a real player stays, not when an account is opened.",
+  "<0> התשובה הנכונה: {p0}": "<0> The right answer: {p0}",
+  "<0> זהב מעלה חפץ רק בתוך הסט שלו — פשוט → מתקדם → אליט → אגדי — ושם הוא נעצר. אגדי לא משודרג יותר, ולא משנה באיזו רמה הוא. הדרך היחידה לסט הבא היא לשלול חפץ ממנו בקרב.":
+    "<0> Gold raises an item only within its own set — Plain → Advanced → Elite → Legendary — and there it stops. A Legendary is never upgraded again, whatever its level. The only way into the next set is to take one off somebody in battle.",
+  "<0> חיים ומוות": "<0> Life and death",
+  "<0> למוזמן": "<0> For the newcomer",
+  "<0> למזמין": "<0> For the inviter",
+  "<0> נקודות ותיק": "<0> Points and the bag",
+  "<0> סיבובים בכל עדכון יומי, נצברים בלי הגבלה — שבוע היעדרות לא מבזבז כלום.  {p0} פרסים, וכל פרס <1> מהערך שלו ביום הראשון עד הערך שלו בעדכון האחרון של העונה — בלי קפיצות ובלי תקרה שנתקעים בה באמצע. ארבעת המשאבים הולכים מ־ <2> ל־ <3> כל אחד (גדילה מוכפלת, כמו הכלכלה עצמה), היהלומים מ־ <4> ל־ <5> והאזרחים מ־ <6> ל־ <7> (תוספת קבועה בכל עדכון). עונה קצרה יותר פשוט מטפסת מהר יותר — הסוף תמיד אותו סוף.":
+    "<0> spins on every daily update, banked with no limit — a week away wastes nothing. {p0} prizes, and every prize <1> from its value on day one to its value on the season's last update — no jumps, and no ceiling to get stuck at halfway. The four resources go from <2> to <3> each (doubling growth, like the economy itself), diamonds from <4> to <5> and citizens from <6> to <7> (a fixed step each update). A shorter season simply climbs faster — the end is always the same end.",
+  "<0> עדכון יומי — {p0}": "<0> Daily update — {p0}",
+  "<0> עדכון רגיל — כל {p0} דקות": "<0> Regular update — every {p0} minutes",
+  "{count}/{seconds}ש׳": "{count}/{seconds}s",
+  "{minutes} דק׳": "{minutes} min",
+  "{p0}  (בשיא)": "{p0} (at the top)",
+  "{p0} (בשיא)": "{p0} (at the top)",
+  "{p0} + {p1} לכל דרגת עיר, על אותה חלוקה כמו השלל.":
+    "{p0} + {p1} per city tier, on the same split as the spoils.",
+  "{p0} בכל מכרה": "{p0} in every mine",
+  "{p0} הודעות בדקה לכל בן שיח, כדי שלא יהיה אפשר להפנות דקה שלמה לשחקן אחד. המכסה נספרת על הצמד, אז החלפת תפקידים לא מאפסת אותה.":
+    "{p0} messages a minute per correspondent, so nobody can spend a whole minute aimed at one player. The quota is counted on the pair, so swapping roles does not reset it.",
+  "{p0} זהב לרמה הראשונה וכל רמה אחריה פי {p1}, כי ריבית עובדת על זהב שאי אפשר לבזוז ומצטברת פעמיים ביום. {p2}% הוא פרס של סוף עונה.":
+    "{p0} gold for the first level and every level after it ×{p1}, because interest works on gold that cannot be plundered and compounds twice a day. {p2}% is an end-of-season prize.",
+  "{p0} זהב לרמה הראשונה, ומשולם מאוצר הברית — לכן רק מנהיג או סגן יכולים לקנות אותו.":
+    "{p0} gold for the first level, paid out of the guild treasury — which is why only a leader or a deputy can buy it.",
+  "{p0} יהלומים ל־{p1} שעות.": "{p0} diamonds for {p1} hours.",
+  "{p0} יהלומים לרמה 2, וכן הלאה (40 × הרמה הבאה).":
+    "{p0} diamonds for level 2, and so on (40 × the next level).",
+  "{p0} כוח ({p1} לחייל)": "{p0} power ({p1} per soldier)",
+  "{p0} כוח ({p1} למרגל)": "{p0} power ({p1} per spy)",
+  "{p0} נק׳ ניסיון": "{p0} XP",
+  "{p0} עדכונים יומיים (2 ליום)": "{p0} daily updates (2 a day)",
+  "{p0} רמות לכל עיר": "{p0} levels per city",
+  "{p0} שעות · {p1}💎 ל־{p2} שעות": "{p0} hours · {p1}💎 for {p2} hours",
+  "{p0} תורות · עד {p1} בחבילה הגדולה": "{p0} turns · up to {p1} in the large pack",
+  "{p0}% × {p1} עדכונים, בריבית דריבית": "{p0}% × {p1} updates, compounded",
+  "{p0}% בכל עדכון יומי": "{p0}% on every daily update",
+  "{p0}% לכל רמת שדרוג · עד רמה {p1}": "{p0}% per upgrade level · up to level {p1}",
+  "{p0}% מהשלל משולם לפי הנזק שהספקת לגרום — גם בתקיפה שלא הפילה אותו. תקיפה שלא סיימה את העבודה עדיין משתלמת.":
+    "{p0}% of the spoils is paid according to the damage you managed to do — even on an attack that did not bring it down. An attack that did not finish the job still pays.",
+  "{p0}% מזל": "{p0}% luck",
+  "{p0}% מכוח הברית כולה.": "{p0}% of the whole guild's power.",
+  "{p0}% נשמרים למכה שמפילה אותו, וגדלים עד ×{p1} בדירוג S — שנקבע לפי הקריאות הנכונות{p2}, ודורש לפחות {p3} סבבים: הפלה במכה אחת לא מגיעה ל־S.":
+    "{p0}% is held back for the killing blow, and grows to ×{p1} at grade S — which is set by how many rounds you read correctly{p2}, and needs at least {p3} rounds: a one-blow kill does not reach S.",
+  "{p0}% — רמת הקסם היא הבונוס עצמו.": "{p0}% — the spell's level is the bonus itself.",
+  "{slot} (אזרחים — ראשי)": "{slot} (citizens — primary)",
+  "{slot} (משאבים — ראשי)": "{slot} (resources — primary)",
+  "{slot} (תורות — ראשי)": "{slot} (turns — primary)",
+  "×2 ביום": "×2 a day",
+  "×{p0} בכל דרגת עיר": "×{p0} per city tier",
+  "×{p0} בכל רמה": "×{p0} per level",
+  "אבדות לפי הכוח": "Losses scale with power",
+  "אבל הוא גם לא מתיישן": "But it never goes stale either",
+  "אגדי הוא התקרה של הסט שלו": "A Legendary is its set's ceiling",
+  "אגדי — שיא הסט": "Legendary — the set's ceiling",
+  "אוצר ההפלה": "The kill purse",
+  "אורך הודעה": "Message length",
+  "אותה הודעה בדיוק לאותו יעד חסומה ל־{p0} שניות. אותן מילים בחדר ובשיחה פרטית נחשבות לשתי אמירות שונות.":
+    "The very same message to the same recipient is blocked for {p0} seconds. The same words in the room and in a private thread count as two different things said.",
+  "אותו זהב בדרגה גבוהה = יותר כוח, ופחות פריטים לקנות. אין שום סיבה להישאר בדרגה ישנה.":
+    "The same gold at a higher tier buys more power, and fewer items to click. There is no reason at all to stay on an old tier.",
+  "אזרח שיושב סתם הוא תפוקה שלא קרתה. חלק אותם: עבדי מכרות לכלכלה, חיילים להגנה, מרגלים למודיעין.":
+    "A citizen sitting idle is production that never happened. Split them up: mine slaves for the economy, soldiers for defence, spies for intelligence.",
+  "אזרחים בכל עדכון יומי": "Citizens per daily update",
+  "אזרחים ועבדים": "Citizens and slaves",
+  "אזרחים ותורות": "Citizens and turns",
+  "אזרחים פתיחה": "Starting citizens",
+  "אזרחים, ריבית, גלגל": "Citizens, interest, wheel",
+  "אחוזים": "Percentages",
+  "אחרי {p0} ערים החלון נסגר — בערך הערב הראשון. מספיק זמן כדי שחבר יזכיר את זה אחרי המשחק הראשון, וקצר מספיק כדי ששחקן ותיק לא יסחר בנאמנות שלו.":
+    "After {p0} cities the window shuts — roughly the first evening. Long enough for a friend to mention it after your first game, short enough that a veteran cannot trade on your loyalty.",
+  "אי אפשר לחיות מאחורי מגן": "You cannot live behind a shield",
+  "אי אפשר לרשום מישהו שכבר רשם אותך — גם לא דרך שרשרת ארוכה יותר — ואי אפשר לרשום חשבון צוות או חשבון מוצב.":
+    "You cannot name someone who already named you — not even down a longer chain — and you cannot name a staff account or a garrison account.",
+  "אימון יחידות לא עולה משאבים — הוא עולה <0>. כל אזרח הופך ליחידה אחת, וההחלטה מה לאמן היא הבחירה האסטרטגית האמיתית: כוח, מודיעין או כלכלה.":
+    "Training units costs no resources — it costs <0>. Each citizen becomes one unit, and deciding what to train is the real strategic choice: power, intelligence or economy.",
+  "אימפריה טרייה בלי צבא בכלל עדיין מזיזה את המד. זה ההבדל בין ״עזרתי״ ל״למה הדף הזה קיים״.":
+    'A fresh empire with no army at all still moves the meter. That is the difference between "I helped" and "why does this page exist".',
+  "אימפריה עם חצי מהכוח של יריבתה עדיין לוקחת בערך דו־קרב אחד מכל חמישה — מספיק כדי שכדאי להיכנס מכל מקום בטבלה, ורחוק מלהפוך את זה להגרלה.":
+    "An empire with half its rival's power still takes roughly one duel in five — enough to make entering worthwhile from anywhere on the table, and a long way from turning it into a raffle.",
+  "אין ביזה בהפסד": "No plunder on a loss",
+  "אין מונה שרץ ברקע. הלוח מצלם את המונים שלך ברגע שאתה פותח אותו, ומודד את ההפרש — לכן פתח אותו בתחילת היום, לא בסופו.":
+    "There is no counter running in the background. The board photographs your counters the moment you open it and measures the difference — so open it at the start of your day, not at the end.",
+  "אין מכסה": "No quota",
+  "אין מספר שאפשר לראות מראש": "No number you can see in advance",
+  "אין פרס נוכחות. יש רצפה למי שהשתתף.":
+    "There is no prize for turning up. There is a floor for taking part.",
+  "אין תקיפות בין חברי ברית": "No attacks between guildmates",
+  "אין תקרת אוכלוסייה": "No population ceiling",
+  "איפה התואר נראה": "Where a title is seen",
+  "איפוס עונה מוחק ובונה מחדש כל אימפריה, ולכן הקשר לא שורד אותו. הקישור עצמו כן שורד — הוא שייך לחשבון, לא לאימפריה. הקריאה הנכונה של זה: להחזיר חבר שנטש בדיוק לעונה החדשה זו בדיוק ההתנהגות ששווה לשלם עליה שוב.":
+    "A season reset deletes and rebuilds every empire, so the link does not survive it. The invite link itself does — it belongs to the account, not to the empire. The right way to read that: bringing back a friend who drifted away, exactly at the new season, is precisely the behaviour worth paying for again.",
+  "איפוסי היריב (↻)": "The rival's resets (↻)",
+  "אל תשלח צבא בלי גיבור": "Do not send an army without a hero",
+  "אלה לא רצים עם הכלכלה — בניין הגידול משלם כמות קבועה בכל עדכון יומי — ולכן הם עולים בחזקת הדרגה ובתקרה נמוכה בכוונה: נעליים רמה 1 נותנות {p0} אזרחים, רמה 10 נותנות {p1}, ורמה 100 נותנות {p2}. חפץ לא אמור להחליף את הבניין שקיים בשביל זה.":
+    "These do not run with the economy — the growth building pays a fixed amount on every daily update — so they rise with the power of the tier and to a deliberately low ceiling: level 1 boots give {p0} citizens, level 10 give {p1}, and level 100 give {p2}. An item is not meant to replace the building that exists for this.",
+  "אם אתה לא יודע מה לעשות עכשיו — זה הסדר שעובד. כל שלב פותח את הבא אחריו.":
+    "If you do not know what to do next, this is the order that works. Every step opens the one after it.",
+  "אם הצבא מאבד {p0}% מכוחו הוא נסוג באמצע הקרב, ו-{p1}% מהשלל שנצבר אובד. בפועל זה מאיים רק על צבא שנלחם מול בוס בסדר הגודל שלו.":
+    "If the army loses {p0}% of its power it withdraws mid-battle, and {p1}% of the spoils gathered are lost. In practice that only threatens an army fighting a boss its own size.",
+  "אם למגן {p0}+ חיילים": "If the defender has {p0}+ soldiers",
+  "אף אחד מהצוות לא יבקש סיסמה": "No one on the staff will ever ask for a password",
+  "אף מבנה לא נוגע בקרב": "No monument touches battle",
+  'אפשר לתקוף שוב ושוב — התורות הן הגבול היחיד. השלל חסום ע\\"י מאגר החיים, כך שתקיפות נוספות קונות התקדמות, לא כפל שלל. בוס שנופל חוזר אחרי {p0} דקות עם מאגר חדש.':
+    "You can attack again and again — turns are the only limit. The spoils are capped by the health pool, so extra attacks buy progress rather than duplicate loot. A fallen boss returns after {p0} minutes with a fresh pool.",
+  "ארבעת המכרות הם מנוע הכלכלה. מכרה לא מייצר כלום מעצמו — הוא מייצר לפי כמות <0> שהצבת בו, כפול התפוקה לעבד שנקבעת מרמת המכרה.":
+    "The four mines are the engine of the economy. A mine produces nothing by itself — it produces according to how many <0> you have put in it, times the output per slave that its level sets.",
+  "ארבעת המקצועות — נבחרים בהרשמה, ולתמיד":
+    "The four classes — chosen at sign-up, and for good",
+  "אתה מוגן. נצל את זה: הצב את כל עבדי המכרות, שדרג מכרות (כל אחד במשאב שלו), והשאר את התורות לצבירה. תקיפה ראשונה שוברת את המגן.":
+    "You are protected. Use it: assign every mine slave, upgrade the mines (each in its own resource), and let the turns bank up. Your first attack breaks the shield.",
+  "אתה קונה משבצת, לא כוח": "You are buying a slot, not power",
+  "בגלל שהפרס הוא אחוז, הוא גדל יחד עם ההכנסה שקנתה אותו. פרס קבוע היה הופך לחסר ערך בעוד שבועיים; אחוז לא.":
+    "Because the reward is a percentage, it grows along with the income that bought it. A fixed reward would be worthless in a fortnight; a percentage never is.",
+  "בונוס גיבור (משאבים)": "Hero bonus (resources)",
+  "בונוס גיבור — הגנה": "Hero bonus — defence",
+  "בונוס גיבור — התקפה": "Hero bonus — attack",
+  "בונוס גיבור — ריגול": "Hero bonus — spying",
+  "בונוס הגיבור נספר רק לתוקף.": "The hero bonus counts for the attacker only.",
+  "בונוס המגן — {p0}% מתנה קבועה לצד המתגונן.":
+    "The defender's bonus — a flat {p0}% gift to whoever is defending.",
+  "בונוס מגן +{p0}%": "Defender bonus +{p0}%",
+  "בוסט תפוקה": "Output boost",
+  "בחר יעדים חכם — לא חלשים": "Pick targets cleverly — not weakly",
+  "ביזה בתקיפה מנצחת": "Plunder on a winning attack",
+  "ביזת זהב ({p0}%)": "Gold plundered ({p0}%)",
+  "בין קרב לקרב הגיבור לא חייב לשבת בבית. מסע שולח אותו לזמן אמת ומשלם כשהוא חוזר — <0>, כי יש גיבור אחד. כל עיר שאתה מקים פותחת דרגה ארוכה יותר, מ<1> ועד <2>, והדרגות הישנות נשארות פתוחות.":
+    "Between battles the hero need not sit at home. An expedition sends him out in real time and pays when he returns — <0>, because there is only one hero. Every city you found opens a longer tier, from <1> up to <2>, and the old tiers stay open.",
+  "בכל עדכון יומי": "On every daily update",
+  "בלי אבדות": "No losses",
+  "בלם הצפה — ראה למטה": "Flood brake — see below",
+  "בממוצע, לפי טבלת הנדירות": "On average, by the rarity table",
+  "בסיס 4 במקום 5 — מתחיל ב־1 כוח לכל 12.5 זהב, ומשתפר באותו קצב.":
+    "Base 4 instead of 5 — it starts at 1 power per 12.5 gold, and improves at the same rate.",
+  "בסיס — 40 + {p0}×10": "Base — 40 + {p0}×10",
+  "בסיס — עבדים × (רמה × 2)": "Base — slaves × (level × 2)",
+  "בעמוד הגיבור בלבד, כשהוא מת — החלופה חינם, רק צריך סבלנות":
+    "On the hero page only, while he is dead — the free alternative, it just takes patience",
+  "בפינה השמאלית התחתונה של כל מסך יושב <0>. הוא לא דף אלא חלונית צפה: אפשר לדבר תוך כדי בנייה, תקיפה או קריאת דוח, והיא נשארת פתוחה גם כשעוברים מסך. שתי לשוניות — <1> שכל השרת רואה, ו <2> אחד על אחד.":
+    "In the bottom-left corner of every screen sits <0>. It is not a page but a floating panel: you can talk while building, attacking or reading a report, and it stays open as you move between screens. Two tabs — <1> that the whole server sees, and <2> one to one.",
+  "ברית +{p0}%": "Guild +{p0}%",
+  "ברית היא כוח משותף. הקמה עולה  <0> יהלומים, והיא נותנת שני דברים שונים לגמרי: <1> אישיים שנמשכים שעות ספורות, ו <2> שמחזקת כל חבר בכל קרב.":
+    "A guild is shared strength. Founding one costs <0> diamonds, and it gives two entirely different things: personal <1> lasting a few hours, and <2> that strengthens every member in every battle.",
+  "בשליש האחרון של עונה השדרוגים נגמרים והזהב ממשיך להיערם. מבנה הוא התשובה לזה, והוא הסוג היחיד של תשובה שמחזיק לנצח:  <0>. חמישה מבנים,  <1> רמות לכל אחד,  <2> לרמה.":
+    "In the last third of a season the upgrades run out and the gold keeps piling up. A monument is the answer to that, and it is the only kind of answer that lasts forever: <0>. Five monuments, <1> levels each, <2> per level.",
+  "בתוך דרגת ערים אחת הפערים בכוח הם סדרי גודל. השורש דוחס אותם לטווח שבו למזל עדיין יש מה לומר, ובלעדיו כל דו־קרב בין לא־שווים היה פורמליות.":
+    "Within one city tier the power gaps are orders of magnitude. The root compresses them into a range where luck still has something to say; without it every duel between unequals would be a formality.",
+  "גדלים לפי ערים (×{p0}) אבל לא לפי יום העונה, ומהמזל הם מקבלים רק את השורש — הם משאבים במרחק צעד אחד, ומסע לא אמור להיות הדרך לאכלס עיר.":
+    "They grow with cities (×{p0}) but not with the day of the season, and from luck they take only the root — they are resources one step away, and an expedition is not meant to be the way to populate a city.",
+  "גיבור +{p0}%": "Hero +{p0}%",
+  "גידול": "Growth",
+  "גם בתקיפה וגם בהגנה, מתווסף אחרי כל המכפילים.":
+    "In attack and in defence alike, added after every multiplier.",
+  "גם כשהוא בדרכים": "Even while he is away",
+  "גם מכפיל את האבדות": "also doubles the losses",
+  "דורש {min}+ חיילים למגן": "Needs a defender with {min}+ soldiers",
+  "דמי כניסה": "Entry fee",
+  "דרגה t": "tier t",
+  "דרגה אחת לכל עיר": "One tier per city",
+  "דרגות איכות": "Quality grades",
+  "דרושות {p0} נק׳ ניסיון לרמה הבאה": "{p0} XP needed for the next level",
+  "דרישת חיל מצב — הם נבדקים, לא נלקחים.":
+    "A garrison requirement — they are checked, not taken.",
+  "האבדות נגבות ביחס לכוח שלך מול כוח הבוס: צבא בחצי מהכוח משלם חצי מהמחיר בדם, בדיוק כמו שהוא מקבל בערך חצי מהשלל. מתחת ל־{p0}% מכוח הבוס המחיר נעצר ולא יורד יותר — אבל אף פעם לא תשלם מחיר מלא על נגיסה קטנה.":
+    "Losses are charged in proportion to your power against the boss's: an army at half the power pays half the price in blood, exactly as it takes roughly half the spoils. Below {p0}% of the boss's power the price stops falling — but you will never pay full price for a small bite.",
+  "האיפוסים שלך (↻)": "Your resets (↻)",
+  "האם המשימה נכנסת": "Whether the mission counts",
+  "הבונוס ברמה {p0}": "The bonus at level {p0}",
+  "הבונוס של חפץ — משאבים בסולם גיאומטרי, אחוזים בקו ישר":
+    "An item's bonus — resources on a geometric ladder, percentages in a straight line",
+  "הבונוסים של הגיבור": "The hero's bonuses",
+  "הבלם המהיר עוצר הדבקה בלולאה, ומכסת הדקה עוצרת הצפה מתמשכת. לחדר ולשיחות פרטיות מכסות נפרדות — שיחה ארוכה לא גוזלת את הזכות שלך לדבר בחדר.":
+    "The fast brake stops a pasted loop, and the per-minute quota stops sustained flooding. The room and private threads have separate quotas — a long conversation does not eat your right to speak in the room.",
+  "הבנק לפני הנשק": "The bank before the weapons",
+  "הבנק מקבל <0>, מגן עליו מביזה, ומשלם עליו ריבית דריבית בכל עדכון יומי — פעמיים ביום. זה הנכס היחיד במשחק שגדל מעצמו.":
+    "The bank takes <0>, protects it from plunder, and pays compound interest on it at every daily update — twice a day. It is the only asset in the game that grows by itself.",
+  "הגיבור הוא המכפיל האישי שלך: הוא לא נלחם בעצמו, הוא מחזק את כל מה שיש לך. הוא עולה רמות מקרבות, מקצה נקודות, לובש חפצים — וגם מת.":
+    "The hero is your personal multiplier: he does not fight himself, he strengthens everything you have. He gains levels from battles, spends points, wears gear — and dies.",
+  "הגנה שנפרצת פוגעת בגיבור": "A breached defence wounds the hero",
+  "הגנת שחקן חדש": "New-player shield",
+  "הגרלה נפרדת לשיקוי": "A separate roll for a potion",
+  "הדיפת התקפה לא מזכה בניסיון כלל — הפרס על הגנה הוא שלא נלקח ממך דבר. הגיבור מתקדם רק כשיוצאים לקרב.":
+    "Repelling an attack earns no experience at all — the reward for defending is that nothing was taken from you. A hero advances only when he goes out to fight.",
+  "הדירוג אומר לך איפה אתה עומד; הוא אף פעם לא אומר לך אם היית  <0>.  <1>  היא הקרב ההוגן הזה, <2>, לכל מי שנרשם: בחצות (שעון ישראל) כל נרשם פוגש <3>, והטבלה היא התוצאה. אף אחד לא לוחץ תקיפה ואף אחד לא צריך להיות מחובר.":
+    "The ladder tells you where you stand; it never tells you whether you would have <0>. <1> is that fair fight, <2>, for everyone who enters: at midnight (Israel time) every entrant meets <3>, and the table is the result. Nobody presses attack and nobody needs to be online.",
+  "הדף מפרסם את החיים שנשארו למפלצת. בלי פיזור, מי שיודע לחשב את הנזק שלו היה יושב וממתין שהמד ירד בדיוק אל מתחת למכה שלו — ולוקח את היהלומים כל שבוע בוודאות. הפיזור הופך את המכה האחרונה למרוץ.":
+    "The page publishes the health the monster has left. Without a spread, anyone who can work out their own damage would sit and wait for the bar to drop just below their blow — and take the diamonds every week, with certainty. The spread turns the killing blow into a race.",
+  "הדרגה והנדירות מוגרלות בדיוק באותה פונקציה ובאותה טבלה של נפילה רגילה. אגדי מהנפחייה נדיר כמו אגדי מפשיטה.":
+    "The level and the rarity are rolled by exactly the same function and the same table as an ordinary drop. A Legendary from the forge is as rare as a Legendary from a raid.",
+  "הדרגה נגזרת מהרמה, והסדרה חוזרת על עצמה בכל עשור רמות: רמות 1–2 פשוט, 3–7 מתקדם, 8–9 אליט, 10 אגדי — ואז שוב, עשור אחד גבוה יותר. אגדי סוגר את הסט: אין לאן לשדרג אותו.":
+    "The grade follows from the level, and the sequence repeats every ten levels: levels 1–2 Plain, 3–7 Advanced, 8–9 Elite, 10 Legendary — and then again, one decade higher. A Legendary closes the set: there is nowhere to upgrade it to.",
+  "הדרגה שמוגרלת": "The level that is rolled",
+  "הוא מחושב פעם אחת לפי מספר האימפריות באותו רגע ולא מחושב מחדש — מפלצת שהתחזקה כי מישהו נרשם ביום חמישי הייתה עונש על גדילה.":
+    "It is worked out once, from the number of empires at that moment, and never recalculated — a monster that grew stronger because somebody signed up on Thursday would be a punishment for growth.",
+  "הזהב הוא הבור שגדל": "Gold is the pit that grows",
+  "הזהב עובר אליך; ההצתה וההרעלה רק משמידות. לכן שריפה פוגעת במלאי המוגן במחסנים, וגניבה ביתרה הזמינה.":
+    "The gold comes to you; the burning and the poisoning only destroy. That is why a fire hits the protected stock in the warehouses, and a theft hits the available balance.",
+  "החייאת גיבור": "Hero revival",
+  "החלון לרישום מזמין": "The window for naming an inviter",
+  "החצי הגדול, ונגבה בנפרד לכל מוזמן שהגיע ליעד — עד  <0> פרסי הזמנה בעונה.":
+    "The larger half, and collected separately for each newcomer who got there — up to <0> invite prizes a season.",
+  "הטלה בשיא": "Cast at full level",
+  "היחס משתפר": "The ratio improves",
+  "היעד": "The target",
+  "היעד נמדד חי": "The target is measured live",
+  "היקר במשחק: {p0} זהב לרמה הראשונה, וכל רמה אחריה פי {p1} — {p2} לרמה {p3}. סיבובי גלגל הם המטבע הנדיר במשחק, ולכן כל אחוז כואב.":
+    "The dearest in the game: {p0} gold for the first level, and every level after it ×{p1} — {p2} for level {p3}. Wheel spins are the rarest currency in the game, so every percentage point hurts.",
+  "הכול נכנס בעדכון": "It all arrives on the update",
+  "הכלל החשוב ביותר לפני שינה": "The most important rule before bed",
+  "הכמות מעוגלת כלפי מטה — מי שמחזיק תשע יחידות מאבד אחת ב־12%, לא שתיים.":
+    "The amount is rounded down — someone holding nine units loses one at 12%, not two.",
+  "הלוח לא מציג שלל, וזה לא הסתרה: השלל מוגרל ברגע היציאה. אותה דרגה, אותה אימפריה, אותו יום — ובכל זאת שני מסעות לא יחזרו עם אותו שק.":
+    "The board does not show the haul, and that is not concealment: the haul is rolled at the moment of departure. The same tier, the same empire, the same day — and still two expeditions will not come back with the same sack.",
+  "הלוח נפתח בכניסה הראשונה": "The board opens on your first visit",
+  "המד יושב בשורה העליונה, ליד שעון העדכון.":
+    "The meter sits on the top row, next to the update clock.",
+  "המחיר גיאומטרי, התשואה קווית": "Geometric price, linear return",
+  "הממוצע נגזר ממספר הערים שלך — לכן כל הדרגות משלמות אותו ממוצע לשעה, ומסע של שעה לא מתיישן לעולם.":
+    "The average follows from your number of cities — so every tier pays the same average per hour, and an hour-long expedition never goes out of date.",
+  "המצב משתנה, המספרים לא": "The situation changes, the numbers do not",
+  "המרגל": "The spy",
+  "המרגל נתפס — היעד מקבל התראה": "The spy is caught — the target is alerted",
+  "המרגלים שהתחייבת אליהם אבודים, והתורות יורדות בכל מקרה. חבלה היא הימור, לא סריקה.":
+    "The spies you committed are lost, and the turns are spent either way. Sabotage is a gamble, not a scan.",
+  "המשימה מצליחה — הדוח נפתח": "The mission succeeds — the report opens",
+  "הנוסחה הזו היא של השדרוגים הרגילים. שלושה שדרוגים מתומחרים גיאומטרית — כל רמה עולה פי כמה מקודמתה — כי מה שהם נותנים לא נגמר לעולם.":
+    "That formula is for the ordinary upgrades. Three upgrades are priced geometrically — each level several times the one before it — because what they give never runs out.",
+  "הניסיון של הגיבור נגזר מפער הרמות ומיחס הכוחות: לרמוס חלש משלם מינימום. יריב שקול משלם מלא, וחזק ממך — או כזה שכבר עבר איפוס — משלם הרבה יותר.":
+    "A hero's experience follows from the level gap and the power ratio: trampling someone weak pays the minimum. An even rival pays full, and one stronger than you — or one who has already reset — pays a great deal more.",
+  "הסטט שהמשבצת קיימת בשבילו — משקל מלא.": "The stat the slot exists for — full weight.",
+  "הסיכוי לנצח דו־קרב": "The chance of winning a duel",
+  "העדכון נופל על שעות עגולות — <0>": "The update lands on round times — <0>",
+  "העוגן העליון": "The upper anchor",
+  "העוגן התחתון": "The lower anchor",
+  "הפקדות בין עדכונים": "Deposits between updates",
+  "הפרס היחיד ביהלומים בלוח": "The only diamond prize on the board",
+  "הפרס נבדק מול מספר הערים שהחדש מחזיק עכשיו — {p0} ערים זה ימים של משחק אמיתי, ולא חותמת שנרשמה פעם.":
+    "The prize is checked against how many cities the newcomer holds now — {p0} cities is days of real play, not a stamp that was once registered.",
+  "הצלחה = התיק המלא": "Success = a full bag",
+  "הקופה המלאה (בעיר אחת)": "The full purse (at one city)",
+  "הקמת ברית": "Founding a guild",
+  "הקרב מול השליט לא עולה באף חייל — הצבא חוזר שלם מכל תקיפה, מוצלחת או לא. המחיר היחיד הוא התורות, ולכן תמיד שולחים את כל הצבא.":
+    "The fight against a boss costs not a single soldier — the army comes home whole from every attack, successful or not. The only price is the turns, which is why you always send the whole army.",
+  "הרמה האחרונה": "The last level",
+  "הרמה הראשונה": "The first level",
+  "השאר הוא כוח": "The rest is power",
+  "השבר תמיד לטובת היעד": "The fraction always favours the target",
+  "השדרוג הזול בעשור שלך": "The cheapest upgrade in your decade",
+  "השלל גדל ב־20% מהבסיס בכל יום שעובר בעונה":
+    "The haul grows by 20% of the base with every day that passes in the season",
+  "השלל של מסע": "An expedition's haul",
+  "התוצאה קבועה מראש": "The result is settled in advance",
+  "התוקף": "The attacker",
+  "התוקף בלבד": "The attacker only",
+  "התורות שלך נצברות כרגיל גם כשאתה לא מחובר — זה לא משתנה, ולא ישתנה. להט הקרב לא נותן לך יותר תורות; הוא קובע כמה כל תורה שאתה מוציא <0>. כל פעולה שאתה עושה מחממת את המד, וכשהוא לוהט — הביזה שאתה לוקח מאימפריה מובסת גדולה יותר.":
+    "Your turns accrue as they always did, offline included — that does not change, and it will not. Battle fervor gives you no extra turns; it decides how much each turn you spend <0>. Every action you take stokes the meter, and while it burns, the plunder you take from a beaten empire is larger.",
+  "התקדמות במשימה": "Progress on a mission",
+  "התקיפה מצליחה — ההגנה נפרצת": "The attack succeeds — the defence is breached",
+  "התקיפה נהדפת — המגן מחזיק": "The attack is repelled — the defender holds",
+  "התקפה והגנה: 1 כוח לכל 10 זהב בדרגה 1, ובכל דרגה מעליה ×{p0} כוח לאותו זהב.":
+    "Attack and defence: 1 power per 10 gold at tier 1, and at every tier above it ×{p0} power for the same gold.",
+  "ואז איפוס ליוקרה": "then reset for prestige",
+  "ואז קסמים והרחבות": "then spells and expansions",
+  "ובנוסף, לכל ניצחון": "and on top, for every win",
+  "וגם בתוך השק": "and inside the sack too",
+  "והצבא ששרד": "and the army that survived",
+  "ולא בקרב מול שליט עיר": "and not in a fight with a city boss",
+  "זהב זמין אצל המגן": "Gold available to the defender",
+  "זהב להזמנה ברמה 50": "Gold for an invite at level 50",
+  "זהב מופקד": "Gold deposited",
+  "זהב פתיחה": "Starting gold",
+  "זירה אחת לכל דרגת ערים, כל יום": "One arena per city tier, every day",
+  "זמין מול מאוחסן": "Available against stored",
+  "חבילת תורות": "Turn pack",
+  "חבלה לעולם לא נוגעת בצבא": "Sabotage never touches the army",
+  "חוזה הברית": "The guild contract",
+  "חוזה יומי": "Daily contract",
+  "חופשית תמיד — רק ההפקדות מוגבלות במכסה.": "Always free — only deposits are capped.",
+  "חיילים + נשקי הגנה": "Soldiers + defence weapons",
+  "חיילים + נשקי התקפה": "Soldiers + attack weapons",
+  "חיילים + נשקי תקיפה, אחרי בונוסי גיבור וברית":
+    "Soldiers + attack weapons, after the hero and guild bonuses",
+  "חיילים לא מתים בקרב": "Soldiers do not die in battle",
+  "חיילים שנשבים": "Soldiers enslaved",
+  "חיים לכל אימפריה": "Health per empire",
+  "חיפוש לפי שם, בלי צורך לתפוס אותו מרגל":
+    "Search by name, no need to catch him spying first",
+  "חלוקת השלל": "How the spoils are split",
+  "חלוקת השלל של המחזור": "How the cycle's spoils are split",
+  "חפץ": "Item",
+  "חפץ פרי־שטן (קבוע לעדכון)": "Devil's fruit item (flat per update)",
+  "חפץ — תוספת קבועה": "Item — flat addition",
+  "חפצים נופלים בדרגה אקראית, ולכן לכל שחקן יש בסוף תשע חרבות ואפס מגפיים.  <0>  היא שער החליפין בין שתי העובדות האלה, והיא עושה דבר אחד:  <1>. מפרקים חפצים שאין בהם צורך לרסיסים, ומזמינים בהם חפץ <2>.":
+    "Items drop at a random slot, which is why every player ends up with nine swords and no boots. <0> is the exchange rate between those two facts, and it does one thing: <1>. Break the items you do not need into shards, and order a <2> item with them.",
+  "חצי מהמשקל במשבצת מתמחה (כפפות, שריון), או 0.35 ו־0.25 במשבצת שמפצלת בין שניים.":
+    "Half the weight in a specialised slot (gloves, armour), or 0.35 and 0.25 in a slot that splits between two.",
+  "חצי על ההופעה": "Half for turning up",
+  "חצי על הנזק": "Half for the damage",
+  "חרב · {slot}": "Sword · {slot}",
+  "חשבון שני שלך הוא לא חבר": "Your own second account is not a friend",
+  "יהלומים ביום השביעי": "Diamonds on the seventh day",
+  "יהלומים הם המטבע הנדיר. הם לא נופלים ממכרות, לא מהעונה ולא מחפצי הגיבור — רק מווג׳ אחד בגלגל המזל ומרכישה אמיתית. לכן כל הוצאה שלהם היא החלטה.":
+    "Diamonds are the rare currency. They do not come from mines, nor from the season, nor from the hero's gear — only from one wedge on the wheel of fortune and from a real purchase. So every diamond you spend is a decision.",
+  "יהלומים, למי שהפיל אותה": "Diamonds, for whoever brought it down",
+  "יום בעונה": "Day of the season",
+  "יום שהוחמץ שובר את הרצף": "A missed day breaks the streak",
+  "יומיות + שבועיות": "Daily + weekly",
+  "יורד עם הדרגה": "Falls with the tier",
+  "יחס קרב": "Battle ratio",
+  "יחס קרב ×{p0}": "Battle ratio ×{p0}",
+  "ימים, ואז מתחיל מחדש": "days, and then it starts again",
+  "יעדים שגדלים איתך": "Goals that grow with you",
+  "יציאות": "Sorties",
+  "יתרה בסוף התקופה": "Balance at the end of the period",
+  "יתרון, לא ניצחון בשערה": "An edge, not a win by a hair",
+  "כ־{p0} נפילות": "about {p0} drops",
+  "כוח הגנה סופי": "Final defence power",
+  "כוח הגנת היריב": "The rival's defence power",
+  "כוח המגן": "The defender's power",
+  "כוח התוקף": "The attacker's power",
+  "כוח התקיפה שלך": "Your attack power",
+  "כוח התקפה סופי": "Final attack power",
+  "כוח התקפה שלך": "Your attack power",
+  "כוח מודיעין יעד": "The target's intelligence power",
+  "כוח מודיעין תוקף": "The attacker's intelligence power",
+  "כוח נשקי הגנה": "Defence weapon power",
+  "כוח נשקי התקפה": "Attack weapon power",
+  "כוח נשקי ריגול": "Spy weapon power",
+  "כוח שליט העיר הראשונה": "The first city boss's power",
+  "כישלון = התראה": "Failure = an alert",
+  "כישלון עולה במרגלים": "Failure costs spies",
+  "כל {p0} דקות": "Every {p0} minutes",
+  "כל דו־קרב מוגרל מזרע שנגזר מהזירה ומשני המזהים, ולכן חישוב חוזר של אותה טבלה מחזיר בדיוק את אותן תוצאות — וסדר החישוב לא מיטיב עם אף צד.":
+    "Every duel is rolled from a seed derived from the arena and the two ids, so recomputing the same table returns exactly the same results — and the order of computation favours neither side.",
+  "כל החמישה, מלאים": "All five, full",
+  "כל חוק, כל נוסחה וכל מספר במשחק — כפי שהשרת באמת מחשב אותם. המדריך חי: הערכים שמוצגים כאן נקראים מהאיזון הפעיל של השרת, ובכל מקום שיש בו חישוב מחכה לך מחשבון שאפשר לשחק איתו.":
+    "Every rule, every formula and every number in the game — as the server actually works them out. The manual is live: the values shown here are read from the server's active balance, and wherever there is a calculation there is a calculator to play with.",
+  "כל חמשת האפקטים מוחלים על ידי שעון המשחק בלבד — אין כפתור להפעיל ואין תפוגה לעקוב אחריה.":
+    "All five effects are applied by the game clock alone — there is no button to press and no expiry to keep track of.",
+  "כל מכרה משודרג <0> — מכרה זהב בזהב, מחצבת אבן באבן. כל רמה עולה פי {p0} מקודמתה, כך שהדרגות הראשונות זולות והטיפוס לרמה {p1} הוא פרויקט של עונה.":
+    "Every mine is upgraded <0> — a gold mine in gold, a stone quarry in stone. Every level costs ×{p0} the one before it, so the first levels are cheap and the climb to level {p1} is a season-long project.",
+  "כל משאב מתנדנד בנפרד, ובכל מסע יש משאב אחד שחזר בשפע ואחד שכמעט לא חזר — לכן היחס בין זהב לעץ אף פעם לא נראה אותו דבר.":
+    "Every resource swings on its own, and every expedition has one resource that came back in abundance and one that barely came back at all — so the ratio between gold and wood never looks the same twice.",
+  "כל משימה נמדדת לפי מונה מצטבר לכל החיים — תקיפות, ביזה, ריגולים. אף משימה לא נמדדת לפי יתרה, כדי שפשיטה עליך לא תוריד לך בר.":
+    "Every mission is measured against a lifetime running total — attacks, plunder, spy missions. No mission is measured against a balance, so a raid on you cannot drag a bar backwards.",
+  "כל עבד מפיק {p0} יחידות בעדכון": "Each slave produces {p0} units per update",
+  "כל עדכון מחושב על היתרה החדשה, לא על הקרן.":
+    "Every update is worked out on the new balance, not on the principal.",
+  "כל עיר מכפילה את כל הכלכלה שלך. אחריה מגיע השליט: אין מכסת תקיפות ואין צורך להפיל אותו במכה אחת — כל יציאה מורידה מהחיים שלו ומשלמת שלל לפי הנזק, וההפלה עצמה מוסיפה את הפרס הגדול וחפץ מובטח.":
+    "Every city multiplies your whole economy. After it comes the boss: there is no attack quota and no need to fell it in one blow — every sortie takes health off it and pays spoils for the damage, and the kill itself adds the large prize and a guaranteed item.",
+  "כל עיר מכפילה תפוקה": "Every city multiplies output",
+  "כל עליית רמה מביאה גם אזרחים.": "Every level gained brings citizens too.",
+  "כל עשר רמות מתחלף הסט: תשעת החפצים מצוירים מחדש בחומר יקר יותר, מעור ונחושת ועד לזהב לבן זוהר. הרמה קובעת את הבונוס — הסט קובע איך זה נראה על הגיבור.":
+    "Every ten levels the set changes: the nine items are redrawn in a costlier material, from leather and copper up to glowing white gold. The level sets the bonus — the set sets how it looks on the hero.",
+  "כל קרב אחר במשחק הוא בין שני שחקנים או בין שחקן לשליט העיר שלו.  <0>  היא המקום היחיד שבו <1>: מפלצת אחת לשבוע, מאגר חיים משותף שגדל עם מספר האימפריות, וכל אימפריה שהנחיתה מכה מקבלת חלק בשלל. אין כפתור מנהלים — היא עולה על השעון.":
+    "Every other battle in the game is between two players, or between a player and his own city boss. <0> is the one place where <1>: one monster a week, a shared health pool that grows with the number of empires, and every empire that lands a blow takes a share of the spoils. There is no admin button — it comes up on the clock.",
+  "כל רמה = נקודה אחת = +1% התקפה/הגנה/תפוקה. גיבור רמה 16 מחזיק 16 נקודות, ורמה 100 — 100.":
+    "Every level = one point = +1% attack/defence/output. A level 16 hero holds 16 points, and level 100 — 100.",
+  "כל רמה עולה פי שניים בערך מקודמתה ומשלמת בדיוק אותן שתי נקודות אחוז — לכן מבנה אף פעם לא מחזיר את עצמו מהר יותר משהוא עולה.":
+    "Every level costs roughly twice the one before it and pays exactly the same two percentage points — so a monument never pays for itself faster than it costs.",
+  "כל שדרוג מכפיל את הכמות פי {p0} — אותם +{p1}% בכל דרגה, מהראשונה ועד הארבעים. חפץ ראשי ברמה 1 נותן {p2} לעדכון רגיל, ברמה 50 כבר {p3}, וברמה 100 {p4}. הסולם הזה עולה כמעט בדיוק בקצב שבו מחיר השדרוג עולה, ולכן הזהב קונה אותו ערך בכל נקודה בסולם.":
+    "Every upgrade multiplies the amount by ×{p0} — the same +{p1}% at every step, from the first to the fortieth. A primary item at level 1 gives {p2} per regular update, at level 50 already {p3}, and at level 100 {p4}. That ladder rises almost exactly as fast as the upgrade price does, so gold buys the same value at every point on it.",
+  "כל שחקן": "Any player",
+  "כמה מפיק כל עבד. רמה {p0} = {p1} ליחידה — התקרה.":
+    "How much each slave produces. Level {p0} = {p1} per unit — the ceiling.",
+  "כמו נפילה": "As a drop",
+  "כניסה אף פעם לא הפסד": "Entering is never a loss",
+  "כפילות": "Duplicate",
+  "לא בחזקה — 1% לכל דרגה, ישר: +{p0}% ברמה 100 כראשי, +{p1}% כמשני. אחוז שווה חלק יחסי מהצבא שלך, ולכן הוא הגיוני באותה מידה בכל רמה.":
+    "Not a power curve — 1% per step, straight up: +{p0}% at level 100 as a primary, +{p1}% as a secondary. A percentage is worth a proportional share of your army, so it makes equal sense at every level.",
+  "לא בעיגול ולא לצוות": "Not rounded, and not to the staff",
+  "לא מפסידים כלום בהיעדרות": "You lose nothing by being away",
+  "ליטוש הוא הדרך השנייה": "Polishing is the second way",
+  "ליממה": "Per day",
+  "ליעד אין בונוס גיבור או קסם בהגנה מפני ריגול — רק מרגלים, נשקי ריגול ושדרוג המודיעין שלו.":
+    "The target has no hero bonus and no spell when defending against spying — only his spies, his spy weapons and his intelligence upgrade.",
+  "לכל אחת מעשר דרגות הערים יש שליט אחד — קיר PvE שכוחו  <0>. לוחצים <1> פעם אחת, והצבא יוצא לקרב של  <2> סבבים שרץ כ־ <3> שניות בזמן אמת. אפשר לצפות, ואפשר לעבור לדף אחר ולהמשיך לשחק — כשהקרב נגמר מגיעה הודעה עם כל השלל. לבוס יש <4>, וכשהוא נופל הוא קם לתחייה אחרי  <5> דקות.":
+    "Each of the ten city tiers has one boss — a PvE wall whose power is <0>. You press <1> once, and the army goes into a battle of <2> rounds that runs for about <3> seconds in real time. You can watch, or you can go to another page and keep playing — when the battle ends a message arrives with the whole haul. The boss has <4>, and when it falls it revives after <5> minutes.",
+  "לכל אימפריה, בלי קשר לתורות": "Per empire, regardless of turns",
+  "לכל עיר, על המשאבים בלבד": "Per city, on the resources only",
+  "לכל עשור רמות — לזהב של סוף המשחק יש מה לקנות.":
+    "For every decade of levels — end-game gold has something to buy.",
+  "למה ±{p0}%": "Why ±{p0}%",
+  "למה הסולם לא בורח": "Why the ladder does not run away",
+  "למה יש רק ווג׳ אחד של יהלומים": "Why there is only one diamond wedge",
+  "למה לשדרג": "Why upgrade",
+  "למה צריך חמישה נרשמים": "Why five entrants are needed",
+  "לפי ערים, לא לפי דרגה": "By cities, not by tier",
+  "לפי רמת הגיבור — זה מה שהוא תורם לקרב":
+    "By hero level — that is what he contributes to the battle",
+  "לשבת עם החלון פתוח לא שווה כלום. רק פעולות מחממות.":
+    "Sitting with the window open is worth nothing. Only actions stoke it.",
+  "לשעה": "Per hour",
+  "לשרת שני קצבים, ולכל אחד תפקיד אחר. הכול מתעדכן על שעון גלובלי — כל האימפריות בעולם מתקדמות באותו רגע, גם אם אף אחד לא מחובר. נכנסת אחרי לילה שלם? כל העדכונים שהוחמצו מסודרים בבת אחת ברגע הכניסה.":
+    "The server has two rhythms, each with a different job. Everything updates on a global clock — every empire in the world advances at the same instant, even if nobody is online. Come back after a whole night away? Every missed update is settled at once the moment you sign in.",
+  "מאגר החיים ננעל בהופעה": "The health pool is locked at spawn",
+  "מאגר חיים": "Health pool",
+  "מאז שהמשחק היה פתוח אצלו — גם ליד כל שם בדירוג":
+    "Since the game was last open for them — beside every name in the rankings too",
+  "מגלגל פעם אחת לכל יציאה, מ-×0.55 ועד ×3.6, ואותה טבלה בדיוק לכל הדרגות — מסע ארוך לא קונה מזל טוב יותר, רק יותר שעות.":
+    "Rolled once per sortie, from ×0.55 up to ×3.6, and the very same table for every tier — a long expedition does not buy better luck, only more hours.",
+  "מגן {pct}%": "Defender {pct}%",
+  "מה {p0} קונה — ומה לא": "What {p0} buys — and what it does not",
+  "מה מגן באמת קונה לך": "What a shield really buys you",
+  "מה מותר לשלוח": "What may be sent",
+  "מה מקבלים בניצחון": "What a win pays",
+  "מה קונות הדרגות הארוכות": "What the long tiers buy",
+  "מה שבמחסן מוגן ולא נבזז": "What is in the warehouse is protected and not plundered",
+  "מה שנעשה לפני הפתיחה לא נספר": "What was done before it opened does not count",
+  "מהכוח שלו — נשמר בין תקיפות": "of its power — kept between attacks",
+  "מוריד את הנזק לשליש": "cuts the damage to a third",
+  "מזל המסע": "An expedition's luck",
+  "מחוץ למשחק יש ערוץ דיסקורד — שם יושבות ההכרזות, גיוס לבריתות, שאלות טקטיקה ודיווחי באגים. אפשר לשחק בלעדיו לגמרי; פשוט תדעו על Happy Hour אחרי כולם.":
+    "Outside the game there is a Discord channel — that is where the announcements, guild recruiting, tactics questions and bug reports live. You can play entirely without it; you will just hear about Happy Hour after everyone else.",
+  "מחזור הרצף": "The streak cycle",
+  "מחיר": "Price",
+  "מחיר ההזמנה נלקח מסולם שדרוגי החפצים — השדרוג הזול ביותר בעשור שהגיבור שלך עומד בו — כך שהנפחייה מתייקרת יחד עם שאר כלכלת הציוד.":
+    "The order price is taken from the item-upgrade ladder — the cheapest upgrade in the decade your hero stands in — so the forge grows dearer along with the rest of the gear economy.",
+  "מחיר השדרוג הבא": "The next upgrade's price",
+  "מחיר עיר": "City price",
+  "מחיר שדרוג חפץ — סולם גיאומטרי": "Item upgrade price — a geometric ladder",
+  "מחיר שדרוג מכרה": "Mine upgrade price",
+  "מחסן הוא הכספת מפני תוקפים. משאב שהופקד במחסן <0> — אבל גם לא ניתן להוציא אותו עד שתמשוך אותו בחזרה ליתרה הזמינה.":
+    "A warehouse is the vault against attackers. A resource deposited in a warehouse <0> — but it also cannot be used until you withdraw it back to the available balance.",
+  "מחסן מלא הוא ביטוח. תוקף לוקח רק מהיתרה הזמינה — מה שמאוחסן לא נוגעים בו.":
+    "A full warehouse is insurance. An attacker takes only from the available balance — what is stored is untouched.",
+  "מחשבון ניסיון גיבור": "Hero experience calculator",
+  "מחשבון קרב": "Battle calculator",
+  "מחשבון ריבית בנק": "Bank interest calculator",
+  "מחשבון ריגול": "Spy calculator",
+  "מחשבון שדרוג חפצים": "Item upgrade calculator",
+  "מחשבון תפוקת מכרה": "Mine output calculator",
+  "מי מקליד": "Who is typing",
+  "מי שלא הכה לא מקבל": "No blow, no share",
+  "מי שנשא את הקרב עדיין מרוויח מזה שנשא אותו.":
+    "Whoever carried the fight still profits from having carried it.",
+  "מיני־משחקים": "Mini-games",
+  "מינימום {p0}": "Minimum {p0}",
+  "מכה עולה": "Cost of a blow",
+  "מכות לשבוע": "Blows per week",
+  "מכל משאב בנפרד": "From each resource separately",
+  "מכל משאב זמין של המגן": "From every available resource the defender holds",
+  "מכסה לכל שיחה": "A quota per conversation",
+  "מכפיל ×{p0}": "Multiplier ×{p0}",
+  "מכפיל ליניארי: ×1 בעיר אחת, ×{p0} בעשר.":
+    "A linear multiplier: ×1 at one city, ×{p0} at ten.",
+  "מכפיל לפי ערים": "Multiplier by cities",
+  "מכפיל שרת גלובלי ×{p0}": "Global server multiplier ×{p0}",
+  "מכפיל: 1 + {p0}×0.1": "Multiplier: 1 + {p0}×0.1",
+  "מכפיל: 1 + {p0}×0.1 + {p1}%": "Multiplier: 1 + {p0}×0.1 + {p1}%",
+  "מכת המוות": "The killing blow",
+  "מנהל יכול להסתיר שורה": "An admin can hide a line",
+  "מסעות בלוח": "Expeditions on the board",
+  "מספר ערים": "Number of cities",
+  "מעלה חפץ קיים דרגה אחת בתוך העשור שלו תמורת רסיסים בלבד — {p0}/{p1}/{p2} — ועוצר באגדי, בדיוק כמו שדרוג הזהב.":
+    "Raises an existing item one grade within its decade for shards alone — {p0}/{p1}/{p2} — and stops at Legendary, exactly as the gold upgrade does.",
+  "מצטרפים כעבדי מכרות": "They join as mine slaves",
+  "מקום {p0}": "{p0} place",
+  "מקצוע הצל (+10% ניסיון)": "The Shadow class (+10% experience)",
+  "מקצוע הצל ×1.1": "The Shadow class ×1.1",
+  "מרגלים + נשקי ריגול": "Spies + spy weapons",
+  "מרמת חפץ": "From item level",
+  "משאבים בכל עדכון רגיל": "Resources per regular update",
+  "משאבים — שני כלים": "Resources — two tools",
+  "משימות בלוח": "Missions on the board",
+  "משימות שנמדדות במשאבים או בגופות מוכפלות ב־×{p0} לכל עיר — כמו הפרס. משימות שנספרות במעשים (שלוש תקיפות) זהות בכל גודל.":
+    "Missions measured in resources or in bodies are multiplied by ×{p0} per city — like the prize. Missions counted in deeds (three attacks) are the same at any size.",
+  "משך: {p0}": "Duration: {p0}",
+  "משני": "Secondary",
+  "משקל המזל": "The weight of luck",
+  "מתוכם 0.5% אגדי": "0.5% of them Legendary",
+  "מתחלק שווה בשווה בין כל מי שהנחית מכה. זה המספר שמחליט אם הפיקסצ׳ר שווה את הזמן של אימפריה קטנה, והוא נדיב בכוונה.":
+    "Split equally between everyone who landed a blow. That is the number that decides whether the fixture is worth a small empire's time, and it is deliberately generous.",
+  "מתחת לחלונית רואים בזמן אמת מי כותב עכשיו — בחדר ובשיחה — והנקודה ליד השם מראה מי מחובר.":
+    "Below the panel you see in real time who is typing right now — in the room and in a thread — and the dot beside a name shows who is online.",
+  "מתי": "When",
+  "מתנת הצטרפות חד־פעמית": "A one-off joining gift",
+  "נזק של מכה": "Damage per blow",
+  "ניסיון לניצחון": "Experience per win",
+  "ניסיון לניצחון אחד": "Experience for one win",
+  "ניסיון לרמה הבאה": "Experience to the next level",
+  "ניסיון מתקיפה מנצחת": "Experience from a winning attack",
+  "ניצחונות לרמה הבאה": "Wins to the next level",
+  "נמען פרטי": "Private recipient",
+  "נצבר זוהר, נקנה לא": "Earned glows, bought does not",
+  "נקודה ירוקה": "A green dot",
+  "נקודה לרמה": "A point per level",
+  "נקודות משאבים + בונוס מקצוע הסוחר + חרב ומגן, שמוסיפים אחוזים לתפוקה.":
+    "Resource points + the Merchant class bonus + the sword and shield, which add percentages to output.",
+  "נרשמים לזירה": "Entrants in the arena",
+  "נרשמים, אחרת אין יהלומים": "Enter, or there are no diamonds",
+  "נשק הוא הדרך להפוך משאבים לכוח. יש  <0> דרגות בכל אחת משלוש הקטגוריות — התקפה, הגנה וריגול. בכל דרגה המחיר  <1> (×{p0}) אבל הכוח גדל  <2> — ולכן כל דרגה נותנת  <3>  יותר כוח לכל זהב מזו שמתחתיה. תמיד שווה לקנות את הדרגה הגבוהה ביותר שנפתחה לך.":
+    "Weapons are how resources become power. There are <0> tiers in each of the three categories — attack, defence and spying. At every tier the price <1> (×{p0}) but the power grows <2> — so every tier gives <3> more power per gold than the one below it. It is always worth buying the highest tier you have unlocked.",
+  "סביב רמת הגיבור שלך": "Around your hero's level",
+  "סה״כ לעדכון רגיל": "Total per regular update",
+  "סולם הדרגות — כוח, מחיר ותנאי פתיחה":
+    "The tier ladder — power, price and unlock conditions",
+  "סיכוי לחפץ": "Chance of an item",
+  "סיכוי לסיבוב חינם מתקיפה מנצחת": "Chance of a free spin from a winning attack",
+  "סיכוי לשיקוי": "Chance of a potion",
+  "סיכוי קריאה נכונה": "Chance of reading it right",
+  "סף הפודיום": "The podium threshold",
+  "עבדי מכרות משובצים": "Mine slaves assigned",
+  "עבדי מכרות פתיחה": "Starting mine slaves",
+  "עבדים או רמה?": "Slaves or level?",
+  "עד <0>": "up to <0>",
+  "עד {max}": "up to {max}",
+  "עד {p0} תקיפות ביום": "up to {p0} attacks a day",
+  "עד רמה {max}": "up to level {max}",
+  "עד רמת חפץ": "up to item level",
+  "עדכון {p0}: {p1}": "Update {p0}: {p1}",
+  "עדכון יומי": "Daily update",
+  "עדכון רגיל": "Regular update",
+  "עונדים אחד בכל פעם": "Worn one at a time",
+  "עונה חדשה, קשר חדש": "A new season, a new link",
+  "עזרת ברית (כוח קבוע)": "Guild aid (flat power)",
+  "עזרת ברית (פסיבית)": "Guild aid (passive)",
+  "עזרת ברית פסיבית מחזקת אותך בכל קרב בלי לעשות כלום, והקסמים נותנים עד 30% נוספים ל־24 שעות.":
+    "Passive guild aid strengthens you in every battle without doing anything, and the spells give up to 30% more for 24 hours.",
+  "עיר {tier}": "City {tier}",
+  "עיר אחת בלבד למטה · מעיר {p0} ומעלה · אחת ל־{p1} שעה · בלי החזר":
+    "One city down only · from city {p0} up · once every {p1} hour · no refund",
+  "עיר היא קפיצת המדרגה הגדולה במשחק. כל עיר מכפילה את תפוקת המכרות, פותחת עוד {p0} רמות לשדרוג קבלת האזרחים — ופותחת דרגות נשק חדשות במפעל. לכל אחת מעשר הערים שם משלה, מ {p1} שעל הגבול ועד {p2}, והדירוג שאתה רואה הוא תמיד זה של העיר שבה אתה יושב.":
+    "A city is the big step up in this game. Every city multiplies your mines' output, opens another {p0} levels of the citizen-income upgrade — and opens new weapon tiers in the foundry. Each of the ten cities has a name of its own, from {p1} on the frontier up to {p2}, and the ranking you see is always the one for the city you sit in.",
+  "עיר מספר N דורשת רמת גיבור (N−1) × 10.": "City number N requires hero level (N−1) × 10.",
+  "עיר, ואז שליט העיר": "A city, then the city's boss",
+  "עלות כוללת ({p0} שדרוגים)": "Total cost ({p0} upgrades)",
+  "עלות שדרוג רגיל (רמה → רמה+1)": "Ordinary upgrade cost (level → level+1)",
+  "ערים ×{p0}": "Cities ×{p0}",
+  "ערך הרסיס קבוע": "A shard's value is fixed",
+  "עשר תקיפות ב-08:00 ולוח שנפתח ב-22:00 מתחילות מאפס. זה המחיר של השיטה, והיא זו שמונעת ספירה כפולה.":
+    "Ten attacks at 08:00 and a board opened at 22:00 start from zero. That is the price of the method, and it is what stops double counting.",
+  "עשרת הסטים": "The ten sets",
+  "פועלים": "Working",
+  "פחות יהלומים ויותר ממה שאימפריה צעירה באמת צריכה — תורות ואנשים.":
+    "Fewer diamonds and more of what a young empire actually needs — turns and people.",
+  "פחות תורות לכל שעת מסע, וסיכויי שלל גבוהים בהרבה בסיום.":
+    "Fewer turns per hour of expedition, and far better haul odds at the end.",
+  "פי מאה כוח שווה קצת יותר מפי שלושה נזק. בלי זה, הלוח היה נסגר לפני שהאימפריות הקטנות הספיקו לטעון את הדף, וחלקן בשלל היה מתעגל לאפס.":
+    "A hundred times the power is worth a little over three times the damage. Without that, the board would close before the small empires had finished loading the page, and their share of the spoils would round to zero.",
+  "פעם אחת, ואי אפשר לשנות": "Once, and it cannot be changed",
+  "פער הרמות נגזר מ־**0.25 + (רמה אפקטיבית של היריב ÷ שלך) × 0.75** ונחסם בטווח **0.25–2.5**. רמה אפקטיבית = רמה + איפוסים × **100**, ולכן יריב ברמה 1 אחרי איפוס אחד נחשב רמה **101** ומשלם בהתאם. יחס הקרב נגזר מ־**0.3 + ∛(כוח היריב ÷ כוחך) × 1.4** ונחסם בטווח **0.3–2.0** — לרמוס יריב חלש משתלם פחות מלנצח יריב שקול, וניצחון על חזק ממך משלם הכי הרבה. השורש נמצא שם כי הכוח במשחק גדל בקפיצות מסדרי גודל: בלעדיו כמעט כל קרב אמיתי נפל על רצפת ה־**0.3**.":
+    "The level gap follows from **0.25 + (the rival's effective level ÷ yours) × 0.75** and is clamped to **0.25–2.5**. Effective level = level + resets × **100**, so a rival at level 1 after one reset counts as level **101** and pays accordingly. The battle ratio follows from **0.3 + ∛(the rival's power ÷ yours) × 1.4** and is clamped to **0.3–2.0** — trampling a weak rival pays less than beating an even one, and beating someone stronger than you pays the most. The root is there because power in this game grows in jumps of whole orders of magnitude: without it almost every real battle landed on the **0.3** floor.",
+  "פער רמות": "Level gap",
+  "פער רמות ×{p0}": "Level gap ×{p0}",
+  "פרויקט של עונה שלמה": "A whole season's project",
+  "פרי שטן, מכנסיים ונעליים מוסיפים כמות קבועה מעל המכפיל — לא אחוז.":
+    "Devil's fruit, trousers and boots add a flat amount on top of the multiplier — not a percentage.",
+  "פרי שטן, מכנסיים ונעליים נותנים כמות קבועה בכל עדכון רגיל (עד +{p0}), וככל שהדרגה גבוהה יותר סוגי משאבים. לכל משבצת סדר משלה: פרי שטן פותח בזהב, מכנסיים בברזל, נעליים באבן. חרב ומגן פועלים הפוך — הם מכפילים את תפוקת כל המכרות באחוזים (עד +{p1}%), קטן בהתחלה ומשמעותי בסוף.":
+    "Devil's fruit, trousers and boots give a flat amount on every regular update (up to +{p0}), and the higher the grade the more kinds of resource. Each slot has an order of its own: devil's fruit opens with gold, trousers with iron, boots with stone. The sword and shield work the other way round — they multiply the output of every mine by a percentage (up to +{p1}%), small at first and substantial at the end.",
+  "פשוט שווה רסיס אחד בין אם הוא מהעשור הראשון או העשירי, והזמנה עולה אותו דבר תמיד. אין קצה זול לחקור ואין ארביטראז׳.":
+    "A Plain is worth one shard whether it comes from the first decade or the tenth, and an order always costs the same. There is no cheap end to work out and no arbitrage.",
+  "פתח דרגות נשק — הן משותפות": "Unlock weapon tiers — they are shared",
+  "פתיחה אחת מקדמת התקפה, הגנה וריגול יחד. כל 4 דרגות תצטרך לעלות עיר ורמת גיבור גבוהה יותר, אז העיר והגיבור הם התנאי האמיתי.":
+    "One unlock advances attack, defence and spying together. Every 4 tiers you will need a higher city and a higher hero level, so the city and the hero are the real condition.",
+  "פתיחת דרגה היא <0> — פתחת דרגה 7? היא נפתחה להתקפה, להגנה ולריגול יחד. מתחילים עם דרגות  <1> פתוחות, וכל  <2> דרגות נדרשת רמת עיר גבוהה יותר ורמת גיבור גבוהה יותר.":
+    "Unlocking a tier is <0> — unlocked tier 7? It opened for attack, for defence and for spying together. You start with tiers <1> open, and every <2> tiers demands a higher city level and a higher hero level.",
+  "צריך להיות גדול ממש מכוח המודיעין של היעד.":
+    "It has to be strictly greater than the target's intelligence power.",
+  "צ׳אט מול תיבת הדואר": "Chat against the mailbox",
+  "קיבולת מחסן": "Warehouse capacity",
+  "קסם ברית — הגנה": "Guild spell — defence",
+  "קסם ברית — התקפה": "Guild spell — attack",
+  "קסם ברית — משאבים": "Guild spell — resources",
+  "קסם ברית — ריגול": "Guild spell — spying",
+  "קצב": "Rate",
+  'קראלדור הוא משחק אסטרטגיה של אימפריות שרצות על שעון אמיתי. אתה לא "משחק תור" — האימפריה שלך מייצרת, גדלה ונשדדת גם כשאתה לא מחובר. כל מה שתעשה מסתובב בלולאה אחת קבועה:':
+    'Kraldor is a strategy game of empires running on a real clock. You are not "playing a turn" — your empire produces, grows and gets raided while you are offline. Everything you do goes round one fixed loop:',
+  "קרב בקראלדור הוא <0> — אין קובייה ואין מזל. שני מספרים מושווים, והגדול מנצח. זה אומר שכל תקיפה ניתנת לחישוב מראש, וזה בדיוק מה שהמחשבון למטה עושה.":
+    "A battle in Kraldor is <0> — there is no dice and no luck. Two numbers are compared, and the larger wins. That means every attack can be worked out in advance, which is exactly what the calculator below does.",
+  "ראשי": "Primary",
+  "רווח מריבית": "Interest earned",
+  "רוקן את מאגר האזרחים בכל עדכון": "Empty the citizen pool on every update",
+  "ריבית בעדכון יומי": "Interest per daily update",
+  "ריבית דריבית": "Compound interest",
+  "ריבית מקסימלית": "Maximum interest",
+  "ריבית עובדת פעמיים ביום, בריבית דריבית, גם כשאתה ישן. זהב שיושב זמין לא עושה כלום ורק מסכן אותך.":
+    "Interest works twice a day, compounded, even while you sleep. Gold sitting available does nothing and only puts you at risk.",
+  "ריגול נפתר בדיוק כמו קרב — השוואת מספרים, בלי הגרלה. ההבדל: המגן מתגונן רק עם המרגלים, נשקי הריגול ושדרוג המודיעין שלו — בלי בונוס גיבור ובלי קסמים.":
+    "Spying resolves exactly like a battle — a comparison of numbers, with no roll. The difference: the defender defends with his spies, his spy weapons and his intelligence upgrade alone — no hero bonus and no spells.",
+  "ריגול רגיל מספיק לו להיות גדול ב־1. חבלה דורשת שליש יותר מודיעין — לשרוף מחסן זו לא אותה שליחות כמו לספור חיילים.":
+    "Ordinary spying only needs to be greater by 1. Sabotage demands a third more intelligence — burning a warehouse is not the same errand as counting soldiers.",
+  "ריגול רגיל רק מסתכל. <0> היא מה שהמרגלים שלך עושים כשאתה מפסיק לבקש מהם להסתכל: שלוש משימות שיוצאות מאותו לוח דוסיה של היעד, נפתרות לפי אותה השוואת מודיעין, ולוקחות משהו אמיתי. הן חולקות כל כלל של ריגול — אותה דרגת ערים בלבד, אותו מגן שחקן חדש, ותקיפה שמפילה את המגן שלך.":
+    "Ordinary spying only looks. <0> is what your spies do when you stop asking them to look: three missions launched from the target's own dossier board, resolved by the same intelligence comparison, that take something real. They share every rule of spying — the same city tier only, the same new-player shield, and an attack that brings your own shield down.",
+  "רכישה חד־פעמית · לא פג תוקף · פותח את כפתורי ״הכל״ במשחק":
+    "A one-off purchase · never expires · unlocks the game's \"All\" buttons",
+  "רמה + איפוסים × {p0}. איפוס מחזיר לרמה 1 אך הוותק נשאר, ולכן יריב ברמה 1 אחרי איפוס אחד נחשב רמה {p1}.":
+    "Level + resets × {p0}. A reset returns you to level 1 but the seniority stays, so a rival at level 1 after one reset counts as level {p1}.",
+  "רמה {p0} · {p1} · דרגה {p2}/40": "Level {p0} · {p1} · step {p2}/40",
+  "רמה × 2": "Level × 2",
+  "רמה אפקטיבית": "Effective level",
+  "רמה אפקטיבית {p0}": "Effective level {p0}",
+  "רמה אפקטיבית {p0} — פער ×{p1}": "Effective level {p0} — gap ×{p1}",
+  "רמות בכל מבנה": "Levels per monument",
+  "רמת גיבור היריב": "The rival's hero level",
+  "רמת הגיבור שלך": "Your hero's level",
+  "רמת המכרה": "Mine level",
+  "רמת שדרוג מודיעין": "Intelligence upgrade level",
+  "רמת שדרוג ריבית": "Interest upgrade level",
+  "רסיסים להזמנה": "Shards for an order",
+  "רסיסים לנפילה": "Shards for a drop",
+  "רצפה של נזק אחד": "A floor of one damage",
+  "רק מונים שעולים": "Only counters that rise",
+  "רק תקיפה משלמת": "Only attacking pays",
+  "שבוע אחד, מפלצת אחת": "One week, one monster",
+  "שבירת הצבא": "The army breaking",
+  'שבעה מאזנים מנהלים את האימפריה. ארבעה מהם נאגרים ונבזזים, אחד נקנה בכסף אמיתי, ושניים הם "דלק" — כוח אדם וזמן פעולה.':
+    'Seven balances run an empire. Four of them are banked and plundered, one is bought with real money, and two are "fuel" — manpower and time to act.',
+  "שדרג את המחסנים לפני שיש מה לגנוב":
+    "Upgrade the warehouses before there is anything to steal",
+  "שדרוג לרמה 10 עולה {p0} זהב.": "Upgrading to level 10 costs {p0} gold.",
+  "שדרוג לרמה 100 עולה {p0} זהב.": "Upgrading to level 100 costs {p0} gold.",
+  "שוד הגנזך לוקח לכיס שלך": "Raiding the treasury puts it in your own pocket",
+  "שוויון נשבר לפי כוח": "A tie is broken by power",
+  "שורש, לא כוח גולמי": "A root, not raw power",
+  "שורש, שוב": "A root, again",
+  "שיקוי הוא לא ציוד — הוא <0>. נופל מתקיפות מנצחות בסיכוי  <1>, ושתייה בזמן שהחלון כבר פתוח מאריכה אותו במקום לבזבז בקבוק.":
+    "A potion is not equipment — it is <0>. It drops from winning attacks at a chance of <1>, and drinking one while the window is already open extends it rather than wasting a bottle.",
+  "שיקוי הניסיון (×2)": "Experience potion (×2)",
+  "שיקוי הניסיון ×2": "Experience potion ×2",
+  "שיקוי השפע ×2": "Abundance potion ×2",
+  "שיקוי השפע פעיל (×2)": "Abundance potion active (×2)",
+  "שישה שדרוגים גלובליים שמשנים כללים, לא מספרים בודדים. רובם חסומים בתקרה — כדי שלא תשקיע לנצח במשהו שכבר מיצה את עצמו.":
+    "Six global upgrades that change rules rather than single numbers. Most are capped — so you do not invest forever in something that has already run its course.",
+  "שלושה יוצאים מהכלל": "Three exceptions",
+  "שלושה מקורות פרסים שמתחדשים מעצמם — כולם על אותו שעון של העדכון היומי, וכולם גדלים ככל שהעונה מתקדמת.":
+    "Three sources of prizes that renew themselves — all on the same daily-update clock, and all growing as the season goes on.",
+  "שליט הוא מצור, לא לחיצה": "A boss is a siege, not a click",
+  "שליט שנופל מפיל תמיד חפץ — ברצפת דרגה {p0} ומעלה, ובדירוג S דרגה אחת מעל זה.":
+    "A boss that falls always drops an item — at a floor of grade {p0} or above, and at grade S one grade above that.",
+  "שלל בדרך": "Spoils on the way",
+  "שלל מחזור": "Cycle spoils",
+  "שני הספסלים": "The two benches",
+  "שני נרשמים עם אותו מספר ניצחונות שלא נפגשו — החזק מביניהם מדורג גבוה יותר.":
+    "Two entrants on the same number of wins who never met — the stronger of them ranks higher.",
+  "שעה של חוק שבור": "An hour with one rule broken",
+  "שעון ישראל, פעמיים ביום.": "Israel time, twice a day.",
+  "שתי מכסות": "Two quotas",
+  "תדירות זיכוי": "Crediting frequency",
+  "תואר נצבר לא נמכר": "An earned title is not sold",
+  "תווים — צעקה, לא מכתב": "characters — a shout, not a letter",
+  "תוקף {pct}%": "Attacker {pct}%",
+  "תור אחד לעדכון רגיל הוא {p0} תורות ביום, לתמיד. לכן: {p1} זהב לרמה הראשונה, וכל רמה אחריה פי {p2} — עד רמה {p3}.":
+    "One turn per regular update is {p0} turns a day, forever. Hence: {p1} gold for the first level, and every level after it ×{p2} — up to level {p3}.",
+  "תורות בכל עדכון יומי": "Turns per daily update",
+  "תורות לשעת מסע": "Turns per hour of expedition",
+  "תורות לתקיפה": "Turns per attack",
+  "תורות פתיחה": "Starting turns",
+  "תורות — כארבע תקיפות": "Turns — about four attacks",
+  "תורות, פעם ביום": "Turns, once a day",
+  "תיקו נכשל": "A tie fails",
+  "תפוקה + תורות": "Output + turns",
+  "תפוקת מכרה בכל עדכון רגיל": "Mine output per regular update",
+  "תקרה": "Ceiling",
+  "תשעה מקומות על הגיבור, כל אחד עם סטטיסטיקה משלו. חפץ נקבע לחלוטין מהמקום והרמה שלו — שני חפצים באותה משבצת ובאותה רמה זהים תמיד.":
+    "Nine places on the hero, each with a statistic of its own. An item is settled entirely by its slot and its level — two items in the same slot at the same level are always identical.",
+  "״{p0}״": '"{p0}"',
+  "• 1 נקודה = +1% התקפה / הגנה / תפוקת מכרות":
+    "• 1 point = +1% attack / defence / mine output",
+  "• <0> בכל הגנה שנפרצת": "• <0> for every defence that is breached",
+  "• <0> סיבובי גלגל מזל": "• <0> spins of the wheel of fortune",
+  "• <0> — מ-<1>  נקודות:  <2>  ביזה": "• <0> — from <1> points: <2> plunder",
+  "• אזרחים ותורות מחפצי הגיבור": "• Citizens and turns from the hero's gear",
+  "• אזרחים חדשים — בלי תקרה, כולל כל הצבירה שהחמצת":
+    "• New citizens — no ceiling, including everything you banked while away",
+  "• איפוס דרך התהילה ומכסת הניצחונות על שליט העיר":
+    "• The Road to Glory and the city-boss win quota reset",
+  "• איפוס הקצאת נקודות: <0>  יהלומים": "• Resetting the point allocation: <0> diamonds",
+  "• באפס: כל הבונוסים כבים — נקודות, חפצים ומקצוע":
+    "• At zero: every bonus goes out — points, items and class",
+  "• המד עוצר ב-<0> נקודות — אי אפשר לאגור חום להמשך היום":
+    "• The meter stops at <0> points — you cannot bank heat for later in the day",
+  "• הציוד הלבוש נשאר עליך וממשיך לפעול — אך חפץ שתסיר יינעל בתיק עד שתחזור לרמתו":
+    "• The gear you are wearing stays on and keeps working — but an item you take off is locked in the bag until you get back to its level",
+  "• התיק מחזיק <0> חפצים לא לבושים — תיק מלא חוסם שלל חדש":
+    "• The bag holds <0> unworn items — a full bag blocks new loot",
+  "• זמין ברמה <0>": "• Available at level <0>",
+  "• חוזר לרמה 1 עם <0> אזרחים ו־<1> תורות":
+    "• Returns to level 1 with <0> citizens and <1> turns",
+  "• כל איפוס מוסיף <0> נקודות פתיחה לצמיתות: אחרי איפוס אחד מגיעים לרמה {p0} עם  <1> נקודות, אחרי שניים עם <2>":
+    "• Every reset permanently adds <0> starting points: after one reset you reach level {p0} with <1> points, after two with <2>",
+  "• כל פעולה מוסיפה נקודה — תקיפה, ריגול, שדרוג, אימון, מיני-משחק, גלגל, מסע":
+    "• Every action adds a point — attack, spy, upgrade, training, mini-game, wheel, expedition",
+  "• משאבים קבועים מחפצי הגיבור (פרי־שטן, מכנסיים ועוד)":
+    "• Flat resources from the hero's gear (devil's fruit, trousers and the rest)",
+  "• מתחיל ב־<0>": "• Starts at <0>",
+  "• נקודה דועכת כל  <0> דקות": "• A point decays every <0> minutes",
+  "• קם לתחייה אחרי <0> שעה, או מיידית ב־<1> יהלומים — בכפתור שבראש עמוד הגיבור":
+    "• Revives after <0> hour, or at once for <1> diamonds — on the button at the top of the hero page",
+  "• ריבית על הזהב שבבנק, ופתיחת מכסת הפקדות חדשה":
+    "• Interest on the gold in the bank, and a fresh deposit quota opens",
+  "• תג ↻ קבוע — וכל איפוס נחשב {p0} רמות בחישוב הניסיון, כך שגם ברמה 1 מי שמנצח אותך מקבל ניסיון של יריב ותיק":
+    "• A permanent ↻ badge — and every reset counts as {p0} levels in the experience sum, so even at level 1 whoever beats you gets a veteran's experience",
+  '• תורות משדרוג "קבלת תורות" (+1 לכל רמה)':
+    '• Turns from the "Turn Income" upgrade (+1 per level)',
+  "• תפוקת כל המכרות (לפי עבדים, רמה, ערים ובונוסים)":
+    "• The output of every mine (by slaves, level, cities and bonuses)",
+  "⚠ המסלול חוצה **{jumps}** מעברי סט. אגדי הוא שיא הסט שלו ואי אפשר לשדרג אותו — החפץ של הסט הבא נופל כשלל בקרב. העלות למטה היא רק של השדרוגים שאפשר לקנות בזהב.":
+    "⚠ The route crosses **{jumps}** set changes. A Legendary is its set's ceiling and cannot be upgraded — the next set's item drops as loot in battle. The cost below is only for the upgrades gold can buy.",
+  "מבט על": "Overview",
+  "שעון המשחק": "The game clock",
+  "מכרות ותפוקה": "Mines and output",
+  "צבא ואזרחים": "Army and citizens",
+  "מפעל הנשק": "The foundry",
+  "להט הקרב": "Battle fervor",
+  "שליטי הערים": "City bosses",
+  "גלגל, פס עונה ואירועים": "Wheel, season pass and events",
+  "מסלול התקדמות": "The road ahead",
+  "מייצרים": "Produce",
+  "מכרות + עבדים = משאבים בכל 5 דקות": "Mines + slaves = resources every 5 minutes",
+  "משדרגים": "Upgrade",
+  "מכרות, מחסנים, שדרוגי אימפריה, ערים": "Mines, warehouses, empire upgrades, cities",
+  "מתחמשים": "Arm",
+  "חיילים, מרגלים ונשקים במפעל": "Soldiers, spies and weapons in the foundry",
+  "תוקפים": "Attack",
+  "ביזה, שבויים, ניסיון וחפצים": "Plunder, captives, experience and items",
+  "מתחזקים": "Grow stronger",
+  "הגיבור עולה רמות ומחזק את הכל": "The hero gains levels and strengthens everything",
+  "המטבע המרכזי — נשקים, שדרוגים, שדרוג חפצים ובנק.":
+    "The central currency — weapons, upgrades, item upgrades and the bank.",
+  "חומר בנייה לשדרוגים ולנשקים.": "Building material for upgrades and weapons.",
+  "הבסיס לכל כלי הנשק.": "The basis of every weapon.",
+  "חומות, מבנים וביצורים.": "Walls, buildings and fortifications.",
+  "מטבע פרימיום: בריתות, קסמים, החייאת גיבור וחבילות.":
+    "A premium currency: guilds, spells, hero revival and packs.",
+  "כוח אדם גולמי — הופך לחיילים, מרגלים או עבדי מכרות.":
+    "Raw manpower — becomes soldiers, spies or mine slaves.",
+  "דלק הפעולה: כל תקיפה, ריגול וקרב בוס עולה תורות.":
+    "The fuel of action: every attack, spy mission and boss fight costs turns.",
+  "המצב שבו השבוע נפתח.": "The state the week opened in.",
+  "קרב בוס": "Boss fight",
+  "ייסוד עיר": "Founding a city",
+  "שדרוג אימפריה": "Empire upgrade",
+  "מיני־משחק": "Mini-game",
+
+
+  /* Two-part accessible names — a thing and what it is. Kept as keys rather
+     than concatenated at the call site so the separator and the order can
+     change with the language. */
+  "{name} — {tagline}": "{name} — {tagline}",
+  "{name} — {title}": "{name} — {title}",
+  "{game} — {title}": "{game} — {title}",
+  "{title} — {multiplier}": "{title} — {multiplier}",
+
 };

@@ -848,7 +848,7 @@ export function BossLadder({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={`/boss/${boss.key}.jpg`}
-                  alt={boss.name}
+                  alt={t(boss.name)}
                   loading="lazy"
                   className="h-24 w-20 shrink-0 rounded-lg object-cover"
                   style={{ boxShadow: `0 0 24px -8px rgb(${boss.accent} / 0.9)` }}

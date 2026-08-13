@@ -3,6 +3,7 @@
 import { useId, type ReactElement, type SVGProps } from "react";
 import type { PotionKind } from "@prisma/client";
 import { POTION_META, type PotionShape } from "@/lib/game/potions";
+import { useT } from "@/i18n/client";
 
 /**
  * The potion art — hand-drawn glassware in SVG rather than PNGs, so a bottle
@@ -92,6 +93,7 @@ export function PotionBottle({
   const { Body, Neck, surface, cork } = SHAPES[meta.shape];
   const { from, to, glow } = meta.liquid;
 
+  const t = useT();
   const liquidId = `pl-${uid}`;
   const glassId = `pg-${uid}`;
   const clipId = `pc-${uid}`;
@@ -101,7 +103,7 @@ export function PotionBottle({
       viewBox="0 0 64 64"
       className={className}
       role="img"
-      aria-label={meta.label}
+      aria-label={t(meta.label)}
       style={{ opacity: empty ? 0.4 : 1 }}
     >
       <defs>

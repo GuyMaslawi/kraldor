@@ -214,7 +214,7 @@ export default async function BossFightPage({
                   a face against a generic silhouette. */}
               <LivingPortrait
                 src={heroClassImage(myClass)}
-                alt={myClassMeta.label}
+                alt={t(myClassMeta.label)}
                 className="absolute inset-0"
                 accent={myClassMeta.accent}
                 tilt={3}
@@ -234,7 +234,7 @@ export default async function BossFightPage({
                   artwork's overscan or it would bare the frame's edge. */}
               <LivingPortrait
                 src={bossImage(boss.key)}
-                alt={boss.name}
+                alt={t(boss.name)}
                 className="absolute inset-0"
                 accent={boss.accent}
                 tilt={3}
@@ -242,7 +242,7 @@ export default async function BossFightPage({
               />
             </div>
             <p className="max-w-full truncate font-black text-[rgb(var(--boss-accent))]">
-              {boss.name}
+              {t(boss.name)}
             </p>
             <p className="text-[11px] text-zinc-500">
               {t(boss.title)} · {t("עיר {city}", { city: cityName(t, fight.cityTier) })}

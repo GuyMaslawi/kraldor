@@ -657,7 +657,7 @@ export function WheelOfFortune({
                       className={`drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] ${RESOURCE_ICON_COLOR[p.key] ?? "text-violet-300"}`}
                     />
                     <span className="whitespace-nowrap text-[9px] font-bold uppercase tracking-wide text-bone drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                      {p.label}
+                      {t(p.label)}
                     </span>
                     {amount !== null && (
                       <span
@@ -733,7 +733,7 @@ export function WheelOfFortune({
                       size={14}
                       className={RESOURCE_ICON_COLOR[h.prize.key] ?? "text-violet-300"}
                     />
-                    {h.prize.label}
+                    {t(h.prize.label)}
                     {/* Unit prizes grant exactly one thing per win, so ×count and
                         the total are the same number — showing both read as two
                         different multipliers. One badge with the total only. */}
@@ -754,13 +754,13 @@ export function WheelOfFortune({
                   .filter((h) => h.prize.kind === "unit" && h.prize.note)
                   .map((h) => (
                     <p key={`note-${h.prize.key}`} className="w-full text-[11px] text-bone-dim">
-                      {h.prize.label}: {h.prize.note}
+                      {t(h.prize.label)}: {t(h.prize.note!)}
                     </p>
                   ))}
               </div>
             ) : (
               result.prize.note && (
-                <p className="mt-0.5 text-[11px] text-bone-dim">{result.prize.note}</p>
+                <p className="mt-0.5 text-[11px] text-bone-dim">{t(result.prize.note)}</p>
               )
             )}
           </div>

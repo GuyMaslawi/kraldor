@@ -216,7 +216,7 @@ export function MiniGameTakeover({
       data-leaving={leaving}
       onClick={close}
       role="alertdialog"
-      aria-label={`${meta.label} — ${state.title}`}
+      aria-label={t("{game} — {title}", { game: t(meta.label), title: state.title })}
       dir="rtl"
     >
       <div className="mgt-rays" aria-hidden />

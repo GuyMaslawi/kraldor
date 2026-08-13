@@ -6,6 +6,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { applyPendingUpdates } from "@/lib/game/updates";
 import { isBanned } from "@/lib/ban";
+import { PRELAUNCH, prelaunchShut } from "@/lib/prelaunch";
 import { getSeasonGate } from "@/server/seasonClose";
 
 const SESSION_COOKIE = "kraldor_session";
@@ -171,6 +172,25 @@ export const getSessionUserId = cache(async (): Promise<string | null> => {
 });
 
 /**
+ * Whether the pre-launch gate bars this account from the game (see
+ * lib/prelaunch.ts).
+ *
+ * A separate one-column read rather than a `role` added to the selects below,
+ * for the reason spelled out in `requireEmpire`: that object is spread into the
+ * props of every `/game` screen, and the less of the User row travels with it the
+ * better. React-cached, so the two callers share one round trip per request — and
+ * once the game is open (`PRELAUNCH=0`) it makes no query at all.
+ */
+const prelaunchBars = cache(async (userId: string): Promise<boolean> => {
+  if (!PRELAUNCH) return false;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  return prelaunchShut(user?.role);
+});
+
+/**
  * Resolve the logged-in user's empire id for a server action, **enforcing the
  * ban on every action** — not just on page load.
  *
@@ -202,6 +222,13 @@ export const getActiveEmpireId = cache(async (): Promise<string | null> => {
   // changing the numbers the next season's ladder starts from) inside a season
   // that is already over and recorded.
   if (!(await getSeasonGate()).open) return null;
+  // The game has not opened yet. Gated here as well as at `requireEmpire` for
+  // exactly the reason the two checks above are: registration hands out a real
+  // session (it has to, so the account can verify its address), and a session is
+  // a POST away from every mutation in the game. Shutting only the pages would
+  // leave a pre-registered player able to train, bank and attack through server
+  // actions before the season the world is supposed to start from even exists.
+  if (await prelaunchBars(userId)) return null;
   return empire.id;
 });
 
@@ -236,7 +263,11 @@ export const requireEmpire = cache(async () => {
       },
     },
   });
-  if (!existing) redirect("/login");
+  // No empire yet — a Google sign-up that never finished naming one, or an
+  // account whose empire was removed by a pre-launch reset. `/onboarding`, not
+  // `/login`: the session is perfectly valid, and `/login` bounces a
+  // session-holder straight back to `/game/base`, which is this line again.
+  if (!existing) redirect("/onboarding");
   // Banned users lose all game access, until the ban's deadline passes.
   if (isBanned(existing.user)) {
     await destroySession();
@@ -250,6 +281,11 @@ export const requireEmpire = cache(async () => {
   // a page load after the deadline cannot settle another hour of production
   // into an empire whose final standing is already carved into the hall.
   if (!(await getSeasonGate()).open) redirect("/season");
+  // The game has not opened yet — see lib/prelaunch.ts. Like the season check
+  // above, this sits *before* applyPendingUpdates: a page load during the
+  // pre-launch window must not settle production into an empire that is waiting
+  // for a world that has not started.
+  if (await prelaunchBars(userId)) redirect("/launch");
 
   const empire = await applyPendingUpdates(existing.id);
   return { ...empire, user: existing.user };

@@ -132,6 +132,17 @@ export const EN: Record<string, string> = {
   "לתוצאות העונה ולספירה לאחור →":
     "Season results and the countdown →",
 
+  /* the pre-launch window — see src/lib/prelaunch.ts */
+  "המשחק נפתח בקרוב": "The game opens soon",
+  "הכניסה תיפתח עם פתיחת העונה. עד אז אפשר להירשם ולשמור את שם האימפריה.":
+    "Sign-in opens with the season. Until then you can register and claim your empire name.",
+  "לספירה לאחור →": "To the countdown →",
+  "המשחק עוד לא נפתח, אז אי אפשר להיכנס. אפשר להירשם עכשיו ולשמור את שם האימפריה לרגע שהשערים נפתחים.":
+    "The game has not opened yet, so there is no signing in. You can register now and hold your empire name for the moment the gates open.",
+  "הירשם עכשיו ותפוס את השם": "Register now and claim your name",
+  "ההרשמה פתוחה. הכניסה למשחק תיפתח כשהספירה מסתיימת.":
+    "Registration is open. The game itself opens when the countdown ends.",
+
   /* ------------------------------------------------------------------ */
   /* the armory (weapons)                                               */
   /* ------------------------------------------------------------------ */

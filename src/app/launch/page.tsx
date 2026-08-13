@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/game/format";
 import { LaunchCountdown } from "@/components/game/LaunchCountdown";
@@ -131,6 +132,23 @@ export default async function LaunchPage() {
             serverNow={serverNow}
             startsAt={startsAt.getTime()}
           />
+
+          {/* The one thing there is to do here. While the game is pre-launch this
+              page is where every visitor lands (see server/prelaunchGuard.ts) and
+              signing up is the only door that is open, so it cannot be a page you
+              can only read. Registering now also claims the empire name, which is
+              the actual reason to do it before the gates rather than after. */}
+          <div className="mt-7 space-y-2">
+            <Link
+              href="/register"
+              className="inline-block rounded-lg border border-gold/40 bg-gold/15 px-7 py-3 text-sm font-bold text-gold-bright transition hover:bg-gold/25"
+            >
+              {t("הירשם עכשיו ותפוס את השם")}
+            </Link>
+            <p className="text-xs text-zinc-500">
+              {t("ההרשמה פתוחה. הכניסה למשחק תיפתח כשהספירה מסתיימת.")}
+            </p>
+          </div>
         </div>
 
         {/* -------- what is waiting behind them -------- */}

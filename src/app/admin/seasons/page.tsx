@@ -130,6 +130,17 @@ export default async function AdminSeasonsPage() {
             <strong className="text-gold-bright">{formatBreakHours(cycle.breakHours)}</strong>{" "}
             הפסקה, ואז עונה של{" "}
             <strong className="text-gold-bright">{cycle.lengthDays}</strong> ימים.
+            {/* The seeding is a season-opening effect, so it belongs in the
+                sentence that says what opening a season does — even though the
+                number itself is edited on the balance screen. */}
+            {cycle.autoRestart >= 1 && (
+              <>
+                {" "}
+                בפתיחה יישתלו{" "}
+                <strong className="text-gold-bright">{cycle.openBots}</strong> בוטים בעיר
+                הראשונה, כדי שהסולם לא ייפתח עם שורה אחת.
+              </>
+            )}
           </p>
           <p>
             {upcoming ? (

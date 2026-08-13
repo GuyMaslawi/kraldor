@@ -11,10 +11,23 @@ import type { GameTunables } from "@/lib/game/config";
  * translated, which is exactly what it is not.
  */
 
-export const TUNABLE_META: Record<
-  keyof GameTunables,
-  { label: string; icon: string; fields: Record<string, { label: string; step?: number }> }
-> = {
+/**
+ * Keyed to `GameTunables` field by field, not `Record<string, …>`.
+ *
+ * The balance page renders `Object.entries(meta.fields)` and nothing else, so a
+ * tunable with no entry here is not a tunable with a missing label — it is a
+ * tunable that **does not appear in the admin panel at all**, still merged and
+ * still live, editable only by a deploy. A loose index signature let that happen
+ * silently; this mapped type makes it a compile error, so adding a tunable and
+ * shipping its knob are the same commit.
+ */
+export const TUNABLE_META: {
+  [G in keyof GameTunables]: {
+    label: string;
+    icon: string;
+    fields: { [F in keyof GameTunables[G]]: { label: string; step?: number } };
+  };
+} = {
   starting: {
     label: "אימפריה חדשה — חבילת פתיחה",
     icon: "🌱",

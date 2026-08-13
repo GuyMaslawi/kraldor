@@ -7,9 +7,16 @@ import { EditorSection } from "@/components/admin/fields";
 import { BotPlanter, type BotCityStat } from "@/components/admin/BotPlanter";
 import { botsPerCity, listBots, playersPerCity } from "@/server/bots";
 import { createBotEmpires, deleteBotEmpire, rearmBotEmpire } from "@/server/actions/admin";
-import { BOT_RESTORE_MS, BOT_SOLDIERS } from "@/lib/game/bots";
+import {
+  BOT_ONLINE_SHARE,
+  BOT_RESTORE_MS,
+  BOT_SEED_CITY,
+  BOT_SOLDIERS,
+  botOnline,
+} from "@/lib/game/bots";
 import { cityAt } from "@/lib/game/cities";
 import { MAX_CITIES } from "@/lib/game/constants";
+import { getTunables } from "@/lib/game/config";
 import { formatCompact, formatNumber } from "@/lib/game/format";
 
 export const dynamic = "force-dynamic";
@@ -19,11 +26,15 @@ export const metadata = { title: "בוטים | ניהול" };
 export default async function AdminBotsPage() {
   await requireAdmin();
 
-  const [players, bots, rows] = await Promise.all([
+  const [players, bots, rows, tunables] = await Promise.all([
     playersPerCity(),
     botsPerCity(),
     listBots(),
+    getTunables(),
   ]);
+  // Read live, not from DEFAULT_TUNABLES: an admin who lowered the seeding on
+  // the balance screen must see the number that will actually be planted.
+  const openBots = tunables.season.openBots;
 
   const stats: BotCityStat[] = Array.from({ length: MAX_CITIES }, (_, i) => i + 1).map(
     (cities) => ({
@@ -34,8 +45,10 @@ export default async function AdminBotsPage() {
   );
 
   // One clock for the whole list, so two bots refilled in the same second do not
-  // come back with different countdowns.
-  const now = new Date().getTime();
+  // come back with different countdowns — and so the presence column is a single
+  // snapshot of the rota rather than a different instant per row.
+  const nowDate = new Date();
+  const now = nowDate.getTime();
   const stranded = stats.filter((s) => s.players === 1 && s.bots === 0);
 
   return (
@@ -58,6 +71,26 @@ export default async function AdminBotsPage() {
         <br />
         בוטים אינם מתחרים: הם מסוננים מהפודיום ומפרסי העונה, מהיכל התהילה, משיאי
         העולם ומכל הלוחות הגלובליים, והם לא מקבלים שידורים ולא מתנות.
+        <br />
+        <span className="font-bold text-gold-bright">
+          פתיחת עונה שותלת בעצמה{" "}
+          <span className="nums" dir="ltr">
+            {openBots}
+          </span>{" "}
+          בוטים ב{cityAt(BOT_SEED_CITY).name}
+        </span>{" "}
+        (הערך <span className="text-zinc-300">בוטים בעיר הראשונה בפתיחת עונה</span> במסך
+        האיזון) — כי אחרי איפוס העולם כל השחקנים חוזרים לעיר אחת, וזו העיר היחידה
+        שחייבת להיראות מיושבת מהדקה הראשונה. השתילה כאן היא לערים הגבוהות, כשמישהו
+        מטפס ונשאר שם לבד.
+        <br />
+        לבוט אין דפדפן, ולכן הנוכחות שלו מחושבת ולא נמדדת:{" "}
+        <span className="nums" dir="ltr">
+          {Math.round(BOT_ONLINE_SHARE * 100)}%
+        </span>{" "}
+        מהם מוצגים מחוברים בכל רגע, וההרכב מתחלף לאורך היום — לכן העמודה{" "}
+        <span className="text-emerald-300">מחובר</span> ברשימה למטה משתנה בין רענון
+        לרענון. זה בדיוק מה שהשחקנים רואים בצ׳אט ובדירוג.
       </p>
 
       {stranded.length > 0 && (
@@ -93,6 +126,10 @@ export default async function AdminBotsPage() {
                 0,
                 Math.ceil((bot.restoredAt.getTime() + BOT_RESTORE_MS - now) / 60_000)
               );
+              // The same call the chat dock and the ladder make — so this badge
+              // is what a player is looking at right now, not an admin-only
+              // approximation of it.
+              const online = botOnline(empire.id, nowDate);
 
               return (
                 <div key={bot.id} className="panel rounded-xl p-4">
@@ -108,6 +145,15 @@ export default async function AdminBotsPage() {
                         </Link>
                         <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-bold text-zinc-300">
                           {city.name} ({empire.cities})
+                        </span>
+                        <span
+                          className={`rounded px-2 py-0.5 text-[10px] font-bold ${
+                            online
+                              ? "bg-emerald-500/20 text-emerald-200"
+                              : "bg-white/5 text-zinc-500"
+                          }`}
+                        >
+                          {online ? "● מחובר" : "○ לא מחובר"}
                         </span>
                         {raided && (
                           <span className="rounded bg-crimson/25 px-2 py-0.5 text-[10px] font-bold text-red-200">

@@ -22,6 +22,7 @@ import {
   TICKS_PER_DAY,
   TURNS_UPGRADE_MAX_LEVEL,
 } from "@/lib/game/constants";
+import { getTunables } from "@/lib/game/config";
 
 export const metadata = { title: "ניטור | ניהול" };
 export const dynamic = "force-dynamic";
@@ -40,11 +41,18 @@ const DAILY_TURN_CEILING =
   TURNS_UPGRADE_MAX_LEVEL * TICKS_PER_DAY + HERO_TURN_ALLOWANCE;
 
 /**
- * Diamonds reachable without paying: the founding grant plus a wide allowance
- * for wheel prizes and admin gifts over a season. Set loose on purpose — this
- * flag should fire on a mint, not on a lucky player.
+ * Diamonds a player can win over a season without paying — the wheel, the
+ * streak, admin gifts. Set loose on purpose: this flag should fire on a mint,
+ * not on a lucky player.
+ *
+ * The *founding grant* is added to it at render time from the live tunables
+ * rather than folded in here. It used to be folded in — a flat 1,000 covering
+ * "grant plus luck" while the grant was 10 — and that quietly turned into a
+ * false-positive machine the moment the opening bundle was raised: every player
+ * would have been carrying the grant against the same ceiling, so the row would
+ * have flagged ordinary luck and an admin would have learned to ignore it.
  */
-const FREE_DIAMOND_ALLOWANCE = 1_000;
+const FREE_DIAMOND_LUCK = 1_000;
 
 const nf = (n: number) => Math.round(n).toLocaleString("he-IL");
 
@@ -181,6 +189,10 @@ export default async function AdminMonitorPage() {
   await requireAdmin();
   const now = new Date();
 
+  // The opening bundle is admin-editable, so the "unexplained diamonds" ceiling
+  // has to follow it — read live, before the panels fan out.
+  const freeDiamonds = (await getTunables()).starting.diamonds + FREE_DIAMOND_LUCK;
+
   // Every panel is independent, so they load together rather than in sequence.
   const [
     pulse,
@@ -198,7 +210,7 @@ export default async function AdminMonitorPage() {
     getFailedLogins(),
     getSharedIpClusters(),
     getTurnBurn(now, DAILY_TURN_CEILING),
-    getDiamondGap(FREE_DIAMOND_ALLOWANCE),
+    getDiamondGap(freeDiamonds),
     getFeed(now),
     getRecentErrors(),
     countErrors(now),

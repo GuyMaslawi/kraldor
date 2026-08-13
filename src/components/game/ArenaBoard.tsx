@@ -24,17 +24,17 @@ import { collectArena, enterArena } from "@/server/actions/arena";
 import { useT } from "@/i18n/client";
 
 /**
- * /game/arena — the weekly card.
+ * /game/arena — the daily card.
  *
  * The page answers two questions and nothing else: "am I in" and "how did I
  * do". Everything about *how* the duels are decided is stated rather than
  * shown, because a player cannot influence it — there is no tactic here, only
- * whether you entered and what your army looked like when the week turned over.
+ * whether you entered and what your army looked like when the day turned over.
  *
  * Which is exactly why the screen needed a *building*. A fixture nobody plays
  * has no board to watch and no button to press between the sign-up and the
  * result, so what it has instead is an amphitheatre: the stands, the torches
- * and the sand carry the week that the player is not being asked to fight. The
+ * and the sand carry the wait that the player is not being asked to fight. The
  * scene is pure CSS (prefix `arn-`, at the end of globals.css) and every
  * decorative position below comes from a fixed table — never Math.random(), so
  * the server and the first client render agree.
@@ -124,16 +124,16 @@ export function ArenaBoard({ state }: { state: ArenaState }) {
               above it, and the headline ends up three words to a line. */}
           <div className="flex-[1_1_17rem]">
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-dim">
-              <span>{t("שבוע {week}", { week: state.week })}</span>
+              <span>{t("קלף היום")}</span>
               <span className="text-zinc-700">·</span>
               <span>{t("דרגת {tier} ערים", { tier: state.tier })}</span>
             </p>
             <h2 className="mt-1 flex items-center gap-2 text-lg font-black tracking-wide text-gold-bright sm:text-xl">
               <Icon name="laurel" size={24} className="text-crimson-bright" />
-              {state.resolved ? t("תוצאות הזירה") : t("הזירה של השבוע")}
+              {state.resolved ? t("תוצאות הזירה") : t("הזירה של היום")}
             </h2>
             <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-zinc-400">
-              {t("טורניר שבועי בין כל מי שנרשם — ואתה לא צריך להיות מחובר. בסוף השבוע המערכת מריצה את כל הדו־קרבות לבד: כל נרשם נגד כל נרשם, בדיוק פעם אחת. אתה משלם תורות, וזהו.")}
+              {t("טורניר יומי בין כל מי שנרשם — ואתה לא צריך להיות מחובר. בחצות המערכת מריצה את כל הדו־קרבות לבד: כל נרשם נגד כל נרשם, בדיוק פעם אחת. אתה משלם תורות, וזהו.")}
             </p>
           </div>
 
@@ -161,7 +161,7 @@ export function ArenaBoard({ state }: { state: ArenaState }) {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                   {t("הקרבות בעוד")}
                 </p>
-                <WeekCountdown at={state.resolvesAt} serverNow={state.serverNow} />
+                <CardCountdown at={state.resolvesAt} serverNow={state.serverNow} />
               </div>
             )}
           </div>
@@ -202,7 +202,7 @@ export function ArenaBoard({ state }: { state: ArenaState }) {
             ) : state.entered ? (
               <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-600/40 bg-emerald-950/40 px-4 py-2 text-sm font-bold text-emerald-300">
                 <Icon name="check" size={16} />
-                {t("אתה בפנים. הקרבות ייערכו בסוף השבוע.")}
+                {t("אתה בפנים. הקרבות ייערכו בחצות.")}
               </span>
             ) : (
               <>
@@ -229,7 +229,7 @@ export function ArenaBoard({ state }: { state: ArenaState }) {
                 )}
                 {full && (
                   <span className="text-xs font-bold text-amber-400">
-                    {t("הזירה מלאה השבוע")}
+                    {t("הזירה מלאה היום")}
                   </span>
                 )}
               </>
@@ -267,7 +267,7 @@ function Steps({ entryTurns }: { entryTurns: number }) {
     {
       icon: "turns",
       title: t("נרשמים"),
-      body: t("כניסה עולה {turns} תורות, פעם אחת בשבוע. אין מה עוד לעשות — מרגע ההרשמה אתה בטבלה.", {
+      body: t("כניסה עולה {turns} תורות, פעם אחת ביום. אין מה עוד לעשות — מרגע ההרשמה אתה בטבלה.", {
         turns: entryTurns,
       }),
     },
@@ -279,12 +279,12 @@ function Steps({ entryTurns }: { entryTurns: number }) {
     {
       icon: "attack",
       title: t("כולם נגד כולם"),
-      body: t("כשהשבוע מתהפך המערכת מריצה את כל הדו־קרבות בבת אחת: כל נרשם נגד כל נרשם בדיוק פעם אחת. לא צריך להיות מחובר."),
+      body: t("בחצות, בשעון ישראל, המערכת מריצה את כל הדו־קרבות בבת אחת: כל נרשם נגד כל נרשם בדיוק פעם אחת. לא צריך להיות מחובר."),
     },
     {
       icon: "gift",
       title: t("אוספים שלל"),
-      body: t("הטבלה הסופית נשארת פה עד שתאסוף — גם אם חזרת רק אחרי כמה ימים. שלל שלא נאסף לא הולך לאיבוד."),
+      body: t("הטבלה הסופית ממתינה פה עד שתאסוף — גם אם חזרת רק אחרי כמה ימים, ואז אוספים קלף אחד בכל פעם. שלל שלא נאסף לא הולך לאיבוד."),
     },
   ];
 
@@ -406,7 +406,7 @@ function Spoils({ state }: { state: ArenaState }) {
             {t("ובנוסף, על כל ניצחון")}
           </p>
           <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-            {t("זהב על כל דו־קרב שלקחת. שבוע חזק של שלושים ניצחונות שווה יותר זהב מהפודיום עצמו.")}
+            {t("זהב על כל דו־קרב שלקחת. קלף חזק של שלושים ניצחונות שווה יותר זהב מהפודיום עצמו.")}
           </p>
           <div className="mt-2 flex flex-wrap gap-1">
             {perWin.map((r) => (
@@ -565,8 +565,14 @@ function PlaceMark({ place, resolved }: { place: number; resolved: boolean }) {
  * The wait until the card is fought. `serverNow` rather than the reader's own
  * clock, for the reason every countdown in this codebase gives: the boundary
  * that matters is the server's.
+ *
+ * Hours and minutes, not days and hours: since the card went daily the whole
+ * wait fits inside one night, and "0ש" for the last fifty-nine minutes of it
+ * would read as a stopped clock at exactly the moment a player is deciding
+ * whether they still have time to enter. The tick is a minute, so the minutes
+ * figure is never more than a minute stale.
  */
-function WeekCountdown({ at, serverNow }: { at: number; serverNow: number }) {
+function CardCountdown({ at, serverNow }: { at: number; serverNow: number }) {
   const t = useT();
   const [left, setLeft] = useState(() => at - serverNow);
 
@@ -580,14 +586,14 @@ function WeekCountdown({ at, serverNow }: { at: number; serverNow: number }) {
 
   if (left <= 0)
     return <span className="text-sm font-black text-gold-bright">{t("עוד רגע")}</span>;
-  const days = Math.floor(left / 86_400_000);
-  const hours = Math.floor((left % 86_400_000) / 3_600_000);
+  const hours = Math.floor(left / 3_600_000);
+  const minutes = Math.floor((left % 3_600_000) / 60_000);
   // Deliberately *not* dir="ltr". The label is Hebrew letters glued to Latin
-  // digits, so forcing the run left-to-right reorders "3י 5ש" into nonsense —
+  // digits, so forcing the run left-to-right reorders "5ש 20ד" into nonsense —
   // the bidi algorithm already lays this out correctly in an RTL paragraph.
   return (
     <span className="block text-lg font-black nums text-gold-bright">
-      {days > 0 ? t("{d}י {h}ש", { d: days, h: hours }) : t("{h}ש", { h: hours })}
+      {hours > 0 ? t("{h}ש {m}ד", { h: hours, m: minutes }) : t("{m}ד", { m: minutes })}
     </span>
   );
 }

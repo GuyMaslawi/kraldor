@@ -1,0 +1,13 @@
+-- Which language to write to a player in when nobody is asking.
+--
+-- Language is a cookie, which is exactly right for rendering a page: it is read
+-- from the request that is about to be answered. But the game also writes to a
+-- player when that player is not there — a raid notification email, sent off the
+-- back of the *attacker's* request — and there the cookie in hand belongs to the
+-- wrong person. Those messages were therefore Hebrew for everybody.
+--
+-- Nullable, and null is meaningful: an account that has never touched the
+-- language switch has no preference, and the source language is the honest
+-- default rather than a guess. The cookie stays the authority for anything
+-- rendered during a request; this is only consulted when there is no request.
+ALTER TABLE "User" ADD COLUMN "locale" TEXT;

@@ -6,10 +6,15 @@ import { Icon } from "@/components/ui/Icon";
 import { getCheckoutConfig } from "@/server/payments";
 import { DiamondStore } from "@/components/game/DiamondStore";
 import { DiamondsHeader } from "@/components/game/DiamondsHeader";
+import { getT } from "@/i18n/server";
 
-export const metadata = { title: "רכישת יהלומים | KRALDOR" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("רכישת יהלומים | KRALDOR") };
+}
 
 export default async function BuyDiamondsPage() {
+  const t = await getT();
   const empire = await requireEmpire();
   const diamonds = Math.floor(empire.diamonds);
   const { diamondStore } = await getTunables();
@@ -30,20 +35,22 @@ export default async function BuyDiamondsPage() {
   return (
     <div className="space-y-6">
       <SectionHeading
-        title="רכישת יהלומים"
+        title={t("רכישת יהלומים")}
         ornament={<Icon name="diamond" size={22} className="text-cyan-300" />}
       />
 
       <DiamondsHeader
         diamonds={diamonds}
         active="buy"
-        note="יהלומים פותחים האצות ייצור, קסמי חנות, חבילות תורות ועוד. ככל שהחבילה גדולה יותר — כך מקבלים יותר יהלומים לכל שקל."
+        note={t(
+          "יהלומים פותחים האצות ייצור, קסמי חנות, חבילות תורות ועוד. ככל שהחבילה גדולה יותר — כך מקבלים יותר יהלומים לכל שקל."
+        )}
       />
 
       {blockers.length > 0 && (
         <div className="panel-inset rounded-xl border-amber-500/40 p-4 text-sm">
           <p className="font-bold text-amber-300">
-            🔒 החנות סגורה לשחקנים (אתה רואה אותה כאדמין)
+            {t("🔒 החנות סגורה לשחקנים (אתה רואה אותה כאדמין)")}
           </p>
           <ul className="mt-2 space-y-1 text-xs text-zinc-400">
             {blockers.map((reason) => (

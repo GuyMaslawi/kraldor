@@ -7,6 +7,8 @@ import {
   LOCALE_COOKIE_MAX_AGE,
   toLocale,
 } from "@/i18n/locale";
+import { prisma } from "@/lib/prisma";
+import { getSessionUserId } from "@/lib/auth";
 
 /**
  * Switch the site's language.
@@ -40,5 +42,27 @@ export async function setLocale(formData: FormData): Promise<void> {
     path: "/",
     maxAge: LOCALE_COOKIE_MAX_AGE,
   });
+
+  // Mirrored onto the account, when there is one, for the messages the game
+  // writes while the player is *not* here: a raid notification is sent off the
+  // back of the attacker's request, and the only cookie in hand there belongs to
+  // the attacker. See `User.locale` — the cookie above stays the authority for
+  // anything rendered during a request, and this is only ever read when there is
+  // no request to read it from.
+  //
+  // Best-effort on purpose, and after the cookie: choosing a language must work
+  // for a signed-out visitor on the login screen, so nothing here may throw the
+  // switch. A write that fails leaves the account on its previous preference,
+  // which costs at most one email in the wrong language.
+  try {
+    const userId = await getSessionUserId();
+    if (userId) {
+      await prisma.user.updateMany({ where: { id: userId }, data: { locale } });
+    }
+  } catch {
+    // No session, or the row moved under us. Neither is worth failing a
+    // language switch over.
+  }
+
   revalidatePath("/", "layout");
 }

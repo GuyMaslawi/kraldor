@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { isBanned, notBannedWhere } from "@/lib/ban";
 import { appBaseUrl, isMailLive, sendMail } from "@/server/mailer";
 import { logError } from "@/server/errorLog";
+import { makeT } from "@/i18n/translate";
+import { LOCALE_DIR, toLocale } from "@/i18n/locale";
 
 /**
  * "Somebody raided you while you were out."
@@ -42,6 +44,8 @@ export const NOTIFY_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 export type NotifyKind = "raid" | "sabotage" | "spy";
 
 /** Subject and body per kind. Deliberately free of figures — see rule 3. */
+// i18n-keys-start: dictionary keys, resolved below against the *recipient's*
+// stored language rather than the request's — see the note on the send.
 const COPY: Record<NotifyKind, { subject: string; line: string }> = {
   raid: {
     subject: "קראלדור — תקפו את האימפריה שלך",
@@ -56,6 +60,7 @@ const COPY: Record<NotifyKind, { subject: string; line: string }> = {
     line: "כוחות הביטחון שלך תפסו מרגל זר. מישהו מתעניין בך.",
   },
 };
+// i18n-keys-end
 
 /**
  * Claim the right to notify this player, then send.
@@ -90,6 +95,9 @@ export async function notifyPlayer(
             emailVerified: true,
             notifyRaids: true,
             notifiedAt: true,
+            // Which language to write in. Not `getLocale()`: this send happens
+            // on the *attacker's* request, so the cookie in hand is theirs.
+            locale: true,
             // Both halves of a ban: `bannedAt` alone is a record that one was
             // handed down, never a statement that one is live. See lib/ban.ts.
             bannedAt: true,
@@ -136,27 +144,31 @@ export async function notifyPlayer(
     });
     if (claimed.count === 0) return false;
 
-    const copy = COPY[kind];
+    // The recipient's own language, from their account — the one place the
+    // game knows it without a request of theirs to read a cookie from.
+    const t = makeT(toLocale(user.locale ?? undefined));
+    const subject = t(COPY[kind].subject);
+    const line = t(COPY[kind].line);
     const url = `${appBaseUrl()}/game/reports`;
-    const text = `${copy.line}\n\n${url}\n\nלביטול ההתראות: הגדרות > התראות`;
+    const text = `${line}\n\n${url}\n\n${t("לביטול ההתראות: הגדרות > התראות")}`;
 
     // Kept to one paragraph and one link on purpose. A notification is an
     // invitation back to the game, not a substitute for opening it — and the
     // less it says, the less an inbox can leak.
-    const html = `<div style="font-family:system-ui,sans-serif;line-height:1.7;max-width:32rem">
-<h2 style="margin:0 0 .5rem;color:#c4a032">${copy.subject}</h2>
-<p style="margin:0 0 1rem">${copy.line}</p>
-<p style="margin:0 0 1.25rem"><a href="${url}" style="background:#c4a032;color:#111;padding:.6rem 1.1rem;border-radius:.5rem;text-decoration:none;font-weight:700">לפתיחת המשחק</a></p>
-<p style="margin:0;font-size:.8rem;color:#888">לביטול ההתראות: הגדרות ← התראות</p>
+    const html = `<div dir="${LOCALE_DIR[toLocale(user.locale ?? undefined)]}" style="font-family:system-ui,sans-serif;line-height:1.7;max-width:32rem">
+<h2 style="margin:0 0 .5rem;color:#c4a032">${subject}</h2>
+<p style="margin:0 0 1rem">${line}</p>
+<p style="margin:0 0 1.25rem"><a href="${url}" style="background:#c4a032;color:#111;padding:.6rem 1.1rem;border-radius:.5rem;text-decoration:none;font-weight:700">${t("לפתיחת המשחק")}</a></p>
+<p style="margin:0;font-size:.8rem;color:#888">${t("לביטול ההתראות: הגדרות ← התראות")}</p>
 </div>`;
 
     if (!isMailLive()) {
       // No provider configured — the mailer logs instead of sending, which is
       // what makes the whole flow exercisable in development. The claim above
       // still ran, so the cooldown behaves identically either way.
-      return sendMail({ to: user.email, subject: copy.subject, html, text });
+      return sendMail({ to: user.email, subject, html, text });
     }
-    return await sendMail({ to: user.email, subject: copy.subject, html, text });
+    return await sendMail({ to: user.email, subject, html, text });
   } catch (err) {
     // Never thrown to a caller: this runs beside a battle that has already
     // committed, and a mail failure must not surface as a failed attack.

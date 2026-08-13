@@ -136,6 +136,8 @@ export async function POST(
   if (!purchaseId && !orderId) {
     // Nothing identifies an order, so no retry will help. Acknowledged and
     // logged rather than retried into the void.
+    // i18n-exempt: an operator-side log line. Nobody reads this but us, and the
+    // gateway is told "OK" either way.
     await logError("grow.callback", new Error("קריאה ללא processId/cField1"), {
       path: "/api/pay/grow",
     });
@@ -156,11 +158,13 @@ export async function POST(
     }
 
     if (result.outcome === "mismatch" || result.outcome === "not-found") {
+      // i18n-exempt-start: operator-side log lines, read only in the error log.
       await logError(
         "grow.callback",
         new Error(`עסקה לא נזקפה (${result.outcome}) purchaseId=${result.purchaseId ?? "?"}`),
         { path: "/api/pay/grow" }
       );
+      // i18n-exempt-end
     }
 
     return new Response("OK", { status: 200 });

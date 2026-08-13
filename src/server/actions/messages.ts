@@ -28,6 +28,7 @@ import type { ActionState } from "./game";
 import { settleDueAssault } from "@/server/bossSiege";
 import { logError } from "@/server/errorLog";
 import { getT } from "@/i18n/server";
+import { renderMessageText } from "@/lib/game/messageText";
 
 async function requireOwnEmpireId(): Promise<string> {
   // Enforces the ban on every action (not just page loads); see getActiveEmpireId.
@@ -159,6 +160,7 @@ const STALE_PULSE: InboxPulse = {
  */
 export async function getInboxPulse(): Promise<InboxPulse> {
   try {
+    const t = await getT();
     const empireId = await requireOwnEmpireId();
     if (!localRateLimit(`poll:inbox:${empireId}`, POLL_LIMIT, POLL_WINDOW_MS)) {
       return STALE_PULSE;
@@ -186,7 +188,9 @@ export async function getInboxPulse(): Promise<InboxPulse> {
             id: true,
             kind: true,
             title: true,
+            titleParams: true,
             body: true,
+            bodyParams: true,
             href: true,
             createdAt: true,
           },
@@ -209,9 +213,12 @@ export async function getInboxPulse(): Promise<InboxPulse> {
     return {
       unreadMessages,
       newReports: battleReports + spyReports,
-      // Oldest first so toasts stack in chronological order.
-      alerts: messages.reverse().map((m) => ({
+      // Oldest first so toasts stack in chronological order. The stored row is
+      // keys plus values — rendered here, in the poller's own language, because
+      // whoever wrote it was somebody else. See renderMessageText.
+      alerts: messages.reverse().map(({ titleParams, bodyParams, ...m }) => ({
         ...m,
+        ...renderMessageText(t, { ...m, titleParams, bodyParams }),
         createdAt: m.createdAt.getTime(),
       })),
     };

@@ -3,7 +3,7 @@ config({ path: ".env.local", override: true });
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { PrismaClient } from "@prisma/client";
-import { gameWeek } from "@/lib/game/time";
+import { gameDay } from "@/lib/game/time";
 import { ARENA_PODIUM_MIN_ENTRANTS } from "@/lib/game/arena";
 
 /**
@@ -12,11 +12,11 @@ import { ARENA_PODIUM_MIN_ENTRANTS } from "@/lib/game/arena";
  * ## The faucet
  *
  * An arena is scoped to a *city tier*, and a tier is not a room full of people
- * — it is however many empires happen to hold that many cities this week. At
+ * — it is however many empires happen to hold that many cities today. At
  * the top of the ladder that is routinely one. A round-robin of one entrant is
  * zero duels and a table of one row, so that entrant is ranked first by
  * arithmetic alone and, before ARENA_PODIUM_MIN_ENTRANTS, collected the
- * winner's 60 diamonds every week forever for the price of the entry turns,
+ * winner's podium diamonds every day forever for the price of the entry turns,
  * with no opponent and nothing to out-play. Two accounts parked in the same
  * empty tier took first *and* second.
  *
@@ -47,17 +47,17 @@ const prisma = new PrismaClient();
 const TAG = `ap${Date.now().toString(36)}`;
 // Far in the past, so it can never collide with a live card and is always
 // "resolved" as far as the collector is concerned.
-const WEEK = gameWeek(new Date()) - 500;
+const DAY = gameDay(new Date()) - 500;
 
 afterAll(async () => {
-  await prisma.arena.deleteMany({ where: { week: WEEK } });
+  await prisma.arena.deleteMany({ where: { day: DAY } });
   await prisma.empire.deleteMany({ where: { name: { startsWith: TAG } } });
   await prisma.user.deleteMany({ where: { email: { endsWith: `@${TAG}.test` } } });
   await prisma.$disconnect();
 });
 
 beforeAll(async () => {
-  await prisma.arena.deleteMany({ where: { week: WEEK } });
+  await prisma.arena.deleteMany({ where: { day: DAY } });
 });
 
 async function makeEmpire(name: string, cities: number) {
@@ -86,7 +86,7 @@ async function makeEmpire(name: string, cities: number) {
 /** A finished card of `size` entrants, with the first one placed first. */
 async function makeResolvedCard(label: string, tier: number, size: number) {
   const arena = await prisma.arena.create({
-    data: { week: WEEK, tier, resolvedAt: new Date() },
+    data: { day: DAY, tier, resolvedAt: new Date() },
   });
   const empires = [];
   for (let i = 0; i < size; i += 1) {
@@ -166,7 +166,7 @@ describe("spoils survive the empire growing", () => {
    * different arena. The entry does not move with them — `place` and `claimed`
    * live on the row that was fought. While the read side filtered unclaimed
    * finishes to the viewer's *current* tier, a player who founded a city
-   * between the week ending and coming back was shown their new tier's empty
+   * between the card resolving and coming back was shown their new tier's empty
    * card and no way to reach the purse they had won, even though the collect
    * action would have paid it.
    */

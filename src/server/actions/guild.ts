@@ -165,10 +165,14 @@ async function runMemberAction(
 // measuring padding.
 const guildNameSchema = z.preprocess(
   (raw) => (typeof raw === "string" ? normalizeName(raw) : raw),
+  // i18n-keys-start: zod messages are dictionary keys — a schema is built at
+  // module load, with no request to read a language from, so createGuild runs
+  // `issues[0].message` through t() where it surfaces it.
   z
     .string()
     .min(GUILD_NAME_MIN_LENGTH, "שם הברית קצר מדי")
     .max(GUILD_NAME_MAX_LENGTH, "שם הברית ארוך מדי")
+  // i18n-keys-end
 );
 
 export async function createGuild(
@@ -397,8 +401,8 @@ export async function leaveGuild(): Promise<ActionState> {
 /* ------------------------------ roster: add / kick / roles ------------------------------ */
 
 const addMemberSchema = z.object({
-  // Surfaced verbatim by addGuildMember, which translates it there — a schema
-  // is built at module load, with no request to read a language from.
+  // i18n-keys: surfaced by addGuildMember, which runs it through t() there — a
+  // schema is built at module load, with no request to read a language from.
   name: z.string().trim().min(1, "הזן שם אימפריה").max(60),
 });
 
@@ -481,8 +485,16 @@ export async function addGuildMember(
       data: {
         empireId: target.id,
         kind: "SYSTEM",
+        // i18n-keys-start: keys plus values, rendered when the recipient opens
+        // their inbox — this row is written on the recruiter's request. See
+        // renderMessageText.
         title: "🏰 הוזמנת לברית",
-        body: `${membership.guild.name} מזמינה אותך להצטרף. פתח את מסך הברית כדי לאשר — ההזמנה תקפה ל־${GUILD_INVITE_TTL_HOURS} שעות.`,
+        body: "{guild} מזמינה אותך להצטרף. פתח את מסך הברית כדי לאשר — ההזמנה תקפה ל־{hours} שעות.",
+        bodyParams: {
+          guild: membership.guild.name,
+          hours: GUILD_INVITE_TTL_HOURS,
+        },
+        // i18n-keys-end
         href: "/game/guild",
       },
     });
@@ -538,8 +550,11 @@ export async function kickGuildMember(
       data: {
         empireId: targetEmpireId,
         kind: "SYSTEM",
+        // i18n-keys-start: keys plus values, rendered by renderMessageText
         title: "🏰 הורחקת מהברית",
-        body: `הורחקת מהברית "${membership.guild.name}".`,
+        body: 'הורחקת מהברית "{guild}".',
+        bodyParams: { guild: membership.guild.name },
+        // i18n-keys-end
         href: "/game/guild",
       },
     });
@@ -633,8 +648,11 @@ export async function transferGuildLeadership(
       data: {
         empireId: targetEmpireId,
         kind: "SYSTEM",
+        // i18n-keys-start: keys plus values, rendered by renderMessageText
         title: "👑 מונית למנהיג הברית",
-        body: `קיבלת את הנהגת הברית "${membership.guild.name}".`,
+        body: 'קיבלת את הנהגת הברית "{guild}".',
+        bodyParams: { guild: membership.guild.name },
+        // i18n-keys-end
         href: "/game/guild",
       },
     });

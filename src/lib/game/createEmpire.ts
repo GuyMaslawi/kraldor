@@ -108,8 +108,15 @@ export function newEmpireData(
       create: [
         {
           kind: "SYSTEM",
+          // i18n-keys-start: keys, not a rendered sentence. Founding runs on the
+          // new player's own request, so their language *is* readable here — but
+          // storing it rendered would freeze the welcome letter in whichever
+          // language they happened to sign up in, and this is the one message a
+          // player still has months later. renderMessageText resolves it every
+          // time the inbox is opened.
           title: "📣 ברוך הבא לקראלדור!",
           body: "האימפריה שלך נוסדה. אמן חיילים, שדרג מכרות ופתח במלחמה — הכל מתחיל בבסיס.",
+          // i18n-keys-end
           href: "/game/base",
         },
       ],

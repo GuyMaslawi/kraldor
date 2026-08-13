@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireEmpire } from "@/lib/auth";
 import { Icon } from "@/components/ui/Icon";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { getT } from "@/i18n/server";
 
 /**
  * Where Grow returns a buyer who backed out of the payment page.
@@ -15,18 +16,22 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
  * out visibly in /admin/purchases instead, which is the honest record.
  */
 
-export const metadata = {
-  title: "הרכישה בוטלה | KRALDOR",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata() {
+  const t = await getT();
+  return {
+    title: t("הרכישה בוטלה | KRALDOR"),
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function PurchaseCancelPage() {
+  const t = await getT();
   await requireEmpire();
 
   return (
     <div className="space-y-6">
       <SectionHeading
-        title="רכישת יהלומים"
+        title={t("רכישת יהלומים")}
         ornament={<Icon name="diamond" size={22} className="text-cyan-300" />}
       />
 
@@ -34,17 +39,17 @@ export default async function PurchaseCancelPage() {
         <span aria-hidden className="block text-6xl">
           🚪
         </span>
-        <h2 className="text-xl font-black text-zinc-200">הרכישה בוטלה</h2>
+        <h2 className="text-xl font-black text-zinc-200">{t("הרכישה בוטלה")}</h2>
         <p className="text-sm leading-relaxed text-zinc-400">
-          לא בוצע חיוב. אפשר לחזור ולרכוש בכל רגע — החבילות מחכות.
+          {t("לא בוצע חיוב. אפשר לחזור ולרכוש בכל רגע — החבילות מחכות.")}
         </p>
 
         <div className="grid gap-2 pt-2">
           <Link href="/game/diamonds/buy" className="btn btn-gold w-full">
-            חזרה לחבילות
+            {t("חזרה לחבילות")}
           </Link>
           <Link href="/game/diamonds" className="btn btn-ghost w-full text-sm">
-            לחנות היהלומים
+            {t("לחנות היהלומים")}
           </Link>
         </div>
       </div>

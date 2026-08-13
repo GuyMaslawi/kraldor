@@ -11,10 +11,10 @@ export async function generateMetadata() {
 }
 
 /**
- * /game/arena — the weekly tournament.
+ * /game/arena — the daily tournament.
  *
- * This page both opens the week's card and *resolves* any whose week has
- * ended: see the note at the head of server/actions/arena.ts for why the whole
+ * This page both opens today's card and *resolves* any whose day has ended:
+ * see the note at the head of server/actions/arena.ts for why the whole
  * fixture runs on the clock with nothing scheduled behind it.
  */
 export default async function ArenaPage() {
@@ -26,7 +26,7 @@ export default async function ArenaPage() {
     <div className="space-y-6">
       <SectionHeading
         title={t("הזירה")}
-        subtitle={t("טורניר שבועי · כולם נגד כולם · נלחם לבד")}
+        subtitle={t("טורניר יומי · כולם נגד כולם · נלחם לבד")}
         ornament={<Icon name="laurel" size={20} className="text-crimson" />}
       />
 

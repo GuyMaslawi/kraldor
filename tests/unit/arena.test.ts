@@ -192,7 +192,7 @@ describe("arenaReward", () => {
   });
 
   it("puts diamonds on the podium only", () => {
-    // This repeats weekly for every city tier; a diamond payout below the
+    // This repeats daily for every city tier; a diamond payout below the
     // podium would be a faucet with as many spouts as the game has tiers.
     for (let place = 1; place <= ARENA_PODIUM.length; place += 1) {
       expect(arenaReward(place, 0, 1, FULL_CARD).some((r) => r.kind === "diamonds")).toBe(true);
@@ -228,6 +228,20 @@ describe("arenaReward", () => {
     expect(gold(MAX_CITIES)).toBeGreaterThan(gold(1));
   });
 
+  it("keeps the daily podium a rationed faucet", () => {
+    // The card runs every day for every city tier. The weekly purse was 60
+    // diamonds; paying that seven times a week is the failure mode this
+    // ceiling exists to make loud rather than gradual. See ARENA_PODIUM.
+    const diamonds = ARENA_PODIUM.map(
+      (purse) => purse.find((r) => r.kind === "diamonds")?.amount ?? 0
+    );
+    expect(diamonds[0]).toBeGreaterThan(0);
+    expect(diamonds[0]).toBeLessThanOrEqual(20);
+    // And strictly descending, or second place is not worse than first.
+    expect(diamonds[0]).toBeGreaterThan(diamonds[1]);
+    expect(diamonds[1]).toBeGreaterThan(diamonds[2]);
+  });
+
   it("bounds the card so a round-robin stays cheap", () => {
     // O(N²) duels resolved in one transaction; the ceiling is the whole reason
     // that is affordable.
@@ -239,12 +253,14 @@ describe("arenaReward", () => {
 describe("a thin tier does not mint diamonds", () => {
   /**
    * The hole this closes. A city tier is not a room full of people — it is
-   * however many empires happen to hold that many cities this week, and at the
+   * however many empires happen to hold that many cities today, and at the
    * top of the ladder that is routinely one. A round-robin of one entrant is
    * zero duels and a table of one row, so that entrant is ranked first by
    * arithmetic and, before the floor, collected the winner's diamonds every
-   * week forever for the price of the entry turns. Two accounts parked in the
-   * same empty tier took first *and* second.
+   * card forever for the price of the entry turns. Two accounts parked in the
+   * same empty tier took first *and* second. A daily card leaks seven times as
+   * fast, which is why the floor was deliberately NOT lowered when the period
+   * shrank.
    */
   it("pays a lone entrant no diamonds for placing first", () => {
     expect(arenaReward(1, 0, 1, 1).some((r) => r.kind === "diamonds")).toBe(false);

@@ -2,18 +2,18 @@ import { seededRandom } from "./random";
 import { mergeRewards, scaleRewards, type Reward } from "./rewards";
 
 /**
- * הזירה — the weekly tournament.
+ * הזירה — the daily tournament.
  *
  * The ladder tells a player where they stand; it never tells them whether they
  * would *win*. Raiding is the only answer the game had, and raiding is filtered
  * through turns, shields, timing and who happened to be online — a fair fight
  * between two empires has never actually been available.
  *
- * The arena is that fight, run every week, for everybody who signs up.
+ * The arena is that fight, run every day, for everybody who signs up.
  *
  * ## Fought by the system, like the guild war
  *
- * Nobody presses attack. Entrants register during the week, and when the week
+ * Nobody presses attack. Entrants register during the day, and when the day
  * turns over the whole card is resolved at once: every entrant meets every
  * other entrant exactly once, and the table is the result. Three things follow:
  *
@@ -22,16 +22,27 @@ import { mergeRewards, scaleRewards, type Reward } from "./rewards";
  *  - **There is no bracket to hold.** A round-robin is a pure function of who
  *    entered, so the arena stores an entry per player and nothing else — no
  *    rounds, no pairings, no half-finished tree to repair when somebody's
- *    account is deleted mid-week.
+ *    account is deleted mid-card.
  *  - **It is reproducible.** Every duel is decided from a seeded stream (see
  *    `duelWinner`), so resolving the same card twice gives the same table, and
  *    a resolution that races itself cannot produce two different results.
  *
+ * ## Daily since 2026-08-13
+ *
+ * It ran weekly until then, and the change is only to the *period* — a card
+ * still opens on the first look, still resolves when its period turns over,
+ * still pays the same shape of purse. What did have to move with it is every
+ * figure below: seven cards a week paying a weekly podium would be a diamond
+ * faucet with as many spouts as the game has tiers. The purses and the entry
+ * price were all divided by five rather than by seven, which is deliberate —
+ * turning up every day should be worth about 1.4× what turning up on Sunday
+ * used to be, or there is no reason to have made it daily.
+ *
  * ## The same city rule as everything else
  *
- * One arena per city tier per week. Combat in this game is confined to your own
+ * One arena per city tier per day. Combat in this game is confined to your own
  * city tier everywhere else, and a tournament that ignored that would be a
- * tournament the largest empire in the game wins every week forever.
+ * tournament the largest empire in the game wins every day forever.
  */
 
 /* ------------------------------ entry ------------------------------ */
@@ -39,18 +50,25 @@ import { mergeRewards, scaleRewards, type Reward } from "./rewards";
 /**
  * Turns to enter. Real but small — the arena is meant to be entered by
  * everybody in the tier, and a price that made a player choose between the
- * tournament and their week's raiding would be a price nobody pays.
+ * tournament and their day's raiding would be a price nobody pays.
+ *
+ * 12 rather than the 60 the weekly card charged. A daily ticket is paid seven
+ * times as often, so holding the weekly price would have made the arena the
+ * single most expensive standing habit in the game.
  */
-export const ARENA_ENTRY_TURNS = 60;
+export const ARENA_ENTRY_TURNS = 12;
 
 /**
  * The most entrants one arena will resolve.
  *
  * A round-robin is O(N²) duels, resolved in one transaction at the moment the
- * week turns over. At 60 that is 1,770 comparisons — arithmetic, no queries,
+ * day turns over. At 60 that is 1,770 comparisons — arithmetic, no queries,
  * a few milliseconds. Ten times as many entrants would be a hundred times the
  * work, and this is the one place in the game where a quiet upper bound is
  * worth more than an unbounded promise.
+ *
+ * Unchanged by the move to a daily card: the ceiling is about what one
+ * transaction can afford, and a transaction does not care how often it runs.
  */
 export const ARENA_MAX_ENTRANTS = 60;
 
@@ -170,10 +188,10 @@ export function rankArena(
  *
  * The one number standing between this feature and a diamond faucet, and it
  * exists because a tier is not a room full of people — it is however many
- * empires happen to hold that many cities this week. At the top of the ladder
+ * empires happen to hold that many cities today. At the top of the ladder
  * that is routinely one. Without a floor, the sole entrant in a thin tier is
  * ranked first by arithmetic (a round-robin of one is zero duels and a table of
- * one row), and collects the winner's diamonds every week forever for the price
+ * one row), and collects the winner's diamonds every day forever for the price
  * of the entry turns — with no opponent, no risk, and nothing to out-play. Two
  * accounts in the same empty tier take first *and* second.
  *
@@ -182,6 +200,12 @@ export function rankArena(
  * consolation purse and the per-win gold, which are earned rather than awarded —
  * so a thin tier is never a dead screen. It simply does not mint diamonds until
  * there is a tournament to win.
+ *
+ * Deliberately **not** lowered when the card went daily, though a daily card
+ * fills more thinly than a weekly one did. The floor is the anti-faucet, and a
+ * faucet that opens every day needs it more, not less: dropping it to four
+ * would hand a guaranteed daily podium to any two tiers that happen to hold
+ * exactly four regulars.
  */
 export const ARENA_PODIUM_MIN_ENTRANTS = 5;
 
@@ -200,50 +224,57 @@ export function arenaPodiumPays(entrants: number): boolean {
  * The podium purses, quoted at **one city**. Everyone below third takes the
  * participation purse instead — see `arenaReward`.
  *
- * Diamonds only on the podium, and modestly: this repeats every week for every
+ * Diamonds only on the podium, and modestly: this repeats every day for every
  * city tier, so a generous top prize would be a diamond faucet with as many
  * spouts as the game has tiers. `ARENA_PODIUM_MIN_ENTRANTS` is the other half
  * of that argument — the spout only opens where there is a contest.
+ *
+ * Divided by five when the card went daily (60/35/20 → 12/7/4). Not by seven,
+ * which would have held the weekly rate exactly: a player who shows up seven
+ * times should end the week ahead of one who showed up once, and ×1.4 is the
+ * size of that "ahead" — big enough to be worth the habit, small enough that
+ * the diamond supply is still recognisably the one the store is priced against.
  */
 export const ARENA_PODIUM: readonly (readonly Reward[])[] = [
   [
-    { kind: "diamonds", amount: 60 },
-    { kind: "gold", amount: 150_000 },
-    { kind: "turns", amount: 250 },
+    { kind: "diamonds", amount: 12 },
+    { kind: "gold", amount: 30_000 },
+    { kind: "turns", amount: 50 },
   ],
   [
-    { kind: "diamonds", amount: 35 },
-    { kind: "gold", amount: 90_000 },
-    { kind: "turns", amount: 150 },
+    { kind: "diamonds", amount: 7 },
+    { kind: "gold", amount: 18_000 },
+    { kind: "turns", amount: 30 },
   ],
   [
-    { kind: "diamonds", amount: 20 },
-    { kind: "gold", amount: 60_000 },
-    { kind: "turns", amount: 100 },
+    { kind: "diamonds", amount: 4 },
+    { kind: "gold", amount: 12_000 },
+    { kind: "turns", amount: 20 },
   ],
 ];
 
 /**
  * What everybody else takes for turning up.
  *
- * Deliberately worth more than the 60 turns the entry cost, so entering is
- * never a loss — an arena a mid-table player leaves poorer is an arena they
- * enter once.
+ * Deliberately worth more than the turns the entry cost, so entering is never a
+ * loss — an arena a mid-table player leaves poorer is an arena they enter once.
+ * The unit suite asserts that relation against ARENA_ENTRY_TURNS rather than
+ * against a literal, so retuning one of the two can never quietly invert it.
  */
 export const ARENA_CONSOLATION: readonly Reward[] = [
-  { kind: "turns", amount: 90 },
-  { kind: "gold", amount: 25_000 },
+  { kind: "turns", amount: 18 },
+  { kind: "gold", amount: 5_000 },
 ];
 
 /**
  * Extra gold per duel won, quoted at one city.
  *
  * The reason a fourth-place finish is not the same as a last-place one. Small
- * per duel, but a strong week of thirty wins is worth more than the podium's
+ * per duel, but a strong card of thirty wins is worth more than the podium's
  * gold — which is the right shape: the podium sells the diamonds, the wins sell
  * the grind.
  */
-export const ARENA_GOLD_PER_WIN = 4_000;
+export const ARENA_GOLD_PER_WIN = 800;
 
 /**
  * The purse for a given placing (1-based) and win count on a card of
@@ -306,6 +337,8 @@ export interface ArenaStanding {
 export interface ArenaState {
   /** The city tier this arena belongs to — combat never crosses one. */
   tier: number;
+  /** Jerusalem day index. */
+  day: number;
   /**
    * The viewer's cities, so the screen can quote the podium at *their* curve.
    * Every purse here is written at one city and scaled on payout; a prize table
@@ -313,8 +346,6 @@ export interface ArenaState {
    * winnings by three orders of magnitude.
    */
   cities: number;
-  /** Jerusalem week index. */
-  week: number;
   /** When the card is resolved and the next arena opens, epoch ms. */
   resolvesAt: number;
   serverNow: number;

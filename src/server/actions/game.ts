@@ -873,12 +873,13 @@ export async function spyOnEmpire(
           data: {
             empireId: targetEmpireId,
             kind: "SPY",
-            // Key + params, not a rendered sentence: this row is written on
-            // the attacker's request and read by the defender. See
-            // `renderMessageText`.
+            // i18n-keys-start: keys plus values, not a rendered sentence — this
+            // row is written on the attacker's request and read by the
+            // defender. See `renderMessageText`.
             title: "🕵️ מרגל נתפס בשטחך!",
             body: "כוחות הביטחון שלך תפסו מרגל של {attacker} לפני שהספיק לאסוף מידע.",
             bodyParams: { attacker: attacker.name },
+            // i18n-keys-end
           },
         });
       }
@@ -1141,6 +1142,7 @@ export async function sabotageEmpire(
         data: {
           empireId: targetEmpireId,
           kind: "SPY",
+          // i18n-keys-start: keys plus values, rendered by renderMessageText
           title: success ? "💥 חבלה בשטחך!" : "🕵️ תא חבלה נתפס בשטחך!",
           body: success
             ? '{attacker} ביצע "{mission}" נגדך. בדוק את ההיסטוריה לפרטים.'
@@ -1150,6 +1152,7 @@ export async function sabotageEmpire(
           bodyParams: success
             ? { attacker: attacker.name, mission: { key: mission.name } }
             : { attacker: attacker.name },
+          // i18n-keys-end
         },
       });
 
@@ -1743,6 +1746,9 @@ export async function attackEmpire(
       // The body is composed from three clauses (enslavement, plunder, the
       // defender's hero), each a key of its own with its own numbers, because
       // any of them may be absent. See the note on the clause spacing there.
+      // i18n-keys-start: every string in the clauses and the message below is a
+      // dictionary key, resolved by renderMessageText when the defender opens
+      // their inbox.
       const enslavementClause = soldierShielded
         ? { key: "🛡️ מגן החיילים שלך מנע שעבוד — אף חייל לא נלקח." }
         : enslavedSoldiers > 0
@@ -1796,6 +1802,7 @@ export async function attackEmpire(
           href: `/game/battle/${report.id}`,
         },
       });
+      // i18n-keys-end
 
       // The battle resolved — go to the full WIN/LOSE result page either way.
       // XP is paid for launching the attack, win or lose; the turns are spent

@@ -6,6 +6,7 @@ import { ReceiptButton } from "@/components/ui/ReceiptButton";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { formatNumber } from "@/lib/game/format";
 import { settleOrderReturn, type OrderReturnStatus } from "@/server/orderSettle";
+import { getT } from "@/i18n/server";
 
 /**
  * Where the gateway returns the buyer after a successful payment.
@@ -21,16 +22,20 @@ import { settleOrderReturn, type OrderReturnStatus } from "@/server/orderSettle"
  * order is found by session instead. See `@/server/orderSettle`.
  */
 
-export const metadata = {
-  title: "התשלום התקבל | KRALDOR",
-  // A payment confirmation has no business in a search index, and the URL is
-  // reachable by anyone who guesses it (it just shows them nothing).
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata() {
+  const t = await getT();
+  return {
+    title: t("התשלום התקבל | KRALDOR"),
+    // A payment confirmation has no business in a search index, and the URL is
+    // reachable by anyone who guesses it (it just shows them nothing).
+    robots: { index: false, follow: false },
+  };
+}
 
 // Settlement is a write. Never prerender, never cache.
 export const dynamic = "force-dynamic";
 
+// i18n-keys-start: dictionary keys, drawn through t(view.title) / t(view.body)
 const VIEWS: Record<
   OrderReturnStatus,
   { emoji: string; title: string; tone: string; body: string }
@@ -65,8 +70,10 @@ const VIEWS: Record<
     body: "לא מצאנו רכישה שממתינה לאישור בחשבון הזה. אם חויבת ולא קיבלת יהלומים, פנה אלינו ונטפל בזה מיד.",
   },
 };
+// i18n-keys-end
 
 export default async function PurchaseSuccessPage() {
+  const t = await getT();
   const empire = await requireEmpire();
   const userId = await getSessionUserId();
   const result = userId
@@ -78,7 +85,7 @@ export default async function PurchaseSuccessPage() {
   return (
     <div className="space-y-6">
       <SectionHeading
-        title="רכישת יהלומים"
+        title={t("רכישת יהלומים")}
         ornament={<Icon name="diamond" size={22} className="text-cyan-300" />}
       />
 
@@ -86,7 +93,7 @@ export default async function PurchaseSuccessPage() {
         <span aria-hidden className="block text-6xl">
           {view.emoji}
         </span>
-        <h2 className={`text-xl font-black ${view.tone}`}>{view.title}</h2>
+        <h2 className={`text-xl font-black ${view.tone}`}>{t(view.title)}</h2>
 
         {result.diamonds > 0 && (
           <p className="flex items-center justify-center gap-2 text-lg">
@@ -97,7 +104,7 @@ export default async function PurchaseSuccessPage() {
           </p>
         )}
 
-        <p className="text-sm leading-relaxed text-zinc-400">{view.body}</p>
+        <p className="text-sm leading-relaxed text-zinc-400">{t(view.body)}</p>
 
         {/* Only once the money is booked: a PENDING row has no capture to look
             a document up by, so the button would only ever say "not yet". */}
@@ -107,19 +114,19 @@ export default async function PurchaseSuccessPage() {
           )}
 
         <p className="text-sm text-zinc-500">
-          יתרה נוכחית:{" "}
+          {t("יתרה נוכחית:")}{" "}
           <span className="nums font-black text-sky-300" dir="ltr">
             {formatNumber(Math.floor(empire.diamonds))}
           </span>{" "}
-          יהלומים
+          {t("יהלומים")}
         </p>
 
         <div className="grid gap-2 pt-2">
           <Link href="/game/diamonds" className="btn btn-gold w-full">
-            לחנות היהלומים
+            {t("לחנות היהלומים")}
           </Link>
           <Link href="/game/diamonds/buy" className="btn btn-ghost w-full text-sm">
-            חזרה לרכישה
+            {t("חזרה לרכישה")}
           </Link>
         </div>
       </div>

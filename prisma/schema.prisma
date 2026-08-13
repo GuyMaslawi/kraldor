@@ -66,6 +66,12 @@ model User {
   /// column: the send is a guarded UPDATE with a `lt` on it, so two concurrent
   /// raids cannot both slip through the window.
   notifiedAt    DateTime?
+  /// The language this account last chose, so the game can write to it when
+  /// there is no request to read the cookie from — an email sent off the back
+  /// of somebody *else's* action, a scheduled announcement. `null` means the
+  /// player has never touched the switch; treat that as the source language.
+  /// The cookie stays the authority for anything rendered during a request.
+  locale        String?
   bannedAt      DateTime?
   /// When a ban lifts by itself; null while `bannedAt` is set means permanent.
   /// A ban is live only while `bannedAt != null && (bannedUntil == null ||
@@ -1065,9 +1071,12 @@ model WorldBossStrike {
 /// resolveArena), so there is no bracket to hold and nothing half-finished to
 /// repair if an account is deleted mid-week.
 model Arena {
-  id   String @id @default(cuid())
-  /// Jerusalem week index — see `gameWeek` in lib/game/time.ts.
-  week Int
+  id  String @id @default(cuid())
+  /// Jerusalem day index — see `gameDay` in lib/game/time.ts. The arena ran
+  /// weekly until 2026-08-13; the migration that renamed this column also
+  /// rewrote every stored week index to the day its week opened, so the
+  /// ordering of the history survived the change.
+  day Int
   /// City tier. Combat never crosses one anywhere else in the game, and a
   /// tournament that ignored that would be won by the largest empire forever.
   tier Int
@@ -1082,7 +1091,7 @@ model Arena {
 
   entries ArenaEntry[]
 
-  @@unique([week, tier])
+  @@unique([day, tier])
 }
 
 /// One empire's entry in one arena, and its record once the card is fought.
@@ -1092,7 +1101,7 @@ model ArenaEntry {
   empireId String
 
   /// Military power at the moment of resolution, frozen onto the row. Read live
-  /// rather than at registration on purpose: an empire that grew during the week
+  /// rather than at registration on purpose: an empire that grew during the day
   /// should fight with the army it actually has, and freezing at sign-up would
   /// reward entering early over playing.
   power  Float @default(0)

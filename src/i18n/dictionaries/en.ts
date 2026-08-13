@@ -4268,23 +4268,23 @@ export const EN: Record<string, string> = {
   "הזירה": "The Arena",
   "הזירה | KRALDOR": "The Arena | KRALDOR",
   "אסוף שלל": "Collect spoils",
-  "טורניר שבועי · כולם נגד כולם · נלחם לבד":
-    "Weekly tournament · everyone against everyone · fights itself",
-  "הזירה של השבוע": "This week's arena",
+  "טורניר יומי · כולם נגד כולם · נלחם לבד":
+    "Daily tournament · everyone against everyone · fights itself",
+  "הזירה של היום": "Today's arena",
   "תוצאות הזירה": "Arena results",
-  "שבוע {week}": "Week {week}",
+  "קלף היום": "Today's card",
   "דרגת {tier} ערים": "{tier}-city tier",
-  "טורניר שבועי בין כל מי שנרשם — ואתה לא צריך להיות מחובר. בסוף השבוע המערכת מריצה את כל הדו־קרבות לבד: כל נרשם נגד כל נרשם, בדיוק פעם אחת. אתה משלם תורות, וזהו.":
-    "A weekly tournament between everyone who entered — and you do not need to be online. When the week ends the system runs every duel on its own: each entrant against each other entrant, exactly once. You pay the turns, and that is all.",
+  "טורניר יומי בין כל מי שנרשם — ואתה לא צריך להיות מחובר. בחצות המערכת מריצה את כל הדו־קרבות לבד: כל נרשם נגד כל נרשם, בדיוק פעם אחת. אתה משלם תורות, וזהו.":
+    "A daily tournament between everyone who entered — and you do not need to be online. At midnight the system runs every duel on its own: each entrant against each other entrant, exactly once. You pay the turns, and that is all.",
   "נרשמו": "entered",
   "נרשמו לזירה": "Entered the arena",
   "הקרבות בעוד": "Fights in",
   "הירשם לזירה": "Enter the arena",
   "נרשם…": "Entering…",
-  "הזירה מלאה השבוע": "The arena is full this week",
+  "הזירה מלאה היום": "The arena is full today",
   "אין לך מספיק תורות": "You do not have enough turns",
-  "אתה בפנים. הקרבות ייערכו בסוף השבוע.":
-    "You are in. The fights happen when the week ends.",
+  "אתה בפנים. הקרבות ייערכו בחצות.":
+    "You are in. The fights happen at midnight.",
   "עוד רגע": "any moment",
   "מקום {place}": "Place {place}",
   "לא נרשמת לזירה הזו.": "You did not enter that arena.",
@@ -4296,17 +4296,17 @@ export const EN: Record<string, string> = {
   /* --- how it works --- */
   "איך הזירה עובדת": "How the arena works",
   "נרשמים": "Enter",
-  "כניסה עולה {turns} תורות, פעם אחת בשבוע. אין מה עוד לעשות — מרגע ההרשמה אתה בטבלה.":
-    "Entry costs {turns} turns, once a week. There is nothing else to do — from the moment you enter you are on the table.",
+  "כניסה עולה {turns} תורות, פעם אחת ביום. אין מה עוד לעשות — מרגע ההרשמה אתה בטבלה.":
+    "Entry costs {turns} turns, once a day. There is nothing else to do — from the moment you enter you are on the table.",
   "נלחמים בדרגה שלך": "You fight your own tier",
   "יש זירה נפרדת לכל דרגת ערים, כמו בכל קרב אחר במשחק. אתה אף פעם לא פוגש אימפריה מליגה אחרת.":
     "There is a separate arena for every city tier, as in every other fight in the game. You never meet an empire from another league.",
   "כולם נגד כולם": "Everyone against everyone",
-  "כשהשבוע מתהפך המערכת מריצה את כל הדו־קרבות בבת אחת: כל נרשם נגד כל נרשם בדיוק פעם אחת. לא צריך להיות מחובר.":
-    "When the week turns over the system runs every duel at once: each entrant against each other entrant exactly once. You do not need to be online.",
+  "בחצות, בשעון ישראל, המערכת מריצה את כל הדו־קרבות בבת אחת: כל נרשם נגד כל נרשם בדיוק פעם אחת. לא צריך להיות מחובר.":
+    "At midnight, Israel time, the system runs every duel at once: each entrant against each other entrant exactly once. You do not need to be online.",
   "אוספים שלל": "Collect the spoils",
-  "הטבלה הסופית נשארת פה עד שתאסוף — גם אם חזרת רק אחרי כמה ימים. שלל שלא נאסף לא הולך לאיבוד.":
-    "The final table stays here until you collect — even if you only came back days later. Uncollected spoils are never lost.",
+  "הטבלה הסופית ממתינה פה עד שתאסוף — גם אם חזרת רק אחרי כמה ימים, ואז אוספים קלף אחד בכל פעם. שלל שלא נאסף לא הולך לאיבוד.":
+    "The final table waits here until you collect — even if you only came back days later, and then you collect one card at a time. Uncollected spoils are never lost.",
   "דו־קרב נקבע לפי כוח צבאי, אבל {luck}% מהתוצאה הם מזל — ואת הכוח משווים בשורש, כך שאימפריה עם חצי מהכוח עדיין לוקחת בערך קרב אחד מכל חמישה. גם מהמקום האחרון בטבלה שווה להיכנס.":
     "A duel is decided by military power, but {luck}% of the outcome is luck — and power is compared by its square root, so an empire with half the power still takes roughly one duel in five. Entering is worth it from anywhere on the table.",
 
@@ -4317,17 +4317,17 @@ export const EN: Record<string, string> = {
   "פרס השתתפות, גם אם הפסדת הכל — שווה יותר מהתורות שהכניסה עלתה.":
     "A participation purse, even if you lost every duel — worth more than the turns entry cost.",
   "ובנוסף, על כל ניצחון": "And on top, for every win",
-  "זהב על כל דו־קרב שלקחת. שבוע חזק של שלושים ניצחונות שווה יותר זהב מהפודיום עצמו.":
-    "Gold for every duel you took. A strong week of thirty wins is worth more gold than the podium itself.",
+  "זהב על כל דו־קרב שלקחת. קלף חזק של שלושים ניצחונות שווה יותר זהב מהפודיום עצמו.":
+    "Gold for every duel you took. A strong card of thirty wins is worth more gold than the podium itself.",
   "פרסי הפודיום נעולים עד שיירשמו {min} משתתפים ({have} עד כה). מתחת לזה הזירה עדיין נלחמת ועדיין משלמת — פרס השתתפות וזהב לכל ניצחון — אבל בלי יהלומים.":
     "Podium prizes are locked until {min} entrants sign up ({have} so far). Below that the arena still fights and still pays — a participation purse and gold per win — but no diamonds.",
 
-  "כבר נרשמת לזירה של השבוע.": "You have already entered this week's arena.",
-  "הזירה של השבוע מלאה ({max} משתתפים).":
-    "This week's arena is full ({max} entrants).",
+  "כבר נרשמת לזירה של היום.": "You have already entered today's arena.",
+  "הזירה של היום מלאה ({max} משתתפים).":
+    "Today's arena is full ({max} entrants).",
   "הרשמה לזירה עולה {turns} תורות.": "Entering the arena costs {turns} turns.",
-  "נרשמת לזירה של השבוע. הקרבות ייערכו כשהשבוע יסתיים.":
-    "You have entered this week's arena. The fights happen when the week ends.",
+  "נרשמת לזירה של היום. הקרבות ייערכו בחצות.":
+    "You have entered today's arena. The fights happen at midnight.",
   "אין לך שלל זירה לאסוף.": "You have no arena spoils to collect.",
   "כבר אספת את השלל הזה.": "You have already collected those spoils.",
   "מקום {place} בזירה, {wins} ניצחונות. קיבלת {spoils}.":
@@ -4687,5 +4687,250 @@ export const EN: Record<string, string> = {
   "הצג קבלה": "Show receipt",
   "טוען...": "Loading…",
   "עדיין לא הונפק מסמך": "No document issued yet",
+
+  /* ------------------------------------------------------------------ */
+  /* guild war — /game/war                                               */
+  /* ------------------------------------------------------------------ */
+  "מלחמת בריתות | KRALDOR": "Guild War | KRALDOR",
+  "{from}–{to} · שעון ישראל · קרב אוטומטי":
+    "{from}–{to} · Israel time · fought automatically",
+  "הזירה פתוחה לבריתות בלבד": "The arena is for guilds only",
+  "מלחמת הבריתות היא קרב בין בריתות, ולכן רק מי שחבר בברית — או הקים אחת בעצמו — יכול להיכנס לזירה. הצטרף לברית קיימת או הקם ברית משלך, ותוכל לרשום אותה לקרב הבא.":
+    "The guild war is a battle between guilds, so only a member of one — or the founder of one — may enter the arena. Join an existing guild or found your own, and you can enter it in the next battle.",
+  "למסך הבריתות": "To the guilds screen",
+  "פרסי המלחמה": "War prizes",
+  "הפרס מחולק **שווה בשווה לכל חברי הברית** הזוכה — גם למי שלא הספיק להתחבר ב־{at}, ובלי בונוס אישי לאף אחד. את הברית מנצחים יחד: מי ששדרג את עזרת הברית, מי שהטיל את הקסמים ומי שמילא את השורות.":
+    "The prize is split **equally between every member** of the winning guild — including whoever never got online by {at}, and with no personal bonus for anyone. A guild wins together: whoever upgraded the guild aid, whoever cast the spells, and whoever filled the ranks.",
+  "נפתח רק כשיש לפחות {n} בריתות בזירה":
+    "Unlocks only once {n} guilds are in the arena",
+  "כוח, לא כסף": "Power, not money",
+  "הפרס משולם באזרחים, תורות וסיבובי גלגל — לא בזהב ולא ביהלומים. אזרחים הופכים לחיילים ותורות הופכות לתקיפות, כך שהברית הזוכה מתוגמלת ביכולת להילחם שוב מחר.":
+    "The prize is paid in citizens, turns and wheel spins — not in gold and not in diamonds. Citizens become soldiers and turns become attacks, so the winning guild is rewarded with the means to fight again tomorrow.",
+  "חוקי הזירה": "Rules of the arena",
+  "הקרב מתנהל לבד": "The battle fights itself",
+  "אין תקיפות ידניות ואין מה ללחוץ. בין {from} ל־{to} המערכת מריצה {rounds} סבבים — סבב בכל דקה — ובכל סבב כל ברית מסתערת על ברית יריבה אחת. אתם רק צופים בשידור החי.":
+    "There are no manual attacks and nothing to click. Between {from} and {to} the system runs {rounds} rounds — one a minute — and in each round every guild charges one rival. You just watch it live.",
+  "מי משתתף": "Who takes part",
+  "כל ברית יכולה להירשם, וההרשמה פתוחה כל הזמן. צריך לפחות {min} בריתות רשומות — אם רק ברית אחת נרשמה, המלחמה מתבטלת והיא לא מקבלת שום פרס. מקום שני מזכה בפרס רק כשיש {runnerUp} בריתות ומעלה.":
+    "Any guild may enter, and entry is always open. At least {min} guilds must be entered — if only one signs up the war is called off and it wins nothing. Second place pays only once there are {runnerUp} guilds or more.",
+  "גודל הברית לא מכריע": "Size does not decide it",
+  "כל ברית מקבלת בדיוק התנגשות אחת בכל סבב — ברית של שחקן אחד וברית של 10 יוצאות לאותו מספר קרבות. מה שרוסטר גדול נותן זה עומק: המערכת מסובבת חבר אחר לכל סבב, כך שברית נמדדת לפי החבר הממוצע שלה ולא לפי כמה שחקנים גייסה.":
+    "Every guild gets exactly one clash per round — a guild of one and a guild of ten fight the same number of battles. What a large roster buys is depth: the system sends a different member into each round, so a guild is measured by its average member rather than by how many it recruited.",
+  "כוח בקרב": "Power in battle",
+  "אותו חישוב של תקיפה רגילה: חיילים + נשק, בונוס מגן, בונוסי הגיבור והציוד, קסם הברית הפעיל ועזרת הברית. עזרת הברית בזירה מחושבת מהכוח הממוצע של הברית (ולא מהסכום), כדי שגם כאן הגודל לא יכריע.":
+    "The same sum as an ordinary attack: soldiers + weapons, the defender's bonus, the hero's and his gear's bonuses, the guild's active spell and the guild aid. In the arena the guild aid is worked out from the guild's *average* power rather than its total, so size does not decide it here either.",
+  "איך צוברים נקודות": "How points are scored",
+  "פריצת הגנה מזכה את הברית התוקפת בנקודות לפי כוחו של המגן — ככל שהיעד חזק יותר, כך שווה יותר. התנגשות שנהדפת מזכה דווקא את ברית המגן, בפחות נקודות.":
+    "Breaking a defence scores the attacking guild points in proportion to the defender's power — the stronger the target, the more it is worth. A clash that is repelled scores for the *defending* guild instead, for fewer points.",
+  "מה מונח על הכף": "What is at stake",
+  "כלום. מלחמת בריתות לא בוזזת משאבים, לא משעבדת חיילים, לא פוצעת גיבורים ואפילו לא עולה תורות — השחקנים לא פועלים. זה טורניר שמודד את מה שבניתם, לא פשיטה.":
+    "Nothing. The guild war plunders no resources, enslaves no soldiers, wounds no heroes and does not even cost turns — the players do not act. It is a tournament that measures what you built, not a raid.",
+
+  /* ------------------------------------------------------------------ */
+  /* the empire dossier — /game/empires/[id]                             */
+  /* ------------------------------------------------------------------ */
+  "פרופיל אימפריה | קראלדור": "Empire profile | Kraldor",
+  "הנהלת המשחק": "Game staff",
+  "{city} — מתוך {max} ערים. {standing}": "{city} — of {max} cities. {standing}",
+  "זו העיר שלך.": "This is your city.",
+  "זו גם העיר שלך — ריגול ותקיפה פתוחים.":
+    "This is your city too — spying and attacking are open.",
+  "עיר אחרת משלך — אין ריגול ואין תקיפה, רק דואר.":
+    "A different city from yours — no spying and no attacking, only mail.",
+  "הגיבור וציודו": "The hero and his gear",
+  "הגיבור שלך עדיין לא לובש ציוד — לכוד חפצים בתקיפות ולבש אותם בעמוד הגיבור.":
+    "Your hero is not wearing any gear yet — capture items in attacks and equip them on the hero page.",
+  "הגיבור הזה יוצא לקרב בלי ציוד — תשעת הסלוטים שלו ריקים.":
+    "This hero goes into battle bare — all nine of his slots are empty.",
+  "ניהול הגיבור ←": "Manage the hero ←",
+  "בן ברית — שניכם חברים בברית {guild}. אין תקיפות בין חברי ברית":
+    "An ally — you are both in the guild {guild}. No attacks between guildmates",
+  "ריגול ודואר עדיין פתוחים.": "Spying and mail are still open.",
+  "בן ברית — אין תקיפה": "An ally — no attacking",
+  "לאימפריה הזו {shields} — ניצחון עליה לא יניב {spoils}. התקיפה עצמה עדיין אפשרית (ניסיון, חפצים ושיקויים).":
+    "This empire has {shields} — beating it will yield no {spoils}. The attack itself is still possible (experience, items and potions).",
+  /* The joiner for the list above. The spaces are part of it: it sits between
+     the items. (" ו" is already keyed further up, for the same reason.) */
+  " או ": " or ",
+  "שלל": "plunder",
+  "שבויים": "captives",
+  "שיקויים פעילים": "Active potions",
+  "אין שיקוי פעיל — הוא נלחם בלי חיזוקים כרגע.":
+    "No potion is running — he is fighting unbuffed right now.",
+  "אין כאן פעולות מלחמה — האימפריה הזו שייכת להנהלת המשחק ואינה משתתפת בו: אי אפשר לתקוף אותה או לרגל אחריה, והיא אינה נספרת בשום טבלת מובילים. דואר, לעומת זאת, עובר: אפשר לכתוב להנהלה מכאן.":
+    "There are no acts of war here — this empire belongs to the game's staff and does not play: it cannot be attacked or spied on, and it counts on no leaderboard. Mail does get through, though: you can write to the staff from here.",
+  "אין כאן פעולות מלחמה — האימפריה הזו יושבת בעיר אחרת. דואר, לעומת זאת, עובר בכל מצב: אפשר לכתוב לכל שחקן במשחק, בכל עיר ובכל רמה.":
+    "There are no acts of war here — this empire sits in a different city. Mail always gets through, though: you can write to any player in the game, in any city and at any level.",
+  "מאזן הביזה ביניכם": "The plunder between you",
+  "עימות אחרון: {when}": "Last clash: {when}",
+  "עוד לא נפגשתם בשדה הקרב — אף אחד מכם לא לקח מהשני דבר.":
+    "You have not met on the field yet — neither of you has taken a thing from the other.",
+  "התקיפה הראשונה פתוחה מכאן.": "The first attack is open from here.",
+  "תקפתי אותו": "I attacked him",
+  "הוא תקף אותי": "He attacked me",
+  "תקיפות": "attacks",
+  "משאב": "Resource",
+  "לקחתי ממנו": "I took",
+  "לקח ממני": "He took",
+  "מאזן": "Net",
+  "שבויים: שביתי ממנו": "Captives: I took",
+  "הוא שבה ממני": "he took from me",
+
+  /* ------------------------------------------------------------------ */
+  /* buying diamonds — /game/diamonds/buy                                */
+  /* ------------------------------------------------------------------ */
+  "רכישת יהלומים | KRALDOR": "Buy Diamonds | KRALDOR",
+  "יהלומים פותחים האצות ייצור, קסמי חנות, חבילות תורות ועוד. ככל שהחבילה גדולה יותר — כך מקבלים יותר יהלומים לכל שקל.":
+    "Diamonds unlock production boosts, shop spells, turn packs and more. The bigger the pack, the more diamonds you get per shekel.",
+  "🔒 החנות סגורה לשחקנים (אתה רואה אותה כאדמין)":
+    "🔒 The store is shut to players (you are seeing it as an admin)",
+  "התשלום התקבל | KRALDOR": "Payment received | KRALDOR",
+  "יתרה נוכחית:": "Current balance:",
+  "לחנות היהלומים": "To the diamond shop",
+  "חזרה לרכישה": "Back to buying",
+  "חזרה לחבילות": "Back to the packs",
+  "הרכישה בוטלה | KRALDOR": "Purchase cancelled | KRALDOR",
+  "הרכישה בוטלה": "Purchase cancelled",
+  "לא בוצע חיוב. אפשר לחזור ולרכוש בכל רגע — החבילות מחכות.":
+    "You were not charged. You can come back and buy at any time — the packs are waiting.",
+  "יש להתחבר": "You need to sign in",
+  "יותר מדי בקשות. נסה שוב בעוד כמה דקות.":
+    "Too many requests. Try again in a few minutes.",
+  "לא נמצאה רכישה": "No such purchase",
+  "לא הצלחנו לשלוף את המסמך כרגע. נסה שוב מאוחר יותר.":
+    "We could not fetch the document just now. Try again later.",
+
+  /* the raid notification email, sent in the recipient's stored language */
+  "לביטול ההתראות: הגדרות > התראות": "To turn these off: Settings > Notifications",
+  "לביטול ההתראות: הגדרות ← התראות": "To turn these off: Settings → Notifications",
+  "לפתיחת המשחק": "Open the game",
+
+  "מדריך המשחק | KRALDOR": "Game Guide | KRALDOR",
+
+  /* ------------------------------------------------------------------ */
+  /* the inbox — stored as keys and rendered when it is opened            */
+  /* ------------------------------------------------------------------ */
+
+  /* These are `Message` rows, not screen text. The row keeps the key and the
+     values that fill it (see lib/game/messageText.ts), because the message is
+     written on somebody else's request — an attacker's, a recruiter's, the
+     season's own clock — and read by its recipient. Keep the {placeholders}. */
+
+  /* a caught spy, a sabotage cell. The three sentences these titles carry are
+     already keyed further up — the spy screens phrase them the same way, and one
+     source string cannot hold two readings. */
+  "🕵️ מרגל נתפס בשטחך!": "🕵️ A spy was caught on your land!",
+  "💥 חבלה בשטחך!": "💥 Sabotage on your land!",
+  "🕵️ תא חבלה נתפס בשטחך!": "🕵️ A sabotage cell was caught on your land!",
+
+  /* the battle report that lands in the defender's inbox */
+  "⚔️ הותקפת על ידי {attacker} — ההגנה נפרצה":
+    "⚔️ {attacker} attacked you — your defence was breached",
+  "🛡️ הדפת התקפה של {attacker}!": "🛡️ You repelled an attack by {attacker}!",
+  "{enslavement} {plunder} צבאך לא ספג אבדות. {hero}":
+    "{enslavement} {plunder} Your army took no losses. {hero}",
+  "צבאך עמד איתן מול ההתקפה — לא איבדת חיילים או משאבים.":
+    "Your army stood firm — you lost no soldiers and no resources.",
+  "🛡️ מגן החיילים שלך מנע שעבוד — אף חייל לא נלקח.":
+    "🛡️ Your soldier shield prevented the enslavement — not one soldier was taken.",
+  "{count} חיילים נלקחו לעבדות.": "{count} soldiers were taken into slavery.",
+  "🛡️ מגן המשאבים שלך חסם את הביזה — לא נלקח ממך ולו משאב אחד.":
+    "🛡️ Your resource shield blocked the plunder — not a single resource was taken.",
+  "נבזזו ממך {gold} זהב, {wood} עץ, {iron} ברזל ו־{stone} אבן.":
+    "{gold} gold, {wood} wood, {iron} iron and {stone} stone were plundered from you.",
+  "🧪 שיקוי החסינות הגן על הגיבור שלך — הוא יצא מהקרב ללא פגע.":
+    "🧪 The immunity potion protected your hero — he came out of the battle unharmed.",
+  "💀 הגיבור שלך נפל בקרב! כל הנקודות והבונוסים שלו מושבתים עד שיקום לתחייה.":
+    "💀 Your hero fell in battle! All of his points and bonuses are disabled until he is revived.",
+  "הגיבור שלך ספג {damage} נזק — נותרו לו {health}% חיים.":
+    "Your hero took {damage} damage — he has {health}% health left.",
+
+  /* guild mail */
+  "🏰 הוזמנת לברית": "🏰 You have been invited to a guild",
+  "{guild} מזמינה אותך להצטרף. פתח את מסך הברית כדי לאשר — ההזמנה תקפה ל־{hours} שעות.":
+    "{guild} invites you to join. Open the guild screen to accept — the invitation stands for {hours} hours.",
+  "🏰 הורחקת מהברית": "🏰 You have been removed from the guild",
+  'הורחקת מהברית "{guild}".': 'You have been removed from the guild "{guild}".',
+  "👑 מונית למנהיג הברית": "👑 You have been made guild leader",
+  'קיבלת את הנהגת הברית "{guild}".': 'You have taken leadership of the guild "{guild}".',
+
+  /* guild-war settlement mail */
+  "🏳️ מלחמת הבריתות בוטלה": "🏳️ The guild war was called off",
+  "רק ברית אחת נרשמה למלחמה, ולכן היא לא התקיימה. אין מנצחת ואין פרסים. הירשמו שוב למחר — צריך לפחות {min} בריתות כדי שהקרב ייצא לדרך.":
+    "Only one guild entered, so the war was not fought. There is no winner and there are no prizes. Enter again for tomorrow — at least {min} guilds are needed for the battle to go ahead.",
+  "⚔️ מלחמת הבריתות הסתיימה": "⚔️ The guild war is over",
+  "{guild} סיימה במקום {rank} מתוך {total} עם {score} נקודות. אין פרס למקום הזה — נתראה מחר בזירה.":
+    "{guild} finished {rank} of {total} with {score} points. That place pays nothing — see you in the arena tomorrow.",
+  "👑 הברית שלך ניצחה במלחמה!": "👑 Your guild won the war!",
+  "🥈 הברית שלך עלתה לפודיום!": "🥈 Your guild reached the podium!",
+  "{guild} — {place} עם {score} נקודות מתוך {total} בריתות. הפרס נכנס לאוצר שלך: {citizens} · {turns} · {spins}.":
+    "{guild} — {place} with {score} points out of {total} guilds. The prize is in your treasury: {citizens} · {turns} · {spins}.",
+
+  /* the welcome letter */
+  "📣 ברוך הבא לקראלדור!": "📣 Welcome to Kraldor!",
+  "האימפריה שלך נוסדה. אמן חיילים, שדרג מכרות ופתח במלחמה — הכל מתחיל בבסיס.":
+    "Your empire is founded. Train soldiers, upgrade mines and go to war — it all starts at the base.",
+
+  /* ------------------------------------------------------------------ */
+  /* odds and ends                                                       */
+  /* ------------------------------------------------------------------ */
+
+  /* the raid notification email */
+  "קראלדור — תקפו את האימפריה שלך": "Kraldor — your empire was attacked",
+  "צבא זר פרץ את ההגנות שלך בזמן שלא היית. הדוח המלא מחכה לך במשחק.":
+    "A foreign army broke through your defences while you were away. The full report is waiting for you in the game.",
+  "קראלדור — חבלה בשטחך": "Kraldor — sabotage on your land",
+  "מישהו שלח תא חבלה לאימפריה שלך. הפרטים מחכים לך בהיסטוריה.":
+    "Someone sent a sabotage cell into your empire. The details are waiting in your history.",
+  "קראלדור — תפסו מרגל בשטחך": "Kraldor — a spy was caught on your land",
+  "כוחות הביטחון שלך תפסו מרגל זר. מישהו מתעניין בך.":
+    "Your security forces caught a foreign spy. Someone is taking an interest in you.",
+
+  /* the payment-return screen */
+  "היהלומים נזקפו לחשבונך. הקבלה נשלחת לכתובת האימייל שלך ואפשר גם להציג אותה כאן.":
+    "The diamonds are in your account. The receipt is on its way to your email address, and you can also view it here.",
+  "היהלומים כבר נזקפו לחשבונך. הקבלה נשלחת לכתובת האימייל שלך ואפשר גם להציג אותה כאן.":
+    "The diamonds were already credited to your account. The receipt is on its way to your email address, and you can also view it here.",
+  "התשלום בבדיקה": "Payment under review",
+  "קיבלנו את התשלום והוא ממתין לאישור סופי מחברת הסליקה. היהלומים ייזקפו אוטומטית תוך דקות ספורות — אין צורך לשלם שוב.":
+    "We have your payment and it is waiting on final approval from the payment processor. The diamonds will be credited automatically within a few minutes — there is no need to pay again.",
+  "לא נמצאה רכישה פתוחה": "No open purchase found",
+  "לא מצאנו רכישה שממתינה לאישור בחשבון הזה. אם חויבת ולא קיבלת יהלומים, פנה אלינו ונטפל בזה מיד.":
+    "We found no purchase awaiting approval on this account. If you were charged and received no diamonds, contact us and we will sort it out at once.",
+
+  /* the mini-game takeover */
+  "משחק חדש על השולחן": "A new game is on the table",
+  "כוס אחת מסתירה את הכדור. עין חדה, יד מהירה — והפרס שלך.":
+    "One cup hides the ball. A sharp eye, a quick hand — and the prize is yours.",
+  "🥤 קדימה, לשולחן!": "🥤 To the table!",
+  "כספת חדשה נפתחה לפריצה": "A new safe is open to cracking",
+  "הקוד ידוע רק לכספת. פענח אותו לפני כולם — וקח את מה שבפנים.":
+    "Only the safe knows the code. Crack it before anyone else — and take what is inside.",
+  "🔓 קדימה, לפריצה!": "🔓 Go crack it!",
+
+  /* the balance tooltips in the command bar */
+  'מטבע הפעולות: תקיפה עולה 10 תורות, ריגול 5. מתקבלות בכל עדכון דירוג לפי שדרוג "קבלת תורות".':
+    'The currency of action: an attack costs 10 turns, a spy mission 5. They arrive on every ranking update, at the rate of your "Turn Income" upgrade.',
+  "המשאב המרכזי לשדרוגים, נשקים ובנק. מיוצר במכרה הזהב על ידי עבדי מכרות.":
+    "The main resource for upgrades, weapons and the bank. Produced in the gold mine by mine slaves.",
+  "חומר גלם לשדרוגי מבנים ונשקים. מיוצר במכרה העץ על ידי עבדי מכרות.":
+    "Raw material for building and weapon upgrades. Produced in the timber mine by mine slaves.",
+  "הבסיס לכלי הנשק של האימפריה. מיוצר במכרה הברזל על ידי עבדי מכרות.":
+    "The basis of the empire's weapons. Produced in the iron mine by mine slaves.",
+  "אבן לחומות, מבנים וביצורים. מיוצרת במחצבת האבן על ידי עבדי מכרות.":
+    "Stone for walls, buildings and fortifications. Produced in the stone quarry by mine slaves.",
+  'מטבע פרימיום נדיר. מתקבל בכל עדכון יומי לפי רמת שדרוג "מכרה יהלומים".':
+    'A rare premium currency. Arrives on every daily update, at the level of your "Diamond Mine" upgrade.',
+
+  /* message-kind labels on the inbox rows */
+  "מערכת": "System",
+  "קרב": "Battle",
+
+  /* the two VIP bank shortcuts */
+  "הפקד הכל לבנק": "Deposit everything",
+  "משוך הכל מהבנק": "Withdraw everything",
+
+  /* the public bar */
+  "תקנון": "Terms",
 
 };

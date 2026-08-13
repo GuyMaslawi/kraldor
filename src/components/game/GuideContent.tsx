@@ -2961,9 +2961,9 @@ export async function GuideContent({
                 <Link href={gameHref("/game/arena")} className="text-gold underline">
                   הזירה
                 </Link>{" "}
-                היא הקרב ההוגן הזה, פעם בשבוע, לכל מי שנרשם: כשהשבוע מתהפך כל נרשם פוגש{" "}
-                <b>כל נרשם אחר בדיוק פעם אחת</b>, והטבלה היא התוצאה. אף אחד לא לוחץ
-                תקיפה ואף אחד לא צריך להיות מחובר.
+                היא הקרב ההוגן הזה, <b>כל יום</b>, לכל מי שנרשם: בחצות (שעון ישראל) כל
+                נרשם פוגש <b>כל נרשם אחר בדיוק פעם אחת</b>, והטבלה היא התוצאה. אף אחד
+                לא לוחץ תקיפה ואף אחד לא צריך להיות מחובר.
               </Lead>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -2971,14 +2971,14 @@ export async function GuideContent({
                   icon="turns"
                   label="דמי כניסה"
                   value={ARENA_ENTRY_TURNS}
-                  hint="תורות, פעם בשבוע"
+                  hint="תורות, פעם ביום"
                   tone="text-emerald-300"
                 />
                 <Fact
                   icon="laurel"
                   label="נרשמים לזירה"
                   value={`עד ${ARENA_MAX_ENTRANTS}`}
-                  hint="זירה אחת לכל דרגת ערים"
+                  hint="זירה אחת לכל דרגת ערים, כל יום"
                 />
                 <Fact
                   icon="dice"
@@ -3044,7 +3044,7 @@ export async function GuideContent({
                   <thead>
                     <tr>
                       <th>מקום</th>
-                      <th>הפרס (בעיר אחת)</th>
+                      <th>הפרס (בעיר אחת, לכל קלף)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3077,12 +3077,13 @@ export async function GuideContent({
               <div className="grid gap-3 sm:grid-cols-2">
                 <Note tone="green" icon="turns" title="כניסה אף פעם לא הפסד">
                   פרס ההשתתפות שווה יותר מ־<b className="nums">{ARENA_ENTRY_TURNS}</b>{" "}
-                  התורות שעלתה הכניסה, ושבוע חזק של שלושים ניצחונות שווה יותר זהב
+                  התורות שעלתה הכניסה, וקלף חזק של שלושים ניצחונות שווה יותר זהב
                   מהפודיום עצמו — הפודיום מוכר את היהלומים, הניצחונות מוכרים את העבודה.
                 </Note>
                 <Note tone="gold" icon="diamond" title="למה צריך חמישה נרשמים">
                   דרגת ערים גבוהה היא לפעמים אימפריה אחת בעולם, ומקום ראשון בטבלה של
-                  שורה אחת הוא ברז יהלומים בלי יריב ובלי סיכון. מתחת ל־
+                  שורה אחת הוא ברז יהלומים בלי יריב ובלי סיכון — וקלף יומי פותח את הברז
+                  הזה כל בוקר מחדש. מתחת ל־
                   <b className="nums">{ARENA_PODIUM_MIN_ENTRANTS}</b> נרשמים הזירה עדיין
                   רצה ועדיין משלמת — פרס השתתפות וזהב לכל ניצחון — אבל בלי יהלומים.
                 </Note>

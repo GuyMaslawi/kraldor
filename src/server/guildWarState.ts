@@ -422,15 +422,26 @@ export async function advanceLiveWars(now: Date = new Date()): Promise<void> {
 async function messageMembers(
   tx: Prisma.TransactionClient,
   empireIds: string[],
-  message: { title: string; body: string }
+  message: {
+    title: string;
+    body: string;
+    titleParams?: Prisma.InputJsonValue;
+    bodyParams?: Prisma.InputJsonValue;
+  }
 ): Promise<void> {
   if (empireIds.length === 0) return;
   await tx.message.createMany({
+    // Keys plus their values, never a finished sentence: the settle runs on
+    // whichever player's page load happened to trip it, and the readers are a
+    // whole guild's worth of other people. `renderMessageText` assembles each
+    // one when its own recipient opens the inbox.
     data: empireIds.map((empireId) => ({
       empireId,
       kind: "SYSTEM" as const,
       title: message.title,
+      titleParams: message.titleParams,
       body: message.body,
+      bodyParams: message.bodyParams,
       href: "/game/war",
     })),
   });
@@ -509,11 +520,11 @@ async function settleWar(warId: string, now: Date): Promise<void> {
             tx,
             members.map((m) => m.empireId),
             {
-              // i18n-exempt-start: stored Message rows, written by whichever
-              // player happens to trigger the lazy settle — never the reader.
-              // See the note in `attackEmpire`.
+              // i18n-keys-start: keys plus values, rendered by renderMessageText
               title: "🏳️ מלחמת הבריתות בוטלה",
-              body: `רק ברית אחת נרשמה למלחמה, ולכן היא לא התקיימה. אין מנצחת ואין פרסים. הירשמו שוב למחר — צריך לפחות ${GUILD_WAR_MIN_GUILDS} בריתות כדי שהקרב ייצא לדרך.`,
+              body: "רק ברית אחת נרשמה למלחמה, ולכן היא לא התקיימה. אין מנצחת ואין פרסים. הירשמו שוב למחר — צריך לפחות {min} בריתות כדי שהקרב ייצא לדרך.",
+              bodyParams: { min: GUILD_WAR_MIN_GUILDS },
+              // i18n-keys-end
             }
           );
         }
@@ -546,8 +557,16 @@ async function settleWar(warId: string, now: Date): Promise<void> {
 
         if (!prize) {
           await messageMembers(tx, memberIds, {
+            // i18n-keys-start: keys plus values, rendered by renderMessageText
             title: "⚔️ מלחמת הבריתות הסתיימה",
-            body: `${entry.guildName} סיימה במקום ${rank} מתוך ${guildCount} עם ${entry.score.toLocaleString("he-IL")} נקודות. אין פרס למקום הזה — נתראה מחר בזירה.`,
+            body: "{guild} סיימה במקום {rank} מתוך {total} עם {score} נקודות. אין פרס למקום הזה — נתראה מחר בזירה.",
+            bodyParams: {
+              guild: entry.guildName,
+              rank,
+              total: guildCount,
+              score: entry.score,
+            },
+            // i18n-keys-end
           });
           continue;
         }
@@ -571,8 +590,27 @@ async function settleWar(warId: string, now: Date): Promise<void> {
           await grantCitizens(tx, memberId, prize.citizens);
         }
         await messageMembers(tx, memberIds, {
+          // i18n-keys-start: keys plus values, rendered by renderMessageText
           title: rank === 1 ? "👑 הברית שלך ניצחה במלחמה!" : "🥈 הברית שלך עלתה לפודיום!",
-          body: `${entry.guildName} — ${prize.label} עם ${entry.score.toLocaleString("he-IL")} נקודות מתוך ${guildCount} בריתות. הפרס נכנס לאוצר שלך: ${prizeSummary(makeT(DEFAULT_LOCALE), prize)}.`,
+          body: "{guild} — {place} עם {score} נקודות מתוך {total} בריתות. הפרס נכנס לאוצר שלך: {citizens} · {turns} · {spins}.",
+          bodyParams: {
+            guild: entry.guildName,
+            score: entry.score,
+            total: guildCount,
+            // The placing's name is itself a dictionary key, so it travels as
+            // one and is resolved inside the sentence. The haul is spelled out
+            // here rather than pre-summarised because one of its three parts
+            // branches on number — "סיבוב גלגל אחד" against "{n} סיבובי גלגל" —
+            // and that branch is part of the language, not of the data.
+            place: { key: prize.label },
+            citizens: { key: "{count} אזרחים", params: { count: prize.citizens } },
+            turns: { key: "{count} תורות", params: { count: prize.turns } },
+            spins:
+              prize.wheelSpins === 1
+                ? { key: "סיבוב גלגל אחד" }
+                : { key: "{count} סיבובי גלגל", params: { count: prize.wheelSpins } },
+          },
+          // i18n-keys-end
         });
       }
 
@@ -597,6 +635,8 @@ async function settleWar(warId: string, now: Date): Promise<void> {
   if (!podium) return;
 
   const medals = ["🥇", "🥈", "🥉"];
+  // i18n-exempt-start: a Discord post lands in one channel with many readers
+  // and one language, not in a reader's session.
   await announceToDiscord({
     kind: "war",
     channel: "events",

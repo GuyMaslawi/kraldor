@@ -48,6 +48,7 @@ const SPARKS = [
   { left: 95, delay: 4.4, dur: 15, size: 2 },
 ];
 
+// i18n-keys-start: dictionary keys, drawn through t(p.title) / t(p.body) below
 const PROMISES: { icon: IconName; title: string; body: string }[] = [
   {
     icon: "base",
@@ -70,6 +71,7 @@ const PROMISES: { icon: IconName; title: string; body: string }[] = [
     body: "בסוף העונה נחתם היכל התהילה. שלושת הראשונים נשארים שם לנצח.",
   },
 ];
+// i18n-keys-end
 
 export default async function LaunchPage() {
   const { t, locale } = await getI18n();

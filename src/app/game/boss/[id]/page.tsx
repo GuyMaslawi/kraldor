@@ -50,6 +50,7 @@ const REWARD_FIELDS = {
  */
 const ENDING_META: Record<
   BossBattleStatus,
+  // i18n-keys-start: `headline` is a dictionary key, drawn through t(ending.headline)
   { headline: string; tone: string; blurb: (t: T, boss: string) => string }
 > = {
   KILLED: {
@@ -87,6 +88,7 @@ const ENDING_META: Record<
     blurb: (t) => t("הקרב הזה עדיין רץ."),
   },
 };
+// i18n-keys-end
 
 const GRADE_TONE: Record<BossGrade, string> = {
   S: "border-gold/70 bg-gold/15 text-gold-bright",

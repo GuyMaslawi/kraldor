@@ -1,3 +1,8 @@
+// i18n-keys-file: a data module — every Hebrew string in it is a dictionary
+// key, rendered through t() by whoever reads it. Nothing here renders, so a
+// literal below is finished work, not a missed one. Verified by --keyless:
+// a declared key the English dictionary does not hold is reported, not excused.
+
 /**
  * Diamond store — the real-money purchase catalogue shown on the "רכישת
  * יהלומים" page. Prices are in ILS. The admin can apply a global percentage

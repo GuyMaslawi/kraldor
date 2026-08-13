@@ -76,7 +76,7 @@ export default async function CommunityPage() {
 
           <div className="mt-5 flex flex-col items-center gap-2">
             {discord ? (
-              <DiscordLink url={discord} variant="button" label="כניסה לערוץ הדיסקורד" />
+              <DiscordLink url={discord} variant="button" label={t("כניסה לערוץ הדיסקורד")} />
             ) : (
               <>
                 <span className="inline-flex items-center gap-2 rounded-lg border border-gold/40 bg-black/40 px-5 py-2 text-sm font-bold text-gold-dim">
@@ -98,10 +98,10 @@ export default async function CommunityPage() {
           <div key={item.title} className="panel rounded-xl p-4">
             <h3 className="flex items-center gap-2 font-black text-gold-bright">
               <Icon name={item.icon} size={18} className="shrink-0 text-crimson-bright" />
-              {item.title}
+              {t(item.title)}
             </h3>
             <p className="mt-1.5 text-[0.82rem] leading-relaxed text-zinc-400">
-              {item.body}
+              {t(item.body)}
             </p>
           </div>
         ))}
@@ -126,7 +126,7 @@ export default async function CommunityPage() {
           {COMMUNITY_RULES.map((rule) => (
             <li key={rule} className="flex gap-2.5 text-[0.85rem] leading-relaxed text-bone/85">
               <Icon name="check" size={15} className="mt-0.5 shrink-0 text-gold-dim" />
-              <span>{rule}</span>
+              <span>{t(rule)}</span>
             </li>
           ))}
         </ul>

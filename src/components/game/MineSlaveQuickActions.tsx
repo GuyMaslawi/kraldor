@@ -14,6 +14,7 @@ import { VipLockedAction } from "./VipLockedAction";
 import { VIP_LABEL } from "@/lib/game/vip";
 import { useT } from "@/i18n/client";
 
+// i18n-keys-start: dictionary keys, drawn through t(label) below
 const ALL_TO_RESOURCE: Array<{
   resource: "gold" | "wood" | "iron" | "stone";
   label: string;
@@ -23,6 +24,7 @@ const ALL_TO_RESOURCE: Array<{
   { resource: "iron", label: "הצב הכל בברזל" },
   { resource: "stone", label: "הצב הכל באבן" },
 ];
+// i18n-keys-end
 
 /**
  * The crew-wide shortcuts.

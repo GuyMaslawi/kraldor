@@ -421,6 +421,7 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
             <p className="text-center text-sm font-black text-crimson-bright">
               {t(
                 WORLD_BOSS_PHASE_BY_KEY.get(playing.reveal.phaseAfter)?.cry ??
+                  // i18n-keys: the fallback is the key t() is about to look up
                   "המפלצת משתנה."
               )}
             </p>

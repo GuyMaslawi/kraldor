@@ -22,7 +22,7 @@ type KindStyle = {
   tagClass: string;
 };
 
-/** `tag` stays in Hebrew and is translated where the toast is drawn. */
+// i18n-keys-start: `tag` stays in Hebrew and is translated where the toast is drawn
 const KIND_STYLE: Record<LiveAlert["kind"], KindStyle> = {
   BATTLE: {
     icon: <Icon name="attack" size={22} />,
@@ -49,6 +49,7 @@ const KIND_STYLE: Record<LiveAlert["kind"], KindStyle> = {
     tagClass: "bg-emerald-500 text-black",
   },
 };
+// i18n-keys-end
 
 function loadSeen(): Set<string> {
   try {

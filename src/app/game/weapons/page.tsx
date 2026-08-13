@@ -19,11 +19,13 @@ export async function generateMetadata() {
   return { title: t("נשקים | קראלדור") };
 }
 
+// i18n-keys-start: dictionary keys, read through t(TAB_POWER_LABELS[category])
 const TAB_POWER_LABELS = {
   ATTACK: "כוח התקפה כולל מנשקים",
   DEFENSE: "כוח הגנה כולל מנשקים",
   SPY: "כוח ריגול כולל מנשקים",
 } as const;
+// i18n-keys-end
 
 const TAB_PARAM_TO_CATEGORY: Record<string, "ATTACK" | "DEFENSE" | "SPY"> = {
   attack: "ATTACK",

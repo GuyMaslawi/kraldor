@@ -38,6 +38,7 @@ import { getT } from "@/i18n/server";
 
 type NavLink = { href: string; label: string; icon: IconName };
 
+// i18n-keys-start: dictionary keys, drawn through t(link.label) in the bar
 const LINKS: NavLink[] = [
   { href: "/guide", label: "מדריך המשחק", icon: "reports" },
   { href: "/hall", label: "היכל התהילה", icon: "crown" },
@@ -48,6 +49,7 @@ const LINKS: NavLink[] = [
 
 /** Stands in for the hall while the gates have never opened. */
 const COUNTDOWN: NavLink = { href: "/launch", label: "ספירה לאחור", icon: "crown" };
+// i18n-keys-end
 
 export async function PublicNav({ className = "" }: { className?: string }) {
   const t = await getT();

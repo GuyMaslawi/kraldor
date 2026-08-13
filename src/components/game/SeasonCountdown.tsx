@@ -21,6 +21,7 @@ import { useT } from "@/i18n/client";
 export function SeasonCountdown({
   serverNow,
   startsAt,
+  // i18n-keys: a default the component runs through t() itself, so callers pass Hebrew
   arrivedLabel = "השערים נפתחים…",
 }: {
   serverNow: number;

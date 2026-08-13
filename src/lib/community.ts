@@ -1,3 +1,8 @@
+// i18n-keys-file: a data module — every Hebrew string in it is a dictionary
+// key, rendered through t() by whoever reads it. Nothing here renders, so a
+// literal below is finished work, not a missed one. Verified by --keyless:
+// a declared key the English dictionary does not hold is reported, not excused.
+
 /**
  * The community channel — everything about it that is safe on both sides of the
  * wire.

@@ -17,6 +17,7 @@ export function SubmitButton({
   children,
   variant = "primary",
   className = "",
+  // i18n-keys: a default the component runs through t() itself, so callers pass Hebrew
   pendingText = "רק רגע...",
   disabled = false,
   formAction,

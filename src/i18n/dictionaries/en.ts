@@ -3546,6 +3546,33 @@ export const EN: Record<string, string> = {
   "כללי הבית": "House rules",
   "מעדיפים להישאר בתוך המשחק? הצ׳אט החי בפינה השמאלית התחתונה פתוח תמיד — חדר כללי ושיחות פרטיות.":
     "Prefer to stay in the game? The live chat in the bottom-left corner is always open — a public room and private conversations.",
+  "כניסה לערוץ הדיסקורד": "Join the Discord channel",
+
+  /* the four pitch cards and the house rules — COMMUNITY_HIGHLIGHTS and
+     COMMUNITY_RULES in lib/community.ts, read through t() on the community
+     page and in the manual */
+  "הכרזות ראשונות": "Announcements first",
+  "Happy Hour, אירועים, סיזנים חדשים ועדכונים — נוחתים בערוץ ברגע שהם עולים, לפעמים לפני שהם באתר.":
+    "Happy Hour, events, new seasons and updates land in the channel the moment they go live — sometimes before they reach the site.",
+  "גיוס לבריתות": "Guild recruiting",
+  "בריתות מחפשות חברים וחברים מחפשים ברית. הרבה יותר מהיר מלנחש מהדירוג מי מקבל אנשים.":
+    "Guilds looking for members, and members looking for a guild. Much faster than guessing from the ladder who is taking people.",
+  "טקטיקה ועזרה": "Tactics and help",
+  "שאלות על כוח, מרגלים, שליטי ערים ומכרות — ושחקנים ותיקים שכבר ניסו את מה שאתה מתלבט לגביו.":
+    "Questions about power, spies, city bosses and mines — and veterans who have already tried whatever you are weighing up.",
+  "באגים והצעות": "Bugs and suggestions",
+  "משהו נראה שבור או לא הוגן? שם זה מגיע אלינו הכי מהר, עם צילום מסך ובלי טופס.":
+    "Something look broken or unfair? That is the fastest way to reach us — a screenshot, no form.",
+  "דברו יפה. ביקורת על מהלך במשחק — כן; עלבונות, גזענות והטרדה — החוצה.":
+    "Keep it civil. Criticising a move in the game, fine; insults, racism and harassment, out.",
+  "בלי ספאם, בלי הצפות ובלי פרסום של משחקים אחרים בערוצים הכלליים.":
+    "No spam, no flooding, and no advertising other games in the general channels.",
+  "אל תשתפו סיסמאות, קודי אימות או פרטי תשלום — גם לא בפרטי.":
+    "Never share passwords, verification codes or payment details — not even in a private message.",
+  "צוות קראלדור לעולם לא יבקש מכם סיסמה, לא בדיסקורד ולא בצ׳אט של המשחק. כל בקשה כזו היא ניסיון גניבה.":
+    "Kraldor staff will never ask you for a password, not on Discord and not in the game's chat. Any such request is an attempt to rob you.",
+  "באג שמאפשר רווח לא הוגן — דווחו, אל תנצלו. ניצול מודע נגמר בחסימה.":
+    "A bug that hands you an unfair gain: report it, do not use it. Knowingly exploiting one ends in a ban.",
 
   /* hero gear */
   "ברשותך מאז": "Yours since",
@@ -4241,23 +4268,59 @@ export const EN: Record<string, string> = {
   "הזירה": "The Arena",
   "הזירה | KRALDOR": "The Arena | KRALDOR",
   "אסוף שלל": "Collect spoils",
+  "טורניר שבועי · כולם נגד כולם · נלחם לבד":
+    "Weekly tournament · everyone against everyone · fights itself",
   "הזירה של השבוע": "This week's arena",
   "תוצאות הזירה": "Arena results",
-  "כל מי שנרשם נלחם בכל השאר בדיוק פעם אחת, כשהשבוע מסתיים. אתה לא צריך להיות מחובר — הזירה נלחמת לבד. הזירה מוגבלת לעיר שלך, וכ-{luck}% מהתוצאה הם מזל, כדי שגם אימפריה קטנה תיקח קרבות.":
-    "Everyone entered fights everyone else exactly once when the week ends. You do not need to be online — the arena fights itself. It is confined to your own city, and about {luck}% of each duel is luck, so a small empire still takes fights.",
+  "שבוע {week}": "Week {week}",
+  "דרגת {tier} ערים": "{tier}-city tier",
+  "טורניר שבועי בין כל מי שנרשם — ואתה לא צריך להיות מחובר. בסוף השבוע המערכת מריצה את כל הדו־קרבות לבד: כל נרשם נגד כל נרשם, בדיוק פעם אחת. אתה משלם תורות, וזהו.":
+    "A weekly tournament between everyone who entered — and you do not need to be online. When the week ends the system runs every duel on its own: each entrant against each other entrant, exactly once. You pay the turns, and that is all.",
   "נרשמו": "entered",
+  "נרשמו לזירה": "Entered the arena",
+  "הקרבות בעוד": "Fights in",
   "הירשם לזירה": "Enter the arena",
   "נרשם…": "Entering…",
   "הזירה מלאה השבוע": "The arena is full this week",
+  "אין לך מספיק תורות": "You do not have enough turns",
   "אתה בפנים. הקרבות ייערכו בסוף השבוע.":
     "You are in. The fights happen when the week ends.",
-  "נלחמת בעוד": "Fought in",
   "עוד רגע": "any moment",
   "מקום {place}": "Place {place}",
   "לא נרשמת לזירה הזו.": "You did not enter that arena.",
   "הטבלה הסופית": "The final table",
   "מי נרשם": "Who has entered",
+  "ניצחונות–הפסדים": "wins–losses",
   "עדיין אף אחד לא נרשם. היה הראשון.": "Nobody has entered yet. Be the first.",
+
+  /* --- how it works --- */
+  "איך הזירה עובדת": "How the arena works",
+  "נרשמים": "Enter",
+  "כניסה עולה {turns} תורות, פעם אחת בשבוע. אין מה עוד לעשות — מרגע ההרשמה אתה בטבלה.":
+    "Entry costs {turns} turns, once a week. There is nothing else to do — from the moment you enter you are on the table.",
+  "נלחמים בדרגה שלך": "You fight your own tier",
+  "יש זירה נפרדת לכל דרגת ערים, כמו בכל קרב אחר במשחק. אתה אף פעם לא פוגש אימפריה מליגה אחרת.":
+    "There is a separate arena for every city tier, as in every other fight in the game. You never meet an empire from another league.",
+  "כולם נגד כולם": "Everyone against everyone",
+  "כשהשבוע מתהפך המערכת מריצה את כל הדו־קרבות בבת אחת: כל נרשם נגד כל נרשם בדיוק פעם אחת. לא צריך להיות מחובר.":
+    "When the week turns over the system runs every duel at once: each entrant against each other entrant exactly once. You do not need to be online.",
+  "אוספים שלל": "Collect the spoils",
+  "הטבלה הסופית נשארת פה עד שתאסוף — גם אם חזרת רק אחרי כמה ימים. שלל שלא נאסף לא הולך לאיבוד.":
+    "The final table stays here until you collect — even if you only came back days later. Uncollected spoils are never lost.",
+  "דו־קרב נקבע לפי כוח צבאי, אבל {luck}% מהתוצאה הם מזל — ואת הכוח משווים בשורש, כך שאימפריה עם חצי מהכוח עדיין לוקחת בערך קרב אחד מכל חמישה. גם מהמקום האחרון בטבלה שווה להיכנס.":
+    "A duel is decided by military power, but {luck}% of the outcome is luck — and power is compared by its square root, so an empire with half the power still takes roughly one duel in five. Entering is worth it from anywhere on the table.",
+
+  /* --- the spoils --- */
+  "השלל": "The spoils",
+  "מחושב לפי {cities} הערים שלך": "Priced for your {cities} cities",
+  "כל השאר": "Everyone else",
+  "פרס השתתפות, גם אם הפסדת הכל — שווה יותר מהתורות שהכניסה עלתה.":
+    "A participation purse, even if you lost every duel — worth more than the turns entry cost.",
+  "ובנוסף, על כל ניצחון": "And on top, for every win",
+  "זהב על כל דו־קרב שלקחת. שבוע חזק של שלושים ניצחונות שווה יותר זהב מהפודיום עצמו.":
+    "Gold for every duel you took. A strong week of thirty wins is worth more gold than the podium itself.",
+  "פרסי הפודיום נעולים עד שיירשמו {min} משתתפים ({have} עד כה). מתחת לזה הזירה עדיין נלחמת ועדיין משלמת — פרס השתתפות וזהב לכל ניצחון — אבל בלי יהלומים.":
+    "Podium prizes are locked until {min} entrants sign up ({have} so far). Below that the arena still fights and still pays — a participation purse and gold per win — but no diamonds.",
 
   "כבר נרשמת לזירה של השבוע.": "You have already entered this week's arena.",
   "הזירה של השבוע מלאה ({max} משתתפים).":
@@ -4271,8 +4334,6 @@ export const EN: Record<string, string> = {
     "Place {place} in the arena, {wins} wins. You received {spoils}.",
   "מקום {place} בזירה, {wins} ניצחונות. קיבלת {spoils} — פרסי הפודיום נפתחים מ-{min} משתתפים.":
     "Place {place} in the arena, {wins} wins. You received {spoils} — podium prizes open from {min} entrants.",
-  "פרסי הפודיום (היהלומים) נפתחים מ-{min} משתתפים. מתחת לזה הזירה עדיין נלחמת ומשלמת על השתתפות ועל כל ניצחון.":
-    "Podium prizes (the diamonds) open from {min} entrants. Below that the arena still fights and still pays for entering and for every win.",
   "חשבונות הנהלה אינם משתתפים בזירה.":
     "Staff accounts do not take part in the arena.",
 
@@ -4296,5 +4357,335 @@ export const EN: Record<string, string> = {
   "להט הקרב הגדיל את הביזה ב-{pct}%": "Battle Fervor increased the plunder by {pct}%",
   "התוקף היה בלהט קרב — הביזה גדלה ב-{pct}%":
     "The attacker was in battle fervor — the plunder grew by {pct}%",
+
+  /* ------------------------------------------------------------------ */
+  /* the public policy pages — /terms, /refund, /privacy                 */
+  /* ------------------------------------------------------------------ */
+
+  /* These are read by a stranger and by an underwriter, so the English is a
+     translation of the legal meaning rather than of the sentence: the Israeli
+     statutes are named in full the first time (a reader outside Israel has no
+     idea what התשמ״א–1981 refers to) and the defined terms stay defined.
+     `**…**` and `[label](/href)` inside a value are rendered by `Rich` in
+     components/legal/LegalUi.tsx — both may move freely in the English. */
+
+  /* shared furniture */
+  "חזרה לקראלדור": "Back to Kraldor",
+  "עודכן לאחרונה: {date}": "Last updated: {date}",
+  "פרטי המפעיל": "Operator details",
+  "פרטי המפעיל המלאים טרם פורסמו. עד לפרסומם לא מתבצעות רכישות בכסף אמיתי באתר. לכל פנייה — כתובת הדוא״ל שלהלן.":
+    "The operator's full details have not been published yet. Until they are, no real-money purchases are made on this site. For anything at all, use the email address below.",
+  "שם:": "Name:",
+  "מספר עוסק:": "Business number:",
+  "כתובת למשלוח דואר:": "Postal address:",
+  "טלפון:": "Phone:",
+  "דוא״ל:": "Email:",
+
+  /* terms of service */
+  "תנאי שימוש | קראלדור": "Terms of Service | Kraldor",
+  "תנאי השימוש במשחק קראלדור — חשבון, יהלומים, רכישות וכללי המשחק.":
+    "The terms of service for Kraldor — your account, diamonds, purchases and the rules of play.",
+  "קראלדור הוא משחק אסטרטגיה מבוסס דפדפן. המסמך הזה הוא ההסכם בינך לבין מפעיל השירות — הוא מסביר מה מותר, מה קורה לחשבון ולרכישות שלך, ומה אנחנו מתחייבים לו ומה לא. ההרשמה למשחק מהווה הסכמה לתנאים האלה.":
+    "Kraldor is a browser-based strategy game. This document is the agreement between you and the operator of the service: it sets out what is allowed, what happens to your account and your purchases, and what we do and do not undertake. Registering for the game constitutes acceptance of these terms.",
+  "הסכמה לתנאים": "Acceptance of these terms",
+  "השימוש בקראלדור — הרשמה, כניסה, משחק או רכישה — מהווה הסכמה מלאה לתנאים אלה ולמסמכים הנלווים: [מדיניות ביטולים והחזרים](/refund) ו־[מדיניות הפרטיות](/privacy). אם אינך מסכים לתנאי כלשהו — אל תשתמש בשירות.":
+    "Using Kraldor — registering, signing in, playing or purchasing — constitutes full acceptance of these terms and of the accompanying documents: the [Cancellation & Refund Policy](/refund) and the [Privacy Policy](/privacy). If you do not agree to any term, do not use the service.",
+  "גיל וכשירות": "Age and capacity",
+  "השימוש במשחק מותר מגיל **13** ומעלה.": "The game may be used from age **13** and up.",
+  "**רכישות בכסף אמיתי** מותרות מגיל **18** ומעלה בלבד. משתמש מתחת לגיל 18 רשאי לבצע רכישה אך ורק באישור מפורש ומראש של הורה או אפוטרופוס, ובאמצעי תשלום השייך לו.":
+    "**Real-money purchases** are permitted from age **18** and up only. A user under 18 may make a purchase solely with the explicit, advance consent of a parent or guardian, and using a payment method belonging to that parent or guardian.",
+  "ביצוע רכישה מהווה הצהרה שאתה בגיר, או שקיבלת אישור כאמור, ושאמצעי התשלום שייך לך או שהשימוש בו הותר לך.":
+    "Making a purchase is a declaration that you are of age, or that you have obtained such consent, and that the payment method is yours or that you have been permitted to use it.",
+  "זיהינו רכישה שבוצעה בידי קטין ללא אישור? פנה אלינו ונבטל אותה. ראה את מדיניות ההחזרים.":
+    "Spotted a purchase made by a minor without consent? Contact us and we will cancel it. See the refund policy.",
+  "החשבון שלך": "Your account",
+  "אתה אחראי לשמירת פרטי הכניסה שלך. פעולה שבוצעה מהחשבון שלך נחשבת לפעולה שלך.":
+    "You are responsible for keeping your sign-in details safe. An action taken from your account is treated as your action.",
+  "חשבון אחד לכל אדם. פתיחת חשבונות נוספים כדי לתגבר את החשבון הראשי, לעקוף חסימה או לנצל הטבות הרשמה — אסורה.":
+    "One account per person. Opening additional accounts to feed your main account, to evade a ban, or to farm sign-up rewards is prohibited.",
+  "אסור למכור, להשכיר, להעביר או לסחור בחשבון, בשם המשתמש או בכל תוכן שבתוכו, בתמורה לכסף אמיתי או לכל טובת הנאה מחוץ למשחק.":
+    "You may not sell, rent, transfer or trade the account, the username, or any content within it, for real money or for any benefit outside the game.",
+  "אנחנו רשאים לדרוש אימות כתובת דוא״ל כתנאי להמשך שימוש.":
+    "We may require verification of your email address as a condition of continued use.",
+  "התנהגות אסורה": "Prohibited conduct",
+  "אלה הפעולות שיובילו להשעיה או לחסימה:":
+    "These are the actions that will lead to suspension or a ban:",
+  "שימוש בתוכנות אוטומציה, סקריפטים, בוטים או כל אמצעי שאינו הממשק הרשמי של המשחק.":
+    "Using automation software, scripts, bots, or any means other than the game's official interface.",
+  "ניצול מכוון של תקלה, באג או פרצה כדי להשיג משאבים, יהלומים או יתרון. גילית תקלה כזו? דווח לנו — לא נעניש מדווח בתום לב.":
+    "Deliberately exploiting a fault, bug or vulnerability to obtain resources, diamonds or an advantage. Found one? Report it — we will not penalise a good-faith reporter.",
+  "פגיעה בשרת או בשירות: עומס מכוון, ניסיונות חדירה, הנדסה לאחור.":
+    "Attacking the server or the service: deliberate overload, intrusion attempts, reverse engineering.",
+  "הטרדה, איומים, גזענות, תוכן מיני או ספאם בצ׳אט ובהודעות בין שחקנים.":
+    "Harassment, threats, racism, sexual content or spam in chat and in player-to-player messages.",
+  "התחזות לשחקן אחר, למפעיל השירות או לצוות המשחק.":
+    "Impersonating another player, the operator of the service, or the game's staff.",
+  "יהלומים ותכנים וירטואליים": "Diamonds and virtual content",
+  "יהלומים, משאבים, חפצים, גיבורים וכל פריט אחר במשחק הם **תוכן וירטואלי בלבד**. אין להם כל ערך כספי, הם אינם מטבע, אינם ניתנים להמרה לכסף, ואינם ניתנים למשיכה, להעברה או למכירה מחוץ למשחק. רכישת יהלומים היא רכישת **רישיון שימוש אישי, מוגבל ובלתי־עביר** בתוך המשחק — לא רכישת נכס.":
+    "Diamonds, resources, items, heroes and every other in-game object are **virtual content only**. They have no monetary value, they are not currency, they cannot be converted into money, and they cannot be withdrawn, transferred or sold outside the game. Buying diamonds buys a **personal, limited and non-transferable licence to use them** inside the game — it does not buy an asset.",
+  "היהלומים נזקפים לחשבונך מיד עם אישור התשלום.":
+    "Diamonds are credited to your account as soon as the payment is approved.",
+  "יהלומים שלא נוצלו אינם פגי תוקף כל עוד החשבון פעיל — ראה סעיף 10 לגבי סגירת השירות.":
+    "Unspent diamonds do not expire for as long as the account is active — see clause 10 regarding closure of the service.",
+  "אנחנו רשאים לשנות מחירים, גדלי חבילות והטבות בכל עת. שינוי לא חל רטרואקטיבית על רכישה שכבר בוצעה.":
+    "We may change prices, pack sizes and bonuses at any time. A change does not apply retroactively to a purchase already made.",
+  "רכישות ותשלומים": "Purchases and payments",
+  "המחירים נקובים בשקלים חדשים (₪) וכוללים מס אם וככל שחל.":
+    "Prices are stated in new Israeli shekels (₪) and include tax if and to the extent it applies.",
+  "התשלום נגבה באמצעות ספק סליקה חיצוני. פרטי אמצעי התשלום שלך נמסרים ישירות לספק ואינם נשמרים אצלנו.":
+    "Payment is taken through an external payment processor. Your payment details are given directly to that processor and are not stored by us.",
+  "על כל רכישה תישלח אליך אסמכתה לכתובת הדוא״ל של החשבון.":
+    "A receipt for every purchase is sent to the account's email address.",
+  "רכישה שלא הושלמה או שנדחתה על ידי ספק הסליקה לא תזכה את החשבון.":
+    "A purchase that was not completed, or that the payment processor declined, does not credit the account.",
+  "תנאי הביטול וההחזר מפורטים במלואם ב[מדיניות הביטולים וההחזרים](/refund).":
+    "The cancellation and refund terms are set out in full in the [Cancellation & Refund Policy](/refund).",
+  "עונות ואיפוס העולם": "Seasons and world resets",
+  "המשחק מתנהל בעונות. בסיום עונה, או באיפוס עולם שמבצע המפעיל, מתאפסת ההתקדמות בעולם המשחק — משאבים, צבא, ערים, גיבור, חפצים והדירוג.":
+    "The game runs in seasons. At the end of a season, or on a world reset performed by the operator, progress in the game world is reset — resources, army, cities, hero, items and the rankings.",
+  "**יתרת היהלומים שלך נשמרת** ועוברת אליך במלואה לעולם החדש. אנחנו מבחינים במכוון בין התקדמות המשחק, שמתאפסת, לבין יהלומים שנרכשו בכסף אמיתי, שאינם מתאפסים.":
+    "**Your diamond balance is kept** and carries over to the new world in full. We draw a deliberate line between game progress, which resets, and diamonds bought with real money, which do not.",
+  "שינויים במשחק ובאיזון": "Changes to the game and its balance",
+  "קראלדור הוא שירות חי. אנחנו רשאים לשנות, להוסיף או להסיר תכונות, לשנות נוסחאות איזון, עלויות ותגמולים, ולתקן תקלות — גם כאשר לשינוי יש השפעה על התקדמות שכבר צברת. שינויים מהותיים יפורסמו במשחק.":
+    "Kraldor is a live service. We may change, add or remove features, change balance formulas, costs and rewards, and fix faults — including where the change affects progress you have already accrued. Material changes are announced in the game.",
+  "השעיה וחסימה": "Suspension and banning",
+  "הפרה של תנאים אלה עלולה להוביל לאזהרה, לשלילת נכסים שהושגו שלא כדין, להשעיה זמנית או לחסימה קבועה.":
+    "A breach of these terms may lead to a warning, the removal of wrongfully obtained assets, a temporary suspension, or a permanent ban.",
+  "בחסימה בשל הפרה חמורה — במיוחד ניצול תקלות, רמאות או שימוש בבוטים — לא יינתן החזר כספי בגין יהלומים שנרכשו ולא נוצלו.":
+    "Where the ban follows a serious breach — in particular exploiting faults, cheating, or using bots — no refund is given for diamonds bought and left unspent.",
+  "נחסמת ואתה סבור שנפלה טעות? פנה אלינו בדוא״ל ונבחן את המקרה.":
+    "Banned and think it was a mistake? Email us and we will review the case.",
+  "זמינות השירות והפסקתו": "Availability of the service, and its discontinuation",
+  "השירות ניתן כמות שהוא (AS IS). איננו מתחייבים לזמינות רציפה, לשמירה מוחלטת של נתונים או להיעדר תקלות. ייתכנו הפסקות לצורך תחזוקה, שדרוג או מסיבות שאינן בשליטתנו.":
+    "The service is provided AS IS. We do not undertake continuous availability, absolute preservation of data, or freedom from faults. There may be interruptions for maintenance, for upgrades, or for reasons outside our control.",
+  "נחליט להפסיק את פעילות השירות כולו? נודיע על כך מראש במשחק ובדוא״ל, **לפחות 30 יום מראש**, ונפסיק למכור יהלומים חדשים עם ההודעה. עד למועד הסגירה תוכל לנצל את היהלומים שברשותך.":
+    "Should we decide to discontinue the service entirely, we will give notice in the game and by email **at least 30 days in advance**, and will stop selling new diamonds when that notice goes out. Until the closing date you may spend the diamonds you hold.",
+  "הגבלת אחריות": "Limitation of liability",
+  "במידה המרבית המותרת בדין, אחריותנו הכוללת כלפיך בגין כל עילה שהיא לא תעלה על הסכום ששילמת בפועל בשירות בשנים־עשר החודשים שקדמו לאירוע. איננו אחראים לנזק עקיף, תוצאתי או אובדן רווח, ולא לאובדן התקדמות במשחק.":
+    "To the fullest extent permitted by law, our total liability to you on any cause of action will not exceed the amount you actually paid to the service in the twelve months preceding the event. We are not liable for indirect or consequential damage, for lost profit, or for lost progress in the game.",
+  "קניין רוחני": "Intellectual property",
+  "כל הזכויות במשחק — הקוד, העיצוב, האיורים, השמות והתכנים — שייכות למפעיל השירות או לבעלי הרישיון שלו. אין להעתיק, לשכפל, להפיץ או ליצור יצירה נגזרת ללא אישור בכתב. תוכן שאתה מעלה (שם אימפריה, הודעות בצ׳אט) נשאר שלך, ואתה מעניק לנו רישיון להציגו במסגרת השירות.":
+    "All rights in the game — the code, the design, the artwork, the names and the content — belong to the operator of the service or to its licensors. You may not copy, reproduce, distribute or create derivative works without written permission. Content you submit (an empire name, chat messages) remains yours, and you grant us a licence to display it within the service.",
+  "שינוי התנאים, דין וסמכות שיפוט": "Changes to these terms, governing law and jurisdiction",
+  "אנחנו רשאים לעדכן תנאים אלה. שינוי מהותי יפורסם במשחק, והמשך שימוש לאחר פרסומו מהווה הסכמה לו.":
+    "We may update these terms. A material change is announced in the game, and continued use after that announcement constitutes acceptance of it.",
+  "על הסכם זה יחולו דיני מדינת ישראל בלבד.":
+    "This agreement is governed by the laws of the State of Israel alone.",
+  "סמכות השיפוט הבלעדית נתונה לבתי המשפט המוסמכים במחוז תל אביב-יפו.":
+    "Exclusive jurisdiction lies with the competent courts of the Tel Aviv-Yafo district.",
+
+  /* cancellations & refunds */
+  "ביטולים והחזרים | קראלדור": "Cancellations & Refunds | Kraldor",
+  "מדיניות ביטול עסקה והחזר כספי על רכישת יהלומים בקראלדור — מתי מחזירים, איך מבקשים ותוך כמה זמן.":
+    "Kraldor's cancellation and refund policy for diamond purchases — when we refund, how to ask, and how long it takes.",
+  "יהלומים הם תוכן דיגיטלי שנמסר לך מיד עם התשלום, ולכן הדין אינו מחייב אותנו לאפשר ביטול. למרות זאת בחרנו במדיניות מיטיבה: אם רכשת ולא השתמשת — נחזיר לך את הכסף. הדף הזה מסביר בדיוק מתי, איך וכמה זמן זה לוקח.":
+    "Diamonds are digital content delivered to you the moment you pay, so the law does not require us to allow cancellation. We have chosen a more generous policy anyway: if you bought and did not spend, we refund you. This page sets out exactly when, how, and how long it takes.",
+  "המצב לפי הדין": "The position under the law",
+  "רכישת יהלומים היא עסקת מכר מרחוק. חוק הגנת הצרכן, התשמ״א–1981 קובע זכות ביטול בעסקאות כאלה, אך מחריג ממנה במפורש **„מידע כהגדרתו בחוק המחשבים, התשנ״ה–1995”** — קטגוריה שאליה נכנס תוכן דיגיטלי הנמסר באופן מיידי, ובכללו יהלומים במשחק.":
+    "Buying diamonds is a distance sale. Israel's Consumer Protection Law, 5741-1981 grants a right of cancellation in such transactions, but expressly excludes from it **\"information as defined in the Computers Law, 5755-1995\"** — a category that covers digital content delivered immediately, in-game diamonds included.",
+  "המשמעות: זכות הביטול הסטטוטורית של 14 יום **אינה חלה** על רכישת יהלומים. המדיניות שלהלן ניתנת מרצוננו ומיטיבה עם השחקן מעבר לנדרש בדין, ואינה גורעת מזכות שכן עומדת לך על פי דין.":
+    "What that means: the statutory 14-day right of cancellation **does not apply** to a diamond purchase. The policy below is given voluntarily and is more generous to the player than the law requires; it does not detract from any right you do have under the law.",
+  "מתי נחזיר לך את הכסף": "When we refund you",
+  "**רכשת ולא השתמשת** — תוך 14 יום מהרכישה, בתנאי שיתרת היהלומים בחשבונך לא ירדה מאז מתחת לרמה שהייתה בו בסמוך לפני אותה רכישה. במקרה כזה נחזיר את מלוא הסכום ונגרע את היהלומים מהחשבון.":
+    "**You bought and did not spend** — within 14 days of the purchase, provided your diamond balance has not since fallen below the level it stood at immediately before that purchase. We then refund the full amount and remove the diamonds from the account.",
+  "**חיוב כפול או שגוי** — נחזיר במלואו, תמיד, ללא מגבלת זמן.":
+    "**A duplicate or incorrect charge** — refunded in full, always, with no time limit.",
+  "**שילמת ולא קיבלת** — תקלה שבה החיוב עבר אך היהלומים לא נזקפו. נשלים את הזיכוי, ואם תעדיף — נחזיר את התשלום.":
+    "**You paid and received nothing** — a fault where the charge went through but the diamonds were not credited. We will complete the credit, or refund the payment if you prefer.",
+  "**רכישה של קטין ללא אישור** — רכישה שבוצעה בידי מי שטרם מלאו לו 18 ללא הסכמת הורה או אפוטרופוס תבוטל לבקשת ההורה, ובלבד שהפנייה נעשית תוך זמן סביר מהחיוב.":
+    "**A purchase by a minor without consent** — a purchase made by someone under 18 without the consent of a parent or guardian is cancelled at the parent's request, provided they contact us within a reasonable time of the charge.",
+  "מתי לא נחזיר": "When we do not refund",
+  "היהלומים נוצלו, כולם או חלקם — לרבות שימוש בחנות היהלומים, בהאצות, בהחייאת גיבור או בכל פעולה אחרת שגורעת מהיתרה.":
+    "The diamonds were spent, in whole or in part — including in the diamond shop, on speed-ups, on reviving a hero, or on any other action that draws down the balance.",
+  "החשבון נחסם בשל הפרת תנאי השימוש — ובפרט רמאות, ניצול תקלות או שימוש בבוטים.":
+    "The account was banned for breaching the terms of service — in particular cheating, exploiting faults, or using bots.",
+  "שינוי דעה לאחר שימוש, אי־שביעות רצון מהאיזון או מהתקדמות במשחק.":
+    "A change of mind after spending, or dissatisfaction with the game's balance or with your progress in it.",
+  "שינוי במחיר, בגודל החבילה או בהטבה שנעשה לאחר הרכישה.":
+    "A change to a price, a pack size or a bonus made after the purchase.",
+  "לתשומת לבך: **איפוס עונה אינו עילה להחזר**, משום שיתרת היהלומים שלך נשמרת במלואה ועוברת לעולם החדש — ראה סעיף 7 ב[תנאי השימוש](/terms).":
+    "Please note: **a season reset is not grounds for a refund**, because your diamond balance is kept in full and carries over to the new world — see clause 7 of the [Terms of Service](/terms).",
+  "איך מבקשים": "How to ask",
+  "שלח לנו דוא״ל מכתובת הדוא״ל הרשומה בחשבון, וכלול:":
+    "Email us from the address registered on the account, and include:",
+  "שם האימפריה שלך במשחק": "Your empire's name in the game",
+  "תאריך הרכישה והסכום": "The date of the purchase and the amount",
+  "מספר האסמכתה מהאישור שקיבלת מספק הסליקה":
+    "The reference number from the confirmation the payment processor sent you",
+  "סיבת הבקשה במשפט אחד": "The reason for the request, in one sentence",
+  "פרטי ההתקשרות — דוא״ל, טלפון וכתובת למשלוח דואר — מופיעים במלואם בתחתית הדף. אפשר לפנות בכל אחד מהם: בדוא״ל, בטלפון, או בכתב בדואר.":
+    "The contact details — email, telephone and postal address — appear in full at the foot of this page. You may use any of them: by email, by telephone, or in writing by post.",
+  "לוחות זמנים": "Timescales",
+  "נגיב לפנייתך תוך 5 ימי עסקים.": "We respond to your request within 5 business days.",
+  "אושר ההחזר — הוא יבוצע תוך 14 יום מאישור הבקשה.":
+    "Once a refund is approved, it is made within 14 days of that approval.",
+  "ההחזר מבוצע תמיד לאמצעי התשלום המקורי. איננו מבצעים החזר במזומן, בהעברה לצד שלישי או ביהלומים.":
+    "A refund always goes back to the original payment method. We do not refund in cash, by transfer to a third party, or in diamonds.",
+  "מועד הזיכוי בפועל בכרטיס או בחשבון תלוי בחברת האשראי או בספק הסליקה ואינו בשליטתנו.":
+    "When the credit actually appears on your card or in your account depends on the card issuer or the payment processor, and is outside our control.",
+  "איננו גובים דמי ביטול.": "We charge no cancellation fee.",
+  "החזר מאושר מוחזר במלואו.": "An approved refund is returned in full.",
+  "פנייה לחברת האשראי": "Going to your card issuer",
+  "נתקלת בבעיה? פנה אלינו קודם. ברוב המקרים נפתור אותה מהר יותר מכל הליך אחר.":
+    "Run into a problem? Come to us first. In most cases we will resolve it faster than any other route.",
+  "פתיחת הליך ביטול עסקה או מחלוקת מול חברת האשראי או ספק הסליקה **מבלי שפנית אלינו תחילה** עלולה להוביל להשעיית החשבון עד לסיום בירור המקרה, ולגריעת היהלומים שנרכשו באותה עסקה.":
+    "Opening a chargeback or a dispute with your card issuer or the payment processor **without contacting us first** may lead to the account being suspended until the matter is settled, and to the removal of the diamonds bought in that transaction.",
+
+  /* privacy */
+  "מדיניות פרטיות | קראלדור": "Privacy Policy | Kraldor",
+  "איזה מידע קראלדור אוסף, למה, עם מי הוא משותף וכמה זמן הוא נשמר — ואיך למחוק אותו.":
+    "What data Kraldor collects, why, who it is shared with and how long it is kept — and how to delete it.",
+  "מדיניות פרטיות": "Privacy Policy",
+  "אנחנו אוספים את המינימום שנדרש כדי להפעיל משחק: כתובת דוא״ל, מה שאתה עושה במשחק, ורשומת רכישה אם קנית יהלומים. אין באתר פרסומות, אין כלי מעקב של צד שלישי, ואיננו מוכרים מידע לאף אחד.":
+    "We collect the minimum needed to run a game: an email address, what you do in the game, and a purchase record if you bought diamonds. There are no adverts on this site, no third-party trackers, and we sell data to no one.",
+  "איזה מידע אנחנו אוספים": "What data we collect",
+  "**פרטי חשבון** — כתובת דוא״ל, שם אימפריה, וסיסמה השמורה בצורה מוצפנת חד־כיוונית (hash). איננו יכולים לשחזר את סיסמתך.":
+    "**Account details** — an email address, an empire name, and a password stored as a one-way hash. We cannot recover your password.",
+  "**התחברות עם Google** — אם בחרת באפשרות זו, נקבל מ־Google את כתובת הדוא״ל שלך, שמך ותמונת הפרופיל. איננו מקבלים גישה לחשבון Google שלך מעבר לכך.":
+    "**Signing in with Google** — if you choose this, Google gives us your email address, your name and your profile picture. We get no other access to your Google account.",
+  "**נתוני משחק** — כל מה שהאימפריה שלך עושה: משאבים, קרבות, הודעות בצ׳אט, הודעות לשחקנים אחרים והישגים.":
+    "**Game data** — everything your empire does: resources, battles, chat messages, messages to other players, and achievements.",
+  "**רשומות רכישה** — סכום, תאריך, מזהה עסקה אצל ספק הסליקה, וכתובת הדוא״ל. **איננו רואים ואיננו שומרים פרטי כרטיס אשראי** — הם נמסרים ישירות לספק הסליקה.":
+    "**Purchase records** — the amount, the date, the payment processor's transaction id, and the email address. **We neither see nor store card details** — they go straight to the payment processor.",
+  "**כתובת IP** — נקראת בעת התחברות ופעולות רגישות לצורך הגנה מפני ניסיונות פריצה וספאם. במנגנון הגבלת הקצב היא נשמרת לזמן קצר בלבד ונמחקת בתום חלון ההגבלה. בנוסף, **כתובת ההרשמה וכתובת ההתחברות האחרונה נשמרות על החשבון** — כדי לאתר ריבוי חשבונות של אותו שחקן, שהוא אחד הכלים המרכזיים לרמאות במשחק תחרותי. כתובות אלו גלויות לצוות הניהול בלבד, משמשות לבדיקה אנושית ולעולם אינן מפעילות חסימה אוטומטית.":
+    "**IP address** — read on sign-in and on sensitive actions, to protect against break-in attempts and spam. In the rate limiter it is kept briefly and deleted when the limiting window closes. In addition, **the sign-up address and the most recent sign-in address are stored on the account** — to detect one player running several accounts, which is one of the main tools of cheating in a competitive game. These addresses are visible to the staff alone, are used for human review, and never trigger an automatic ban.",
+  "**מזהה דפדפן** — עוגייה עם מספר אקראי חסר משמעות, שנשמרת בדפדפן שלך ונרשמת מול החשבון שאיתו נכנסת ממנו. היא משמשת למטרה אחת: **הזמנת חברים משלמת יהלומים**, ולכן צריך לדעת ששני חשבונות שמזמינים זה את זה אינם אותו אדם עם שני חשבונות. המספר אינו נגזר מהמחשב שלך — אין כאן טביעת אצבע של דפדפן, אין בדיקת גופנים, מסך או user-agent, ואין צד שלישי — והוא חסר כל משמעות מחוץ לבסיס הנתונים שלנו. מחיקת העוגיות בדפדפן מוחקת אותו.":
+    "**Browser id** — a cookie holding a meaningless random number, stored in your browser and recorded against the account you signed in with from it. It serves one purpose: **inviting a friend pays diamonds**, so we need to know that two accounts inviting each other are not one person with two accounts. The number is not derived from your machine — there is no browser fingerprinting here, no probing of fonts, screen or user-agent, and no third party — and it means nothing outside our own database. Clearing your browser's cookies deletes it.",
+  "למה אנחנו משתמשים במידע": "What we use the data for",
+  "כדי להפעיל את המשחק ולשמור את ההתקדמות שלך.":
+    "To run the game and save your progress.",
+  "כדי לאמת את זהותך בהתחברות ולהגן על החשבון.":
+    "To verify who you are at sign-in and to protect the account.",
+  "כדי לעבד רכישות, להנפיק אסמכתאות ולטפל בבקשות החזר.":
+    "To process purchases, issue receipts and handle refund requests.",
+  "כדי לאתר ולמנוע רמאות, שימוש בבוטים, ריבוי חשבונות והתנהגות פוגענית.":
+    "To detect and prevent cheating, bot use, multiple accounts and abusive behaviour.",
+  "כדי לשלוח הודעות שירות הכרחיות — אימות דוא״ל, איפוס סיסמה, אישור רכישה.":
+    "To send essential service email — address verification, password resets, purchase confirmations.",
+  "איננו שולחים דיוור פרסומי, ואיננו מוכרים, משכירים או מעבירים מידע אישי לצד שלישי לצרכים שיווקיים.":
+    "We send no marketing email, and we do not sell, rent or pass personal data to any third party for marketing purposes.",
+  "עם מי המידע משותף": "Who the data is shared with",
+  "רק עם ספקי תשתית שבלעדיהם השירות לא יכול לפעול:":
+    "Only with the infrastructure providers without which the service could not run:",
+  "ספק אחסון והרצה של האתר.": "The provider that hosts and runs the site.",
+  "ספק בסיס הנתונים שבו נשמרים נתוני המשחק.":
+    "The database provider that holds the game data.",
+  "ספק הסליקה, שמעבד את התשלום ומקבל את סכום העסקה ומזהה ההזמנה.":
+    "The payment processor, which handles the payment and receives the transaction amount and the order id.",
+  "ספק שליחת הדוא״ל, שמקבל את כתובת הדוא״ל ואת תוכן ההודעה.":
+    "The email provider, which receives the address and the contents of the message.",
+  "Google — רק אם בחרת להתחבר באמצעותה.":
+    "Google — only if you chose to sign in with it.",
+  "נעביר מידע גם אם נידרש לכך בצו שיפוטי או על פי דין, או כדי להגן על זכויותינו במקרה של פעילות בלתי חוקית.":
+    "We will also pass data on if required to by court order or by law, or to defend our rights in the event of unlawful activity.",
+  "עוגיות": "Cookies",
+  "אנחנו משתמשים ב**עוגיות חיוניות בלבד**. אין באתר עוגיות פרסום, אין רשתות מעקב ואין כלי אנליטיקה של צד שלישי.":
+    "We use **essential cookies only**. There are no advertising cookies on this site, no tracking networks and no third-party analytics.",
+  "**עוגיית התחברות** — שומרת את החיבור שלך לחשבון.":
+    "**Session cookie** — keeps you signed in to your account.",
+  "**מזהה דפדפן** — מספר אקראי לזיהוי ריבוי חשבונות בהזמנת חברים, כמפורט בסעיף 1.":
+    "**Browser id** — a random number used to spot multiple accounts in the invite-a-friend scheme, as set out in clause 1.",
+  "**שפה** — עברית או אנגלית, לפי מה שבחרת.":
+    "**Language** — Hebrew or English, whichever you picked.",
+  "**קוד הזמנה ממתין** — אם הגעת דרך קישור הזמנה של שחקן, הקוד נשמר עד שתקים אימפריה, כדי שנדע למי לזקוף את ההזמנה. נמחק ברגע שהיא נקשרת.":
+    "**Pending invite code** — if you arrived through a player's invite link, the code is kept until you found an empire, so we know who to credit the invite to. It is deleted the moment the invite is attached.",
+  "**פנייה לתמיכה** — מזהה השיחה שפתחת בצ׳אט התמיכה, כדי שתמצא אותה שוב.":
+    "**Support ticket** — the id of the conversation you opened in the support chat, so you can find it again.",
+  "מחיקת העוגיות בדפדפן תנתק אותך מהחשבון, אך לא תמחק את נתוני המשחק שלך.":
+    "Clearing your browser's cookies signs you out, but does not delete your game data.",
+  "כמה זמן המידע נשמר": "How long the data is kept",
+  "נתוני חשבון ומשחק — כל עוד החשבון פעיל.":
+    "Account and game data — for as long as the account is active.",
+  "רשומות רכישה — נשמרות גם לאחר מחיקת החשבון, כנדרש מדיני המס ולצורך טיפול במחלוקות.":
+    "Purchase records — kept even after the account is deleted, as tax law requires and in order to handle disputes.",
+  "כתובות IP במנגנון הגבלת הקצב — נמחקות אוטומטית בתום חלון ההגבלה.":
+    "IP addresses in the rate limiter — deleted automatically when the limiting window closes.",
+  "כתובת ההרשמה וכתובת ההתחברות האחרונה — נשמרות על החשבון כל עוד הוא פעיל, ונמחקות יחד איתו.":
+    "The sign-up address and the most recent sign-in address — kept on the account for as long as it is active, and deleted with it.",
+  "הזכויות שלך": "Your rights",
+  "על פי חוק הגנת הפרטיות, התשמ״א–1981, אתה רשאי לעיין במידע שנשמר עליך, לבקש את תיקונו אם אינו נכון, ולבקש את מחיקתו.":
+    "Under Israel's Protection of Privacy Law, 5741-1981, you may inspect the data held about you, ask for it to be corrected if it is wrong, and ask for it to be deleted.",
+  "בקשת עיון או תיקון — פנה בדוא״ל מהכתובת הרשומה בחשבון ונטפל בה תוך זמן סביר.":
+    "To inspect or correct — email us from the address registered on the account and we will deal with it within a reasonable time.",
+  "מחיקת חשבון — נמחק את חשבונך ואת נתוני המשחק שלך. רשומות הרכישה יישמרו כאמור לעיל, ללא הצורך בשם המשתמש.":
+    "Account deletion — we delete your account and your game data. Purchase records are kept as stated above, without needing your username.",
+  "מחיקת החשבון אינה מזכה בהחזר בגין יהלומים שלא נוצלו.":
+    "Deleting the account does not entitle you to a refund for unspent diamonds.",
+  "אבטחת מידע": "Data security",
+  "התעבורה מוצפנת ב־HTTPS, סיסמאות נשמרות מגובבות בלבד, והגישה לנתונים מוגבלת. עם זאת, אף מערכת אינה חסינה לחלוטין. גילית פרצה? נשמח לשמוע ממך בדוא״ל לפני פרסום ברבים — לא ננקוט הליכים נגד מי שדיווח בתום לב.":
+    "Traffic is encrypted with HTTPS, passwords are stored hashed only, and access to the data is restricted. That said, no system is completely secure. Found a vulnerability? We would rather hear from you by email before it goes public — we will take no action against a good-faith reporter.",
+  "קטינים ושינויים במדיניות": "Minors, and changes to this policy",
+  "השירות אינו מיועד לילדים מתחת לגיל 13. נודע לנו על חשבון כזה — נמחק אותו.":
+    "The service is not intended for children under 13. If we learn of such an account, we delete it.",
+  "נעדכן מדיניות זו מעת לעת; שינוי מהותי יפורסם במשחק, והתאריך בראש הדף יתעדכן.":
+    "We will update this policy from time to time; a material change is announced in the game, and the date at the top of this page changes with it.",
+  "לשאלות בנושא פרטיות — הכתובת בתחתית הדף. ראה גם את [תנאי השימוש](/terms).":
+    "For privacy questions, the address is at the foot of this page. See also the [Terms of Service](/terms).",
+
+  /* ------------------------------------------------------------------ */
+  /* the guild hall — /game/guild                                        */
+  /* ------------------------------------------------------------------ */
+  "הברית שלי | KRALDOR": "My Guild | KRALDOR",
+  "הברית שלי": "My Guild",
+  "אולם הברית": "The guild hall",
+  "מושבים תפוסים סביב השולחן": "seats taken at the table",
+  "אין לך ברית": "You have no guild",
+  "האולם ריק — המתן להזמנה לברית קיימת או הקם אחת משלך.":
+    "The hall is empty — wait for an invitation to an existing guild, or found one of your own.",
+  "הזמנות שממתינות לך": "Invitations waiting for you",
+  "הזמנה תקפה ל־{hours} שעות מרגע שנשלחה. אישור מכניס אותך לברית מיד — ושאר ההזמנות שלך נמחקות.":
+    "An invitation stands for {hours} hours from the moment it is sent. Accepting puts you in the guild at once — and deletes every other invitation you hold.",
+  "מנהיג:": "Leader:",
+  "הוזמנת ע״י": "Invited by",
+  "בריתות הממלכה": "The kingdom's guilds",
+  "הכניסה לברית היא בהזמנה בלבד — פנה למנהיג או לסגן כדי שיזמינו אותך.":
+    "Guilds are invitation-only — ask a leader or a deputy to invite you.",
+  "עדיין אין בריתות בממלכה — היה הראשון להקים אחת!":
+    "No guilds in the kingdom yet — be the first to found one!",
+  "הצטרפות": "Joining",
+  "הוזמנת ✉︎": "Invited ✉︎",
+  "בהזמנה בלבד": "By invitation",
+  "יצירת ברית": "Found a guild",
+  "התפקיד שלך:": "Your role:",
+  "חברי הברית": "Guild members",
+  "חברים": "Members",
+  "גיבור רמה": "Hero level",
+  "רמת הגיבור": "The hero's level",
+  "שדרוגי זהב הברית": "Guild gold upgrades",
+  "שני הסולמות האלה משולמים מ**אוצר הברית** — מנהיג או סגן קונים, וכל החברים נהנים.":
+    "Both of these ladders are paid for out of the **guild treasury** — a leader or a deputy buys, and every member benefits.",
+  "קסמי יהלום": "Diamond spells",
+  "קסמי התקפה, הגנה ומשאבים נקנים ב**יהלומים** אישיים. שדרוג קסם מעלה את עזרת הקסם לכל החברים, והטלה מעניקה לך באפ אישי של עד **{pct}% ל־{hours} שעות**.":
+    "Attack, defence and resource spells are bought with your own **diamonds**. Upgrading a spell raises its aid for every member, and casting it grants you a personal buff of up to **{pct}% for {hours} hours**.",
+
+  /* the mine-slave quick actions */
+  "הצב הכל בזהב": "Send them all to gold",
+  "הצב הכל בעץ": "Send them all to wood",
+  "הצב הכל בברזל": "Send them all to iron",
+  "הצב הכל באבן": "Send them all to stone",
+
+  /* the four report tabs */
+  "תקיפות עליי": "Attacks on me",
+  "תקיפות שלי": "My attacks",
+  "ריגול עליי": "Spies on me",
+  "ריגול שלי": "My spies",
+
+  /* the war-alert toast for a message from another player */
+  "משחקן": "From a player",
+
+  /* the diamond store's pack badges and its closed seal */
+  "הכי פופולרי": "Most popular",
+  "הכי משתלם": "Best value",
+  "עוד כמה ליטושים והיהלומים מוכנים": "A few more polishes and the diamonds are ready",
+
+  /* countdowns that have run out */
+  "השערים נפתחים…": "The gates are opening…",
+  "העונה ננעלת…": "The season is closing…",
+
+  /* the receipt button on a purchase row */
+  "קבלה": "Receipt",
+  "הצג קבלה": "Show receipt",
+  "טוען...": "Loading…",
+  "עדיין לא הונפק מסמך": "No document issued yet",
 
 };

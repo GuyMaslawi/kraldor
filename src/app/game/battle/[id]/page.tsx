@@ -27,6 +27,7 @@ export async function generateMetadata() {
   return { title: t("תוצאת קרב | KRALDOR") };
 }
 
+// i18n-keys-start: dictionary keys, drawn through t(r.label) in the plunder strip
 const RES = [
   { key: "stolenGold", icon: <Icon name="gold" size={14} className="inline-block align-middle text-gold-bright" />, label: "זהב" },
   { key: "stolenWood", icon: <Icon name="wood" size={14} className="inline-block align-middle text-amber-600" />, label: "עץ" },
@@ -37,6 +38,7 @@ const RES = [
 /** Explains the number in the banner's XP badge. */
 const HERO_XP_TIP =
   "ניסיון לגיבור מהקרב הזה. רק תקיפה מנצחת מזכה בניסיון — הדפת התקפה לא, הפרס עליה הוא שלא נלקח ממך דבר. הכמות תלויה בפער הרמות (כל איפוס של היריב נחשב 100 רמות, ולכן גם יריב ברמה 1 אחרי איפוס משלם יפה) ובעד כמה הקרב היה צמוד: מחיקת יריב חלש ונמוך ממך מזכה במעט, ניצחון מול יריב שווה או גבוה ממך מזכה בהרבה. כשמצטבר מספיק — הגיבור עולה רמה ומקבל נקודת גיבור ו-25 אזרחים לאימפריה.";
+// i18n-keys-end
 
 /**
  * One fact from the aftermath — icon, label, number — sized to sit inline with

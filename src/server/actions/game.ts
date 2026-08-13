@@ -118,6 +118,8 @@ function insufficientResourcesError(
 async function requireOwnEmpireId(): Promise<string> {
   // Enforces the ban on every action (not just page loads); see getActiveEmpireId.
   const empireId = await getActiveEmpireId();
+  // i18n-exempt: thrown, caught by the action wrapper and replaced with a
+  // translated message — never rendered. Same as the ~15 sibling actions.
   if (empireId === null) throw new Error("לא מחובר");
   return empireId;
 }
@@ -712,7 +714,7 @@ async function targetBlockedReason(
     where: { id: target.id },
     select: { user: { select: { bannedAt: true, bannedUntil: true } } },
   });
-  if (owner && isBanned(owner.user, now)) return "האימפריה הזו אינה זמינה.";
+  if (owner && isBanned(owner.user, now)) return t("האימפריה הזו אינה זמינה.");
   return null;
 }
 
@@ -871,11 +873,12 @@ export async function spyOnEmpire(
           data: {
             empireId: targetEmpireId,
             kind: "SPY",
+            // Key + params, not a rendered sentence: this row is written on
+            // the attacker's request and read by the defender. See
+            // `renderMessageText`.
             title: "🕵️ מרגל נתפס בשטחך!",
-            body: t(
-              "כוחות הביטחון שלך תפסו מרגל של {attacker} לפני שהספיק לאסוף מידע.",
-              { attacker: attacker.name }
-            ),
+            body: "כוחות הביטחון שלך תפסו מרגל של {attacker} לפני שהספיק לאסוף מידע.",
+            bodyParams: { attacker: attacker.name },
           },
         });
       }
@@ -1140,13 +1143,13 @@ export async function sabotageEmpire(
           kind: "SPY",
           title: success ? "💥 חבלה בשטחך!" : "🕵️ תא חבלה נתפס בשטחך!",
           body: success
-            ? t('{attacker} ביצע "{mission}" נגדך. בדוק את ההיסטוריה לפרטים.', {
-                attacker: attacker.name,
-                mission: t(mission.name),
-              })
-            : t("כוחות הביטחון שלך תפסו תא חבלה של {attacker} לפני שהספיק לפעול.", {
-                attacker: attacker.name,
-              }),
+            ? '{attacker} ביצע "{mission}" נגדך. בדוק את ההיסטוריה לפרטים.'
+            : "כוחות הביטחון שלך תפסו תא חבלה של {attacker} לפני שהספיק לפעול.",
+          // The mission name is itself a key, so it travels as one: the reader's
+          // t() resolves it inside the sentence at read time.
+          bodyParams: success
+            ? { attacker: attacker.name, mission: { key: mission.name } }
+            : { attacker: attacker.name },
         },
       });
 
@@ -1730,45 +1733,66 @@ export async function attackEmpire(
 
       // The defender wasn't in the room — drop the battle alert in their inbox.
       //
-      // Deliberately NOT run through `t()`, and this is the one place in the
-      // file where that is the right call. `getT()` resolves the language of
-      // whoever is making the request — here, the *attacker* — while the only
-      // person who will ever read this row is the defender. Translating it now
-      // would freeze the message in a language chosen by their enemy.
+      // Stored as dictionary keys plus their values rather than as a finished
+      // sentence, and that is the whole point here: `getT()` resolves the
+      // language of whoever is making the request — the *attacker* — while the
+      // only person who will ever read this row is the defender. Rendering it
+      // now would freeze the message in a language chosen by their enemy.
+      // `renderMessageText` assembles it when the inbox is opened instead.
       //
-      // Doing this properly means storing the message as a kind plus its
-      // parameters and rendering it in the reader's language when the inbox is
-      // opened, which is a schema change (Message gains `kind`/`params`) plus a
-      // renderer over every message the game writes. Until that lands, a Hebrew
-      // row is at least consistent with every other stored message.
+      // The body is composed from three clauses (enslavement, plunder, the
+      // defender's hero), each a key of its own with its own numbers, because
+      // any of them may be absent. See the note on the clause spacing there.
+      const enslavementClause = soldierShielded
+        ? { key: "🛡️ מגן החיילים שלך מנע שעבוד — אף חייל לא נלקח." }
+        : enslavedSoldiers > 0
+          ? {
+              key: "{count} חיילים נלקחו לעבדות.",
+              params: { count: enslavedSoldiers },
+            }
+          : "";
+      const plunderClause = resourceShielded
+        ? { key: "🛡️ מגן המשאבים שלך חסם את הביזה — לא נלקח ממך ולו משאב אחד." }
+        : {
+            key: "נבזזו ממך {gold} זהב, {wood} עץ, {iron} ברזל ו־{stone} אבן.",
+            params: {
+              gold: stolen.gold,
+              wood: stolen.wood,
+              iron: stolen.iron,
+              stone: stolen.stone,
+            },
+          };
+      const heroClause = defenderHeroShielded
+        ? { key: "🧪 שיקוי החסינות הגן על הגיבור שלך — הוא יצא מהקרב ללא פגע." }
+        : defenderHeroFell
+          ? {
+              key: "💀 הגיבור שלך נפל בקרב! כל הנקודות והבונוסים שלו מושבתים עד שיקום לתחייה.",
+            }
+          : defenderHeroDamage > 0
+            ? {
+                key: "הגיבור שלך ספג {damage} נזק — נותרו לו {health}% חיים.",
+                params: { damage: defenderHeroDamage, health: defenderHeroHealth },
+              }
+            : "";
+
       await tx.message.create({
         data: {
           empireId: targetEmpireId,
           kind: "BATTLE",
           title: attackerWins
-            ? `⚔️ הותקפת על ידי ${attacker.name} — ההגנה נפרצה`
-            : `🛡️ הדפת התקפה של ${attacker.name}!`,
+            ? "⚔️ הותקפת על ידי {attacker} — ההגנה נפרצה"
+            : "🛡️ הדפת התקפה של {attacker}!",
+          titleParams: { attacker: attacker.name },
           body: attackerWins
-            ? `${
-                soldierShielded
-                  ? "🛡️ מגן החיילים שלך מנע שעבוד — אף חייל לא נלקח. "
-                  : enslavedSoldiers > 0
-                    ? `${enslavedSoldiers} חיילים נלקחו לעבדות. `
-                    : ""
-              }${
-                resourceShielded
-                  ? "🛡️ מגן המשאבים שלך חסם את הביזה — לא נלקח ממך ולו משאב אחד."
-                  : `נבזזו ממך ${stolen.gold} זהב, ${stolen.wood} עץ, ${stolen.iron} ברזל ו־${stolen.stone} אבן.`
-              } צבאך לא ספג אבדות.${
-                defenderHeroShielded
-                  ? ` 🧪 שיקוי החסינות הגן על הגיבור שלך — הוא יצא מהקרב ללא פגע.`
-                  : defenderHeroFell
-                    ? ` 💀 הגיבור שלך נפל בקרב! כל הנקודות והבונוסים שלו מושבתים עד שיקום לתחייה.`
-                    : defenderHeroDamage > 0
-                      ? ` הגיבור שלך ספג ${defenderHeroDamage} נזק — נותרו לו ${defenderHeroHealth}% חיים.`
-                      : ""
-              }`
-            : `צבאך עמד איתן מול ההתקפה — לא איבדת חיילים או משאבים.`,
+            ? "{enslavement} {plunder} צבאך לא ספג אבדות. {hero}"
+            : "צבאך עמד איתן מול ההתקפה — לא איבדת חיילים או משאבים.",
+          bodyParams: attackerWins
+            ? {
+                enslavement: enslavementClause,
+                plunder: plunderClause,
+                hero: heroClause,
+              }
+            : undefined,
           href: `/game/battle/${report.id}`,
         },
       });

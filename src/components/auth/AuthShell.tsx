@@ -17,11 +17,13 @@ import { getT } from "@/i18n/server";
  * asked for reduced motion sees, and the only one that ever showed here before
  * — is still the plainest description of what the game is.
  */
+// i18n-keys-start: dictionary keys, drawn through t(line) under the wordmark
 const TAGLINES = [
   "בנה אימפריה. צור ברית. כבוש את הדירוג.",
   "האויב לא ישן. גם החומות שלך לא צריכות.",
   "עונה חדשה, עולם חדש, מלך אחד.",
 ];
+// i18n-keys-end
 
 /** The wordmark, one letter per element so it can fall into place in sequence.
  *  The L keeps its accent colour — it is the brandmark's one gilded letter. */

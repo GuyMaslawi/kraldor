@@ -17,6 +17,7 @@ import { useT } from "@/i18n/client";
  * something to say to somebody, and "somebody" is often us.
  */
 export function ContactStaff({
+  // i18n-keys: a default the component runs through t() itself, so callers pass Hebrew
   label = "פנייה להנהלה",
   prefill,
   className = "btn btn-ghost px-4 py-2 text-sm",

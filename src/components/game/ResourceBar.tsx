@@ -24,6 +24,7 @@ type PillConfig = {
   borderClass: string;
 };
 
+// i18n-keys-start: dictionary keys, drawn through t(p.label) / t(p.tip) below
 const PILLS: PillConfig[] = [
   {
     key: "turns", label: "תורות", icon: "turns",
@@ -56,6 +57,7 @@ const PILLS: PillConfig[] = [
     numClass: "text-sky-300", borderClass: "border-sky-500/40",
   },
 ];
+// i18n-keys-end
 
 export async function ResourceBar({
   resources,

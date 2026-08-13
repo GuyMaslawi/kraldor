@@ -49,6 +49,7 @@ type Flavour = {
 };
 
 /** Hebrew source text, translated where the takeover is drawn. */
+// i18n-keys-start: dictionary keys, drawn through t(flavour.…) in the takeover
 const FLAVOUR: Record<MiniGameState["type"], Flavour> = {
   FIND_BALL: {
     game: "cups",
@@ -75,6 +76,7 @@ const FLAVOUR: Record<MiniGameState["type"], Flavour> = {
     cta: "❓ קדימה, לחידה!",
   },
 };
+// i18n-keys-end
 
 /* ---------------------------- the two stages ---------------------------- */
 
@@ -223,7 +225,7 @@ export function MiniGameTakeover({
 
       <div className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-3 text-center">
         <p className="mgt-rise mgt-kicker" style={{ ["--mgt-delay" as string]: "0.1s" }}>
-          {flavour.kicker}
+          {t(flavour.kicker)}
         </p>
 
         {/* The stage lands first and hardest — it is the part that says which

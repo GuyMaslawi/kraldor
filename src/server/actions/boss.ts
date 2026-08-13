@@ -15,6 +15,7 @@ import {
   type BossArenaState,
 } from "@/server/bossBattleState";
 import { logError } from "@/server/errorLog";
+import { getT } from "@/i18n/server";
 
 export interface BossActionState {
   error?: string;
@@ -47,15 +48,16 @@ export interface BossArenaPoll {
  */
 export async function attackCityBoss(): Promise<BossActionState> {
   let outcome: BossSortieOutcome;
+  const t = await getT();
 
   try {
     const empireId = await getActiveEmpireId();
-    if (empireId === null) return { error: "לא מחובר" };
+    if (empireId === null) return { error: t("לא מחובר") };
     outcome = await startBossAssault(empireId);
     revalidatePath("/game", "layout");
   } catch (err) {
     await logError("boss.attackCityBoss", err);
-    return { error: "אירעה שגיאה, נסה שוב" };
+    return { error: t("אירעה שגיאה, נסה שוב") };
   }
 
   if ("error" in outcome) return outcome;

@@ -42,6 +42,7 @@ export type PlayerOption = { id: string; name: string };
 export function MessageCompose({
   players = [],
   lockedRecipient,
+  // i18n-keys: a default the component runs through t() itself, so callers pass Hebrew
   triggerLabel = "שלח הודעה",
   triggerClassName = "btn btn-gold px-4 py-2 text-sm",
 }: {
@@ -321,6 +322,7 @@ export function MessageCompose({
                   here, pointing at the channel that is actually watched. */}
               <br />
               <ContactStaff
+                // i18n-keys: ContactStaff runs label through t()
                 label="רוצה לפנות להנהלה?"
                 className="font-bold text-gold-bright underline-offset-2 hover:underline"
                 onOpen={() => setOpen(false)}

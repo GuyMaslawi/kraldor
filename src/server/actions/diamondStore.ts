@@ -361,6 +361,6 @@ export async function startDiamondCheckout(
 
     return { status: "redirect", url: order.redirectUrl };
   } catch {
-    return { status: "error", message: "אירעה שגיאה, נסה שוב" };
+    return { status: "error", message: t("אירעה שגיאה, נסה שוב") };
   }
 }

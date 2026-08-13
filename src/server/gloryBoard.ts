@@ -106,7 +106,7 @@ export async function getGloryChampions(): Promise<Map<string, GloryChampion>> {
       g.key                AS key,
       g."empireId"         AS empire_id,
       e.name               AS empire_name,
-      -- The holder's תואר, off a join this query was already making for the
+      -- The holder's title, off a join this query was already making for the
       -- name. Live rather than frozen at the award, deliberately: the case says
       -- who holds the record now, and a title is what that player is called now.
       e.title              AS empire_title,

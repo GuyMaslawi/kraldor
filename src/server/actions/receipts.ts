@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/admin";
 import { rateLimit } from "@/lib/rateLimit";
 import { getPaymentProvider, type PaymentDocument } from "@/server/payments";
+import { getT } from "@/i18n/server";
 
 /**
  * Fetching the tax document a payment produced.
@@ -45,29 +46,30 @@ export type ReceiptResult =
  * would be true even though the caller is told nothing.
  */
 export async function getPurchaseReceipt(purchaseId: string): Promise<ReceiptResult> {
+  const t = await getT();
   const user = await getSessionUser();
-  if (!user) return { status: "error", message: "יש להתחבר" };
+  if (!user) return { status: "error", message: t("יש להתחבר") };
 
   // Every call is a round trip to the gateway, so it is throttled per user rather
   // than per purchase: a loop over one row and a loop over a hundred cost the
   // gateway the same, and only the first is what a limiter keyed by row would
   // catch.
   if (!(await rateLimit(`receipt:${user.id}`, 30, 5 * 60 * 1000))) {
-    return { status: "error", message: "יותר מדי בקשות. נסה שוב בעוד כמה דקות." };
+    return { status: "error", message: t("יותר מדי בקשות. נסה שוב בעוד כמה דקות.") };
   }
 
-  if (!purchaseId) return { status: "error", message: "לא נמצאה רכישה" };
+  if (!purchaseId) return { status: "error", message: t("לא נמצאה רכישה") };
 
   const purchase = await prisma.diamondPurchase.findUnique({
     where: { id: purchaseId },
     select: { userId: true, status: true, provider: true, captureRef: true, paidAt: true },
   });
-  if (!purchase) return { status: "error", message: "לא נמצאה רכישה" };
+  if (!purchase) return { status: "error", message: t("לא נמצאה רכישה") };
 
   const isAdmin = user.role === "ADMIN";
   if (!isAdmin && purchase.userId !== user.id) {
     // Deliberately the same answer as a purchase that does not exist.
-    return { status: "error", message: "לא נמצאה רכישה" };
+    return { status: "error", message: t("לא נמצאה רכישה") };
   }
 
   // A document is issued against money that actually moved. Asking about a
@@ -92,7 +94,10 @@ export async function getPurchaseReceipt(purchaseId: string): Promise<ReceiptRes
   if (!result.ok) {
     // The gateway's own wording is English and operational — it stays on the
     // server side of this boundary, exactly as it does in `startDiamondCheckout`.
-    return { status: "error", message: "לא הצלחנו לשלוף את המסמך כרגע. נסה שוב מאוחר יותר." };
+    return {
+      status: "error",
+      message: t("לא הצלחנו לשלוף את המסמך כרגע. נסה שוב מאוחר יותר."),
+    };
   }
 
   return result.documents.length > 0

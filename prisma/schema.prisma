@@ -1665,8 +1665,18 @@ model Message {
   /// inbox — the message survives as "שחקן שנמחק".
   senderEmpireId String?
   kind           MessageKind @default(SYSTEM)
+  /// The dictionary **key** for the title, not the finished sentence — see
+  /// `renderMessageText`. The reader's language is resolved when the inbox is
+  /// opened, because the row is written by whoever triggered it (an attacker, a
+  /// guild leader, the season closing itself) and read by somebody else.
+  /// Rows written before that change hold a rendered Hebrew sentence, which
+  /// matches no key and so renders unchanged.
   title          String
+  /// Interpolation values for `title`, or null when it takes none.
+  titleParams    Json?
   body           String
+  /// Interpolation values for `body`, or null when it takes none.
+  bodyParams     Json?
   /// Optional in-game link, e.g. the full battle report page.
   href           String?
   readAt         DateTime?

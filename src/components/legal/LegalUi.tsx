@@ -7,6 +7,8 @@ import { PublicNav } from "@/components/public/PublicNav";
 import { SupportChat } from "@/components/support/SupportChat";
 import { hasSupportThread } from "@/server/actions/support";
 import { discordInviteUrl } from "@/server/discord";
+import { getI18n } from "@/i18n/server";
+import { RichText } from "@/components/ui/RichText";
 
 /**
  * Shared furniture for the three public policy pages (/terms, /refund,
@@ -20,11 +22,13 @@ import { discordInviteUrl } from "@/server/discord";
  */
 
 /** The policy pages, in the order the footer links them. */
+// i18n-keys-start: dictionary keys, drawn through t(p.label) in the footer nav
 const PAGES = [
   { href: "/terms", label: "תנאי שימוש" },
   { href: "/refund", label: "ביטולים והחזרים" },
   { href: "/privacy", label: "פרטיות" },
 ] as const;
+// i18n-keys-end
 
 export async function LegalShell({
   title,
@@ -44,6 +48,7 @@ export async function LegalShell({
 }) {
   const operator = getLegalOperator();
   const hasThread = await hasSupportThread();
+  const { t, locale } = await getI18n();
 
   return (
     // `pt-6` and not the page's own rhythm: the bar has to land on the same
@@ -58,17 +63,17 @@ export async function LegalShell({
       <PublicNav />
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-8 flex flex-col items-center text-center">
-          <Link href="/" aria-label="חזרה לקראלדור">
+          <Link href="/" aria-label={t("חזרה לקראלדור")}>
             <LogoMark size={56} className="drop-shadow-[0_6px_20px_rgba(224,35,51,0.35)]" />
           </Link>
           <h1 className="mt-4 text-2xl font-black tracking-wide text-gold-bright sm:text-3xl">
             {title}
           </h1>
           <p className="mt-1 text-[11px] font-semibold tracking-[0.3em] text-bone-dim">
-            קראלדור
+            {t("קראלדור")}
           </p>
           <p className="mt-3 text-xs text-zinc-500">
-            עודכן לאחרונה: {formatLegalDate(updated)}
+            {t("עודכן לאחרונה: {date}", { date: formatLegalDate(updated, locale) })}
           </p>
         </header>
 
@@ -89,21 +94,22 @@ export async function LegalShell({
               about. The store is closed to players in that state anyway — see
               the operator interlock in `arePurchasesLive`. */}
           <section className="panel-inset mt-9 rounded-xl px-4 py-4 text-sm">
-            <h2 className="font-black text-gold-bright">פרטי המפעיל</h2>
+            <h2 className="font-black text-gold-bright">{t("פרטי המפעיל")}</h2>
             {!operator.complete && (
               <p className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-200">
-                פרטי המפעיל המלאים טרם פורסמו. עד לפרסומם לא מתבצעות רכישות בכסף אמיתי
-                באתר. לכל פנייה — כתובת הדוא״ל שלהלן.
+                {t(
+                  "פרטי המפעיל המלאים טרם פורסמו. עד לפרסומם לא מתבצעות רכישות בכסף אמיתי באתר. לכל פנייה — כתובת הדוא״ל שלהלן."
+                )}
               </p>
             )}
             <dl className="mt-2 space-y-1 text-zinc-400">
               <div className="flex gap-2">
-                <dt className="text-zinc-500">שם:</dt>
+                <dt className="text-zinc-500">{t("שם:")}</dt>
                 <dd>{operator.name}</dd>
               </div>
               {operator.taxId && (
                 <div className="flex gap-2">
-                  <dt className="text-zinc-500">מספר עוסק:</dt>
+                  <dt className="text-zinc-500">{t("מספר עוסק:")}</dt>
                   <dd dir="ltr" className="text-start">
                     {operator.taxId}
                   </dd>
@@ -111,13 +117,13 @@ export async function LegalShell({
               )}
               {operator.address && (
                 <div className="flex gap-2">
-                  <dt className="shrink-0 text-zinc-500">כתובת למשלוח דואר:</dt>
+                  <dt className="shrink-0 text-zinc-500">{t("כתובת למשלוח דואר:")}</dt>
                   <dd>{operator.address}</dd>
                 </div>
               )}
               {operator.phone && (
                 <div className="flex gap-2">
-                  <dt className="text-zinc-500">טלפון:</dt>
+                  <dt className="text-zinc-500">{t("טלפון:")}</dt>
                   <dd>
                     {/* A real `tel:` link, not printed text — on the phone most
                         buyers read this on, the whole point of publishing a
@@ -133,7 +139,7 @@ export async function LegalShell({
                 </div>
               )}
               <div className="flex gap-2">
-                <dt className="text-zinc-500">דוא״ל:</dt>
+                <dt className="text-zinc-500">{t("דוא״ל:")}</dt>
                 <dd>
                   <a href={`mailto:${operator.email}`} className="text-gold underline" dir="ltr">
                     {operator.email}
@@ -147,11 +153,11 @@ export async function LegalShell({
         <nav className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm">
           {PAGES.filter((p) => p.href !== current).map((p) => (
             <Link key={p.href} href={p.href} className="btn btn-ghost px-4 py-2">
-              {p.label}
+              {t(p.label)}
             </Link>
           ))}
           <Link href="/" className="btn btn-gold px-4 py-2">
-            חזרה למשחק
+            {t("חזרה למשחק")}
           </Link>
         </nav>
 
@@ -218,4 +224,18 @@ export function Callout({ children }: { children: ReactNode }) {
 /** Inline emphasis for a defined term or a hard number. */
 export function T({ children }: { children: ReactNode }) {
   return <strong className="font-bold text-bone-bright">{children}</strong>;
+}
+
+/**
+ * A translated clause that carries its own emphasis and links.
+ *
+ * The policy pages bold a term in the *middle* of a sentence — "זכות הביטול
+ * הסטטוטורית של 14 יום **אינה חלה** על רכישת יהלומים" — and link out to a
+ * sibling policy mid-clause. {@link RichText} explains why that has to travel
+ * inside the dictionary key rather than around it; this is the same renderer
+ * wearing the documents' own emphasis, which is `<T>`'s bone-bright rather than
+ * the gold prose uses.
+ */
+export function Rich({ text }: { text: string }) {
+  return <RichText text={text} strong="font-bold text-bone-bright" />;
 }

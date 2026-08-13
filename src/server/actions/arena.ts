@@ -255,6 +255,7 @@ export async function getArenaState(): Promise<ArenaState | null> {
 
   return {
     tier,
+    cities: empire.cities,
     week: arenaWeek,
     resolvesAt: nextGameWeekStart(now).getTime(),
     serverNow: now.getTime(),

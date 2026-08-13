@@ -27,6 +27,7 @@ import { useT } from "@/i18n/client";
  */
 
 /** The word the dot says out loud, in the tooltip and in the labelled pill. */
+// i18n-keys: read through t() two lines below, where the tooltip is built
 const PRESENCE_WORD = { on: "מחובר עכשיו", off: "לא מחובר עכשיו" } as const;
 
 export function PresenceDot({

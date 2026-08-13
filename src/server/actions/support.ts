@@ -742,6 +742,7 @@ export async function getSupportThread(
     return {
       id: thread.id,
       status: thread.status,
+      // i18n-exempt: the admin ticket view is Hebrew-only, like the rest of /admin.
       who: thread.empireName ?? rows.find((row) => !row.fromStaff)?.authorName ?? "אורח",
       email: thread.email,
       path: thread.path,
@@ -791,6 +792,9 @@ export async function replyToSupport(input: {
         // The team speaks with one voice, not with an admin's personal name: a
         // player writing to "the game" should be answered by it. Which admin
         // actually typed it is on the row, for us.
+        // i18n-exempt: stored on the row as operator-side data. The player never
+        // reads this — SupportChat prints its own t("צוות קראלדור") for any line
+        // with `fromStaff`, in the reader's language.
         authorName: "צוות קראלדור",
         body,
         createdAt: now,

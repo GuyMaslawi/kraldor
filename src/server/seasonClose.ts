@@ -1210,12 +1210,13 @@ const HALL_BOARD_META: Record<
   SeasonBoardKind,
   { title: string; icon: string; unit: string }
 > = {
-  // Translation sources: the hall renders these live from the catalog, unlike
-  // the recap above, which is frozen into a row.
+  // i18n-keys-start: dictionary keys. The hall renders these live from the
+  // catalog through t(), unlike the recap above, which is frozen into a row.
   POWER: { title: "כוח כללי", icon: "attack", unit: "כוח צבאי" },
   SPY: { title: "ריגול", icon: "spy", unit: "כוח מודיעין" },
   GUILD: { title: "הברית החזקה", icon: "guild", unit: "כוח חברי הברית" },
 };
+// i18n-keys-end
 
 const HALL_BOARD_ORDER: SeasonBoardKind[] = ["POWER", "SPY", "GUILD"];
 

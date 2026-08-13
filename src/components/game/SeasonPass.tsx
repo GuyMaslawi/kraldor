@@ -234,13 +234,14 @@ function tileState(
   return reached ? "ready" : "future";
 }
 
-/** Kept in Hebrew and translated at the call site, like every data label. */
+// i18n-keys-start: kept in Hebrew and translated at the call site, like every data label
 const TILE_STATE_WORD: Record<TileState, string> = {
   done: "נאסף",
   ready: "מוכן לאיסוף",
   paywalled: "נעול מאחורי פרימיום",
   future: "עדיין לא הושג",
 };
+// i18n-keys-end
 
 /**
  * One reward on one track.

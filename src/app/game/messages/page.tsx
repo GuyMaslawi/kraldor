@@ -16,6 +16,7 @@ import { ContactStaff } from "@/components/game/ContactStaff";
 import type { MessageKind } from "@prisma/client";
 import type { CSSProperties, ReactNode } from "react";
 import { getI18n, getT } from "@/i18n/server";
+import { renderMessageText } from "@/lib/game/messageText";
 
 export async function generateMetadata() {
   const t = await getT();
@@ -39,12 +40,14 @@ const BIRDS = [
   { top: "58%", d: "6.5s", dur: "17s" },
 ];
 
+// i18n-keys-start: dictionary keys, drawn through t(meta.label) on each row
 const KIND_META: Record<MessageKind, { icon: ReactNode; label: string; tone: string }> = {
   SYSTEM: { icon: "📣", label: "מערכת", tone: "border-gold/40 text-gold" },
   BATTLE: { icon: <Icon name="attack" size={22} />, label: "קרב", tone: "border-red-500/40 text-red-400" },
   SPY: { icon: <Icon name="spy" size={22} />, label: "ריגול", tone: "border-purple-500/40 text-purple-300" },
   PLAYER: { icon: <Icon name="messages" size={22} />, label: "משחקן", tone: "border-emerald-500/40 text-emerald-300" },
 };
+// i18n-keys-end
 
 export default async function MessagesPage() {
   const { t, locale } = await getI18n();
@@ -186,6 +189,9 @@ export default async function MessagesPage() {
           {messages.map((m, index) => {
             const meta = KIND_META[m.kind];
             const fresh = isNew(m);
+            // The row holds keys and their values, not a finished sentence —
+            // it was written on somebody else's request. See renderMessageText.
+            const { title, body } = renderMessageText(t, m);
             // A PLAYER message whose author was deleted keeps its text but
             // loses the name (the FK is SetNull, not Cascade).
             const from =
@@ -211,7 +217,7 @@ export default async function MessagesPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <p className="font-bold text-zinc-100">{m.title}</p>
+                      <p className="font-bold text-zinc-100">{title}</p>
                       {fresh && (
                         <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-black text-white">
                           {t("חדש")}
@@ -241,7 +247,7 @@ export default async function MessagesPage() {
                       </p>
                     )}
                     <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-zinc-400">
-                      {m.body}
+                      {body}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                       <span className={`font-semibold ${meta.tone.split(" ")[1]}`}>

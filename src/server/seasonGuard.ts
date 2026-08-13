@@ -1,6 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { getSeasonGate } from "@/server/seasonClose";
+import { getT } from "@/i18n/server";
 
 /**
  * The lock on the front door, for everything that is not a `/game` screen.
@@ -36,7 +37,10 @@ export async function requireOpenSeason(): Promise<void> {
  * shows the user nothing at all about why their form did not go through.
  */
 export async function seasonClosedError(): Promise<string | null> {
-  return (await getSeasonGate()).open
-    ? null
-    : "העונה הסתיימה — המשחק סגור עד פתיחת העונה הבאה";
+  if ((await getSeasonGate()).open) return null;
+  // Translated here rather than by the two callers: this is the finished
+  // sentence they hand straight back to `useActionState`, and the reader is the
+  // person whose form was just refused.
+  const t = await getT();
+  return t("העונה הסתיימה — המשחק סגור עד פתיחת העונה הבאה");
 }

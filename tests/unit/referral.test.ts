@@ -3,8 +3,6 @@ import {
   REFERRAL_BURST_LIMIT,
   REFERRAL_CODE_ALPHABET,
   REFERRAL_CODE_LENGTH,
-  REFERRAL_FLAG_DETAIL,
-  REFERRAL_FLAG_LABEL,
   REFERRAL_GOAL_CITIES,
   REFERRAL_HARD_FLAGS,
   REFERRAL_JOINER_PURSE,
@@ -23,6 +21,10 @@ import {
   referrerReward,
   type ReferralFlag,
 } from "@/lib/game/referral";
+import {
+  REFERRAL_FLAG_DETAIL,
+  REFERRAL_FLAG_LABEL,
+} from "@/components/admin/referralFlagMeta";
 import { MAX_CITIES } from "@/lib/game/constants";
 import { STREAK_WEEK_DIAMONDS } from "@/lib/game/streak";
 

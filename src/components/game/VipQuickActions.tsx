@@ -65,6 +65,7 @@ const asFormAction = (fn: unknown) =>
 
 const MINE_RESOURCES = ["gold", "wood", "iron", "stone"] as const;
 
+// i18n-keys-start: dictionary keys, drawn through t(section.title) / t(meta.label)
 const SECTIONS: QuickSection[] = [
   {
     title: "בנק",
@@ -144,6 +145,7 @@ const SECTIONS: QuickSection[] = [
     ],
   },
 ];
+// i18n-keys-end
 
 function QuickActionButton({
   meta,

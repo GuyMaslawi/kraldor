@@ -36,6 +36,7 @@ export function ExpiryCountdown({
   expiresAt,
   serverNow,
   className = "",
+  // i18n-keys: a default the component runs through t() itself, so callers pass Hebrew
   expiredLabel = "פג",
 }: {
   /** Epoch ms the effect runs out at. */

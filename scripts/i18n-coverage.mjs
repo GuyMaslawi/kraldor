@@ -25,6 +25,22 @@
  *   node scripts/i18n-coverage.mjs --unwrapped   # every literal still to wrap
  *   node scripts/i18n-coverage.mjs --missing     # every key still to translate
  *   node scripts/i18n-coverage.mjs --stale       # dictionary keys nothing uses
+ *   node scripts/i18n-coverage.mjs --keyless     # declared keys with no English
+ *
+ * ## Why "it has a dictionary entry" is not proof of anything
+ *
+ * This script used to treat any Hebrew literal that appeared as a dictionary key
+ * as translated, on the theory that it must be data read back through `t()`
+ * somewhere. That was wrong in the one direction that matters. `<SectionHeading
+ * title="מלחמת בריתות" />` renders that string *directly* — the heading component
+ * does not translate its prop — and the dictionary happening to hold the same
+ * words changes nothing on screen. 1,047 literals were sitting in that hole, and
+ * they are exactly the "whole screens still in Hebrew" a reader in English sees.
+ *
+ * So the exemption is now **declared, not inferred**: a data module says so at
+ * the top with `i18n-keys-file:`, a table inside a component wraps itself in
+ * `i18n-keys-start:`/`i18n-keys-end`, and a Hebrew literal anywhere else is
+ * unwrapped work no matter what the dictionary contains. See {@link KEYS_FILE}.
  *
  * The admin control centre is excluded throughout: it is staff-only and stays
  * Hebrew on purpose.
@@ -54,6 +70,7 @@ const SKIP = [
   // `requireAdmin`, and its strings are refusals shown to an admin plus the
   // summary lines written into the audit log.
   path.join("src", "server", "actions", "impersonation.ts"),
+  path.join("src", "server", "actions", "adminReferral.ts"),
   path.join("src", "server", "adminMonitor.ts"),
   path.join("src", "i18n"),
   path.join("src", "lib", "game", "bots.ts"),
@@ -111,6 +128,77 @@ const EXEMPT = /\/\/\s*i18n-exempt:\s*\S|\/\*\s*i18n-exempt:\s*\S/;
  */
 const EXEMPT_START = /\/[/*]\s*i18n-exempt-start:\s*\S/;
 const EXEMPT_END = /\/[/*]\s*i18n-exempt-end\b/;
+
+/**
+ * Lines whose Hebrew literals are dictionary *keys* rather than rendered text.
+ *
+ * The game's data lives in Hebrew — `WEAPONS[i].name`, `ACHIEVEMENTS[i].title`,
+ * a component's module-level `TABS` — and the reader reaches it through
+ * `t(weapon.name)` at the call site. Those literals are genuinely done, and
+ * counting them as outstanding would make forty finished modules look untouched.
+ *
+ * But the claim has to be *made*, because from the scanner's side it is
+ * indistinguishable from the failure it used to hide: a literal rendered
+ * directly that happens to share its text with a dictionary entry. So, exactly
+ * like `i18n-exempt`, it is written down and counted:
+ *
+ *     // i18n-keys-file: every string here is a key, read through t() at the
+ *     // call site — nothing in this module renders.
+ *
+ *     // i18n-keys-start: the tab labels, translated by t(tab.label) below
+ *     const TABS = [...]
+ *     // i18n-keys-end
+ *
+ * A declared key with no English value is *not* excused — see `--keyless`.
+ * That is the whole point: the claim is "this reaches the dictionary", so the
+ * dictionary is checked.
+ */
+const KEYS_FILE = /\/[/*]\s*i18n-keys-file:\s*\S/;
+const KEYS_START = /\/[/*]\s*i18n-keys-start:\s*\S/;
+const KEYS_END = /\/[/*]\s*i18n-keys-end\b/;
+/** The one-line form, for a default prop the component runs through `t()` itself. */
+const KEYS_ONE = /\/[/*]\s*i18n-keys:\s*\S/;
+
+/** Lines inside a declared key region, or every line when the file declares itself. */
+function keyLines(code, file) {
+  const lines = code.split("\n");
+  if (lines.some((line) => KEYS_FILE.test(line))) return "all";
+
+  const marked = new Set();
+  let openedAt = null;
+  lines.forEach((line, index) => {
+    if (openedAt === null && KEYS_START.test(line)) {
+      openedAt = index;
+      return;
+    }
+    if (openedAt !== null) {
+      marked.add(index + 1);
+      if (KEYS_END.test(line)) openedAt = null;
+    }
+  });
+  if (openedAt !== null) {
+    throw new Error(
+      `${file}:${openedAt + 1} opens an i18n-keys-start region that is never closed`
+    );
+  }
+
+  // The one-line form covers its own line and the first line of real code after
+  // it, exactly as `i18n-exempt` does — a marker may sit above the line it
+  // describes or at the end of it.
+  lines.forEach((line, index) => {
+    if (!KEYS_ONE.test(line)) return;
+    marked.add(index + 1);
+    for (let i = index + 1; i < lines.length; i += 1) {
+      const next = lines[i].trim();
+      if (next === "" || next.startsWith("//") || next.startsWith("*") || next.startsWith("/*")) {
+        continue;
+      }
+      marked.add(i + 1);
+      break;
+    }
+  });
+  return marked;
+}
 
 function exemptLines(code, file) {
   const lines = code.split("\n");
@@ -171,8 +259,10 @@ const files = walk(SRC);
 const usedKeys = new Set();
 /** Hebrew literals NOT inside a t(...) call, by file. */
 const unwrapped = new Map();
-/** Hebrew literals outside a t(...) call that the dictionary nonetheless covers. */
+/** Hebrew literals in a declared key table, reached through t() at the call site. */
 let dynamic = 0;
+/** Declared keys the English dictionary does not actually hold, by file. */
+const keyless = new Map();
 /** Literals a line has declared untranslatable, with a reason. */
 let exempt = 0;
 
@@ -180,6 +270,8 @@ for (const file of files) {
   const raw = fs.readFileSync(file, "utf8");
   const code = stripComments(raw);
   const exempted = exemptLines(raw, file);
+  const keyed = keyLines(raw, file);
+  const isKey = (line) => keyed === "all" || keyed.has(line);
   const lineOf = (index) => code.slice(0, index).split("\n").length;
 
   for (const m of code.matchAll(/\bt\(\s*(["'])((?:\\.|(?!\1)[^\\])*)\1/g)) {
@@ -198,17 +290,32 @@ for (const file of files) {
     // call opener and the quote.
     const before = code.slice(Math.max(0, m.index - 80), m.index);
     if (/\bt\(\s*$/.test(before)) continue;
-    if (exempted.has(lineOf(m.index))) { exempt++; continue; }
-    // A literal that already has a dictionary entry is reached *dynamically* —
-    // `t(weapon.name)` over a name defined in lib/game/weapons.ts. It is
-    // translated; it just isn't spelled out at a call site. Counting those as
-    // outstanding work would make lib/game/* look untouched when it is done.
-    if (translated.has(text)) { dynamic++; continue; }
+    const line = lineOf(m.index);
+    if (exempted.has(line)) { exempt++; continue; }
+    // A literal the file has *declared* to be a dictionary key — data read back
+    // through `t(weapon.name)` at the call site. Translated, just not spelled
+    // out anywhere; counting these would make lib/game/* look untouched when it
+    // is done. The claim is checked, not taken: a declared key with no English
+    // value renders Hebrew, so it lands in `keyless` instead.
+    if (isKey(line)) {
+      if (translated.has(text)) dynamic++;
+      else keyless.set(file, [...(keyless.get(file) ?? []), text]);
+      continue;
+    }
     loose.push(text);
   }
   // Template literals carrying Hebrew: these cannot be translated at all
   // without first being turned into a `{placeholder}` string.
-  for (const m of code.matchAll(/`((?:\\.|[^`\\])*)`/g)) {
+  //
+  // Every `t("…")` inside one is blanked first. A template whose only Hebrew is
+  // the argument of a translator call — `` `${t("שיא")} · ` `` — is already
+  // translated; it is joining translated pieces with punctuation, which is the
+  // shape this rule is meant to *produce*, not the one it is hunting.
+  const codeNoT = code.replace(
+    /\bt\(\s*(["'])((?:\\.|(?!\1)[^\\])*)\1/g,
+    (whole) => whole.replace(/[^\n]/g, " ")
+  );
+  for (const m of codeNoT.matchAll(/`((?:\\.|[^`\\])*)`/g)) {
     if (!HEBREW.test(m[1])) continue;
     if (exempted.has(lineOf(m.index))) { exempt++; continue; }
     loose.push("`" + m[1].replace(/\s+/g, " ").slice(0, 70) + "`");
@@ -219,6 +326,7 @@ for (const file of files) {
 const missing = [...usedKeys].filter((k) => !translated.has(k)).sort();
 const stale = [...translated].filter((k) => !usedKeys.has(k)).sort();
 const unwrappedTotal = [...unwrapped.values()].reduce((n, l) => n + l.length, 0);
+const keylessTotal = [...keyless.values()].reduce((n, l) => n + l.length, 0);
 
 const arg = process.argv[2];
 if (arg === "--unwrapped") {
@@ -230,6 +338,11 @@ if (arg === "--unwrapped") {
   for (const k of missing) console.log(k);
 } else if (arg === "--stale") {
   for (const k of stale) console.log(k);
+} else if (arg === "--keyless") {
+  for (const [file, list] of [...keyless].sort((a, b) => b[1].length - a[1].length)) {
+    console.log(`\n${file}  (${list.length})`);
+    for (const s of list) console.log("   " + s);
+  }
 }
 
 const wrapped = usedKeys.size;
@@ -242,9 +355,10 @@ i18n coverage (admin excluded)
   strings routed through t()    ${wrapped}
     ├─ translated to English    ${done}  (${pct(done, wrapped)}%)
     └─ falling back to Hebrew   ${missing.length}
-  data strings reached via t()  ${dynamic}
+  declared key tables           ${dynamic}  (i18n-keys, read through t())
+    └─ with no English value    ${keylessTotal}  in ${keyless.size} files
   declared untranslatable       ${exempt}  (i18n-exempt, with a reason)
   literals still to wrap        ${unwrappedTotal}  in ${unwrapped.size} files
   keys with no literal call     ${stale.length}  (dynamic ones are fine)
 
-  --unwrapped / --missing / --stale to list each.`);
+  --unwrapped / --missing / --stale / --keyless to list each.`);

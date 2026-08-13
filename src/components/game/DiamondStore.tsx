@@ -35,6 +35,7 @@ import { useT } from "@/i18n/client";
  */
 type CheckoutKind = "direct" | "order";
 
+// i18n-keys-start: dictionary keys, drawn through t(tag.label) / t(SEAL_NOTE)
 const TAG_META: Record<
   NonNullable<DiamondPackage["tag"]>,
   { label: string; className: string }
@@ -51,6 +52,7 @@ const TAG_META: Record<
 
 /** The line on the seal's plate while the store is shut. */
 const SEAL_NOTE = "עוד כמה ליטושים והיהלומים מוכנים";
+// i18n-keys-end
 
 export function DiamondStore({
   discountPct,

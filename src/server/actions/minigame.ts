@@ -297,6 +297,7 @@ function prizeIncrements(event: MiniGameEvent): Prisma.EmpireUpdateInput {
 }
 
 /** The three code marks, for the one-line result summary. */
+// i18n-keys: read through t(MARK_WORD[m]) where the tally is drawn
 const MARK_WORD = { hit: "במקום", near: "בקוד", miss: "בחוץ" } as const;
 
 /**

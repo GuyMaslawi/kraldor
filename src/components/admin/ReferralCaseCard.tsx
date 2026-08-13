@@ -4,14 +4,16 @@ import { useActionState } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { FormMessage } from "@/components/ui/FormMessage";
 import {
-  REFERRAL_FLAG_DETAIL,
-  REFERRAL_FLAG_LABEL,
   REFERRAL_GOAL_CITIES,
   isHardReferralFlag,
   type ReferralCase,
   type ReferralFlag,
   type ReferralParty,
 } from "@/lib/game/referral";
+import {
+  REFERRAL_FLAG_DETAIL,
+  REFERRAL_FLAG_LABEL,
+} from "@/components/admin/referralFlagMeta";
 import { decideReferral } from "@/server/actions/adminReferral";
 import type { AdminActionState } from "@/server/actions/admin";
 

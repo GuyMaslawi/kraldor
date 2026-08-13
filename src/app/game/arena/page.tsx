@@ -26,7 +26,8 @@ export default async function ArenaPage() {
     <div className="space-y-6">
       <SectionHeading
         title={t("הזירה")}
-        ornament={<Icon name="crown" size={20} className="text-crimson" />}
+        subtitle={t("טורניר שבועי · כולם נגד כולם · נלחם לבד")}
+        ornament={<Icon name="laurel" size={20} className="text-crimson" />}
       />
 
       {state ? (

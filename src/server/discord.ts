@@ -175,6 +175,8 @@ export async function announceToDiscord(announcement: Announcement): Promise<boo
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
+        // i18n-exempt: the webhook's author name. A Discord post lands in one
+        // channel with many readers and one language, not in a reader's session.
         username: "קראלדור",
         allowed_mentions: { parse: [] },
         embeds: [

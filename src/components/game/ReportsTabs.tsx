@@ -60,13 +60,14 @@ export type SpyRow = {
 
 type TabKey = "againstMe" | "myAttacks" | "spiesOnMe" | "mySpies";
 
-/** Labels stay in Hebrew and go through `t()` where the tab is drawn. */
+// i18n-keys-start: labels stay in Hebrew and go through t() where the tab is drawn
 const TABS: { key: TabKey; label: string; icon: IconName }[] = [
   { key: "againstMe", label: "תקיפות עליי", icon: "shield" },
   { key: "myAttacks", label: "תקיפות שלי", icon: "attack" },
   { key: "spiesOnMe", label: "ריגול עליי", icon: "spy" },
   { key: "mySpies", label: "ריגול שלי", icon: "spy" },
 ];
+// i18n-keys-end
 
 function EmptyState({ text }: { text: string }) {
   return (

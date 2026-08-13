@@ -24,6 +24,7 @@ export async function generateMetadata() {
   return { title: t("בנק | קראלדור") };
 }
 
+// i18n-keys-start: dictionary keys, drawn through t(meta.label) in the ledger
 const TRANSACTION_META: Record<
   BankTransactionType,
   { label: string; icon: string; sign: string; color: string }
@@ -34,6 +35,7 @@ const TRANSACTION_META: Record<
   // and a coin here would be a second drawing of the gold icon.
   INTEREST: { label: "ריבית", icon: "📈", sign: "+", color: "text-gold" },
 };
+// i18n-keys-end
 
 /**
  * A rate as a percent — "6%", "7.44%", "1.24%".

@@ -1,7 +1,11 @@
 import { requireEmpire } from "@/lib/auth";
 import { GuideContent } from "@/components/game/GuideContent";
+import { getT } from "@/i18n/server";
 
-export const metadata = { title: "מדריך המשחק | KRALDOR" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("מדריך המשחק | KRALDOR") };
+}
 
 /**
  * The manual, inside the game shell.

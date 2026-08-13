@@ -306,6 +306,13 @@ export interface ArenaStanding {
 export interface ArenaState {
   /** The city tier this arena belongs to — combat never crosses one. */
   tier: number;
+  /**
+   * The viewer's cities, so the screen can quote the podium at *their* curve.
+   * Every purse here is written at one city and scaled on payout; a prize table
+   * shown at its unscaled figures would understate a city-eight empire's
+   * winnings by three orders of magnitude.
+   */
+  cities: number;
   /** Jerusalem week index. */
   week: number;
   /** When the card is resolved and the next arena opens, epoch ms. */

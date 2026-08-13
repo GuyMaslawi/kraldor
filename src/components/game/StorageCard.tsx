@@ -45,12 +45,14 @@ export interface StorageCardProps {
 
 type TransferKind = "deposit" | "withdraw" | "depositAll" | "withdrawAll";
 
+// i18n-keys-start: dictionary keys, read through t(RESOURCE_LABEL[key]) below
 const RESOURCE_LABEL: Record<OreKind, string> = {
   gold: "זהב",
   wood: "עץ",
   iron: "ברזל",
   stone: "אבן",
 };
+// i18n-keys-end
 
 const formatAmount = (value: number) => formatNumber(value);
 

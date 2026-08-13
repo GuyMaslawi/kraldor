@@ -31,22 +31,27 @@ import { WornTitle } from "@/components/ui/WornTitle";
 import { getEmpireMedals } from "@/server/empireMedals";
 import type { HeroItemView } from "@/components/game/heroItemView";
 import { formatNumber, formatDate } from "@/lib/game/format";
-import { getI18n } from "@/i18n/server";
+import { getI18n, getT } from "@/i18n/server";
 import {
   HERO_CLASS_META,
   heroClassImage,
   tierForLevel,
 } from "@/lib/game/hero";
 
-export const metadata = { title: "פרופיל אימפריה | קראלדור" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("פרופיל אימפריה | קראלדור") };
+}
 
 /** The four plunder columns of a battle report, in the order the game shows them. */
+// i18n-keys-start: dictionary keys, drawn through t(res.label) in the feud table
 const LOOT = [
   { key: "stolenGold", label: "זהב", icon: "gold", tone: "text-gold-bright" },
   { key: "stolenWood", label: "עץ", icon: "wood", tone: "text-amber-600" },
   { key: "stolenIron", label: "ברזל", icon: "iron", tone: "text-slate-300" },
   { key: "stolenStone", label: "אבן", icon: "stone", tone: "text-stone-400" },
 ] as const;
+// i18n-keys-end
 
 /**
  * The whole war between two empires, in numbers: every raid either of them ever
@@ -251,7 +256,7 @@ export default async function EmpireProfilePage({
             <WornTitle titleKey={empire.title} />
             {staffTarget && (
               <span className="shrink-0 rounded-full border border-gold/40 bg-gold/15 px-2 py-0.5 text-xs font-black text-gold-bright">
-                הנהלת המשחק
+                {t("הנהלת המשחק")}
               </span>
             )}
             {/* The city used to ride here as a bare name after a middot —
@@ -261,13 +266,15 @@ export default async function EmpireProfilePage({
                 war actions are dead on a dossier from another city. */}
             <Tip
               className="shrink-0"
-              tip={`${cityFullName(t, empire.cities)} — מתוך ${MAX_CITIES} ערים. ${
-                isMe
-                  ? "זו העיר שלך."
+              tip={t("{city} — מתוך {max} ערים. {standing}", {
+                city: cityFullName(t, empire.cities),
+                max: MAX_CITIES,
+                standing: isMe
+                  ? t("זו העיר שלך.")
                   : sameCity
-                    ? "זו גם העיר שלך — ריגול ותקיפה פתוחים."
-                    : "עיר אחרת משלך — אין ריגול ואין תקיפה, רק דואר."
-              }`}
+                    ? t("זו גם העיר שלך — ריגול ותקיפה פתוחים.")
+                    : t("עיר אחרת משלך — אין ריגול ואין תקיפה, רק דואר."),
+              })}
             >
               <span
                 className={`cursor-help whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-semibold ${
@@ -277,7 +284,7 @@ export default async function EmpireProfilePage({
                 }`}
               >
                 <Icon name="base" size={12} className="inline-block align-middle text-crimson-bright" />{" "}
-                עיר{" "}
+                {t("עיר")}{" "}
                 <span className="font-bold text-bone">{cityName(t, empire.cities)}</span>
               </span>
             </Tip>
@@ -301,10 +308,10 @@ export default async function EmpireProfilePage({
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="flex items-center gap-2 text-base font-bold tracking-wide text-gold-bright">
               <Icon name="attack" size={20} className="text-crimson-bright" />
-              הגיבור וציודו
+              {t("הגיבור וציודו")}
             </h3>
             <span className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-panel-inset px-2.5 py-0.5 text-xs font-bold text-gold">
-              <Icon name="attack" size={14} /> גיבור רמה{" "}
+              <Icon name="attack" size={14} /> {t("גיבור רמה")}{" "}
               <span className="nums" dir="ltr">
                 {heroLevel}
               </span>
@@ -346,8 +353,10 @@ export default async function EmpireProfilePage({
               {equippedView.length === 0 && (
                 <p className="mt-3 text-xs text-zinc-600">
                   {isMe
-                    ? "הגיבור שלך עדיין לא לובש ציוד — לכוד חפצים בתקיפות ולבש אותם בעמוד הגיבור."
-                    : "הגיבור הזה יוצא לקרב בלי ציוד — תשעת הסלוטים שלו ריקים."}
+                    ? t(
+                        "הגיבור שלך עדיין לא לובש ציוד — לכוד חפצים בתקיפות ולבש אותם בעמוד הגיבור."
+                      )
+                    : t("הגיבור הזה יוצא לקרב בלי ציוד — תשעת הסלוטים שלו ריקים.")}
                 </p>
               )}
               {isMe && equippedView.length > 0 && (
@@ -355,7 +364,7 @@ export default async function EmpireProfilePage({
                   href="/game/hero"
                   className="mt-3 inline-block text-sm font-semibold text-gold hover:text-gold-bright"
                 >
-                  ניהול הגיבור ←
+                  {t("ניהול הגיבור ←")}
                 </Link>
               )}
             </div>
@@ -373,9 +382,11 @@ export default async function EmpireProfilePage({
                   <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-gold-bright">
                     <Icon name="guild" size={14} />
                     <span>
-                      בן ברית — שניכם חברים בברית {allied.name}. אין תקיפות בין חברי
-                      ברית
-                      {canEngage ? "ריגול ודואר עדיין פתוחים." : "."}
+                      {t(
+                        "בן ברית — שניכם חברים בברית {guild}. אין תקיפות בין חברי ברית",
+                        { guild: allied.name }
+                      )}
+                      {canEngage ? t("ריגול ודואר עדיין פתוחים.") : "."}
                     </span>
                   </div>
                 )}
@@ -384,12 +395,17 @@ export default async function EmpireProfilePage({
                   <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
                     <ShieldBadges shields={shields} />
                     <span>
-                      לאימפריה הזו {activeShields.map((s) => s.label).join(" ו")} — ניצחון
-                      עליה לא יניב{" "}
-                      {activeShields
-                        .map((s) => (s.key === "resources" ? "שלל" : "שבויים"))
-                        .join(" או ")}
-                      . התקיפה עצמה עדיין אפשרית (ניסיון, חפצים ושיקויים).
+                      {t(
+                        "לאימפריה הזו {shields} — ניצחון עליה לא יניב {spoils}. התקיפה עצמה עדיין אפשרית (ניסיון, חפצים ושיקויים).",
+                        {
+                          shields: activeShields
+                            .map((s) => t(s.label))
+                            .join(t(" ו")),
+                          spoils: activeShields
+                            .map((s) => (s.key === "resources" ? t("שלל") : t("שבויים")))
+                            .join(t(" או ")),
+                        }
+                      )}
                     </span>
                   </div>
                 )}
@@ -400,7 +416,7 @@ export default async function EmpireProfilePage({
                 <div className="rounded-lg border border-border-subtle bg-panel-inset px-3 py-2">
                   <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-zinc-500">
                     <Icon name="potion" size={14} className="text-violet-300" />
-                    שיקויים פעילים
+                    {t("שיקויים פעילים")}
                   </p>
                   {potionsRunning ? (
                     <ActivePotions
@@ -410,7 +426,7 @@ export default async function EmpireProfilePage({
                     />
                   ) : (
                     <p className="text-xs text-zinc-500">
-                      אין שיקוי פעיל — הוא נלחם בלי חיזוקים כרגע.
+                      {t("אין שיקוי פעיל — הוא נלחם בלי חיזוקים כרגע.")}
                     </p>
                   )}
                 </div>
@@ -420,11 +436,11 @@ export default async function EmpireProfilePage({
                     <RankActions
                       targetEmpireId={empire.id}
                       currentTurns={myEmpire.turns}
-                      attackBlockedReason={allied ? "בן ברית — אין תקיפה" : null}
+                      attackBlockedReason={allied ? t("בן ברית — אין תקיפה") : null}
                       messageAction={
                         <MessageCompose
                           lockedRecipient={{ id: empire.id, name: empire.name }}
-                          triggerLabel="הודעה"
+                          triggerLabel={t("הודעה")}
                           triggerClassName={`${RANK_ACTION_BUTTON_BASE} ${RANK_ACTION_MESSAGE_STYLE}`}
                         />
                       }
@@ -442,15 +458,15 @@ export default async function EmpireProfilePage({
                   </>
                 ) : staffTarget ? (
                   <p className="text-sm text-zinc-400">
-                    אין כאן פעולות מלחמה — האימפריה הזו שייכת להנהלת המשחק ואינה
-                    משתתפת בו: אי אפשר לתקוף אותה או לרגל אחריה, והיא אינה נספרת
-                    בשום טבלת מובילים. דואר, לעומת זאת, עובר: אפשר לכתוב להנהלה
-                    מכאן.
+                    {t(
+                      "אין כאן פעולות מלחמה — האימפריה הזו שייכת להנהלת המשחק ואינה משתתפת בו: אי אפשר לתקוף אותה או לרגל אחריה, והיא אינה נספרת בשום טבלת מובילים. דואר, לעומת זאת, עובר: אפשר לכתוב להנהלה מכאן."
+                    )}
                   </p>
                 ) : (
                   <p className="text-sm text-zinc-400">
-                    אין כאן פעולות מלחמה — האימפריה הזו יושבת בעיר אחרת. דואר, לעומת
-                    זאת, עובר בכל מצב: אפשר לכתוב לכל שחקן במשחק, בכל עיר ובכל רמה.
+                    {t(
+                      "אין כאן פעולות מלחמה — האימפריה הזו יושבת בעיר אחרת. דואר, לעומת זאת, עובר בכל מצב: אפשר לכתוב לכל שחקן במשחק, בכל עיר ובכל רמה."
+                    )}
                   </p>
                 )}
 
@@ -460,7 +476,7 @@ export default async function EmpireProfilePage({
                 {!canEngage && (
                   <MessageCompose
                     lockedRecipient={{ id: empire.id, name: empire.name }}
-                    triggerLabel="שלח הודעה"
+                    triggerLabel={t("שלח הודעה")}
                     triggerClassName={`${RANK_ACTION_BUTTON_BASE} ${RANK_ACTION_MESSAGE_STYLE} sm:w-56`}
                   />
                 )}
@@ -490,47 +506,47 @@ export default async function EmpireProfilePage({
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="flex items-center gap-2 text-base font-bold tracking-wide text-gold-bright">
               <Icon name="gold" size={20} className="text-gold-bright" />
-              מאזן הביזה ביניכם
+              {t("מאזן הביזה ביניכם")}
             </h3>
             {lastClash && (
               <span className="text-xs text-zinc-500">
-                עימות אחרון: {formatDate(lastClash, locale)}
+                {t("עימות אחרון: {when}", { when: formatDate(lastClash, locale) })}
               </span>
             )}
           </div>
 
           {!foughtBefore ? (
             <p className="text-sm text-zinc-400">
-              עוד לא נפגשתם בשדה הקרב — אף אחד מכם לא לקח מהשני דבר.
-              {canEngage && " התקיפה הראשונה פתוחה מכאן."}
+              {t("עוד לא נפגשתם בשדה הקרב — אף אחד מכם לא לקח מהשני דבר.")}
+              {canEngage && ` ${t("התקיפה הראשונה פתוחה מכאן.")}`}
             </p>
           ) : (
             <>
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="panel-inset rounded-lg p-3">
-                  <p className="text-[11px] text-zinc-400">תקפתי אותו</p>
+                  <p className="text-[11px] text-zinc-400">{t("תקפתי אותו")}</p>
                   <p className="mt-0.5 text-sm font-bold text-emerald-400">
                     <span className="nums" dir="ltr">
                       {feud.mine.raids}
                     </span>{" "}
-                    תקיפות ·{" "}
+                    {t("תקיפות")} ·{" "}
                     <span className="nums" dir="ltr">
                       {feud.mine.wins}
                     </span>{" "}
-                    ניצחונות
+                    {t("ניצחונות")}
                   </p>
                 </div>
                 <div className="panel-inset rounded-lg p-3">
-                  <p className="text-[11px] text-zinc-400">הוא תקף אותי</p>
+                  <p className="text-[11px] text-zinc-400">{t("הוא תקף אותי")}</p>
                   <p className="mt-0.5 text-sm font-bold text-red-400">
                     <span className="nums" dir="ltr">
                       {feud.theirs.raids}
                     </span>{" "}
-                    תקיפות ·{" "}
+                    {t("תקיפות")} ·{" "}
                     <span className="nums" dir="ltr">
                       {feud.theirs.wins}
                     </span>{" "}
-                    ניצחונות
+                    {t("ניצחונות")}
                   </p>
                 </div>
               </div>
@@ -542,10 +558,10 @@ export default async function EmpireProfilePage({
                 <table className="w-full min-w-[360px] text-sm">
                   <thead>
                     <tr className="text-[11px] uppercase tracking-wide text-zinc-500">
-                      <th className="px-2 py-1.5 text-start font-bold">משאב</th>
-                      <th className="px-2 py-1.5 text-end font-bold">לקחתי ממנו</th>
-                      <th className="px-2 py-1.5 text-end font-bold">לקח ממני</th>
-                      <th className="px-2 py-1.5 text-end font-bold">מאזן</th>
+                      <th className="px-2 py-1.5 text-start font-bold">{t("משאב")}</th>
+                      <th className="px-2 py-1.5 text-end font-bold">{t("לקחתי ממנו")}</th>
+                      <th className="px-2 py-1.5 text-end font-bold">{t("לקח ממני")}</th>
+                      <th className="px-2 py-1.5 text-end font-bold">{t("מאזן")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -561,7 +577,7 @@ export default async function EmpireProfilePage({
                               size={14}
                               className={`inline-block align-middle ${res.tone}`}
                             />{" "}
-                            {res.label}
+                            {t(res.label)}
                           </td>
                           {/* dir="ltr" belongs on the digits, not the cell: on
                               the cell it flips `text-end` to the physical right
@@ -603,11 +619,11 @@ export default async function EmpireProfilePage({
               {feud.mine.captives + feud.theirs.captives > 0 && (
                 <p className="mt-3 text-xs text-zinc-400">
                   <Icon name="citizens" size={14} className="inline-block align-middle text-zinc-300" />{" "}
-                  שבויים: שביתי ממנו{" "}
+                  {t("שבויים: שביתי ממנו")}{" "}
                   <span className="nums font-bold text-emerald-400" dir="ltr">
                     {formatNumber(feud.mine.captives)}
                   </span>{" "}
-                  · הוא שבה ממני{" "}
+                  · {t("הוא שבה ממני")}{" "}
                   <span className="nums font-bold text-red-400" dir="ltr">
                     {formatNumber(feud.theirs.captives)}
                   </span>

@@ -7,6 +7,8 @@ import { PresenceDot } from "@/components/ui/PresenceDot";
 import { PlayerLink } from "@/components/ui/PlayerLink";
 import { isOnline } from "@/lib/game/chat";
 import { formatNumber } from "@/lib/game/format";
+import { getT } from "@/i18n/server";
+import { RichText } from "@/components/ui/RichText";
 import {
   GUILD_AID_MAX_LEVEL,
   GUILD_CAPACITY_MAX_LEVEL,
@@ -37,7 +39,10 @@ import {
 import { GuildMemberActions } from "@/components/game/GuildMemberActions";
 import { GuildLeaveButton } from "@/components/game/GuildLeaveButton";
 
-export const metadata = { title: "הברית שלי | KRALDOR" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("הברית שלי | KRALDOR") };
+}
 
 /** How many guilds the recruitment browser lists. */
 const GUILD_BROWSE_LIMIT = 100;
@@ -127,6 +132,7 @@ async function NoGuildView({
   empireId: string;
   diamonds: number;
 }) {
+  const t = await getT();
   // Bounded: this is a recruitment browser, not a directory. Unbounded it grew
   // with the player count and carried a nested per-guild join, reachable by any
   // guildless player on every page load.
@@ -170,10 +176,10 @@ async function NoGuildView({
           guild reaches and with every seat dark. */}
       <GuildHall seats={guildCapacity(GUILD_CAPACITY_MAX_LEVEL)} taken={0} mySeat={-1}>
         <p className="text-base font-bold tracking-wide text-gold-bright">
-          אין לך ברית
+          {t("אין לך ברית")}
         </p>
         <p className="mt-1 text-xs text-zinc-400">
-          האולם ריק — המתן להזמנה לברית קיימת או הקם אחת משלך.
+          {t("האולם ריק — המתן להזמנה לברית קיימת או הקם אחת משלך.")}
         </p>
       </GuildHall>
 
@@ -182,14 +188,16 @@ async function NoGuildView({
         <div className="panel-gold rounded-xl p-4">
           <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-wide text-gold-bright">
             <Icon name="messages" size={18} className="text-crimson" />
-            הזמנות שממתינות לך
+            {t("הזמנות שממתינות לך")}
             <span className="nums mr-auto rounded-full border border-gold/50 bg-panel-inset px-2.5 py-0.5 text-xs font-bold text-gold-bright" dir="ltr">
               {invites.length}
             </span>
           </h2>
           <p className="mb-4 text-xs text-zinc-500">
-            הזמנה תקפה ל־{GUILD_INVITE_TTL_HOURS} שעות מרגע שנשלחה. אישור מכניס
-            אותך לברית מיד — ושאר ההזמנות שלך נמחקות.
+            {t(
+              "הזמנה תקפה ל־{hours} שעות מרגע שנשלחה. אישור מכניס אותך לברית מיד — ושאר ההזמנות שלך נמחקות.",
+              { hours: GUILD_INVITE_TTL_HOURS }
+            )}
           </p>
 
           <ul className="space-y-2">
@@ -206,7 +214,7 @@ async function NoGuildView({
                     {invite.guild.name}
                   </span>
                   <span className="text-[11px] text-zinc-500">
-                    מנהיג:{" "}
+                    {t("מנהיג:")}{" "}
                     {invite.guild.members[0] ? (
                       <PlayerLink
                         empireId={invite.guild.members[0].empireId}
@@ -221,7 +229,7 @@ async function NoGuildView({
                   </span>
                   {invite.invitedBy && (
                     <span className="text-[11px] text-zinc-500">
-                      הוזמנת ע״י{" "}
+                      {t("הוזמנת ע״י")}{" "}
                       {/* SetNull on the FK: the recruiter can be gone while the
                           invitation still stands, and then there is nothing to
                           open — PlayerLink falls back to plain text. */}
@@ -250,28 +258,28 @@ async function NoGuildView({
         <div className="panel rounded-xl p-4">
           <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-wide text-gold-bright">
             <Icon name="citizens" size={18} className="text-crimson" />
-            בריתות הממלכה
+            {t("בריתות הממלכה")}
           </h2>
           {/* This list used to carry a "הצטרף" button on every row, which was
               the whole bug: joining asked for nothing but a guild id, so the
               directory was an open door into any guild in the game. */}
           <p className="mb-4 text-xs text-zinc-500">
-            הכניסה לברית היא בהזמנה בלבד — פנה למנהיג או לסגן כדי שיזמינו אותך.
+            {t("הכניסה לברית היא בהזמנה בלבד — פנה למנהיג או לסגן כדי שיזמינו אותך.")}
           </p>
 
           {guilds.length === 0 ? (
             <p className="py-6 text-center text-sm text-zinc-500">
-              עדיין אין בריתות בממלכה — היה הראשון להקים אחת!
+              {t("עדיין אין בריתות בממלכה — היה הראשון להקים אחת!")}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border-subtle text-right text-xs text-gold-dim">
-                    <th className="pb-2 pr-2 font-semibold">שם הברית</th>
-                    <th className="pb-2 font-semibold">מנהיג</th>
-                    <th className="pb-2 font-semibold">חברים</th>
-                    <th className="pb-2 pl-2 font-semibold">הצטרפות</th>
+                    <th className="pb-2 pr-2 font-semibold">{t("שם הברית")}</th>
+                    <th className="pb-2 font-semibold">{t("מנהיג")}</th>
+                    <th className="pb-2 font-semibold">{t("חברים")}</th>
+                    <th className="pb-2 pl-2 font-semibold">{t("הצטרפות")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -312,15 +320,15 @@ async function NoGuildView({
                         <td className="py-3 pl-2">
                           {invitedGuildIds.has(guild.id) ? (
                             <span className="inline-block rounded-full border border-gold/50 bg-gold/10 px-2.5 py-1 text-[11px] font-semibold text-gold-bright">
-                              הוזמנת ✉︎
+                              {t("הוזמנת ✉︎")}
                             </span>
                           ) : memberCount >= capacity ? (
                             <span className="inline-block rounded-full border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-400">
-                              מלאה 🚫
+                              {t("מלאה 🚫")}
                             </span>
                           ) : (
                             <span className="inline-block rounded-full border border-border-subtle bg-panel-inset px-2.5 py-1 text-[11px] font-semibold text-zinc-500">
-                              בהזמנה בלבד
+                              {t("בהזמנה בלבד")}
                             </span>
                           )}
                         </td>
@@ -338,7 +346,7 @@ async function NoGuildView({
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-base font-bold tracking-wide text-gold-bright">
               <Icon name="base" size={18} className="text-crimson" />
-              יצירת ברית
+              {t("יצירת ברית")}
             </h2>
             <span className="nums flex items-center gap-1 rounded-full border border-gold/50 bg-panel-inset px-3 py-1 text-sm font-bold text-sky-300">
               <Icon name="diamond" size={14} className="text-cyan-300" /> {GUILD_CREATION_COST_DIAMONDS}
@@ -356,6 +364,7 @@ async function NoGuildView({
 
 export default async function GuildPage() {
   const empire = await requireEmpire();
+  const t = await getT();
 
   const membership = await prisma.guildMember.findUnique({
     where: { empireId: empire.id },
@@ -403,7 +412,7 @@ export default async function GuildPage() {
     return (
       <div className="space-y-6">
         <SectionHeading
-          title="הברית שלי"
+          title={t("הברית שלי")}
           ornament={<Icon name="base" size={22} className="text-crimson" />}
         />
         <NoGuildView empireId={empire.id} diamonds={diamonds} />
@@ -458,22 +467,22 @@ export default async function GuildPage() {
         mySeat={members.findIndex((m) => m.empireId === empire.id)}
       >
         <p className="text-base font-bold tracking-wide text-gold-bright">
-          אולם הברית
+          {t("אולם הברית")}
         </p>
         <p className="mt-1 text-xs text-zinc-400">
           <span className="nums font-bold text-gold-bright" dir="ltr">
             {members.length}/{capacity}
           </span>{" "}
-          מושבים תפוסים סביב השולחן
+          {t("מושבים תפוסים סביב השולחן")}
         </p>
       </GuildHall>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-zinc-400">
-          התפקיד שלך:{" "}
+          {t("התפקיד שלך:")}{" "}
           <span className="font-bold text-gold-bright">
             {GUILD_ROLE_META[membership.role].icon}{" "}
-            {GUILD_ROLE_META[membership.role].label}
+            {t(GUILD_ROLE_META[membership.role].label)}
           </span>
         </p>
         <GuildLeaveButton
@@ -486,7 +495,7 @@ export default async function GuildPage() {
         <div className="panel rounded-xl p-4">
           <h2 className="mb-4 flex items-center gap-2 text-base font-bold tracking-wide text-gold-bright">
             <Icon name="citizens" size={18} className="text-crimson" />
-            חברי הברית
+            {t("חברי הברית")}
             <span className="nums mr-auto text-sm font-bold text-zinc-400" dir="ltr">
               {members.length}/{capacity}
             </span>
@@ -519,14 +528,14 @@ export default async function GuildPage() {
                       staff={member.empire.isStaff}
                     />
                     {member.empireId === empire.id && (
-                      <span className="mr-1 text-xs text-gold-dim">(אתה)</span>
+                      <span className="mr-1 text-xs text-gold-dim">{t("(אתה)")}</span>
                     )}
                   </span>
                   <span className="rounded-full border border-gold/40 bg-panel-inset px-2 py-0.5 text-[10px] font-bold text-gold-bright">
-                    {roleMeta.icon} {roleMeta.label}
+                    {roleMeta.icon} {t(roleMeta.label)}
                   </span>
-                  <span className="nums text-[11px] text-zinc-500" title="רמת הגיבור">
-                    גיבור רמה{" "}
+                  <span className="nums text-[11px] text-zinc-500" title={t("רמת הגיבור")}>
+                    {t("גיבור רמה")}{" "}
                     <span dir="ltr">{member.empire.hero?.level ?? 1}</span>
                   </span>
                   {member.empireId !== empire.id && (
@@ -563,7 +572,7 @@ export default async function GuildPage() {
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <h2 className="flex items-center gap-2 text-base font-bold tracking-wide text-gold-bright">
             <Icon name="gold" size={18} className="text-gold-bright" />
-            שדרוגי זהב הברית
+            {t("שדרוגי זהב הברית")}
           </h2>
           <span className="nums flex items-center gap-1 rounded-full border border-gold/40 bg-panel-inset px-3 py-1 text-xs font-bold text-gold-bright" dir="ltr">
             {formatNumber(Math.floor(guild.treasury))}{" "}
@@ -571,9 +580,10 @@ export default async function GuildPage() {
           </span>
         </div>
         <p className="mb-4 text-xs text-zinc-500">
-          שני הסולמות האלה משולמים מ
-          <span className="font-semibold text-gold-dim">אוצר הברית</span> — מנהיג או
-          סגן קונים, וכל החברים נהנים.
+          <RichText
+            text={t("שני הסולמות האלה משולמים מ**אוצר הברית** — מנהיג או סגן קונים, וכל החברים נהנים.")}
+            strong="font-semibold text-gold-dim"
+          />
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -606,7 +616,7 @@ export default async function GuildPage() {
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <h2 className="flex items-center gap-2 text-base font-bold tracking-wide text-gold-bright">
             <Icon name="diamond" size={18} className="text-cyan-300" />
-            קסמי יהלום
+            {t("קסמי יהלום")}
           </h2>
           <span className="nums flex items-center gap-1 rounded-full border border-cyan-400/40 bg-panel-inset px-3 py-1 text-xs font-bold text-cyan-300" dir="ltr">
             {formatNumber(diamonds)}{" "}
@@ -614,13 +624,16 @@ export default async function GuildPage() {
           </span>
         </div>
         <p className="mb-4 text-xs text-zinc-500">
-          קסמי התקפה, הגנה ומשאבים נקנים ב
-          <span className="font-semibold text-cyan-300">יהלומים</span> אישיים. שדרוג קסם
-          מעלה את עזרת הקסם לכל החברים, והטלה מעניקה לך באפ אישי של עד{" "}
-          <span className="font-semibold text-gold-dim">
-            {GUILD_SPELL_META.ATTACK.maxLevel}% ל־{GUILD_SPELL_META.ATTACK.buffHours} שעות
-          </span>
-          .
+          <RichText
+            text={t(
+              "קסמי התקפה, הגנה ומשאבים נקנים ב**יהלומים** אישיים. שדרוג קסם מעלה את עזרת הקסם לכל החברים, והטלה מעניקה לך באפ אישי של עד **{pct}% ל־{hours} שעות**.",
+              {
+                pct: GUILD_SPELL_META.ATTACK.maxLevel,
+                hours: GUILD_SPELL_META.ATTACK.buffHours,
+              }
+            )}
+            strong="font-semibold text-cyan-300"
+          />
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

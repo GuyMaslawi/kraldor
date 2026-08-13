@@ -172,6 +172,7 @@ export default async function PrizesPage() {
             <SeasonCountdown
               serverNow={now.getTime()}
               startsAt={season.endsAt.getTime()}
+              // i18n-keys: SeasonCountdown runs arrivedLabel through t()
               arrivedLabel="העונה ננעלת…"
             />
             <p className="mt-3 text-[11px] text-zinc-500">{formatDate(season.endsAt, locale)}</p>

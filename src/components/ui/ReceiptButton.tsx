@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 
+import { useT } from "@/i18n/client";
+
 import { getPurchaseReceipt, type ReceiptResult } from "@/server/actions/receipts";
 
 /**
@@ -29,6 +31,7 @@ export function ReceiptButton({
   purchaseId: string;
   compact?: boolean;
 }) {
+  const t = useT();
   const [result, setResult] = useState<ReceiptResult | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -53,7 +56,7 @@ export function ReceiptButton({
               compact ? "text-[11px]" : "text-sm"
             }`}
           >
-            📄 {doc.type || "קבלה"}
+            📄 {doc.type || t("קבלה")}
             {doc.date && <span className="text-zinc-500"> · {doc.date}</span>}
           </a>
         ))}
@@ -71,11 +74,11 @@ export function ReceiptButton({
           compact ? "text-[11px]" : "text-sm"
         }`}
       >
-        {pending ? "טוען..." : "הצג קבלה"}
+        {pending ? t("טוען...") : t("הצג קבלה")}
       </button>
       {result?.status === "none" && (
         <span className={`text-zinc-500 ${compact ? "text-[10px]" : "text-xs"}`}>
-          עדיין לא הונפק מסמך
+          {t("עדיין לא הונפק מסמך")}
         </span>
       )}
       {result?.status === "error" && (

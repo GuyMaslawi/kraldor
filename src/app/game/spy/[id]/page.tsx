@@ -131,6 +131,7 @@ function Line({
   );
 }
 
+// i18n-keys-start: dictionary keys, read through t() where the intel is drawn
 const RESOURCE_LABEL: Record<string, string> = {
   gold: "זהב",
   wood: "עץ",
@@ -168,6 +169,7 @@ const BOOST_META: Partial<
     effect: (t, p) => t("{pct}% הנחה על רכישות", { pct: p }),
   },
 };
+// i18n-keys-end
 
 /* ============================ the active-effects board ============================ */
 

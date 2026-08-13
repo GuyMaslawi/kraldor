@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- KRALDOR favicon — the crest of src/components/ui/Logo.tsx, redrawn for a
+       browser tab. Three changes from the full logo, all forced by 16px:
+       the shield is full-bleed (the logo's margins vanish at tab size), the
+       gold edge is 3 units wide (the logo's 1.6 renders at half a pixel), and
+       the bone hairline inside the shield is dropped — at 16px it is mud.
+       The crown notch and the gilded blade-pillar are kept: they are what
+       makes the mark recognisable once the outline is all that is left. -->
+  <defs>
+    <linearGradient id="kr-body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c1720" />
+      <stop offset="1" stop-color="#0b0a0e" />
+    </linearGradient>
+    <linearGradient id="kr-blade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e4c35a" />
+      <stop offset="1" stop-color="#a9861f" />
+    </linearGradient>
+  </defs>
+
+  <!-- crest / shield body -->
+  <path
+    d="M24 2l20 5v15c0 12.5-8.4 20.5-20 24C12.4 42.5 4 34.5 4 22V7z"
+    fill="url(#kr-body)"
+    stroke="#c4a032"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+  <!-- crown notch -->
+  <path d="M13 9l5 3.5 6-5 6 5 5-3.5-2 7H15z" fill="#d6c9ad" />
+  <!-- gilded blade-pillar at the crest's heart -->
+  <path d="M24 20l4 4-4 14-4-14z" fill="url(#kr-blade)" />
+  <rect x="15" y="19" width="18" height="3.6" rx="1.6" fill="#efe6ce" />
+</svg>

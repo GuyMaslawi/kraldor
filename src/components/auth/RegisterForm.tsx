@@ -23,8 +23,17 @@ export function RegisterForm({
    * in any game, and one anybody could put any name into.
    */
   invitedBy = null,
+  /**
+   * Whether there is anywhere to send somebody who already has an account.
+   *
+   * False while the game is pre-launch: `login` refuses every non-admin until
+   * the gates open (see PRELAUNCH_LOGIN_NOTICE), so "כבר יש לך אימפריה? התחבר"
+   * would be an invitation to a door that answers with a refusal.
+   */
+  canLogin = true,
 }: {
   invitedBy?: string | null;
+  canLogin?: boolean;
 }) {
   const [state, action] = useActionState<AuthState, FormData>(register, {});
 
@@ -96,12 +105,14 @@ export function RegisterForm({
           <Icon name="crown" size={16} className="inline-block align-text-bottom" />
         </SubmitButton>
       </form>
-      <p className="text-center text-sm text-zinc-400">
-        {t("כבר יש לך אימפריה?")}{" "}
-        <Link href="/login" className="font-semibold text-gold hover:text-gold-bright">
-          {t("התחבר")}
-        </Link>
-      </p>
+      {canLogin && (
+        <p className="text-center text-sm text-zinc-400">
+          {t("כבר יש לך אימפריה?")}{" "}
+          <Link href="/login" className="font-semibold text-gold hover:text-gold-bright">
+            {t("התחבר")}
+          </Link>
+        </p>
+      )}
       {/* A registration that will not go through is a player lost before they
           ever saw the game — and the taken-name / rejected-address refusals are
           the ones that are worth a human's five seconds. */}

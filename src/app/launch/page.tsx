@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/game/format";
 import { LaunchCountdown } from "@/components/game/LaunchCountdown";
 import { OrnateFrame } from "@/components/ui/OrnateFrame";
+import { PublicNav } from "@/components/public/PublicNav";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { getI18n, getT } from "@/i18n/server";
@@ -86,7 +87,14 @@ export default async function LaunchPage() {
   const serverNow = new Date().getTime();
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] flex-1 px-3 py-6 lg:px-6">
+    <div className="mx-auto w-full max-w-[1400px] flex-1 px-3 pb-6 pt-6 lg:px-6">
+      {/* The same bar as every other screen in front of the game. This is the
+          page a visitor lands on before anything else during the window, and
+          without it the manual, the policies and the language switch were one
+          dead end away — and arriving here from any of them dropped the whole
+          top of the page. */}
+      <PublicNav />
+
       <OrnateFrame className="overflow-hidden p-3 sm:p-5 md:p-7">
         {/* -------- the gate about to open -------- */}
         <div className="lnc-stage">

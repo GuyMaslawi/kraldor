@@ -5,6 +5,7 @@ import { OperatorCredit } from "@/components/ui/OperatorCredit";
 import { OrnateFrame } from "@/components/ui/OrnateFrame";
 import { PublicNav } from "@/components/public/PublicNav";
 import { SupportChat } from "@/components/support/SupportChat";
+import { prelaunchShutForViewer } from "@/server/prelaunchGuard";
 import { getSessionUserId } from "@/lib/auth";
 import { getSeasonGate } from "@/server/seasonClose";
 import { hasSupportThread } from "@/server/actions/support";
@@ -36,34 +37,42 @@ export async function PublicShell({
   children: ReactNode;
 }) {
   const { t, dir } = await getI18n();
-  const [signedIn, hasThread, gate] = await Promise.all([
+  const [signedIn, hasThread, gate, shut] = await Promise.all([
     getSessionUserId(),
     hasSupportThread(),
     getSeasonGate(),
+    prelaunchShutForViewer(),
   ]);
   const discord = discordInviteUrl();
 
   /**
    * Where the one button on this page goes.
    *
-   * Three readers, three answers. Between seasons `/register` and `/game/*` both
+   * Four readers, four answers. Between seasons `/register` and `/game/*` both
    * redirect to `/season` (see seasonGuard), so sending anybody there would be a
    * button that visibly does something other than what it says — the page stays
    * open through the break precisely so it can be read then, and its call to
    * action has to be honest about the door being shut.
+   *
+   * The pre-launch pair is the same rule one window earlier: signing up is open
+   * (and is the whole point of the window), but a reader who already has an
+   * account cannot go back into a game that has never started — "חזרה למשחק"
+   * would only bounce them to the poster, so it says so up front.
    */
   const cta = !gate.open
     ? { href: "/season", label: t("לתוצאות העונה ולספירה לאחור") }
-    : signedIn
-      ? { href: "/game/base", label: t("חזרה למשחק") }
-      : { href: "/register", label: t("הקם אימפריה — חינם") };
+    : shut && signedIn
+      ? { href: "/launch", label: t("לספירה לאחור") }
+      : signedIn
+        ? { href: "/game/base", label: t("חזרה למשחק") }
+        : { href: "/register", label: t("הקם אימפריה — חינם") };
 
   return (
     <div
       dir={dir}
-      className="flex min-h-screen flex-col items-center bg-[radial-gradient(ellipse_at_top,rgba(224,35,51,0.10),transparent_60%)] px-3 py-6 lg:px-6"
+      className="flex min-h-screen flex-col items-center bg-[radial-gradient(ellipse_at_top,rgba(224,35,51,0.10),transparent_60%)] px-3 pb-6 pt-6 lg:px-6"
     >
-      <PublicNav className="mb-6" />
+      <PublicNav />
 
       <div className="w-full max-w-[1400px]">
         <header className="mb-5 flex flex-col items-center text-center">
@@ -88,10 +97,17 @@ export async function PublicShell({
 
         <footer className="mt-6 flex flex-col items-center">
           <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] text-zinc-500">
-            <Link href="/login" className="transition-colors hover:text-gold">
-              {t("התחברות")}
-            </Link>
-            <span aria-hidden className="text-zinc-700">•</span>
+            {/* No sign-in offered before the gates open: `login` refuses every
+                non-admin during the window (see PRELAUNCH_LOGIN_NOTICE), so the
+                only honest invitation on the site until then is הרשמה. */}
+            {!shut && (
+              <>
+                <Link href="/login" className="transition-colors hover:text-gold">
+                  {t("התחברות")}
+                </Link>
+                <span aria-hidden className="text-zinc-700">•</span>
+              </>
+            )}
             <Link href="/terms" className="transition-colors hover:text-gold">
               {t("תנאי שימוש")}
             </Link>

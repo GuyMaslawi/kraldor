@@ -41,7 +41,12 @@ export async function AuthShell({
   // whether it has a conversation to poll for — see SupportChat.
   const hasThread = await hasSupportThread();
   return (
-    <main className="flex min-h-screen flex-1 flex-col items-center justify-center px-4 py-12">
+    // The bar is pinned to the top and only what is under it is centred. When
+    // the whole column was centred together, the top bar on this screen sat
+    // halfway down a desktop viewport while the same bar on /guide and /terms
+    // sat at the top — so every link in it visibly threw the page upwards. The
+    // form stays optically centred; the chrome stays put.
+    <main className="flex min-h-screen flex-1 flex-col items-center px-4 pb-12 pt-6">
       {/* The world behind the form — a besieged capital at night, pure CSS, no
           client JavaScript. See the `gate-` block in globals.css. It is fixed
           and aria-hidden, so it never scrolls with a tall form and never
@@ -54,8 +59,10 @@ export async function AuthShell({
           skipped — a visitor who does not read Hebrew has no account yet, so
           there is no setting of theirs to carry a preference, and every other
           word on the page is one they cannot read. */}
-      <PublicNav className="gate-content gate-fade mb-8" />
-      <div className={`gate-content w-full ${wide ? "max-w-2xl" : "max-w-md"}`}>
+      <PublicNav className="gate-content gate-fade" />
+      <div
+        className={`gate-content flex w-full flex-1 flex-col justify-center ${wide ? "max-w-2xl" : "max-w-md"}`}
+      >
         <div className="mb-8 flex flex-col items-center text-center">
           {/* The crest, lit and read: a breathing halo behind it and two rings
               turning against each other, the way a seal is examined. */}

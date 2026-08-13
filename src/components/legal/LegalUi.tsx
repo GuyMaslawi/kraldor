@@ -46,12 +46,16 @@ export async function LegalShell({
   const hasThread = await hasSupportThread();
 
   return (
-    <main className="min-h-screen flex-1 px-4 py-10 sm:py-14">
+    // `pt-6` and not the page's own rhythm: the bar has to land on the same
+    // line here as on every other public screen, or moving between them looks
+    // like the page jumped. The document's breathing room is the bar's own
+    // bottom margin plus the padding below.
+    <main className="min-h-screen flex-1 px-4 pb-10 pt-6 sm:pb-14">
       {/* The same bar as the login screen. A policy page is often the *first*
           page a stranger sees — a refund clause reached from a receipt, terms
           reached from a payment form — and from here there was previously no way
           to the manual, the hall, or a human. */}
-      <PublicNav className="mb-8" />
+      <PublicNav />
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-8 flex flex-col items-center text-center">
           <Link href="/" aria-label="חזרה לקראלדור">

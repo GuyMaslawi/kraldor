@@ -3,6 +3,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { DiscordLink } from "@/components/ui/DiscordLink";
 import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 import { discordInviteUrl } from "@/server/discord";
+import { prelaunchShutForViewer } from "@/server/prelaunchGuard";
 import { getT } from "@/i18n/server";
 
 /**
@@ -16,14 +17,28 @@ import { getT } from "@/i18n/server";
  *
  * Every destination here is genuinely public. That is a constraint on this list,
  * not a description of it: a link that bounces to `/login` is worse than no link
- * at all, because it looks like the door is open and then closes it.
+ * at all, because it looks like the door is open and then closes it. The same
+ * rule is why היכל התהילה drops out of the bar while the game is pre-launch —
+ * `/hall` sends everybody but an admin to `/launch` (see prelaunchGuard), so for
+ * a visitor it is a tab that throws them off the page they were reading. The
+ * countdown itself takes its place, because that is where that click was
+ * actually going.
+ *
+ * **The bar owns its own spacing.** The margin below it and the width it sits in
+ * are set here rather than by each shell, because the four screens that mount it
+ * (the gate, the public pages, the policy pages, the launch poster) each used to
+ * pass their own — so the bar sat at a different height on each one and every
+ * link that crossed between them looked like the page jumped. Callers pass only
+ * decoration (the gate's fade-in), never position.
  *
  * A server component with no client JavaScript beyond the two pills that already
  * had it (the language switch's form and the Discord link), so it costs the
  * first paint of the site nothing.
  */
 
-const LINKS: { href: string; label: string; icon: IconName }[] = [
+type NavLink = { href: string; label: string; icon: IconName };
+
+const LINKS: NavLink[] = [
   { href: "/guide", label: "מדריך המשחק", icon: "reports" },
   { href: "/hall", label: "היכל התהילה", icon: "crown" },
   { href: "/terms", label: "תקנון", icon: "shield" },
@@ -31,15 +46,24 @@ const LINKS: { href: string; label: string; icon: IconName }[] = [
   { href: "/privacy", label: "פרטיות", icon: "lock" },
 ];
 
+/** Stands in for the hall while the gates have never opened. */
+const COUNTDOWN: NavLink = { href: "/launch", label: "ספירה לאחור", icon: "crown" };
+
 export async function PublicNav({ className = "" }: { className?: string }) {
   const t = await getT();
   const discord = discordInviteUrl();
+  // Cached with the session read the page around it already did — see
+  // getSessionUser — so this costs the bar nothing on a gated page.
+  const shut = await prelaunchShutForViewer();
+  const links = shut
+    ? LINKS.map((link) => (link.href === "/hall" ? COUNTDOWN : link))
+    : LINKS;
 
   return (
     <nav
-      className={`flex flex-wrap items-center justify-center gap-1.5 ${className}`}
+      className={`mb-8 flex w-full flex-wrap items-center justify-center gap-1.5 ${className}`}
     >
-      {LINKS.map((link) => (
+      {links.map((link) => (
         <Link
           key={link.href}
           href={link.href}

@@ -23,9 +23,23 @@ import { PRELAUNCH, prelaunchShut } from "@/lib/prelaunch";
  * literally nothing once `PRELAUNCH=0` — the flag is checked first.
  */
 export async function requireLaunched(): Promise<void> {
-  if (!PRELAUNCH) return;
+  if (await prelaunchShutForViewer()) redirect("/launch");
+}
+
+/**
+ * The same question without the redirect: is the gate shut for whoever is
+ * reading this request?
+ *
+ * For chrome that has to decide what to *offer* rather than whether to let
+ * somebody through — the public top bar drops a link that would only bounce
+ * here, the public shell's call to action points at the countdown instead of the
+ * game. Shares `getSessionUser`'s per-request cache with the guard above, so a
+ * page that calls both pays for one lookup.
+ */
+export async function prelaunchShutForViewer(): Promise<boolean> {
+  if (!PRELAUNCH) return false;
   const user = await getSessionUser();
   // A banned admin is not an admin here either — same rule as `isAdmin`.
   const role = user && !isBanned(user) ? user.role : null;
-  if (prelaunchShut(role)) redirect("/launch");
+  return prelaunchShut(role);
 }

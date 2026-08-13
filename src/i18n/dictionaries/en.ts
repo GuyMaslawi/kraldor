@@ -142,6 +142,11 @@ export const EN: Record<string, string> = {
   "הירשם עכשיו ותפוס את השם": "Register now and claim your name",
   "ההרשמה פתוחה. הכניסה למשחק תיפתח כשהספירה מסתיימת.":
     "Registration is open. The game itself opens when the countdown ends.",
+  "ספירה לאחור": "Countdown",
+  "לספירה לאחור": "To the countdown",
+  "הרשמה": "Register",
+  "אם אינך מחובר, אפשר לבקש קישור חדש עם פתיחת המשחק.":
+    "If you are not signed in, you can request a new link once the game opens.",
 
   /* ------------------------------------------------------------------ */
   /* the armory (weapons)                                               */

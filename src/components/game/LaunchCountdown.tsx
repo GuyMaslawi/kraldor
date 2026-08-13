@@ -169,12 +169,24 @@ export function LaunchCountdown({
         ))}
       </div>
 
-      <LaunchActions arrived={false} />
+      {/* No action row under a running clock: the page itself carries the one
+          open door (הירשם עכשיו ותפוס את השם, with the line explaining that the
+          game opens when the countdown ends), and a second register button
+          three rows above it was only the other half of a login button that no
+          longer belongs here. */}
     </div>
   );
 }
 
-/** The two doors, worded for before and after the gates open. */
+/**
+ * The doors — two once the gates are open, one before.
+ *
+ * Before the clock runs out there is nothing to sign in *to*: `login` refuses
+ * every non-admin for as long as the window lasts (see PRELAUNCH_LOGIN_NOTICE),
+ * so "כבר יש לי חשבון" was a button whose entire function was to produce a
+ * refusal — on the one screen the whole audience lands on. Registration is the
+ * only thing open, so it is the only thing offered.
+ */
 function LaunchActions({ arrived }: { arrived: boolean }) {
   const t = useT();
   return (
@@ -185,12 +197,14 @@ function LaunchActions({ arrived }: { arrived: boolean }) {
       >
         {arrived ? t("כניסה למשחק") : t("להרשמה מוקדמת")}
       </Link>
-      <Link
-        href={arrived ? "/register" : "/login"}
-        className="btn btn-ghost w-full justify-center px-8 py-3 text-base sm:w-auto"
-      >
-        {arrived ? t("יצירת חשבון") : t("כבר יש לי חשבון")}
-      </Link>
+      {arrived && (
+        <Link
+          href="/register"
+          className="btn btn-ghost w-full justify-center px-8 py-3 text-base sm:w-auto"
+        >
+          {t("יצירת חשבון")}
+        </Link>
+      )}
     </div>
   );
 }

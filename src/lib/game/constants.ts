@@ -656,10 +656,47 @@ export function cityProductionMultiplier(cities: number): number {
 export const CITY_COST_TIER_MULTIPLIER = 2.5;
 
 /**
+ * The garrison each city demands — one entry per tier, from the 2nd city to the
+ * 10th, and the one soldier figure in the game that is *written* rather than
+ * computed.
+ *
+ * Soldiers used to share {@link CITY_COST_TIER_MULTIPLIER}, which put the tenth
+ * city at 305,176 — a ×1,526 jump from the second. Resources can carry that
+ * shape because mine output is itself multiplied by the city count (see
+ * {@link cityProductionMultiplier}) and by mine levels on top, so income grows
+ * with the price. An army does not: soldiers are trained one purse at a time and
+ * are *lost in battle*, so a requirement growing at 2.5× a tier stopped being a
+ * garrison and became a wall only a player who never fought could clear.
+ *
+ * The ladder runs 200 → 8,000 (×40 over eight rungs, ≈1.59 a tier), but it is a
+ * table and not an exponent because this is the one number a player is asked to
+ * hold in their head while they train: it sits on the city card for days, gets
+ * compared against a live army count, and gets quoted to guildmates. A derived
+ * curve pays out 317 / 503 / 1,265 / 5,045 — arithmetically even and impossible
+ * to remember. The 1-2-3-5-8 rungs below track the same curve to within a few
+ * percent and every one of them is a number you can say out loud.
+ *
+ * Indexed by tier: index 0 is the 2nd city, index 8 the 10th, so the array has
+ * MAX_CITIES - 1 entries and `cityCost` can read it without arithmetic.
+ */
+export const CITY_SOLDIERS: readonly number[] = [
+  200, // 2nd
+  300, // 3rd
+  500, // 4th
+  800, // 5th
+  1_200, // 6th
+  2_000, // 7th
+  3_000, // 8th
+  5_000, // 9th
+  8_000, // 10th
+];
+
+/**
  * Cost to upgrade to the next city, going from `cities` → `cities + 1`. Upgrading
- * to the 2nd city costs 1M gold + 500K of each other resource; every tier past
- * that multiplies the whole bill — resources *and* soldiers — by 2.5. Soldiers
- * are a garrison requirement the empire must field, not a currency it spends.
+ * to the 2nd city costs 1M gold + 500K of each other resource and a garrison of
+ * 200 soldiers; every tier past that multiplies the resource bill by 2.5, while
+ * the garrison walks up {@link CITY_SOLDIERS} to 8,000. Soldiers are a
+ * requirement the empire must field, not a currency it spends.
  * `cities` is the current count — 1 for the second city, up to 9 for the tenth.
  */
 export function cityCost(cities: number) {
@@ -670,7 +707,8 @@ export function cityCost(cities: number) {
     wood: Math.round(500_000 * mult),
     iron: Math.round(500_000 * mult),
     stone: Math.round(500_000 * mult),
-    soldiers: Math.round(200 * mult),
+    soldiers:
+      CITY_SOLDIERS[Math.min(CITY_SOLDIERS.length - 1, Math.max(0, tier))],
   };
 }
 

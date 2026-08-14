@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/ui/CloseButton";
 import {
   useCallback,
   useEffect,
@@ -23,6 +24,7 @@ import {
 import {
   buySeasonPassPremium,
   claimSeasonPassRewards,
+  claimSeasonPassTier,
   type SeasonPassHaulEntry,
   type SeasonPassRewardView,
   type SeasonPassState,
@@ -260,6 +262,9 @@ function TierTile({
   reached,
   unlocking,
   delay,
+  onClaim,
+  busy,
+  disabled,
 }: {
   reward: SeasonPassRewardView;
   tier: number;
@@ -269,6 +274,12 @@ function TierTile({
   /** Premium only: the buy-cascade is popping this row's lock open. */
   unlocking?: boolean;
   delay?: number;
+  /** Collect just this tile. */
+  onClaim: () => void;
+  /** This tile's own claim is in flight. */
+  busy: boolean;
+  /** Some claim or purchase is in flight. */
+  disabled: boolean;
 }) {
   const t = useT();
   const premium = track === "premium";
@@ -354,6 +365,27 @@ function TierTile({
       >
         {t(SEASON_PASS_REWARD_LABEL[reward.kind])}
       </span>
+
+      {/* Per-tile collect. The head's button takes the whole ladder in one
+          press, which is what most players want most of the time — but it is
+          all-or-nothing, and a player holding one rung back (citizens while the
+          cap is full, turns while a boost is running) had no way to take the
+          rest without it. So a rung that is ready gets a button of its own,
+          right under the amount it pays. */}
+      {state === "ready" && (
+        <button
+          onClick={onClaim}
+          disabled={disabled}
+          aria-label={t("אסוף את דרגה {tier} ב{track} — {reward}", {
+            tier,
+            track: trackWord,
+            reward: t(reward.label),
+          })}
+          className="mt-1 w-full rounded-md border border-emerald-400/70 bg-emerald-500 px-1 py-1 text-[11px] font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {busy ? t("אוסף...") : t("אסוף")}
+        </button>
+      )}
 
       {/* The scrim exists only for the split second its lock is breaking away
           on purchase. A permanent one used to sit a padlock squarely on top of
@@ -672,9 +704,10 @@ function CycleClearedOverlay({
                 <CycleCountdown key={cycleEndsAt} endsAt={cycleEndsAt} />
               </b>
             </p>
-            {/* Payouts are priced per season *day*, not per cycle — the ladder
-                refills twice a day but both refills are worth the same. Saying
-                "next cycle pays more" would be a promise the math doesn't keep. */}
+            {/* Payouts are priced per season *day*, not per cycle: the ladder
+                refills twice a day and only one of those refills a day crosses
+                the season's own day rollover. Saying "next cycle pays more"
+                would be a promise the math keeps at most half the time. */}
             <p className="mt-1 text-[11px] text-zinc-400">
               {t("הסולם יתמלא מחדש — וכל יום שעובר בעונה מגדיל את התגמולים בכל דרגה")}
             </p>
@@ -776,6 +809,9 @@ export function SeasonPassButton({ initial }: { initial: SeasonPassState }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [haul, setHaul] = useState<{ entries: SeasonPassHaulEntry[]; tiers: number } | null>(null);
   const [cleared, setCleared] = useState<SeasonPassHaulEntry[] | null>(null);
+  // Which tile's own button is spinning, `"{tier}:{track}"`. Null during a
+  // collect-all, so the head's button is the only thing that says "אוסף...".
+  const [claimingTile, setClaimingTile] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const ladderRef = useRef<HTMLDivElement | null>(null);
   const currentRowRef = useRef<HTMLDivElement | null>(null);
@@ -935,31 +971,52 @@ export function SeasonPassButton({ initial }: { initial: SeasonPassState }) {
     });
   }
 
+  /**
+   * Fold a finished claim — whole ladder or single tile — back into the modal.
+   * Both paths return the same shape, so the celebration, the haul panel and
+   * the fresh ladder are handled once.
+   */
+  function absorbClaim(res: Awaited<ReturnType<typeof claimSeasonPassRewards>>) {
+    if (res.ok && res.state) {
+      setState(res.state);
+      // The haul panel *is* the confirmation, so don't also print the
+      // plain-text fallback underneath it.
+      setHaul(
+        res.haul?.length
+          ? { entries: res.haul, tiers: res.haulTiers ?? res.haul.length }
+          : null
+      );
+      setNotice(res.haul?.length ? null : res.message ?? null);
+      setFlash(true);
+      setTimeout(() => setFlash(false), 700);
+
+      // Clearing the ladder gets its own takeover — but only once per cycle,
+      // remembered across reloads. Without the guard, every later render that
+      // still reads `cleared` would re-fire it, and the reward for finishing
+      // would be a popup that will not stay shut.
+      if (res.state.cleared && res.cycleHaul?.length && markCleared(res.state.cycleEndsAt)) {
+        setCleared(res.cycleHaul);
+      }
+    } else {
+      setHaul(null);
+      setNotice(res.error ?? t("האיסוף נכשל"));
+    }
+  }
+
+  /** Collect one rung on one track, leaving the rest of the ladder standing. */
+  function handleClaimTile(tier: number, track: "free" | "premium") {
+    if (pending) return;
+    setClaimingTile(`${tier}:${track}`);
+    startTransition(async () => {
+      absorbClaim(await claimSeasonPassTier(tier, track));
+      setClaimingTile(null);
+    });
+  }
+
   function handleClaim() {
     if (pending || collectable === 0) return;
-    startTransition(async () => {
-      const res = await claimSeasonPassRewards();
-      if (res.ok && res.state) {
-        setState(res.state);
-        // The haul panel *is* the confirmation, so don't also print the
-        // plain-text fallback underneath it.
-        setHaul(res.haul?.length ? { entries: res.haul, tiers: res.haulTiers ?? res.haul.length } : null);
-        setNotice(res.haul?.length ? null : res.message ?? null);
-        setFlash(true);
-        setTimeout(() => setFlash(false), 700);
-
-        // Clearing the ladder gets its own takeover — but only once per cycle,
-        // remembered across reloads. Without the guard, every later render that
-        // still reads `cleared` would re-fire it, and the reward for finishing
-        // would be a popup that will not stay shut.
-        if (res.state.cleared && res.cycleHaul?.length && markCleared(res.state.cycleEndsAt)) {
-          setCleared(res.cycleHaul);
-        }
-      } else {
-        setHaul(null);
-        setNotice(res.error ?? t("האיסוף נכשל"));
-      }
-    });
+    setClaimingTile(null);
+    startTransition(async () => absorbClaim(await claimSeasonPassRewards()));
   }
 
   return (
@@ -1019,8 +1076,10 @@ export function SeasonPassButton({ initial }: { initial: SeasonPassState }) {
             haul={haul}
             canAfford={canAfford}
             canBuy={canBuy}
+            claimingTile={claimingTile}
             onClose={closePass}
             onClaim={handleClaim}
+            onClaimTile={handleClaimTile}
             onUpgrade={handleUpgrade}
             onDismissHaul={() => setHaul(null)}
           />
@@ -1077,8 +1136,10 @@ function PassDialog({
   haul,
   canAfford,
   canBuy,
+  claimingTile,
   onClose,
   onClaim,
+  onClaimTile,
   onUpgrade,
   onDismissHaul,
 }: {
@@ -1100,8 +1161,11 @@ function PassDialog({
   haul: { entries: SeasonPassHaulEntry[]; tiers: number } | null;
   canAfford: boolean;
   canBuy: boolean;
+  /** `"{tier}:{track}"` of the tile whose own claim is in flight, if any. */
+  claimingTile: string | null;
   onClose: () => void;
   onClaim: () => void;
+  onClaimTile: (tier: number, track: "free" | "premium") => void;
   onUpgrade: () => void;
   onDismissHaul: () => void;
 }) {
@@ -1142,13 +1206,7 @@ function PassDialog({
           out of reach. Normal viewports never hit that branch. */}
       <div className="shrink-0 overflow-y-auto p-5 pb-4 [@media(max-height:560px)]:min-h-0 [@media(max-height:560px)]:shrink">
         <div className="flex items-center justify-between gap-2">
-          <button
-            onClick={onClose}
-            aria-label={t("סגור את דרך התהילה")}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border-subtle text-zinc-400 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold"
-          >
-            ✕
-          </button>
+          <CloseButton onClick={onClose} label={t("סגור את דרך התהילה")} />
           <h2
             id="sp-title"
             className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xl font-black text-zinc-100 sm:text-2xl"
@@ -1388,6 +1446,9 @@ function PassDialog({
                     state={tileState(t.premium, t.reached, owned)}
                     unlocking={unlocking}
                     delay={Math.min(t.tier - 1, UNLOCK_CASCADE_ROWS) * UNLOCK_CASCADE_STEP}
+                    onClaim={() => onClaimTile(t.tier, "premium")}
+                    busy={claimingTile === `${t.tier}:premium`}
+                    disabled={pending}
                   />
 
                   {/* The rail: one climbing line threaded behind the tier
@@ -1423,6 +1484,9 @@ function PassDialog({
                     track="free"
                     reached={t.reached}
                     state={tileState(t.free, t.reached, true)}
+                    onClaim={() => onClaimTile(t.tier, "free")}
+                    busy={claimingTile === `${t.tier}:free`}
+                    disabled={pending}
                   />
                 </div>
               );

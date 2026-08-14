@@ -9,6 +9,7 @@ import { getGuildAidBonus } from "@/lib/game/guildAid";
 import { bonusMultiplier, heroBonuses, isHeroDead } from "@/lib/game/hero";
 import type { FullEmpire } from "@/lib/game/updates";
 import { notStaff } from "@/lib/staff";
+import { cityHeadCount } from "@/server/bossSiege";
 import {
   bossForCity,
   bossHeroXp,
@@ -27,7 +28,7 @@ import {
   bossLossScale,
   bossPayout,
   bossReadChance,
-  bossSiegeMaxHp,
+  bossSharedMaxHp,
   bossSortiesToKill,
   refitSiegePool,
 } from "@/lib/game/bossBattle";
@@ -41,6 +42,16 @@ export interface BossConqueror {
   lastAt: Date;
 }
 
+/** One empire wearing the tyrant down right now, for the contribution board. */
+export interface BossBesieger {
+  empireId: string;
+  empireName: string;
+  damage: number;
+  sorties: number;
+  /** The viewer's own row is marked rather than hidden. */
+  isMe: boolean;
+}
+
 export interface CityBossState {
   boss: CityBoss;
   /** The boss's reference battle power, after the admin multiplier. */
@@ -50,11 +61,25 @@ export interface CityBossState {
   myPower: number;
   myTurns: number;
 
-  /** This life's health pool and what is left of it. */
+  /** This life's shared health pool and what is left of it. */
   hp: number;
   maxHp: number;
-  /** Assaults launched against this life. */
+  /**
+   * Empires the pool was sized against, and one empire's share of it.
+   *
+   * `share` is the number every payout on this screen is priced against — the
+   * pool is what the city faces together, the share is what one player's own
+   * haul is measured in. See `bossChipFraction`.
+   */
+  participants: number;
+  share: number;
+  /** Assaults launched against this life, by the whole city. */
   sorties: number;
+  /** Damage the viewer has credited to this life, and the city's board. */
+  myDamage: number;
+  besiegers: BossBesieger[];
+  /** Who landed the killing blow, while it is down. */
+  slayerName: string | null;
 
   /** Set while the tyrant is dead: when it returns, in server time. */
   revivesAt: Date | null;
@@ -68,7 +93,14 @@ export interface CityBossState {
 
   /** What one assault of this army is expected to take off, and how many it needs. */
   expectedSortieDamage: number;
+  /** Marches for the *city* to empty what is left of the shared pool, at this rate. */
   sortiesToKill: number;
+  /**
+   * Marches to work through one empire's share of the pool — the honest measure
+   * of "am I strong enough for this tyrant", and the one the old
+   * `sortiesToKill` used to be before the fixture was shared. Three is parity.
+   */
+  sortiesPerShare: number;
   roundsPerSortie: number;
   /** How often this hero's officers read the tyrant right, as a fraction. */
   readChance: number;
@@ -118,6 +150,9 @@ export interface CityBossState {
 /** How many conquerors the banner's honour roll lists. */
 const CONQUEROR_ROWS = 5;
 
+/** How many of the city's besiegers the live board lists. */
+const BESIEGER_ROWS = 6;
+
 /**
  * Everything the boss banner renders, for an already-settled empire.
  *
@@ -140,6 +175,7 @@ export async function getCityBossState(empire: FullEmpire): Promise<CityBossStat
     guildAid,
     season,
     life,
+    heads,
     activeBattle,
     myKills,
     recent,
@@ -152,12 +188,25 @@ export async function getCityBossState(empire: FullEmpire): Promise<CityBossStat
         select: { startsAt: true, endsAt: true },
       }),
       // The newest life of this tier's boss — alive, or counting down to its
-      // return. See `currentLife` in bossSiege.ts for the same rule on the write
-      // path.
+      // return. One row for the whole city now: see `currentLife` in bossSiege.ts
+      // for the same rule on the write path.
       prisma.bossSiege.findFirst({
-        where: { empireId: empire.id, cityTier: empire.cities },
-        orderBy: { createdAt: "desc" },
+        where: { cityTier: empire.cities },
+        orderBy: { life: "desc" },
+        include: {
+          strikes: {
+            where: { damage: { gt: 0 } },
+            orderBy: { damage: "desc" },
+            take: BESIEGER_ROWS,
+          },
+        },
       }),
+      // Only used before the first life of a tier exists, to quote the pool the
+      // next march will create. Asked through the same helper the write path
+      // uses, so the banner and the tyrant it describes can never disagree about
+      // who lives in this city. A living row carries its own frozen head count
+      // and this figure must never overrule it — see `bossSharedMaxHp`.
+      cityHeadCount(prisma, empire.cities, now),
       prisma.bossBattle.findFirst({
         where: { empireId: empire.id, status: "ACTIVE" },
         orderBy: { startedAt: "desc" },
@@ -194,17 +243,22 @@ export async function getCityBossState(empire: FullEmpire): Promise<CityBossStat
 
   const power = bossPower(empire.cities, tunables.boss.powerMultiplier);
   const turnCost = bossTurnCost(empire.cities);
-  const fullHp = bossSiegeMaxHp(
-    empire.cities,
-    tunables.boss.powerMultiplier,
-    tunables.boss.hpMultiplier
-  );
 
   // Dead and still counting down: the pool shown is the *next* life's, at full.
   const dead = life?.revivesAt != null && life.revivesAt > now;
   const alive = life != null && life.killedAt == null && life.hp > 0;
+  // A living life keeps the head count it was frozen against; a fixture that has
+  // not opened yet is quoted at the city as it stands right now, which is what
+  // the next march will freeze.
+  const participants = Math.max(1, alive ? life.participants : heads);
+  const fullHp = bossSharedMaxHp(
+    empire.cities,
+    participants,
+    tunables.boss.powerMultiplier,
+    tunables.boss.hpMultiplier
+  );
   // A life stamped before the curve last moved is quoted at today's pool, at the
-  // share of it the player has already taken off — the same fit the next march
+  // share of it the city has already taken off — the same fit the next march
   // will write (see `refitSiegePool`). Computed rather than persisted on purpose:
   // this runs on every rankings render, and a write on a read path that hot is
   // exactly the finding the 2026-08-01 audit raised.
@@ -213,6 +267,20 @@ export async function getCityBossState(empire: FullEmpire): Promise<CityBossStat
     : { hp: fullHp, maxHp: fullHp };
   const maxHp = pool.maxHp;
   const hp = pool.hp;
+  // One empire's share of the pool: the denominator of every payout quoted here,
+  // and what "am I strong enough" is measured against. Never `maxHp`.
+  const share = maxHp / participants;
+
+  // Asked separately rather than picked out of the board above: the board is the
+  // top few besiegers, and the player reading it is very often not one of them —
+  // which is exactly when "how much of this is mine" matters most.
+  const myStrike = alive
+    ? await prisma.bossSiegeStrike.findUnique({
+        where: { siegeId_empireId: { siegeId: life.id, empireId: empire.id } },
+        select: { damage: true },
+      })
+    : null;
+  const myDamage = myStrike?.damage ?? 0;
 
   const heroLevel = empire.hero?.level ?? 1;
   const heroAlive = empire.hero != null && !isHeroDead(empire.hero);
@@ -260,7 +328,20 @@ export async function getCityBossState(empire: FullEmpire): Promise<CityBossStat
 
     hp,
     maxHp,
+    participants,
+    share,
     sorties: alive ? life.sorties : 0,
+    myDamage,
+    besiegers: alive
+      ? life.strikes.map((s) => ({
+          empireId: s.empireId,
+          empireName: s.empireName,
+          damage: s.damage,
+          sorties: s.sorties,
+          isMe: s.empireId === empire.id,
+        }))
+      : [],
+    slayerName: dead ? (life.slayerName ?? null) : null,
 
     revivesAt: dead ? life.revivesAt : null,
     reviveMs: bossReviveMs(tunables.boss.reviveMinutes),
@@ -274,6 +355,7 @@ export async function getCityBossState(empire: FullEmpire): Promise<CityBossStat
 
     expectedSortieDamage: expectedDamage,
     sortiesToKill: bossSortiesToKill(myPower, hp, heroLevel, heroAlive),
+    sortiesPerShare: bossSortiesToKill(myPower, share, heroLevel, heroAlive),
     roundsPerSortie: BOSS_SORTIE_ROUNDS,
     readChance: bossReadChance(heroLevel, heroAlive),
 
@@ -286,10 +368,10 @@ export async function getCityBossState(empire: FullEmpire): Promise<CityBossStat
       // price paid — an army under the wall is quoted its reduced share.
       bossLossScale(myPower, power)
     ),
-    // Priced against the same pool the settle pays from, so the projection and
-    // the payout cannot drift: the chip share of the haul, for the damage this
-    // assault expects to land.
-    expectedSortieLoot: bossPayout(cycleHaul, bossChipFraction(expectedDamage, maxHp)),
+    // Priced against the same denominator the settle pays from, so the projection
+    // and the payout cannot drift: the chip share of the haul, for the damage this
+    // assault expects to land, against one empire's share of the pool.
+    expectedSortieLoot: bossPayout(cycleHaul, bossChipFraction(expectedDamage, share)),
 
     armyPower: rawArmyPower,
     weaponPower: rawWeaponPower,

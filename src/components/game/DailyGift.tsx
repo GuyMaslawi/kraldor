@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/ui/CloseButton";
 import {
   useCallback,
   useEffect,
@@ -179,16 +180,7 @@ export function DailyGift({
       >
         <span className="gift-rays" aria-hidden />
 
-        <button
-          type="button"
-          onClick={close}
-          aria-label={t("סגור")}
-          className="absolute left-3 top-3 z-20 rounded p-1 text-zinc-500 transition-colors hover:text-bone"
-        >
-          <span aria-hidden className="block text-lg leading-none">
-            ✕
-          </span>
-        </button>
+        <CloseButton onClick={close} className="absolute left-3 top-3 z-20" />
 
         <div className="relative">
           <p className="text-[11px] font-black tracking-[0.2em] text-gold-dim">

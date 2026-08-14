@@ -25,7 +25,14 @@ import {
   type WorldBossStriker,
 } from "@/lib/game/worldBoss";
 import { payRewards } from "@/server/rewardGrant";
+import { settleWorldBossSpoils } from "@/server/worldBossSpoils";
 import { awardSeasonPassXp } from "@/server/seasonPassXp";
+import {
+  heraldChat,
+  heraldDiscord,
+  heraldInbox,
+  type HeraldText,
+} from "@/server/herald";
 import type { ActionState } from "./game";
 import { logError } from "@/server/errorLog";
 import { getT, type T } from "@/i18n/server";
@@ -90,11 +97,149 @@ async function openWorldBoss(week: number, hpMultiplier: number) {
   const maxHp = worldBossMaxHp(definition, empires, hpMultiplier);
 
   try {
-    return await prisma.worldBoss.create({
+    const created = await prisma.worldBoss.create({
       data: { week, key: definition.key, maxHp, hp: maxHp },
     });
+    // Only the winner of the create race gets here, and the claim inside makes
+    // it exactly-once even so. Awaited rather than fired and forgotten: it runs
+    // once a week, and a fan-out cut short when the response is sent is a fan-out
+    // half the game never receives.
+    await heraldWorldBossSpawn(created.id);
+    return created;
   } catch {
     return prisma.worldBoss.findUniqueOrThrow({ where: { week } });
+  }
+}
+
+/* ------------------------------ heralds ------------------------------ */
+
+/** Where a herald sends the reader. */
+const ARENA_HREF = "/game/worldboss";
+
+/**
+ * "A world boss is loose."
+ *
+ * The whole server is on the same side of this fight and on the same weekly
+ * clock, which is the entire argument for spending an inbox message on it: a
+ * player who never opens /game/worldboss has no other way to learn there is
+ * something there this week, and by the time they wander in the server may
+ * already have felled it.
+ *
+ * All three channels, because they reach three different people — the player
+ * who is in the game right now (chat), the one who will open it this evening
+ * (inbox), and the one who is not playing at all (Discord).
+ */
+async function heraldWorldBossSpawn(bossId: string): Promise<void> {
+  try {
+    // The claim, before anything is sent. See the note on WorldBoss.spawnAnnouncedAt.
+    const claimed = await prisma.worldBoss.updateMany({
+      where: { id: bossId, spawnAnnouncedAt: null },
+      data: { spawnAnnouncedAt: new Date() },
+    });
+    if (claimed.count === 0) return;
+
+    const boss = await prisma.worldBoss.findUnique({
+      where: { id: bossId },
+      select: { key: true, maxHp: true },
+    });
+    const definition = boss ? WORLD_BOSS_BY_KEY.get(boss.key) : undefined;
+    if (!boss || !definition) return;
+
+    // i18n-keys-start: keys and their values, stored rather than rendered — the
+    // spawn is discovered on one player's page load and read by everybody else,
+    // each in their own language. See server/herald.ts.
+    const title: HeraldText = {
+      key: "🌍 מפלצת עולם חדשה: {boss}",
+      params: { boss: { key: definition.name } },
+    };
+    const body: HeraldText = {
+      key: "{lore} {hp} נקודות חיים, והיא נופלת רק אם כל השרת יכה בה. הזירה פתוחה עד סוף השבוע.",
+      params: {
+        lore: { key: definition.lore },
+        hp: formatNumber(Math.round(boss.maxHp)),
+      },
+    };
+
+    await heraldChat({
+      key: "{sigil} {boss} עלתה על העולם. הזירה פתוחה — כל אימפריה מוזמנת להכות.",
+      params: { sigil: definition.sigil, boss: { key: definition.name } },
+    });
+    await heraldInbox({ title, body, href: ARENA_HREF });
+    await heraldDiscord({ kind: "event", title, body, href: ARENA_HREF });
+    // i18n-keys-end
+  } catch (err) {
+    // The boss exists and can be fought; a herald that failed is only silence.
+    await logError("worldBoss.heraldWorldBossSpawn", err);
+  }
+}
+
+/**
+ * "It is down, and here is who put it down."
+ *
+ * Fired from outside the killing transaction, so the row already says
+ * `defeatedAt` by the time anybody is told — and claimed on
+ * `defeatAnnouncedAt`, so a second tab replaying the same strike cannot announce
+ * the kill twice.
+ *
+ * Sent *after* `settleWorldBossSpoils` has run, which is what lets it speak in
+ * the past tense: by the time anybody reads this the shares are already in their
+ * treasuries, and each contender has a message of their own saying what theirs
+ * came to. This one is the world's account of the kill, not a call to come and
+ * collect.
+ */
+async function heraldWorldBossDefeat(bossId: string): Promise<void> {
+  try {
+    const claimed = await prisma.worldBoss.updateMany({
+      where: { id: bossId, defeatAnnouncedAt: null, defeatedAt: { not: null } },
+      data: { defeatAnnouncedAt: new Date() },
+    });
+    if (claimed.count === 0) return;
+
+    const boss = await prisma.worldBoss.findUnique({
+      where: { id: bossId },
+      select: { key: true, slayerId: true, slayerName: true },
+    });
+    const definition = boss ? WORLD_BOSS_BY_KEY.get(boss.key) : undefined;
+    if (!boss || !definition) return;
+
+    // A beast felled by a staff empire is still felled, but nobody is named for
+    // it — the same rule the arena's own kill line follows.
+    const slayer = boss.slayerId
+      ? await prisma.empire.findUnique({
+          where: { id: boss.slayerId },
+          select: { name: true, isStaff: true, isBot: true },
+        })
+      : null;
+    const slayerName =
+      slayer && !slayer.isStaff && !slayer.isBot ? slayer.name : null;
+
+    // i18n-keys-start: as above — stored keys, assembled per reader.
+    const title: HeraldText = {
+      key: "🏆 {boss} הופלה",
+      params: { boss: { key: definition.name } },
+    };
+    const body: HeraldText = {
+      key: "{slayer} חלקו של כל מי שהכה אותה השבוע כבר נכנס לאוצר שלו.",
+      params: {
+        // An absent clause is simply left out and the spaces around it are
+        // collapsed on the way out — see the note in messageText.ts.
+        slayer: slayerName
+          ? { key: "{name} הנחית את המכה האחרונה.", params: { name: slayerName } }
+          : "",
+      },
+    };
+
+    await heraldChat({
+      key: slayerName
+        ? "🏆 {slayer} הפיל את {boss}! השלל חולק בין כל מי שהכה בה."
+        : "🏆 {boss} הופלה! השלל חולק בין כל מי שהכה בה.",
+      params: { slayer: slayerName ?? "", boss: { key: definition.name } },
+    });
+    await heraldInbox({ title, body, href: ARENA_HREF });
+    await heraldDiscord({ kind: "event", title, body, href: ARENA_HREF });
+    // i18n-keys-end
+  } catch (err) {
+    await logError("worldBoss.heraldWorldBossDefeat", err);
   }
 }
 
@@ -514,6 +659,22 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
       };
     });
 
+    // Outside the transaction on purpose, and after it. Two reasons, one per
+    // call: the herald posts to Discord, and a network call inside a transaction
+    // holds a connection open for the length of somebody else's outage; the
+    // payout is one small transaction per contender, and nesting a fan-out of
+    // them inside the killing transaction would hold this player's empire lock
+    // until the last of them committed — long enough for the interactive
+    // transaction timeout to roll the kill itself back.
+    //
+    // By here the kill is committed, so both act on what the database says. The
+    // spoils are paid before anybody is told the beast is down, so the herald
+    // never arrives ahead of the purse it announces.
+    if ("reveal" in result && result.reveal?.slain) {
+      await settleWorldBossSpoils(boss.id);
+      await heraldWorldBossDefeat(boss.id);
+    }
+
     revalidatePath("/game", "layout");
     return result;
   } catch (err) {
@@ -569,17 +730,27 @@ export async function pollWorldBoss(): Promise<WorldBossPoll> {
 /* ------------------------------ collect ------------------------------ */
 
 /**
- * Take your share of a felled boss.
+ * Take your share of a felled boss, by hand.
  *
- * The share is computed at claim time from the totals as they finally stand,
- * which is the only honest moment: a player who claims first must not be paid
- * against a smaller denominator than one who claims later.
+ * The fallback rather than the main path. A kill pays every contender on the
+ * spot (see `settleWorldBossSpoils`), so by the time the arena renders a felled
+ * beast this button is almost always already spent — it exists for the row a
+ * fan-out was interrupted before it reached, and it is deliberately kept because
+ * the alternative is a player with an unpaid share and no way to ask for it.
+ *
+ * ## Any felled boss, not this week's
+ *
+ * It used to look the boss up by the current week, which quietly made the share
+ * expire: at midnight on Saturday the lookup found next week's beast, the row
+ * holding the debt was no longer reachable from any screen, and the purse was
+ * gone. The lookup is now the *striker* row — this empire's oldest unpaid share
+ * of anything that has actually fallen — so a debt survives the week that
+ * incurred it, which is the whole point of a receipt.
  */
 export async function collectWorldBoss(): Promise<ActionState> {
   const t = await getT();
   try {
     const empireId = await requireOwnEmpireId();
-    const week = gameWeek(new Date());
 
     // Read outside the transaction, like every other `getTunables` on a write
     // path here. The arena may since have been closed, but a share earned while
@@ -587,11 +758,31 @@ export async function collectWorldBoss(): Promise<ActionState> {
     // only the multiplier below is read from it.
     const tunables = await getTunables();
 
-    const boss = await prisma.worldBoss.findUnique({ where: { week } });
-    if (!boss) return { error: t("אין מפלצת עולם השבוע.") };
-    if (boss.defeatedAt === null) {
-      return { error: t("המפלצת עדיין עומדת — אין שלל לחלק.") };
+    const owed = await prisma.worldBossStrike.findFirst({
+      where: {
+        empireId,
+        claimed: false,
+        hits: { gt: 0 },
+        boss: { defeatedAt: { not: null } },
+      },
+      orderBy: { boss: { week: "asc" } },
+      select: { bossId: true },
+    });
+    if (!owed) {
+      // Two different nothings, and the arena's own state already distinguishes
+      // them — but this action is reachable from a stale tab, so it says which.
+      const standing = await prisma.worldBoss.findUnique({
+        where: { week: gameWeek(new Date()) },
+        select: { defeatedAt: true },
+      });
+      return {
+        error:
+          standing && standing.defeatedAt === null
+            ? t("המפלצת עדיין עומדת — אין שלל לחלק.")
+            : t("כבר אספת את חלקך."),
+      };
     }
+    const boss = { id: owed.bossId };
 
     const result = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Empire" WHERE id = ${empireId} FOR UPDATE`;

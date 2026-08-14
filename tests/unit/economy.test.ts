@@ -27,11 +27,16 @@ import {
   wheelLuckUpgradeCost,
 } from "@/lib/game/constants";
 import {
+  SEASON_PASS_DAY1_PEAK,
+  SEASON_PASS_FINAL_PEAK,
   SEASON_PASS_PREMIUM_PRICE,
+  SEASON_PASS_TIERS,
   SEASON_PASS_TIER_COUNT,
   SEASON_PASS_XP,
   SEASON_PASS_XP_MAX,
   seasonPassDay,
+  seasonPassPricing,
+  seasonPassRewardAmount,
   seasonPassSpendUnits,
   tierForXp,
   xpForTier,
@@ -286,6 +291,71 @@ describe("season pass", () => {
       seasonPassDay(season, season.startsAt.getTime() - 10 * 86_400_000)
     ).toBeGreaterThanOrEqual(1);
     expect(seasonPassDay(null, Date.now())).toBeGreaterThanOrEqual(1);
+  });
+
+  it("pays the day-1 base with no active season, not the season's ceiling", () => {
+    // The regression this guards: `days <= 1` used to mean "final day", so every
+    // window without an active GameSeason row — a local database, the gap
+    // between two seasons — paid the endgame ceiling (1.67B gold on rung one)
+    // from the first cycle, twice a day.
+    const pricing = seasonPassPricing(null, Date.now());
+    // Identical to the opening day of a real season, rung for rung.
+    const season = {
+      startsAt: new Date("2026-07-01T00:00:00.000Z"),
+      endsAt: new Date("2026-07-31T00:00:00.000Z"),
+    };
+    const day1 = seasonPassPricing(season, season.startsAt.getTime());
+    for (const tier of SEASON_PASS_TIERS) {
+      expect(seasonPassRewardAmount(tier.free, pricing)).toBe(
+        seasonPassRewardAmount(tier.free, day1)
+      );
+    }
+    const top = Math.max(
+      ...SEASON_PASS_TIERS.filter((t) => t.free.kind === "gold").map((t) =>
+        seasonPassRewardAmount(t.free, pricing)
+      )
+    );
+    expect(top).toBeLessThanOrEqual(SEASON_PASS_DAY1_PEAK.gold);
+    expect(top).toBeLessThan(SEASON_PASS_FINAL_PEAK.gold / 1000);
+  });
+
+  it("rides from the day-1 base to the final peak, and never backwards", () => {
+    const season = {
+      startsAt: new Date("2026-07-01T00:00:00.000Z"),
+      endsAt: new Date("2026-07-31T00:00:00.000Z"),
+    };
+    const at = (day: number) =>
+      seasonPassPricing(season, season.startsAt.getTime() + (day - 1) * 86_400_000);
+    const goldTier = SEASON_PASS_TIERS.filter((t) => t.free.kind === "gold").pop()!;
+    const paid = (day: number) => seasonPassRewardAmount(goldTier.free, at(day));
+
+    expect(paid(1)).toBe(goldTier.free.base);
+    expect(paid(30)).toBe(SEASON_PASS_FINAL_PEAK.gold);
+    for (let day = 2; day <= 30; day++) {
+      expect(paid(day)).toBeGreaterThan(paid(day - 1));
+    }
+    // Past the end the curve stops rather than compounding forever.
+    expect(paid(400)).toBe(paid(30));
+  });
+
+  it("prices a whole ladder at one instant, so a held claim never grows", () => {
+    const season = {
+      startsAt: new Date("2026-07-01T19:02:00.000Z"),
+      endsAt: new Date("2026-07-31T19:02:00.000Z"),
+    };
+    // The 19:30 cycle opens at 16:30Z; the season's own day rolls over at
+    // 19:02Z, half an hour into it. A claim made at 20:00Z must still be priced
+    // at the ladder the player was shown when it opened.
+    const cycleStart = new Date("2026-07-10T16:30:00.000Z").getTime();
+    const heldUntil = new Date("2026-07-10T20:00:00.000Z").getTime();
+    const opened = seasonPassPricing(season, cycleStart);
+    expect(seasonPassPricing(season, cycleStart)).toEqual(opened);
+    // The rollover is real — pricing at `now` is what used to inflate the claim.
+    expect(seasonPassDay(season, heldUntil)).toBe(opened.day + 1);
+    const rung = SEASON_PASS_TIERS[49].free;
+    expect(
+      seasonPassRewardAmount(rung, seasonPassPricing(season, heldUntil))
+    ).toBeGreaterThan(seasonPassRewardAmount(rung, opened));
   });
 });
 

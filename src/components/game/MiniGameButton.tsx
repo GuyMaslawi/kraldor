@@ -27,6 +27,7 @@ import {
   type SafeMark,
 } from "@/lib/game/minigame";
 import { Icon } from "@/components/ui/Icon";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { PlayerLink } from "@/components/ui/PlayerLink";
 import { MiniGameTakeover } from "@/components/game/MiniGameTakeover";
 import { useDir, useT } from "@/i18n/client";
@@ -685,76 +686,74 @@ function MiniGameStage({
       // the guess keypad at the bottom of this board ended up unreachable.
       className="panel-gold relative z-10 max-h-full w-full max-w-3xl overflow-y-auto overscroll-contain rounded-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_20px_60px_rgba(0,0,0,0.85)] sm:p-5"
     >
-      {/* ── Banner: what it is, what it pays, how long it lives ── */}
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-gold/25 pb-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gold/50 bg-black/40 ${
-              interactive ? "animate-bounce" : ""
-            }`}
-            aria-hidden
-          >
-            <Icon
-              name={state.type === "CRACK_SAFE" ? (state.solved ? "unlocked" : "lock") : "dice"}
-              size={24}
-              className="text-gold-bright"
+      {/* ── Title bar: sticky, because the card itself is the scroller ──
+          This board is taller than a phone screen on every one of the four
+          games, and the ✕ used to be the last child of a flex-wrap row that
+          also held three badges and a clock. At 320px that row wrapped and
+          squeezed the button to a 20px sliver with its glyph clipped: the
+          window had no visible way out, which is the bug players reported.
+          Now the name and the ✕ ride above the scroll and the badges — which
+          are information, not an escape route — wrap freely underneath. */}
+      <div className="sticky top-0 z-20 -mx-4 -mt-4 flex items-start gap-3 border-b border-gold/25 bg-[var(--panel-inset)]/95 px-4 py-3 backdrop-blur-sm sm:-mx-5 sm:-mt-5 sm:px-5">
+        <span
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gold/50 bg-black/40 ${
+            interactive ? "animate-bounce" : ""
+          }`}
+          aria-hidden
+        >
+          <Icon
+            name={state.type === "CRACK_SAFE" ? (state.solved ? "unlocked" : "lock") : "dice"}
+            size={24}
+            className="text-gold-bright"
+          />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-2 text-lg font-black leading-tight text-gold-bright">
+            <span aria-hidden>{meta.icon}</span>
+            <span className="truncate">{state.title}</span>
+          </p>
+          <p className="text-xs text-gold-dim">
+            {t(meta.label)} · {t("פרס:")}{" "}
+            <span className="font-bold text-amber-200" dir="ltr">
+              {state.prizeText}
+            </span>
+          </p>
+        </div>
+        <CloseButton onClick={onClose} label={t("סגירה")} />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-b border-gold/25 py-2.5 text-[11px]">
+        {state.endsAt != null && (
+          // The clock is the one number on this banner that is actually
+          // urgent, so it is sized past the badges around it rather than
+          // sharing their 11px — at that size it read as another chip.
+          <span className="flex items-center gap-1.5 rounded-lg border border-gold/50 bg-black/45 px-2.5 py-1 text-[13px] font-bold text-gold-bright shadow-[0_0_16px_-6px_var(--gold)]">
+            <span aria-hidden className="text-base leading-none">
+              ⏳
+            </span>
+            {t("נותר")}{" "}
+            <Countdown
+              key={state.endsAt}
+              endsAt={state.endsAt}
+              serverNow={state.serverNow}
+              onExpire={onExpire}
             />
           </span>
-          <div className="min-w-0">
-            <p className="flex flex-wrap items-center gap-2 text-lg font-black leading-tight text-gold-bright">
-              <span aria-hidden>{meta.icon}</span>
-              <span className="truncate">{state.title}</span>
-            </p>
-            <p className="text-xs text-gold-dim">
-              {t(meta.label)} · {t("פרס:")}{" "}
-              <span className="font-bold text-amber-200" dir="ltr">
-                {state.prizeText}
-              </span>
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-[11px]">
-          {state.maxWinners > 0 && (
-            <span className="rounded-md border border-border-subtle px-2 py-1 text-zinc-400">
-              {t("זוכים")}{" "}
-              <span className="nums font-bold text-zinc-200" dir="ltr">
-                {state.winnersCount}/{state.maxWinners}
-              </span>
-            </span>
-          )}
+        )}
+        {state.maxWinners > 0 && (
           <span className="rounded-md border border-border-subtle px-2 py-1 text-zinc-400">
-            {t("משתתפים")}{" "}
+            {t("זוכים")}{" "}
             <span className="nums font-bold text-zinc-200" dir="ltr">
-              {state.players}
+              {state.winnersCount}/{state.maxWinners}
             </span>
           </span>
-          {state.endsAt != null && (
-            // The clock is the one number on this banner that is actually
-            // urgent, so it is sized past the badges around it rather than
-            // sharing their 11px — at that size it read as another chip.
-            <span className="flex items-center gap-1.5 rounded-lg border border-gold/50 bg-black/45 px-2.5 py-1 text-[13px] font-bold text-gold-bright shadow-[0_0_16px_-6px_var(--gold)]">
-              <span aria-hidden className="text-base leading-none">
-                ⏳
-              </span>
-              {t("נותר")}{" "}
-              <Countdown
-                key={state.endsAt}
-                endsAt={state.endsAt}
-                serverNow={state.serverNow}
-                onExpire={onExpire}
-              />
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("סגירה")}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-white/10 hover:text-zinc-200"
-          >
-            ✕
-          </button>
-        </div>
+        )}
+        <span className="rounded-md border border-border-subtle px-2 py-1 text-zinc-400">
+          {t("משתתפים")}{" "}
+          <span className="nums font-bold text-zinc-200" dir="ltr">
+            {state.players}
+          </span>
+        </span>
       </div>
 
       {/* ── Play area + live standings ── */}
@@ -854,6 +853,21 @@ function MiniGameStage({
             )}
           </div>
         </div>
+      </div>
+
+      {/* The second way out, at the end of the scroll. The ✕ above never
+          leaves the screen, but a player who has read to the bottom of the
+          standings should not have to travel back up to leave — and on a phone
+          the backdrop this card could be tapped instead is a few pixels of
+          margin. */}
+      <div className="mt-4 flex justify-center border-t border-gold/20 pt-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn btn-ghost px-6 py-2.5 text-sm"
+        >
+          {t("סגור")}
+        </button>
       </div>
     </div>
   );

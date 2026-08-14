@@ -13,6 +13,7 @@ import { getTunables } from "./config";
 import { dailyUpdatesBetween, elapsedRegularTicks, lastTickBoundary } from "./time";
 import { turnsGainFromUpgrades } from "./turns";
 import {
+  HERO_FLAT_CADENCE,
   HERO_MAX_HEALTH,
   bonusMultiplier,
   heroBonuses,
@@ -20,6 +21,8 @@ import {
   heroPointsHeld,
   heroShouldRevive,
   resourceProductionPct,
+  type HeroFlatCadence,
+  type HeroFlatStat,
 } from "./hero";
 import { monumentBonuses, monumentMultiplier } from "./monuments";
 import { getActiveGuildBuffPct } from "./guildBuffs";
@@ -142,9 +145,10 @@ export async function applyPendingUpdates(
   const tunables = await getTunables();
 
   // Hero bonuses: the resources *points* still multiply mine production, while
-  // equipped items now add flat amounts — extra resources per tick, and extra
-  // turns/citizens per daily update (whole units, not percentages). Gear never
-  // pays diamonds; see HeroFlatStat. A hero who is still dead at this point
+  // equipped items add flat amounts in whole units — each on its own cadence,
+  // which is HERO_FLAT_CADENCE's business and not this function's (resources and
+  // turns per 5-minute tick, citizens and diamonds per daily update, the three
+  // power stats inside a battle instead). A hero who is still dead at this point
   // contributes none of it (heroBonuses).
   const heroBonus = heroBonuses(empire.hero);
 
@@ -205,14 +209,8 @@ export async function applyPendingUpdates(
         productionTicks *
         multiplier;
     }
-    // Equipped resource items conjure a flat amount each tick — but only for
-    // the specific resources their tier covers (some feed one resource, some
-    // several, an אגדי relic all four).
-    for (const res of Object.keys(gained) as StorableResource[]) {
-      gained[res] += heroBonus.itemsFlatByResource[res] * ticks;
-    }
     // Full ticks only — no partial-tick turns, no cap for now. The hero's turn
-    // items are NOT paid here; they ride the daily update below.
+    // items are added below, with every other flat gear grant.
     //
     // מגדל השעון multiplies the upgrade's rate, not the tick count: the ticks
     // being settled are a fact about the clock, and a monument that changed how
@@ -224,50 +222,69 @@ export async function applyPendingUpdates(
     );
   }
 
-  /* ---- daily: citizens + turns + gear diamonds + bank interest + period reset ---- */
+  /* ---- daily: citizens + bank interest + period reset ---- */
   const missedDailies = dailyUpdatesBetween(empire.lastDailyUpdateAt, now);
   let citizensGained = 0;
-  let diamondsGained = 0;
   if (missedDailies.length > 0) {
     const growthLevel =
       empire.upgrades.find((u) => u.type === "CITIZEN_GROWTH")?.level ?? 1;
     const citizensPerDaily = citizensPerDailyUpdate(growthLevel, tunables.daily);
-    // Citizen items add a flat count per daily update (not a %).
-    //
     // No ceiling: the whole backlog lands, so a week away is a week's citizens
     // rather than one update's worth. Cities still shape this figure through the
     // CITIZEN_GROWTH levels they unlock — they just no longer cap the pool.
     // שער הניצחון multiplies the upgrade's intake but NOT the hero's flat item
-    // bonus. A flat grant from a piece of gear is a fixed number of people the
-    // item conjures; a percentage of it would make the monument worth more to a
-    // decorated hero than to a bare one, for no reason a player could name.
-    citizensGained =
-      Math.round(
-        citizensPerDaily *
-          missedDailies.length *
-          monumentMultiplier(monuments.citizens)
-      ) + heroBonus.itemsFlat.citizens * missedDailies.length;
-
-    // Turn items pay per daily update, alongside citizens — NOT per 5-minute
-    // tick, which is where this used to live.
-    //
-    // That was a 144× cadence error, and the worst live exploit in the economy:
-    // at 40 per *tick* a level-100 WINGS paid 40 × 288 = 11,520 turns/day
-    // against a designed ceiling of 1,440 (TURNS_UPGRADE_MAX_LEVEL 5 × 288).
-    // One item was worth eight times the entire turn economy — and turns are
-    // the only rate limit on attacking, which is what gates plunder, hero XP,
-    // item drops and wheel spins. The comment at the head of this function has
-    // always said "extra resources per tick, and extra turns/citizens per
-    // update"; the code disagreed.
-    turnsGained += heroBonus.itemsFlat.turns * missedDailies.length;
-
-    // 👖 distils diamonds, and it is the only thing in the game that mints the
-    // paid currency on a curve. It rides the same daily cadence as turns and
-    // citizens — never the 5-minute tick, which is the 288× cadence error the
-    // turn line above is a monument to. The whole backlog lands, like the rest
-    // of the daily grants: a week away is a week's diamonds, not one day's.
-    diamondsGained = heroBonus.itemsFlat.diamonds * missedDailies.length;
+    // bonus (added below): a flat grant from a piece of gear is a fixed number of
+    // people the item conjures, and a percentage of it would make the monument
+    // worth more to a decorated hero than to a bare one, for no reason a player
+    // could name.
+    citizensGained = Math.round(
+      citizensPerDaily * missedDailies.length * monumentMultiplier(monuments.citizens)
+    );
   }
+
+  /* ---- the flat gear grants, each on its own cadence ---- */
+
+  // How many updates of each cadence this settlement is paying for. The battle
+  // stats have no clock — they are counted inside a fight — so they are worth
+  // nothing here, and stating that as a 0 rather than as an omission is what lets
+  // every flat stat be paid by the same expression.
+  const updatesByCadence: Record<HeroFlatCadence, number> = {
+    regular: ticks,
+    daily: missedDailies.length,
+    battle: 0,
+  };
+  /**
+   * The whole flat yield of one gear stat for this settlement: its per-update
+   * amount times however many of *its own* updates elapsed. The cadence comes
+   * from HERO_FLAT_CADENCE and nowhere else, so a stat can never be paid on the
+   * wrong clock — which is exactly the bug this shape exists to make impossible.
+   *
+   * The whole backlog always lands, on both clocks: a week away is a week's
+   * turns, citizens and diamonds, not one update's worth.
+   */
+  const itemYield = (stat: HeroFlatStat) =>
+    heroBonus.itemsFlat[stat] * updatesByCadence[HERO_FLAT_CADENCE[stat]];
+
+  // Equipped resource items conjure a flat amount per update — but only for the
+  // specific resources their tier covers (some feed one resource, some several,
+  // an אגדי relic all four), which is why this reads the per-resource split
+  // rather than itemsFlat.resources.
+  const resourceUpdates = updatesByCadence[HERO_FLAT_CADENCE.resources];
+  for (const res of Object.keys(gained) as StorableResource[]) {
+    gained[res] += heroBonus.itemsFlatByResource[res] * resourceUpdates;
+  }
+
+  // Turns ride the 5-minute tick, in the same unit as the turns upgrade above —
+  // a maxed 🪽 is worth the whole upgrade ladder and no more. They spent a while
+  // on the daily clock instead, after a genuine 288× cadence bug (40 per *tick*
+  // paid 11,520 turns a day against a designed 1,440); the curve is now stated in
+  // per-tick units, so the cadence and the ceiling agree. See FLAT_CURVE.
+  turnsGained += itemYield("turns");
+  citizensGained += itemYield("citizens");
+  // 👖 distils diamonds, and it is the only thing in the game that mints the paid
+  // currency on a curve. Deliberately the slow clock: a diamond faucet on the
+  // 5-minute tick is 288 times a trickle, which is an income.
+  const diamondsGained = itemYield("diamonds");
 
   // Top up wheel spins once per missed daily update. Spins bank without limit
   // — a player who is away for a week comes back to the whole backlog.

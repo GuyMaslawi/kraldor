@@ -1,6 +1,24 @@
 import type { ReactNode } from "react";
-import { HERO_STAT_META, type HeroBonuses, type HeroStat } from "@/lib/game/hero";
-import { RESOURCE_META, type StorableResource } from "@/lib/game/constants";
+import {
+  HERO_CADENCE_META,
+  HERO_CADENCE_ORDER,
+  HERO_FLAT_CADENCE,
+  HERO_STAT_META,
+  UPDATES_PER_DAY,
+  flatStatPerDay,
+  flatStatsWithCadence,
+  type HeroBonuses,
+  type HeroFlatCadence,
+  type HeroFlatStat,
+  type HeroPowerStat,
+  type HeroStat,
+} from "@/lib/game/hero";
+import {
+  DAILY_UPDATE_TIMES,
+  REGULAR_TICK_MINUTES,
+  RESOURCE_META,
+  type StorableResource,
+} from "@/lib/game/constants";
 import { formatBonus, formatNumber } from "@/lib/game/format";
 import { Tip } from "@/components/ui/Tip";
 import { Icon, RESOURCE_ICON, RESOURCE_ICON_COLOR } from "@/components/ui/Icon";
@@ -8,11 +26,17 @@ import { getT, type T } from "@/i18n/server";
 
 /**
  * "סך הכל מהגיבור" — the combined yield the player actually gets from the hero,
- * points and equipped items together. It is laid out as two clearly labelled
- * blocks: the battle percentages (attack/defense/spy — points and item % folded
- * in) and the flat yield the equipped items grant (turns,
- * citizens, resources). Each line reads left-to-right value ↔ right-to-left
- * label so the numbers align in a single detailed column.
+ * points and equipped items together. Each line reads left-to-right value ↔
+ * right-to-left label so the numbers align in a single detailed column.
+ *
+ * The flat yield is grouped **by when it is actually paid**, not by what it is:
+ * one block per cadence, in HERO_CADENCE_ORDER, each headed with the clock it
+ * runs on (every 5 minutes / twice a day / inside a battle) and each line
+ * carrying what it adds up to over a day. The grouping is read straight off
+ * `HERO_FLAT_CADENCE` — the same table `applyPendingUpdates` pays from — so this
+ * screen cannot promise a cadence the settlement does not honour. That drift is
+ * exactly what happened when turns were paid daily while the tooltips said
+ * otherwise, and it is the reason the schedule is derived rather than written.
  */
 
 /** One detailed stat line: icon + label + breakdown note on the right, value on the left. */
@@ -154,10 +178,20 @@ function ResourcesRow({
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({
+  children,
+  hint,
+}: {
+  children: React.ReactNode;
+  /** The clock this group runs on — the whole point of the grouping. */
+  hint?: React.ReactNode;
+}) {
   return (
-    <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gold-dim">
+    <p className="mb-2 flex flex-wrap items-baseline gap-x-2 text-[10px] font-bold uppercase tracking-widest text-gold-dim">
       {children}
+      {hint && (
+        <span className="normal-case tracking-normal text-zinc-500">{hint}</span>
+      )}
     </p>
   );
 }
@@ -247,31 +281,61 @@ export async function HeroPowerSummary({ bonuses }: { bonuses: HeroBonuses }) {
     },
   ];
 
-  // כמויות קבועות מהחפצים, לא באחוזים. משאבים מטופלים בנפרד כי הם ניזונים משני
-  // מקורות שונים: אחוז מהנקודות (מכפיל מכרות) + כמות מהחפץ.
-  //
-  // שלוש שורות הכוח הן החלק שנכנס לקרב עצמו: הן נספרות יחד עם החיילים והנשקים,
-  // ולכן כל האחוזים שמעליהן ברשימה מוכפלים גם עליהן.
-  const flatRows: { stat: HeroStat; value: number; note: string }[] = [
-    {
-      stat: "attackPower",
-      value: itemsFlat.attackPower,
-      note: t("נספר עם החיילים והנשקים בתקיפה"),
-    },
-    {
-      stat: "defensePower",
-      value: itemsFlat.defensePower,
-      note: t("נספר עם החיילים והנשקים בהגנה"),
-    },
-    {
-      stat: "spyPower",
-      value: itemsFlat.spyPower,
-      note: t("נספר עם המרגלים בכל משימת ריגול"),
-    },
-    { stat: "turns", value: itemsFlat.turns, note: t("נוסף בכל עדכון יומי") },
-    { stat: "citizens", value: itemsFlat.citizens, note: t("נוסף בכל עדכון יומי") },
-    { stat: "diamonds", value: itemsFlat.diamonds, note: t("מזוקק מהמכנסיים בלבד") },
-  ];
+  /* -------- the flat yield, grouped by the clock it arrives on --------
+
+     Two clocks and a battle. The headings say which is which, and every line on
+     a clock states what it comes to over a day — the only figure that makes 5
+     turns per tick and 450 citizens per daily update comparable numbers. */
+
+  const hoursBetweenDailies = 24 / DAILY_UPDATE_TIMES.length;
+  const cadenceHint = (cadence: HeroFlatCadence) =>
+    cadence === "regular"
+      ? t("כל {minutes} דקות", { minutes: REGULAR_TICK_MINUTES })
+      : cadence === "daily"
+        ? t("פעמיים ביום — כל {hours} שעות", { hours: hoursBetweenDailies })
+        : t("לא על השעון");
+
+  // What a line on a clock is worth over a day. A stat the hero does not carry
+  // yet falls back to the plain cadence note, so the row still says when it
+  // *would* arrive rather than advertising "0 ביום".
+  const cadenceNote = (stat: HeroFlatStat, value: number): string => {
+    const cadence = HERO_FLAT_CADENCE[stat];
+    const perDay = flatStatPerDay(stat, value);
+    if (perDay === null || value <= 0) return t(HERO_CADENCE_META[cadence].note);
+    return t("×{updates} עדכונים = {perDay} ביום", {
+      updates: formatNumber(UPDATES_PER_DAY[cadence]),
+      perDay: formatNumber(perDay),
+    });
+  };
+
+  // The three power stats never touch a clock: they are counted inside the fight,
+  // beside the soldiers and the weapons, so every percentage above them in this
+  // panel multiplies them too.
+  const BATTLE_NOTE: Record<HeroPowerStat, string> = {
+    attackPower: t("נספר עם החיילים והנשקים בתקיפה"),
+    defensePower: t("נספר עם החיילים והנשקים בהגנה"),
+    spyPower: t("נספר עם המרגלים בכל משימת ריגול"),
+  };
+
+  const flatRow = (stat: HeroFlatStat): { stat: HeroStat; value: number; note: string } => ({
+    stat,
+    value: itemsFlat[stat],
+    note:
+      HERO_FLAT_CADENCE[stat] === "battle"
+        ? BATTLE_NOTE[stat as HeroPowerStat]
+        : cadenceNote(stat, itemsFlat[stat]),
+  });
+
+  // Resources are the one stat with two instruments (a % that multiplies the
+  // mines and a flat amount added over it), so their row is bespoke — it takes
+  // the place of the plain `resources` line inside its own cadence group.
+  const cadenceRows = HERO_CADENCE_ORDER.map((cadence) => ({
+    cadence,
+    rows: flatStatsWithCadence(cadence)
+      .filter((stat) => stat !== "resources")
+      .map(flatRow),
+    resources: flatStatsWithCadence(cadence).includes("resources"),
+  }));
 
   return (
     <div className="panel-gold rounded-2xl p-4 md:p-5">
@@ -282,7 +346,7 @@ export async function HeroPowerSummary({ bonuses }: { bonuses: HeroBonuses }) {
       </div>
       <div className="rule-gold my-3" />
       <p className="mb-4 text-[11px] leading-relaxed text-zinc-500">
-        {t("מה שאתה מקבל בפועל מהנקודות והחפצים יחד. שורות מודגשות פעילות; שורות עמומות ממתינות לחפץ מתאים.")}
+        {t("מה שאתה מקבל בפועל מהנקודות והחפצים יחד. שורות מודגשות פעילות; שורות עמומות ממתינות לחפץ מתאים. התשואה מסודרת לפי מתי היא מגיעה: משאבים ותורות בכל עדכון רגיל, אזרחים ויהלומים בעדכון היומי, וכוח הקרב בקרב עצמו.")}
       </p>
 
       {/* Three labelled groups. The panel only owns half the row from xl up
@@ -300,38 +364,41 @@ export async function HeroPowerSummary({ bonuses }: { bonuses: HeroBonuses }) {
           </div>
         </section>
 
-        {/* flat from items: combat power, then the per-update yield */}
-        {/* The dividers the three-column layout used to carry are gone: with
+        {/* One block per cadence, fastest clock first, then the battle stats.
+            The dividers the three-column layout used to carry are gone: with
             two-then-one columns the section labels already separate the groups,
             and a rule down a two-column split reads as a page seam. */}
-        <section>
-          <SectionLabel>{t("תשואה קבועה מחפצים · בכמויות")}</SectionLabel>
-          <div className="flex flex-col gap-1.5">
-            {flatRows.map(({ stat, value, note }) => (
-              <StatRow
-                key={stat}
-                t={t}
-                stat={stat}
-                value={value}
-                note={note}
-                format={(v) => `+${formatNumber(v)}`}
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* resources: hybrid — % from points (mines) + flat from the relic */}
-        <section>
-          <SectionLabel>{t("תפוקת משאבים · אחוזים + כמות")}</SectionLabel>
-          <ResourcesRow
-            t={t}
-            pointsPct={points.resources}
-            classPct={classPct.resources}
-            itemPct={itemsResourcePct}
-            itemFlat={itemsFlat.resources}
-            itemNote={resourcesNote}
-          />
-        </section>
+        {cadenceRows.map(({ cadence, rows, resources }) => (
+          <section key={cadence}>
+            <SectionLabel hint={cadenceHint(cadence)}>
+              {t(HERO_CADENCE_META[cadence].label)}
+            </SectionLabel>
+            <div className="flex flex-col gap-1.5">
+              {/* The hybrid resources row leads its group: it is the one stat
+                  paid in two units at once (% over the mines + a flat amount). */}
+              {resources && (
+                <ResourcesRow
+                  t={t}
+                  pointsPct={points.resources}
+                  classPct={classPct.resources}
+                  itemPct={itemsResourcePct}
+                  itemFlat={itemsFlat.resources}
+                  itemNote={resourcesNote}
+                />
+              )}
+              {rows.map(({ stat, value, note }) => (
+                <StatRow
+                  key={stat}
+                  t={t}
+                  stat={stat}
+                  value={value}
+                  note={note}
+                  format={(v) => `+${formatNumber(v)}`}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   );

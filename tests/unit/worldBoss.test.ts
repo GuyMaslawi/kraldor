@@ -78,18 +78,33 @@ describe("worldBossMaxHp", () => {
     expect(worldBossMaxHp(hard, 200)).toBeGreaterThan(worldBossMaxHp(soft, 200));
   });
 
-  it("is beatable by a server that turns up, and not by one that does not", () => {
-    // The calibration that makes the fixture a fixture. 200 empires, each
-    // landing their full allowance at a middling power: the pool should be
-    // within reach but not trivial.
+  it("is a wall priced at the late game, not at a mid-season army", () => {
+    // The calibration that makes the fixture a fixture, and the one thing that
+    // must move with WORLD_BOSS_HP_PER_EMPIRE whenever it moves. 200 empires,
+    // each landing their full allowance: the question is what army it takes.
     const boss = WORLD_BOSSES.find((b) => b.toughness === 1.0) ?? WORLD_BOSSES[0];
     const pool = worldBossMaxHp(boss, 200);
-    const perEmpireWeek = expectedStrikeDamage(500_000) * WORLD_BOSS_MAX_STRIKES;
+    const week = (power: number) =>
+      expectedStrikeDamage(power) * WORLD_BOSS_MAX_STRIKES;
 
-    // Everybody showing up clears it comfortably…
-    expect(perEmpireWeek * 200).toBeGreaterThan(pool);
-    // …and a tenth of the server showing up does not.
-    expect(perEmpireWeek * 20).toBeLessThan(pool);
+    // A server of mid-season armies does not fell it, and cannot fix that by
+    // bringing more people: the pool grows with the head count, so only power
+    // ever closes the gap.
+    expect(week(500_000) * 200).toBeLessThan(pool);
+    // Late-season armies do — break-even sits at roughly 11M military power,
+    // which is the whole claim in the note on WORLD_BOSS_HP_PER_EMPIRE.
+    expect(week(12_000_000) * 200).toBeGreaterThan(pool);
+  });
+
+  it("is still reachable at all — the purse is gated on the kill", () => {
+    // Nothing is paid until `defeatedAt` is stamped, so a pool no achievable
+    // army can reach is a closed fixture rather than a hard one. One empire's
+    // week of strikes must be able to cover one empire's share of the pool.
+    const boss = WORLD_BOSSES.find((b) => b.toughness === 1.0) ?? WORLD_BOSSES[0];
+    const share = worldBossMaxHp(boss, 200) / 200;
+    // The strongest army the game realistically fields late in a season.
+    const week = expectedStrikeDamage(50_000_000) * WORLD_BOSS_MAX_STRIKES;
+    expect(week).toBeGreaterThan(share);
   });
 });
 

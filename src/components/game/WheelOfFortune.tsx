@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/ui/CloseButton";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   WHEEL_PRIZES,
@@ -480,13 +481,7 @@ export function WheelOfFortune({
         className="ornate-shell relative my-6 w-full max-w-lg rounded-xl p-4 text-center sm:p-6"
       >
         <div className="absolute left-4 top-4 flex items-center gap-2">
-          <button
-            onClick={onClose}
-            aria-label={t("סגור")}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border-subtle text-zinc-400 transition-colors hover:border-gold/50 hover:text-white"
-          >
-            ✕
-          </button>
+          <CloseButton onClick={onClose} label={t("סגור את הגלגל")} />
           <button
             onClick={toggleSound}
             aria-label={sound ? t("כבה צלילים") : t("הפעל צלילים")}

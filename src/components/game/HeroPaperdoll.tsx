@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/ui/CloseButton";
 import { useState, useTransition } from "react";
 import type { HeroItemSlot, HeroRarity } from "@prisma/client";
 import { ItemTile } from "@/components/game/ItemTile";
@@ -409,13 +410,7 @@ function SlotPicker({
             {t("{stat} — בחר חפץ מהתיק כדי ללבוש אותו", { stat: t(statMeta.label) })}
           </p>
         </div>
-        <button
-          onClick={onClose}
-          aria-label={t("סגור")}
-          className="btn btn-ghost -mt-1 h-8 w-8 !p-0 text-base"
-        >
-          ✕
-        </button>
+        <CloseButton onClick={onClose} className="-mt-1" />
       </div>
 
       <div className="rule-gold my-4" />

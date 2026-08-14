@@ -6,7 +6,13 @@
 import type { Hero, HeroClass, HeroItem, HeroItemSlot, HeroRarity } from "@prisma/client";
 import type { IconName } from "@/components/ui/Icon";
 import type { T, TranslateParams } from "@/i18n/translate";
-import { RESOURCE_META, type StorableResource } from "./constants";
+import {
+  DAILY_UPDATE_TIMES,
+  RESOURCE_META,
+  TICKS_PER_DAY,
+  TURNS_UPGRADE_MAX_LEVEL,
+  type StorableResource,
+} from "./constants";
 import { secureRandom } from "./random";
 
 /* ------------------------------ hero progression ------------------------------ */
@@ -306,8 +312,9 @@ export type HeroPercentStat = "attack" | "defense" | "spy";
  * the rule the rest of the game keeps: a maxed PANTS paid 80 a day, roughly a
  * paid package a fortnight, forever. They are back, deliberately small and
  * fenced in — **one slot** carries them (👖, the pocket that used to), as its
- * *minor* extra, so the ladder a player climbs runs +1 → +25 a day rather than
- * +80. The season pass and the wheel still mint none that scale.
+ * *minor* extra, so the ladder a player climbs runs +1 → +25 **per daily update**
+ * (2 → 50 a day) rather than +80. The season pass and the wheel still mint none
+ * that scale.
  */
 export type HeroFlatStat =
   | "resources"
@@ -320,6 +327,86 @@ export type HeroFlatStat =
 
 /** Every stat the hero surfaces: the percentage stats + the flat-count stats. */
 export type HeroStat = HeroPercentStat | HeroFlatStat;
+
+/* ------------------------------ when a flat stat is paid ------------------------------ */
+
+/**
+ * **When** a flat item bonus is actually handed over. Three cadences, and every
+ * flat stat has exactly one:
+ *
+ * - `regular` — the 5-minute production tick. The empire's own clock, and where
+ *   gear belongs by default: an item you equip changes what you can afford this
+ *   hour, not tomorrow morning.
+ * - `daily` — the twice-a-day update (07:30 / 19:30 Asia/Jerusalem). Only the two
+ *   stats whose *base* is itself paid daily live here: citizens (the growth
+ *   building pays per daily update) and diamonds (a deliberate trickle — the paid
+ *   currency must never be a per-tick faucet).
+ * - `battle` — not on a clock at all. The three flat power stats are counted
+ *   inside a fight, beside soldiers and weapons, every time one happens.
+ *
+ * This table is the **single source of truth** for the cadence: `applyPendingUpdates`
+ * pays each stat by the count its cadence names (see `lib/game/updates.ts`), and
+ * the hero page groups its yield lines under these same three headings. A stat
+ * cannot drift between what the code pays and what the screen promises, which is
+ * exactly what happened before: turns were paid per *daily* update while the item
+ * tooltips of the same build had said "per regular update" for months.
+ */
+export type HeroFlatCadence = "regular" | "daily" | "battle";
+
+/** Display order — the two clock cadences first, fastest first, then battle. */
+export const HERO_CADENCE_ORDER: HeroFlatCadence[] = ["regular", "daily", "battle"];
+
+export interface HeroCadenceMeta {
+  /** Heading a UI groups this cadence's lines under. */
+  label: string;
+  /** The note a single stat line carries. */
+  note: string;
+}
+
+export const HERO_CADENCE_META: Record<HeroFlatCadence, HeroCadenceMeta> = {
+  regular: { label: "בכל עדכון רגיל", note: "נוסף בכל עדכון רגיל" },
+  daily: { label: "בכל עדכון יומי", note: "נוסף בכל עדכון יומי" },
+  battle: { label: "בכל קרב", note: "נספר בקרב עצמו — לא על השעון" },
+};
+
+export const HERO_FLAT_CADENCE: Record<HeroFlatStat, HeroFlatCadence> = {
+  resources: "regular",
+  // Turns ride the 5-minute tick, in the same unit as the TURNS_PER_REGULAR_UPDATE
+  // upgrade — see the turns note in FLAT_CURVE for what that costs and what it buys.
+  turns: "regular",
+  citizens: "daily",
+  diamonds: "daily",
+  attackPower: "battle",
+  defensePower: "battle",
+  spyPower: "battle",
+};
+
+/** The flat stats paid on one cadence, in HERO_FLAT_STATS order. */
+export function flatStatsWithCadence(cadence: HeroFlatCadence): HeroFlatStat[] {
+  return HERO_FLAT_STATS.filter((stat) => HERO_FLAT_CADENCE[stat] === cadence);
+}
+
+/**
+ * How many times a cadence comes round in a day — 288 ticks, two daily updates,
+ * and 0 for the battle stats, which have no clock at all.
+ */
+export const UPDATES_PER_DAY: Record<HeroFlatCadence, number> = {
+  regular: TICKS_PER_DAY,
+  daily: DAILY_UPDATE_TIMES.length,
+  battle: 0,
+};
+
+/**
+ * What a flat bonus adds up to over a full day, or null for a stat with no
+ * cadence to add up (the battle stats). This is the figure that makes the two
+ * clocks comparable — 5 turns a tick and 450 citizens a daily update are 1,440
+ * and 900 a day respectively — so the hero page can state both without the
+ * player having to know how many ticks a day holds.
+ */
+export function flatStatPerDay(stat: HeroFlatStat, value: number): number | null {
+  const updates = UPDATES_PER_DAY[HERO_FLAT_CADENCE[stat]];
+  return updates === 0 ? null : value * updates;
+}
 
 export interface HeroStatMeta {
   label: string;
@@ -369,13 +456,13 @@ export const HERO_STAT_META: Record<HeroStat, HeroStatMeta> = {
   },
   turns: {
     label: "תורות",
-    itemLabel: "תורות לעדכון יומי",
+    itemLabel: "תורות לעדכון רגיל",
     icon: "turns",
     tone: "text-amber-300",
-    // Per *daily* update, like citizens — see the turn-item note in updates.ts.
-    // This string used to say "עדכון רגיל" (the 5-minute tick) and was the only
-    // place in the codebase that claimed so.
-    description: "חפצים מוסיפים תורות בכמות קבועה בכל עדכון יומי (לא באחוזים).",
+    // Per regular (5-minute) tick, like the resource lines and like the upgrade
+    // that exists for turns — HERO_FLAT_CADENCE is the rule, and the FLAT_CURVE
+    // note explains why the ceiling is quoted in the upgrade's own unit.
+    description: "חפצים מוסיפים תורות בכמות קבועה בכל עדכון רגיל (לא באחוזים).",
   },
   citizens: {
     label: "אזרחים",
@@ -414,7 +501,7 @@ export const HERO_STAT_META: Record<HeroStat, HeroStatMeta> = {
     icon: "diamond",
     tone: "text-cyan-300",
     description:
-      "סלוט אחד בלבד (מכנסיים) מזקק יהלומים, ובכמות קטנה — עד 25 ליום בציוד המקסימלי.",
+      "סלוט אחד בלבד (מכנסיים) מזקק יהלומים, ובכמות קטנה — עד 25 בכל עדכון יומי בציוד המקסימלי.",
   },
 };
 
@@ -1061,10 +1148,29 @@ export type FlatCurve =
  *   citizens, as a primary:  rung 1 → +1 · rung 4 (a level-10 boot) → +8 ·
  *   rung 10 → +40 · rung 20 → +134 · rung 40 → +450
  *
- * ### turns — power 2, up to 40 per daily update
+ * ### turns — power 2, up to 5 per regular update
  *
- * Unchanged. Turns are the one currency the game meters on purpose; the squared
- * curve against a turn income that also scales still holds.
+ * Turns are paid on the 5-minute tick like the resource lines (see
+ * HERO_FLAT_CADENCE), and the ceiling is stated **in the unit of the upgrade that
+ * exists for turns**: `turnsPerRegularUpdate` pays its level, capped at
+ * TURNS_UPGRADE_MAX_LEVEL = 5. So a maxed primary turn item is worth exactly the
+ * whole upgrade ladder — 5 a tick, {@link TICKS_PER_DAY} × 5 = 1,440 a day — and
+ * every rung below it reads as "so many upgrade levels".
+ *
+ * The cadence is the reason the number moved (it was 40 per *daily* update, i.e.
+ * 80 a day). Whole units on a 288-a-day clock have a floor nothing can go under:
+ * **any** turn line at all is at least 1 a tick, which is 288 a day, which is one
+ * upgrade level given away with the first wing a beginner finds. That is a real
+ * gift and it is priced in deliberately — it is the same promise the resource
+ * lines already make, that gear changes what you can do *this hour* — but it is
+ * also why the ceiling is 5 rather than something that would let the four
+ * turn-granting slots stack past a couple of upgrade ladders at level 100.
+ *
+ * The price of the floor is a flat line early: the whole first half of the ladder
+ * pays 1 a tick, and the five distinct values (1→5) are all this stat can hold.
+ * That is fine for a line no upgrade is bought *for* — a wing's own price is
+ * carried by its spy and power lines, which are geometric — and it is what keeps
+ * the game's one metered currency from being minted by gear.
  *
  * Note what the power curves cost: on turns and citizens the first few rungs all
  * round to +1, so those *lines* stand still early. The item as a whole never
@@ -1073,7 +1179,9 @@ export type FlatCurve =
  */
 export const FLAT_CURVE: Record<HeroFlatStat, FlatCurve> = {
   resources: { shape: "geometric", atFirstStep: 1_500, atMaxStep: 350_000_000 },
-  turns: { shape: "power", atMaxStep: 40, exponent: 2 },
+  // Per *regular* update, and the ceiling is TURNS_UPGRADE_MAX_LEVEL: a maxed
+  // primary wing is worth the whole turns-upgrade ladder. See the turns note above.
+  turns: { shape: "power", atMaxStep: TURNS_UPGRADE_MAX_LEVEL, exponent: 2 },
   citizens: { shape: "power", atMaxStep: 450, exponent: 1.75 },
   // The three combat-power curves are one curve, used three times — see the
   // POWER_CURVE note below for what the two anchors are measured against.
@@ -1094,9 +1202,10 @@ export const FLAT_CURVE: Record<HeroFlatStat, FlatCurve> = {
   },
   // Stated unweighted like every other curve, but no slot carries diamonds as a
   // primary: 👖 pays them as its *minor* extra, so a quarter of this is the
-  // whole ladder — +1 a day at the bottom, +25 a day in the divine set. The
-  // accelerating shape keeps the first four series at a trickle, which is the
-  // point: a diamond faucet must be an endgame trophy, never an income.
+  // whole ladder — +1 per daily update at the bottom, +25 in the divine set (2
+  // and 50 a day). The accelerating shape keeps the first four series at a
+  // trickle, which is the point: a diamond faucet must be an endgame trophy,
+  // never an income — and never on the 5-minute clock (HERO_FLAT_CADENCE).
   diamonds: { shape: "power", atMaxStep: 100, exponent: 2.2 },
 };
 

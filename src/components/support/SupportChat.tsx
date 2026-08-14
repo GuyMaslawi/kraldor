@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/ui/CloseButton";
 import {
   useCallback,
   useEffect,
@@ -285,14 +286,7 @@ export function SupportChat({
             {t("צוות קראלדור — נשיב כאן, בדרך כלל תוך כמה שעות")}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={closeDock}
-          aria-label={t("סגירת צ׳אט התמיכה")}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-bone-dim transition-colors hover:bg-white/10 hover:text-gold-bright"
-        >
-          ✕
-        </button>
+        <CloseButton onClick={closeDock} label={t("סגירת צ׳אט התמיכה")} />
       </div>
 
       <DiscordLink

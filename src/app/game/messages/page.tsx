@@ -44,6 +44,10 @@ const BIRDS = [
 // i18n-keys-start: dictionary keys, drawn through t(meta.label) on each row
 const KIND_META: Record<MessageKind, { icon: ReactNode; label: string; tone: string }> = {
   SYSTEM: { icon: "📣", label: "מערכת", tone: "border-gold/40 text-gold" },
+  // The row a player scrolls back to when they half-remember what changed last
+  // week. It is drawn apart from מערכת because by the time it is read here it
+  // has already been read once, in the dialog — the mailbox is its archive.
+  ANNOUNCEMENT: { icon: "📜", label: "הכרזה", tone: "border-amber-400/50 text-amber-300" },
   BATTLE: { icon: <Icon name="attack" size={22} />, label: "קרב", tone: "border-red-500/40 text-red-400" },
   SPY: { icon: <Icon name="spy" size={22} />, label: "ריגול", tone: "border-purple-500/40 text-purple-300" },
   PLAYER: { icon: <Icon name="messages" size={22} />, label: "משחקן", tone: "border-emerald-500/40 text-emerald-300" },

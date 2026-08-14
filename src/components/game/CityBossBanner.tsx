@@ -56,7 +56,12 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
     myTurns,
     hp,
     maxHp,
+    participants,
+    share,
     sorties,
+    myDamage,
+    besiegers,
+    slayerName,
     revivesAt,
     reviveMs,
     serverNow,
@@ -64,6 +69,7 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
     heroXp,
     expectedSortieDamage,
     sortiesToKill,
+    sortiesPerShare,
     roundsPerSortie,
     readChance,
     soldiers,
@@ -89,16 +95,20 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
   const outOfTurns = myTurns < turnCost;
   const dead = revivesAt != null;
 
-  // The trade, priced before anything is spent. `bitePct` is the share of the
-  // *remaining* pool one assault takes off, which is what the loot is paid on —
-  // and the number that says, without any adjectives, whether this fight is worth
-  // marching to yet.
-  const bitePct = hp > 0 ? Math.min(100, (expectedSortieDamage / hp) * 100) : 0;
+  // The trade, priced before anything is spent. `bitePct` is measured against one
+  // empire's *share* of the pool rather than against the pool itself: the pool is
+  // as deep as the city is wide, so a bite out of the whole thing would read as
+  // 3% for an army that is doing perfectly well — and the share is what the loot
+  // is actually paid on.
+  const bitePct = share > 0 ? Math.min(100, (expectedSortieDamage / share) * 100) : 0;
   const lossPct = soldiers > 0 ? (expectedSortieLosses / soldiers) * 100 : 0;
-  // Three assaults is what an army standing at the printed wall pays (see
-  // BOSS_HP_PER_POWER), so this fires exactly for the armies that are *under* it:
-  // past that the honest advice is to grow first, and say why.
-  const outmatched = soldiers > 0 && sortiesToKill > 3;
+  // Three assaults *per share* is what an army standing at the printed wall pays
+  // (see BOSS_HP_PER_POWER), so this fires exactly for the armies that are under
+  // it: past that the honest advice is to grow first, and say why. Measured on the
+  // share and never on the shared pool, which a lone player could not empty in a
+  // city of ten however strong they were.
+  const outmatched = soldiers > 0 && sortiesPerShare > 3;
+  const myPct = maxHp > 0 ? Math.min(100, (myDamage / maxHp) * 100) : 0;
 
   const bossName = t(boss.name);
   // `blocked` first: it is the only reason here that never clears, so it must
@@ -281,7 +291,7 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
               </div>
               <p className="nums mt-1 text-[11px] leading-relaxed text-zinc-400">
                 {t(
-                  "{chip}% מהאוצר מתחלק לפי הנזק שאתה גורם — משולם על כל תקיפה, גם כזו שלא הפילה אותו. את השאר ({kill}%, והציוד) לוקח מי שמפיל אותו.",
+                  "זה מה ששווה מנה אחת — שלך. {chip}% ממנה משולמים לפי הנזק שאתה גורם, על כל תקיפה, גם כזו שלא הפילה אותו. את השאר ({kill}%) מתחלקים כשהוא נופל בין כל מי שפצע אותו, לפי הנזק. הציוד הולך למי שמנחית את המכה האחרונה.",
                   {
                     chip: Math.round(BOSS_CHIP_SHARE * 100),
                     kill: Math.round(BOSS_KILL_SHARE * 100),
@@ -296,7 +306,9 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-gold/30 bg-black/40 px-2.5 py-2">
               <span className="text-xs font-bold text-gold-bright">
                 <Icon name="crown" size={13} className="inline-block align-middle" />{" "}
-                {t("{boss} הופל", { boss: bossName })}
+                {slayerName
+                  ? t("{slayer} הפיל את {boss}", { slayer: slayerName, boss: bossName })
+                  : t("{boss} הופל", { boss: bossName })}
               </span>
               <span className="text-xs text-zinc-400">{t("— קם לתחייה בעוד")}</span>
               <BossCountdown
@@ -307,19 +319,47 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
             </div>
           ) : (
             <div>
-              <div className="mb-1 flex items-baseline justify-between gap-2">
+              <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
                 <span className="text-[11px] font-bold text-[rgb(var(--boss-accent))]">
                   {t("חיי הבוס")}
+                  {/* The one fact that changes how this bar should be read: the
+                      health above is the whole city's problem, not this player's.
+                      Without it a lone player sees a pool ten times what their
+                      neighbour in a quiet city sees and reads it as a nerf. */}
+                  <Tip
+                    tip={t(
+                      "עריץ אחד לכל העיר, בדיוק כמו מפלצת העולם: כל שחקני {city} תוקפים את אותו מאגר חיים. המאגר נקבע לפי {count} השחקנים הפעילים בדרגה — מנה של {share} לכל אחד — והשלל שלך נמדד מול המנה שלך, לא מול המאגר כולו.",
+                      {
+                        city: cityName(t, cities),
+                        count: participants,
+                        share: formatNumber(Math.round(share)),
+                      }
+                    )}
+                  >
+                    <span className="mr-1.5 cursor-help rounded border border-[rgb(var(--boss-accent))]/50 bg-black/50 px-1 py-px text-[10px] font-black text-[rgb(var(--boss-accent))]">
+                      {t("משותף · {count} שחקנים", { count: participants })}
+                    </span>
+                  </Tip>
                 </span>
                 <span className="nums text-xs font-black text-zinc-100" dir="ltr">
                   {formatNumber(Math.round(hp))} / {formatNumber(maxHp)}
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full border border-black/60 bg-white/5">
+              {/* Two bars in one: the city's progress, and inside it the slice this
+                  player has personally carved off — which is the number their own
+                  loot is paid on and the only part of the bar they control. */}
+              <div className="relative h-2 overflow-hidden rounded-full border border-black/60 bg-white/5">
                 <span
                   className="block h-full rounded-full bg-gradient-to-l from-[rgb(var(--boss-accent))] to-[rgb(var(--boss-accent)/0.35)]"
                   style={{ width: `${Math.max(0, Math.min(100, hpPct))}%` }}
                 />
+                {myPct >= 0.5 && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0 bg-gold/70"
+                    style={{ width: `${myPct}%` }}
+                  />
+                )}
               </div>
               {woundedPct >= 1 && (
                 <p className="nums mt-1 text-[11px] text-zinc-500">
@@ -327,10 +367,15 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
                     ? t("פצוע ב־{pct}% מתקיפה אחת — הפצעים נשארים עד שהוא נופל", {
                         pct: Math.round(woundedPct),
                       })
-                    : t("פצוע ב־{pct}% מ־{sorties} תקיפות — הפצעים נשארים עד שהוא נופל", {
+                    : t("פצוע ב־{pct}% מ־{sorties} תקיפות של העיר — הפצעים נשארים עד שהוא נופל", {
                         pct: Math.round(woundedPct),
                         sorties,
                       })}
+                  {myDamage > 0 &&
+                    t(" · הנזק שלך: {damage} ({pct}%)", {
+                      damage: formatNumber(Math.round(myDamage)),
+                      pct: myPct < 1 ? myPct.toFixed(1) : Math.round(myPct),
+                    })}
                 </p>
               )}
             </div>
@@ -400,8 +445,8 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
           {!dead && !activeBattleId && outmatched && (
             <p className="nums rounded-lg border border-amber-500/30 bg-amber-950/20 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-200/90">
               <b>{t("{boss} עדיין חזק ממך.", { boss: bossName })}</b>{" "}
-              {t("בקצב הזה צריך כ־{sorties} תקיפות כדי להפיל אותו, וכל אחת עולה {turns} תורות", {
-                sorties: Number.isFinite(sortiesToKill) ? sortiesToKill : "∞",
+              {t("בקצב הזה צריך כ־{sorties} תקיפות רק כדי לסיים את המנה שלך, וכל אחת עולה {turns} תורות", {
+                sorties: Number.isFinite(sortiesPerShare) ? sortiesPerShare : "∞",
                 turns: formatNumber(turnCost),
               })}
               {BOSS_CASUALTIES &&
@@ -409,8 +454,7 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
                   soldiers: formatNumber(Math.round(expectedSortieLosses)),
                 })}
               {t(
-                ". השלל הגדול ({share}% ממנו + הציוד) משולם רק בהפלה — עדיף לגדל צבא ולהעלות את הגיבור, ואז לתקוף.",
-                { share: Math.round(BOSS_KILL_SHARE * 100) }
+                ". אתה עדיין מקבל שלל על כל נזק, ובני העיר נלחמים באותו עריץ יחד — אבל עדיף לגדל צבא ולהעלות את הגיבור, ואז לתקוף."
               )}
             </p>
           )}
@@ -521,11 +565,13 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
                   {t("תקיפה אחת שלך מורידה בממוצע {damage} חיים —", {
                     damage: formatNumber(Math.round(expectedSortieDamage)),
                   })}{" "}
-                  {!Number.isFinite(sortiesToKill)
+                  {!Number.isFinite(sortiesPerShare)
                     ? t("אמן צבא כדי להתחיל")
-                    : sortiesToKill === 1
-                      ? t("תקיפה אחת להפלה")
-                      : t("כ־{sorties} תקיפות להפלה", { sorties: sortiesToKill })}
+                    : sortiesPerShare === 1
+                      ? t("תקיפה אחת מסיימת את המנה שלך")
+                      : t("כ־{sorties} תקיפות למנה שלך", { sorties: sortiesPerShare })}
+                  {Number.isFinite(sortiesToKill) &&
+                    t(", וכ־{sorties} תקיפות להפיל אותו לבד", { sorties: sortiesToKill })}
                   {t(". כוח הבוס {bossPower} מול כוח התקיפה שלך {myPower}.", {
                     bossPower: formatNumber(power),
                     myPower: formatNumber(Math.round(myPower)),
@@ -647,7 +693,7 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
                 </p>
                 <p className="nums text-xs leading-relaxed text-zinc-400">
                   {t(
-                    "{chip}% מהשלל משולם לפי הנזק שאתה מספיק לגרום — גם בתקיפה שלא הפילה אותו. השאר ({kill}%) הוא אוצר ההפלה, שגדל עד ×{grade} בקרב מושלם. השלל גדל עם התקדמות העונה ועם מספר הערים שלך.",
+                    "העריץ משותף לכל העיר, אבל השלל אישי: מאגר החיים שלו הוא מנה לכל שחקן בדרגה, וכל מה שאתה מקבל נמדד מול המנה שלך בלבד — כך שאותה תקיפה שווה בדיוק אותו דבר בעיר מלאה ובעיר ריקה. {chip}% מהמנה משולמים לפי הנזק שאתה גורם, מיד בסוף כל תקיפה. את {kill}% הנותרים — אוצר ההפלה, שגדל עד ×{grade} לפי איכות המכה האחרונה — מחלקים ברגע שהוא נופל בין כל מי שפצע אותו, לפי הנזק. השלל גדל עם התקדמות העונה ועם מספר הערים שלך.",
                     {
                       chip: Math.round(BOSS_CHIP_SHARE * 100),
                       kill: Math.round(BOSS_KILL_SHARE * 100),
@@ -656,6 +702,48 @@ export function CityBossBanner({ state, cities }: { state: CityBossState; cities
                   )}
                 </p>
               </div>
+
+              {/* -------- who else is on it right now --------
+                  The half of a shared fixture a private one never had: the boss
+                  banner used to answer "how far along am I", and the only honest
+                  answer now is "how far along are we, and who is carrying it".
+                  Kept inside the disclosure with the rest of the reference
+                  material — the bar above already says the fight is shared. */}
+              {besiegers.length > 0 && (
+                <div className="border-t border-border-subtle pt-3">
+                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-gold-dim">
+                    <Icon name="attack" size={13} /> {t("מי צר על {boss} עכשיו", { boss: bossName })}
+                  </p>
+                  <ul className="space-y-1">
+                    {besiegers.map((b) => (
+                      <li
+                        key={b.empireId}
+                        className={`flex items-center justify-between gap-2 rounded border px-2 py-1 text-[11px] ${
+                          b.isMe
+                            ? "border-gold/50 bg-gold/10"
+                            : "border-border-subtle bg-panel-inset"
+                        }`}
+                      >
+                        <Link
+                          href={`/game/empires/${b.empireId}`}
+                          className="min-w-0 truncate font-semibold text-zinc-200 transition-colors hover:text-gold-bright"
+                        >
+                          {b.empireName}
+                          {b.isMe && (
+                            <span className="mr-1.5 text-[10px] font-black text-gold">
+                              {t("(אתה)")}
+                            </span>
+                          )}
+                        </Link>
+                        <span className="nums shrink-0 text-zinc-400" dir="ltr">
+                          {formatNumber(Math.round(b.damage))}
+                          <span className="text-zinc-600"> · {b.sorties}⚔</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <p className="border-t border-border-subtle pt-3 text-xs leading-relaxed text-zinc-400">
                 {t(boss.lore)}

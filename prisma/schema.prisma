@@ -730,8 +730,8 @@ model Empire {
   diamondPurchases   DiamondPurchase[]
   seasonPass         SeasonPassProgress?
   bossFights         BossFight[]
-  bossSieges         BossSiege[]
   bossBattles        BossBattle[]
+  bossStrikes        BossSiegeStrike[]
   achievements       EmpireAchievement[]
   gloryAwards        EmpireGloryAward[]
   monuments          EmpireMonument[]
@@ -994,6 +994,35 @@ model WorldBoss {
   slayerId   String?
   slayerName String?
 
+  /// The two game-wide heralds this fixture is worth, each claimed once.
+  ///
+  /// Both are stamped by a guarded UPDATE *before* anything is sent, because the
+  /// send is a fan-out over every inbox in the game plus a Discord post: the
+  /// spawn is discovered by whichever player happens to open the arena first,
+  /// and the kill by whoever landed the last blow, so without a claim a redeploy
+  /// or a second tab would announce the same beast twice. See server/herald.ts.
+  spawnAnnouncedAt  DateTime?
+  defeatAnnouncedAt DateTime?
+
+  /// Stamped once every contender's share has been paid out — see
+  /// `settleWorldBossSpoils`.
+  ///
+  /// The spoils used to be a button: the share sat unpaid until its owner opened
+  /// the arena and pressed it, and because the arena only ever renders *this*
+  /// week's boss, a purse nobody collected before midnight on Saturday became
+  /// unreachable for good. A beast felled on Thursday evening therefore paid the
+  /// players who happened to log in again and nobody else, which is not a
+  /// fixture the whole server shares — it is a fixture that quietly keeps most
+  /// of the purse.
+  ///
+  /// So the kill pays everyone, and this column is the marker on the *fan-out*
+  /// rather than on any one player's claim: the per-striker `claimed` flag is
+  /// still what makes each payment exactly-once, and this only says the sweep
+  /// has no more rows to find. Deliberately stamped **after** the last payment
+  /// rather than before, so a fan-out cut short by a redeploy is retried by the
+  /// next sweep instead of being recorded as finished.
+  spoilsSettledAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1054,9 +1083,14 @@ model WorldBossStrike {
   /// board from being a copy of the power ladder.
   hits   Int   @default(0)
 
-  /// The spoils have been collected. The flag IS the receipt: the claim is a
-  /// guarded UPDATE with `claimed = false` in its WHERE, so two simultaneous
-  /// clicks cannot both pay out.
+  /// This empire's share has been paid. The flag IS the receipt: every payer
+  /// takes it with a guarded UPDATE carrying `claimed = false` in its WHERE, so
+  /// of two payers reaching one striker together exactly one pays out.
+  ///
+  /// Two things set it, and the guard is what lets both exist. The kill fans out
+  /// over every contender (`settleWorldBossSpoils`) and is how the share is
+  /// normally paid; the arena's button is the fallback for a row that fan-out
+  /// missed. Neither has to know about the other.
   claimed Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -1671,6 +1705,14 @@ enum MessageKind {
   SPY
   /// Player-to-player mail, written from the messages screen.
   PLAYER
+  /// An admin's word to the whole game — a fixed bug, a new feature, a change
+  /// to the rules. Its own kind rather than SYSTEM because it is the only
+  /// message the game *stops* the player to show: a dialog in the middle of the
+  /// screen, once, instead of a corner toast. SYSTEM is what a dozen other
+  /// things already write (gift notes, quest hauls, boss revivals, season
+  /// notices) and none of them has earned that interruption. See
+  /// `AnnouncementDialog` and `broadcastMessage`.
+  ANNOUNCEMENT
 }
 
 /// Inbox message for an empire — system announcements, combat alerts
@@ -2269,57 +2311,124 @@ enum BossBattleStatus {
   EXPIRED
 }
 
-/// A siege of one city boss, for one empire, for one daily-update cycle.
+/// One *life* of one city tier's tyrant — shared by every empire in that city.
 ///
-/// This is the row that made the boss worth coming back to. It used to be one
-/// all-or-nothing swing capped at a single victory per cycle: a player below the
-/// boss's power got nothing but a mauled army, and a player above it got one
-/// win and then had nothing to do with the boss until the next update. Now the
-/// boss carries a health pool that *persists between sorties* — every attack
-/// that lands leaves it wounded, damage pays loot pro-rata as it is dealt, and
-/// felling it pays the hoard on top.
+/// It used to be one row per (empire, tier): everybody fought a private copy of
+/// the same named boss, and "the tyrant of אשמורן is at 40%" was a fact about
+/// one player rather than about the world. Since 2026-08-14 there is exactly one
+/// living row per tier and the whole city chips at it together, the way the
+/// server shares מפלצת העולם (see WorldBoss, which this is modelled on).
 ///
-/// The cycle boundary is the identity, not a timestamp to compare: `cycleAt` is
-/// `lastDailyUpdate()` at creation, so a new cycle simply misses the unique key
-/// and a fresh, full-health siege is created. Nothing needs to sweep old rows.
+/// Three things carry that change, and they only make sense together:
 ///
-/// The loot pool is also what replaced the victory cap. Total chip loot is
-/// bounded by `maxHp` (you cannot deal more damage than the boss has health) and
-/// the kill bonus is paid once per siege, so a player who banked turns for a
-/// fortnight can spend them on extra sorties without minting extra loot — the
-/// turns buy attempts, not payouts. See src/lib/game/bossBattle.ts.
+///  - **`participants` freezes the head count at spawn** and `maxHp` is the
+///    single-empire pool multiplied by it. A city of ten meets a tyrant ten
+///    times as deep, so the work per player is exactly what it was — and the
+///    strongest empire in the tier cannot fell it in three marches and lock
+///    everybody else out for the revive hour. Frozen rather than recomputed for
+///    the reason WorldBoss.maxHp is: a boss that grew because somebody founded
+///    a city on Thursday would punish the city for growing.
+///  - **Loot is priced against `maxHp / participants`**, never against `maxHp`.
+///    That ratio is one empire's share of the pool, so a march earns exactly
+///    the haul it earned before this was shared, however many people turn up.
+///  - **`hp` is written at launch, not at the settle.** An assault's damage is
+///    applied the moment the turns are paid (see `startBossAssault`), so two
+///    empires marching in the same minute cannot both be told they landed the
+///    killing blow, and nobody spends 300 turns on a tyrant that fell during
+///    their reveal. The 60-second battle is a reveal of a decided fight.
+///
+/// Lives accumulate — a life is never reused after it dies — and `life` is the
+/// serial that makes opening a new one race-safe across empires.
 model BossSiege {
-  id       String @id @default(cuid())
-  empireId String
+  id String @id @default(cuid())
 
   /// City tier under siege and its boss — snapshots, as on BossFight.
   cityTier Int
   bossKey  String
+  /// Serial life number within the tier, 1-based. The unique key with
+  /// `cityTier`: two empires opening a new life in the same instant collide
+  /// here rather than both creating one.
+  life     Int
 
-  /// Health pool for this life, and what is left of it.
-  maxHp       Float
-  hp          Float
+  /// Health pool for this life, and what is left of it. `maxHp` is one empire's
+  /// pool × `participants` — see the note above.
+  maxHp        Float
+  hp           Float
+  /// Empires the pool was sized against, frozen at spawn. Also the divisor that
+  /// turns `maxHp` back into the single-empire pool loot is priced against, so
+  /// it may never be recomputed on a living row.
+  participants Int   @default(1)
   /// Running total of damage this life has taken (`maxHp - hp`, kept explicitly
   /// so a report can show progress without recomputing from the battle logs).
-  damageDealt Float @default(0)
-  /// Assaults launched against this life.
-  sorties     Int   @default(0)
+  damageDealt  Float @default(0)
+  /// Assaults launched against this life, by everyone.
+  sorties      Int   @default(0)
 
   /// When the tyrant fell, and when it returns. Both null while it lives; both
   /// set together on the killing blow. A row with `revivesAt` in the past is a
   /// spent life — the next assault opens a fresh one rather than reusing it.
   killedAt  DateTime?
   revivesAt DateTime?
+  /// Who landed the killing blow. Not a relation, for the reason
+  /// WorldBoss.slayerId is not one: the empire may be deleted at a season
+  /// restart while the row is still being read, and a dangling name is a better
+  /// outcome than a cascade that erases the kill.
+  slayerId   String?
+  slayerName String?
+
+  /// The kill purse has been shared out among everyone who wounded this life.
+  /// The stamp IS the receipt — it is claimed by a guarded UPDATE before a
+  /// single resource moves, so a redeploy, a second tab or a retry cannot pay
+  /// the city twice. See `payKillSpoils`.
+  spoilsPaidAt      DateTime?
+  /// Stamped when the city has been told this life's tyrant is back on its
+  /// feet. There is no cron to fire that message at the moment `revivesAt`
+  /// passes, so the inbox poll claims it lazily (see `announceBossRevival`) —
+  /// and this column is what makes the claim exactly-once across every player
+  /// in the tier polling at the same second.
+  revivedNotifiedAt DateTime?
 
   createdAt DateTime @default(now())
 
-  empire  Empire       @relation(fields: [empireId], references: [id], onDelete: Cascade)
   battles BossBattle[]
+  strikes BossSiegeStrike[]
 
-  /// The one lookup: this empire's newest life of a given tier's boss. There is
-  /// no unique key to collide on any more — lives accumulate — so concurrent
-  /// marches are serialised by the empire row lock in `startBossAssault`.
-  @@index([empireId, cityTier, createdAt])
+  /// Opening a new life is the one write two empires can race, and this is what
+  /// they collide on. Everything else is serialised by the tier's advisory lock
+  /// (see `currentLife`); this is the net under it.
+  @@unique([cityTier, life])
+  /// The one lookup: the newest life of a tier's boss.
+  @@index([cityTier, life])
+}
+
+/// One empire's running total against one life of a city tyrant.
+///
+/// A real counter rather than a figure derived from the battle rows, for the
+/// reason WorldBossStrike is one: the alternative is summing every assault in
+/// the tier on every rankings render. It is also the list the kill purse is
+/// shared out over — `damage` is the whole basis of a player's share — and the
+/// city's contribution board.
+model BossSiegeStrike {
+  id       String @id @default(cuid())
+  siegeId  String
+  empireId String
+
+  /// Frozen at the first blow, so the board still reads if the empire is gone.
+  empireName String
+
+  /// Damage this empire has credited to this life, and marches it took.
+  damage  Float @default(0)
+  sorties Int   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  siege  BossSiege @relation(fields: [siegeId], references: [id], onDelete: Cascade)
+  empire Empire    @relation(fields: [empireId], references: [id], onDelete: Cascade)
+
+  @@unique([siegeId, empireId])
+  /// The board: "this life's besiegers, hardest first".
+  @@index([siegeId, damage])
 }
 
 /// One assault on a besieged boss: a battle the army fights on its own, rolled in
@@ -2524,7 +2633,18 @@ model ChatMessage {
   /// The other side of a DIRECT line. Always null for GLOBAL.
   recipientEmpireId String?
 
+  /// A line the *game* wrote — a herald, not a player. Always GLOBAL, always
+  /// `senderEmpireId = null`, and it is what makes `body` mean something
+  /// different: on a system line the column holds the dictionary **key** and
+  /// `bodyParams` the values that fill it, resolved in the reader's own
+  /// language when the room is polled. A player's line is free text and is
+  /// never translated. See server/herald.ts.
+  system Boolean @default(false)
+
   body String
+  /// Interpolation values for a system line's `body`, or null when it takes
+  /// none. Same self-describing shape the inbox uses — see `renderMessageText`.
+  bodyParams Json?
 
   /// Set when an admin removes the line. Hidden rows are filtered out of every
   /// read path rather than deleted, so moderation is auditable and reversible.

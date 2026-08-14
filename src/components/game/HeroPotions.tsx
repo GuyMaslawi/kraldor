@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/ui/CloseButton";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PotionKind } from "@prisma/client";
@@ -257,13 +258,7 @@ function PotionDialog({
             </span>
           </p>
         </div>
-        <button
-          onClick={onClose}
-          aria-label={t("סגור")}
-          className="btn btn-ghost -mt-1 h-8 w-8 !p-0 text-base"
-        >
-          ✕
-        </button>
+        <CloseButton onClick={onClose} className="-mt-1" />
       </div>
 
       <div className="rule-gold my-4" />

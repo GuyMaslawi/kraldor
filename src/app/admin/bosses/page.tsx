@@ -26,21 +26,25 @@ export const dynamic = "force-dynamic";
 const INPUT_CLASS =
   "w-full rounded-lg border border-border-subtle bg-panel-inset px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60";
 
-/** One row of the city-boss overview — the newest life of each empire's tyrant. */
+/** One row of the city-boss overview — the tier's current life, as it stands. */
 interface TierRow {
   tier: number;
-  lives: number;
-  alive: number;
-  dead: number;
+  hp: number;
+  maxHp: number;
+  participants: number;
+  sorties: number;
+  besiegers: number;
+  alive: boolean;
+  dead: boolean;
 }
 
 /**
  * /admin/bosses — the control room for both bosses.
  *
- * The two halves look different because the two features are: the city boss is
- * one private life per player per tier, so it is edited in bulk by scope, while
- * מפלצת העולם is a single shared row a week and is edited directly. See the
- * note above the actions in server/actions/admin.ts.
+ * The two halves finally look alike, because the two features now are: a city
+ * tyrant is one shared row per tier fought by everybody in that city, exactly as
+ * מפלצת העולם is one shared row a week fought by the whole server. See the note
+ * above the actions in server/actions/admin.ts.
  */
 export default async function AdminBossesPage() {
   await requireAdmin();
@@ -73,23 +77,27 @@ export default async function AdminBossesPage() {
           },
         })
       : [],
-    // The newest life of every (empire, tier) pair, folded to one row a tier.
-    // `DISTINCT ON` rather than a read-and-group in JS: this is the same shape
-    // `currentLife` picks on the write path, and doing it in the database keeps
-    // the page one bounded query instead of one row per player.
+    // The newest life of each tier, one row apiece. `DISTINCT ON` rather than a
+    // read-and-group in JS: this is the same row `currentLife` picks on the write
+    // path, and doing it in the database keeps the page one bounded query.
     // `NOW() AT TIME ZONE 'UTC'` because these columns are zone-less timestamps
     // holding UTC — a bare NOW() would be compared through the session's zone.
     prisma.$queryRaw<TierRow[]>`
       SELECT s."cityTier" AS tier,
-             COUNT(*)::int AS lives,
-             COUNT(*) FILTER (WHERE s."killedAt" IS NULL AND s.hp > 0)::int AS alive,
-             COUNT(*) FILTER (WHERE s."revivesAt" > (NOW() AT TIME ZONE 'UTC'))::int AS dead
+             s.hp,
+             s."maxHp",
+             s.participants,
+             s.sorties,
+             (s."killedAt" IS NULL AND s.hp > 0) AS alive,
+             COALESCE(s."revivesAt" > (NOW() AT TIME ZONE 'UTC'), false) AS dead,
+             (
+               SELECT COUNT(*)::int FROM "BossSiegeStrike" k WHERE k."siegeId" = s.id
+             ) AS besiegers
       FROM (
-        SELECT DISTINCT ON ("empireId", "cityTier") *
+        SELECT DISTINCT ON ("cityTier") *
         FROM "BossSiege"
-        ORDER BY "empireId", "cityTier", "createdAt" DESC
+        ORDER BY "cityTier", life DESC
       ) s
-      GROUP BY s."cityTier"
       ORDER BY s."cityTier"
     `,
   ]);
@@ -249,20 +257,23 @@ export default async function AdminBossesPage() {
       {/* ============================ city bosses ============================ */}
       <EditorSection title="שליטי הערים" icon="👹">
         <p className="mb-3 text-xs text-zinc-400">
-          לכל שחקן יש חיים משלו של שליט העיר שבדרגתו. הטבלה מראה את החיים הנוכחיים בכל דרגה —
-          כמה עומדים וכמה נפלו וסופרים לתחייה (כרגע: {formatNumber(reviveMinutes)} דקות).
+          לכל דרגת עיר יש עריץ אחד, משותף לכל מי שגר בה — בדיוק כמו מפלצת העולם. מאגר החיים
+          נקבע בלידה לפי מספר השחקנים הפעילים בדרגה — מי שנראה במשחק בשבוע האחרון, מנה אחת לכל אחד, והשלל של כל תוקף נמדד מול המנה
+          שלו ולא מול המאגר כולו. עריץ שנפל חוזר בעוד {formatNumber(reviveMinutes)} דקות.
         </p>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px] text-right text-xs">
+          <table className="w-full min-w-[620px] text-right text-xs">
             <thead className="text-gold-dim">
               <tr>
                 <th className="px-2 py-1 font-semibold">דרגה</th>
                 <th className="px-2 py-1 font-semibold">השליט</th>
                 <th className="px-2 py-1 font-semibold">כוח</th>
-                <th className="px-2 py-1 font-semibold">מאגר חיים</th>
-                <th className="px-2 py-1 font-semibold">עומדים</th>
-                <th className="px-2 py-1 font-semibold">מתים</th>
+                <th className="px-2 py-1 font-semibold">מנה לשחקן</th>
+                <th className="px-2 py-1 font-semibold">מאגר נוכחי</th>
+                <th className="px-2 py-1 font-semibold">שחקנים</th>
+                <th className="px-2 py-1 font-semibold">צרים</th>
+                <th className="px-2 py-1 font-semibold">מצב</th>
               </tr>
             </thead>
             <tbody>
@@ -288,11 +299,27 @@ export default async function AdminBossesPage() {
                         )
                       )}
                     </td>
-                    <td className="px-2 py-1.5 nums text-emerald-300" dir="ltr">
-                      {row?.alive ?? 0}
+                    <td className="px-2 py-1.5 nums" dir="ltr">
+                      {row
+                        ? `${formatNumber(Math.round(row.hp))} / ${formatNumber(row.maxHp)}`
+                        : "—"}
                     </td>
-                    <td className="px-2 py-1.5 nums text-crimson-bright" dir="ltr">
-                      {row?.dead ?? 0}
+                    <td className="px-2 py-1.5 nums" dir="ltr">
+                      {row ? row.participants : "—"}
+                    </td>
+                    <td className="px-2 py-1.5 nums" dir="ltr">
+                      {row ? row.besiegers : "—"}
+                    </td>
+                    <td className="px-2 py-1.5 font-bold">
+                      {!row ? (
+                        <span className="text-zinc-600">טרם נולד</span>
+                      ) : row.alive ? (
+                        <span className="text-emerald-300">עומד</span>
+                      ) : row.dead ? (
+                        <span className="text-crimson-bright">נפל</span>
+                      ) : (
+                        <span className="text-gold-dim">מוכן לתחייה</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -301,14 +328,14 @@ export default async function AdminBossesPage() {
           </table>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-4">
           <div className="panel-inset rounded-lg p-3">
             <p className="mb-2 text-xs font-bold text-gold-dim">החזרה לחיים מלאים — לפי דרגה</p>
             <ActionForm
               action={reviveCityBosses}
               submitLabel="❤️ החזר לחיים"
               submitClassName="text-xs"
-              confirm="להחזיר את שליטי הערים בטווח שנבחר לחיים מלאים? מי שכבר הפיל אותם יוכל להפיל שוב ולקבל שלל נוסף."
+              confirm="להחזיר את שליטי הערים בטווח שנבחר לחיים מלאים? זה מוחק גם את לוח הפוצעים של אותם חיים — כל העיר מתחילה מצור חדש ותקבל שלל הפלה נוסף."
             >
               <LabeledInput
                 label="דרגת עיר (0 = כל הדרגות)"
@@ -317,24 +344,7 @@ export default async function AdminBossesPage() {
                 min={0}
                 max={MAX_CITIES}
                 defaultValue={0}
-                hint="החיים מתמלאים, ומי שנפל קם מיד — בלי להמתין לשעון התחייה"
-              />
-            </ActionForm>
-          </div>
-
-          <div className="panel-inset rounded-lg p-3">
-            <p className="mb-2 text-xs font-bold text-gold-dim">החזרה לחיים — לשחקן אחד</p>
-            <ActionForm
-              action={reviveCityBosses}
-              submitLabel="❤️ החזר לשחקן"
-              submitClassName="text-xs"
-            >
-              <LabeledInput
-                label="מזהה אימפריה (empireId)"
-                name="empireId"
-                dir="ltr"
-                placeholder="cly..."
-                hint="מהעמוד של השחקן ב/admin/users"
+                hint="החיים מתמלאים ומי שנפל קם מיד — בלי להמתין לשעון התחייה. אין החזרה לשחקן בודד: העריץ שייך לכל העיר."
               />
             </ActionForm>
           </div>

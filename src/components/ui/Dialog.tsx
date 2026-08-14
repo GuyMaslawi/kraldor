@@ -28,8 +28,12 @@ export function Dialog({
   children: ReactNode;
   /** id of the heading that names the dialog, for aria-labelledby. */
   labelledBy?: string;
-  /** "lg" for content that needs room (e.g. a player picker + message form). */
-  size?: "sm" | "lg";
+  /**
+   * "lg" for content that needs room (e.g. a player picker + message form),
+   * "xl" for the rare dialog that is the whole screen's business rather than a
+   * control on it — the herald's announcement.
+   */
+  size?: "sm" | "lg" | "xl";
 }) {
   useScrollLock(open);
 
@@ -59,7 +63,7 @@ export function Dialog({
         aria-labelledby={labelledBy}
         dir="rtl"
         className={`panel-gold relative z-10 max-h-full w-full overflow-y-auto overscroll-contain rounded-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_20px_60px_rgba(0,0,0,0.85)] ${
-          size === "lg" ? "max-w-xl" : "max-w-sm"
+          size === "xl" ? "max-w-2xl" : size === "lg" ? "max-w-xl" : "max-w-sm"
         }`}
         onClick={(e) => e.stopPropagation()}
       >

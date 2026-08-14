@@ -4,9 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { turnsPerRegularUpdate } from "./constants";
 
 /**
- * Sources of turn gain per regular update. Today only the upgrade
- * contributes; hero missions, hero equipment, season pass, events and VIP
- * will add their own components here later.
+ * Sources of turn gain per regular update. Only the upgrade contributes *here*:
+ * the hero's turn items ride the same 5-minute cadence (see HERO_FLAT_CADENCE)
+ * but are added by `applyPendingUpdates` from the equipped gear it has already
+ * loaded, and deliberately outside the מגדל השעון multiplier — a monument
+ * multiplies what the upgrade pays, never what a piece of gear conjures. Season
+ * pass, events and VIP will add their own components here later.
  */
 export interface TurnsGainBreakdown {
   baseUpgrade: number;

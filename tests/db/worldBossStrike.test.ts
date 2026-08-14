@@ -60,6 +60,7 @@ vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 const { strikeWorldBoss, collectWorldBoss } = await import(
   "@/server/actions/worldBoss"
 );
+const { settleWorldBossSpoils } = await import("@/server/worldBossSpoils");
 
 const prisma = new PrismaClient();
 const TAG = `wb${Date.now().toString(36)}`;
@@ -101,7 +102,14 @@ afterAll(async () => {
   } else if (restore) {
     await prisma.worldBoss.update({
       where: { id: bossId },
-      data: { ...restore, defeatedAt: null, slayerId: null, slayerName: null },
+      data: {
+        ...restore,
+        defeatedAt: null,
+        slayerId: null,
+        slayerName: null,
+        spoilsSettledAt: null,
+        defeatAnnouncedAt: null,
+      },
     });
   }
   await prisma.$disconnect();
@@ -111,7 +119,18 @@ afterAll(async () => {
 async function standBoss(hp: number) {
   await prisma.worldBoss.update({
     where: { id: bossId },
-    data: { hp, maxHp: Math.max(hp, 1), defeatedAt: null, slayerId: null, slayerName: null },
+    data: {
+      hp,
+      maxHp: Math.max(hp, 1),
+      defeatedAt: null,
+      slayerId: null,
+      slayerName: null,
+      // A live beast has not paid anybody. Left stamped from the previous case's
+      // kill, the fan-out would find no unsettled boss and the next kill would
+      // pay nothing — the tests would then be asserting the old bug back.
+      spoilsSettledAt: null,
+      defeatAnnouncedAt: null,
+    },
   });
 }
 
@@ -176,7 +195,10 @@ describe("landing blows", () => {
     const results = await Promise.all(
       Array.from({ length: blows }, () => strikeWorldBoss())
     );
-    expect(results.filter((r) => r.success).length).toBe(blows);
+    // `reveal`, not `success`: an ordinary blow says nothing in words any more —
+    // the health bar the arena already draws says it — so the reveal is what a
+    // landed blow returns and the only thing that separates it from a refusal.
+    expect(results.filter((r) => r.reveal).length).toBe(blows);
 
     const mine = await prisma.worldBossStrike.findUniqueOrThrow({
       where: { bossId_empireId: { bossId, empireId: striker.id } },
@@ -216,7 +238,7 @@ describe("landing blows", () => {
     // simply keeps clicking get past it.
     let landed = 0;
     for (let i = 0; i < attempts; i += 1) {
-      if ((await strikeWorldBoss()).success) landed += 1;
+      if ((await strikeWorldBoss()).reveal) landed += 1;
     }
     expect(landed).toBe(WORLD_BOSS_MAX_STRIKES);
 
@@ -266,8 +288,23 @@ describe("the killing blow", () => {
   });
 });
 
-describe("collecting a share", () => {
-  it("pays each striker once, and nothing to anyone who never swung", async () => {
+/**
+ * The spoils, which used to be a button and are now a payout.
+ *
+ * The bug these were rewritten for: a share sat unpaid until its owner opened
+ * the arena and pressed "collect", and the arena only ever renders the *current*
+ * week's boss — so a purse nobody took before midnight on Saturday became
+ * unreachable, permanently. Everyone who struck on Thursday and did not come
+ * back got nothing, which from the player's side is indistinguishable from the
+ * fixture being broken.
+ *
+ * So the kill pays everybody, and these are the three properties that has to
+ * have: it pays without being asked, it pays each contender exactly once however
+ * many payers reach them, and a debt it failed to pay is still payable later —
+ * including from a week that has already turned over.
+ */
+describe("the spoils", () => {
+  it("pays every contender at the kill, without anyone pressing anything", async () => {
     await standBoss(3);
     const [alpha, beta] = await Promise.all([
       makeStriker("share-a", WORLD_BOSS_STRIKE_TURNS * 2),
@@ -277,20 +314,11 @@ describe("collecting a share", () => {
     currentEmpireId = alpha.id;
     await strikeWorldBoss();
     await strikeWorldBoss();
+    // Beta lands the kill, so alpha — who did two thirds of the damage and is
+    // not here — is the one the old code would have left holding an IOU.
     currentEmpireId = beta.id;
     await strikeWorldBoss();
     expect((await bossRow()).defeatedAt).not.toBeNull();
-
-    // Alpha collects from six tabs at once.
-    currentEmpireId = alpha.id;
-    const alphaResults = await Promise.all(
-      Array.from({ length: 6 }, () => collectWorldBoss())
-    );
-    expect(alphaResults.filter((r) => r.success).length).toBe(1);
-
-    currentEmpireId = beta.id;
-    expect((await collectWorldBoss()).success).toBeTruthy();
-    expect((await collectWorldBoss()).error).toBeTruthy();
 
     const claims = await prisma.worldBossStrike.findMany({
       where: { bossId, empireId: { in: [alpha.id, beta.id] } },
@@ -299,14 +327,106 @@ describe("collecting a share", () => {
     expect(claims.every((c) => c.claimed)).toBe(true);
     // Two thirds of the damage against one third, so the shares must differ —
     // the floor half is even, the other half is earned.
-    const alphaDamage = claims.find((c) => c.empireId === alpha.id)!.damage;
-    const betaDamage = claims.find((c) => c.empireId === beta.id)!.damage;
-    expect(alphaDamage).toBe(2);
-    expect(betaDamage).toBe(1);
+    expect(claims.find((c) => c.empireId === alpha.id)!.damage).toBe(2);
+    expect(claims.find((c) => c.empireId === beta.id)!.damage).toBe(1);
+
+    // Paid, not merely marked: the purse pays turns, and both struck with
+    // exactly enough to swing and nothing left over.
+    const [alphaRow, betaRow] = await Promise.all([
+      empireRow(alpha.id),
+      empireRow(beta.id),
+    ]);
+    expect(alphaRow.turns).toBeGreaterThan(0);
+    expect(betaRow.turns).toBeGreaterThan(0);
+    // And each was told what they got, in their own inbox. Matched on the title
+    // key rather than counting SYSTEM rows: the kill also fires the herald,
+    // which puts its own row in every inbox in the game — including these two.
+    expect(
+      await prisma.message.count({
+        where: {
+          empireId: { in: [alpha.id, beta.id] },
+          title: "🏆 חלקך בשלל {boss}",
+        },
+      })
+    ).toBe(2);
+
+    // The button is spent by the time the arena can draw it.
+    currentEmpireId = alpha.id;
+    expect((await collectWorldBoss()).error).toBeTruthy();
 
     const bystander = await makeStriker("bystander", 0);
     currentEmpireId = bystander.id;
     expect((await collectWorldBoss()).error).toBeTruthy();
     expect((await empireRow(bystander.id)).turns).toBe(0);
+  });
+
+  it("pays a share once, whichever payer reaches it first", async () => {
+    await standBoss(1);
+    const striker = await makeStriker("once", WORLD_BOSS_STRIKE_TURNS);
+    currentEmpireId = striker.id;
+    await strikeWorldBoss();
+
+    const afterKill = await empireRow(striker.id);
+
+    // The fan-out again, six times over, racing the button from six tabs. Every
+    // one of them takes the share with the same guarded flip, so none of them
+    // may pay a second time.
+    await Promise.all([
+      ...Array.from({ length: 6 }, () => settleWorldBossSpoils(bossId)),
+      ...Array.from({ length: 6 }, () => collectWorldBoss()),
+    ]);
+
+    const afterStorm = await empireRow(striker.id);
+    expect(afterStorm.turns).toBe(afterKill.turns);
+    expect(afterStorm.diamonds).toBe(afterKill.diamonds);
+  });
+
+  it("settles a debt left behind by a week that has already turned over", async () => {
+    // The old bug, staged exactly: a boss felled in a week gone by, with a share
+    // still unpaid. No screen in the game can reach it — the arena renders this
+    // week — so the sweep is the only thing that can, and it must.
+    const staleWeek = WEEK - 900;
+    const stale = await prisma.worldBoss.create({
+      data: {
+        week: staleWeek,
+        key: rollWorldBoss(staleWeek).key,
+        maxHp: 100,
+        hp: 0,
+        defeatedAt: new Date(),
+      },
+    });
+    try {
+      const striker = await makeStriker("stale", 0);
+      await prisma.worldBossStrike.create({
+        data: { bossId: stale.id, empireId: striker.id, damage: 100, hits: 4 },
+      });
+      const before = await empireRow(striker.id);
+
+      const result = await settleWorldBossSpoils(stale.id);
+      expect(result?.paid).toBe(1);
+      expect(result?.complete).toBe(true);
+
+      expect((await empireRow(striker.id)).turns).toBeGreaterThan(before.turns);
+      expect(
+        (
+          await prisma.worldBossStrike.findFirstOrThrow({
+            where: { bossId: stale.id, empireId: striker.id },
+            select: { claimed: true },
+          })
+        ).claimed
+      ).toBe(true);
+      // The marker is stamped only once the pass found nothing left, which is
+      // what stops the sweep re-walking a settled boss for ever.
+      expect(
+        (
+          await prisma.worldBoss.findUniqueOrThrow({
+            where: { id: stale.id },
+            select: { spoilsSettledAt: true },
+          })
+        ).spoilsSettledAt
+      ).not.toBeNull();
+    } finally {
+      await prisma.worldBoss.delete({ where: { id: stale.id } });
+    }
   });
 });

@@ -149,14 +149,34 @@ export function rollWorldBoss(week: number): WorldBossDefinition {
  *
  * Scaled by the number of empires rather than fixed, because a fixture that is
  * impossible on a quiet server and trivial on a busy one is not a fixture. The
- * figure is calibrated against `strikeDamage` below: at the shipped numbers an
- * average empire's week of strikes is roughly one empire's share, so a server
- * where most people turn up wins and one where they do not falls short.
+ * figure is calibrated against `strikeDamage` below: an empire pays its own
+ * share of the pool when its twenty blows come to this number, so a server where
+ * most people turn up wins and one where they do not falls short.
+ *
+ * ## Twenty times what it opened at
+ *
+ * The original 40,000 put the break-even at an average military power of about
+ * 28,000 — an army a player has three days into a season. From there the beast
+ * was a Tuesday errand for the rest of the season, and the week had no arc.
+ *
+ * At 800,000 the same arithmetic (twenty blows of `√power × 12` covering one
+ * empire's share) puts break-even at roughly **11 million** military power, so
+ * the fixture is now priced at the late game: a mid-season server does not fell
+ * it however many heads it brings — the pool grows with the head count, so more
+ * players at the same power never closes the gap, only stronger ones do. That is
+ * the deliberate shape. The escape hatch for a server that has been left short
+ * of it is `worldBoss.damageMultiplier`, which is the one dial that reaches a
+ * beast already standing (the pool is frozen at spawn — see `worldBossMaxHp`).
+ *
+ * Nothing pays until it is down: the shared purse is gated on `defeatedAt`. A
+ * pool nobody can reach is therefore not "a hard week", it is a closed fixture,
+ * which is why this number and WORLD_BOSS_DAMAGE_PER_POWER have to be read
+ * together and never moved alone.
  */
-export const WORLD_BOSS_HP_PER_EMPIRE = 40_000;
+export const WORLD_BOSS_HP_PER_EMPIRE = 800_000;
 
 /** The floor, so a server with three players still meets something. */
-export const WORLD_BOSS_HP_MIN = 250_000;
+export const WORLD_BOSS_HP_MIN = 5_000_000;
 
 /**
  * The health pool for a week.
@@ -426,15 +446,30 @@ export const WORLD_BOSS_BLOW_META: Record<
  * The purse one empire takes for the whole week, quoted at **one city**;
  * `scaleRewards` applies the city curve at claim time.
  *
- * Sized against a day of hero questing rather than against a boss run: this is
- * paid once a week to everybody who turned up, so it has to be worth the twenty
+ * Paid once a week to everybody who turned up, so it has to be worth the twenty
  * strikes it cost without being the week's main income.
+ *
+ * ## Sized to the wall
+ *
+ * The resource lines moved with WORLD_BOSS_HP_PER_EMPIRE — twenty times what
+ * they were — because a fixture the server can now only fell in the late game
+ * has to pay a late-game purse. A week of everybody's strikes for 120,000 gold
+ * was already thin against the mine income of an empire that could hurt the old
+ * beast; against the one that can hurt this one it was a rounding error, and a
+ * reward nobody notices makes the fixture optional.
+ *
+ * `turns` is the one line held back — 500 rather than the 3,000 a straight ×20
+ * would give. Turns are the game's real currency of attention rather than a
+ * resource: three thousand of them is a week of play handed over at once, which
+ * would make the boss the way you fund raiding rather than a thing you spend
+ * attention on. Five hundred still pays back the 800 the twenty strikes cost
+ * well enough to be worth turning up for.
  */
 export const WORLD_BOSS_PURSE: readonly Reward[] = [
-  { kind: "gold", amount: 120_000 },
-  { kind: "iron", amount: 60_000 },
-  { kind: "turns", amount: 150 },
-  { kind: "wheelSpins", amount: 2 },
+  { kind: "gold", amount: 2_400_000 },
+  { kind: "iron", amount: 1_200_000 },
+  { kind: "turns", amount: 500 },
+  { kind: "wheelSpins", amount: 40 },
 ];
 
 /**

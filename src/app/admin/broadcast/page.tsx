@@ -37,7 +37,10 @@ export default async function AdminBroadcastPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <EditorSection title="שידור הודעה" icon="📣">
           <p className="mb-3 text-xs text-zinc-400">
-            שלח הודעת מערכת לכל השחקנים, לפעילים בלבד, לעונה, לברית או לשחקן בודד. ההודעה מופיעה בתיבת ההודעות ובהתראות החיות.
+            שלח הודעה לכל השחקנים, לפעילים בלבד, לעונה, לברית או לשחקן בודד. בסוג
+            &quot;הכרזה&quot; (ברירת המחדל) ההודעה נפתחת כדיאלוג גדול במרכז המסך — פעם אחת לכל
+            שחקן, ברגע שהוא טוען עמוד או תוך שניות אם הוא כבר במשחק. בשאר הסוגים היא מגיעה
+            כהתראה בפינה, כמו קודם. בכל מקרה היא נשמרת בתיבת ההודעות.
           </p>
           {/* An admin typing a broadcast has no other way to know it is about
               to be reposted publicly — and the rule (all-players only) is not
@@ -73,14 +76,19 @@ export default async function AdminBroadcastPage() {
                 },
               ]}
             />
+            {/* The only choice here that changes *how loudly* the message
+                lands, so it says so in the labels rather than only in a
+                colour. הכרזה is the default: a broadcast typed by hand is
+                nearly always news somebody has to actually receive. */}
             <LabeledSelect
               label="סוג"
               name="kind"
-              defaultValue="SYSTEM"
+              defaultValue="ANNOUNCEMENT"
               options={[
-                { value: "SYSTEM", label: "מערכת (זהב)" },
-                { value: "BATTLE", label: "קרב (אדום)" },
-                { value: "SPY", label: "ריגול (סגול)" },
+                { value: "ANNOUNCEMENT", label: "הכרזה — דיאלוג גדול במרכז המסך (עדכונים ובאגים)" },
+                { value: "SYSTEM", label: "מערכת (זהב) — התראה בפינה" },
+                { value: "BATTLE", label: "קרב (אדום) — התראה בפינה" },
+                { value: "SPY", label: "ריגול (סגול) — התראה בפינה" },
               ]}
             />
             {/* Pre-filled rather than placeheld: an announcement that only has

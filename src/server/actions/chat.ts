@@ -20,7 +20,8 @@ import {
   getSupportUnread,
   type SupportSummary,
 } from "@/server/supportThread";
-import { getT } from "@/i18n/server";
+import { getT, type T } from "@/i18n/server";
+import { renderMessageText } from "@/lib/game/messageText";
 import {
   CHAT_BODY_MAX,
   CHAT_BURST_LIMIT,
@@ -68,6 +69,12 @@ export type ChatLine = {
   empireId: string | null;
   name: string;
   body: string;
+  /**
+   * The game wrote this line, not a player — a felled tyrant, a world boss on
+   * the loose. Drawn as a centred notice rather than as a bubble from somebody,
+   * and it is never `mine`, never staff and never openable as a conversation.
+   */
+  system: boolean;
   /** Epoch ms — the client's dedupe/high-water key. */
   at: number;
   /** Jerusalem wall time (HH:MM), formatted server-side so every player sees
@@ -176,7 +183,9 @@ const LINE_SELECT = {
   id: true,
   senderEmpireId: true,
   senderName: true,
+  system: true,
   body: true,
+  bodyParams: true,
   createdAt: true,
   // `isStaff` rather than the owner's role: it is a column on the row already
   // being read, where the role costs a join to User on every line of every
@@ -188,20 +197,37 @@ type LineRow = {
   id: string;
   senderEmpireId: string | null;
   senderName: string;
+  system: boolean;
   body: string;
+  bodyParams: unknown;
   createdAt: Date;
   sender: { isStaff: boolean } | null;
 };
 
-function toLine(row: LineRow, meId: string): ChatLine {
+/**
+ * `t` is the *reader's* translator, and it is used on exactly one kind of line.
+ *
+ * A player's line is free text and is passed through untouched — running it
+ * through the dictionary would be both pointless and a way for somebody to type
+ * a key and have the game answer in its own voice. A herald's line is the
+ * opposite: it was written by the server on somebody else's request, so it holds
+ * a key and its values and is assembled here, per reader. See server/herald.ts.
+ */
+function toLine(t: T, row: LineRow, meId: string): ChatLine {
   return {
     id: row.id,
     empireId: row.senderEmpireId,
     name: row.senderName,
-    body: row.body,
+    system: row.system,
+    body: row.system
+      ? renderMessageText(t, { title: "", body: row.body, bodyParams: row.bodyParams }).body
+      : row.body,
     at: row.createdAt.getTime(),
     time: formatGameTime(row.createdAt),
-    mine: row.senderEmpireId === meId,
+    // A herald is nobody's line, least of all the reader's — `senderEmpireId` is
+    // null on one, and so is `meId` for a signed-out caller, which without this
+    // would make every system line read as "mine".
+    mine: !row.system && row.senderEmpireId === meId,
     staff: row.sender?.isStaff ?? false,
   };
 }
@@ -359,6 +385,9 @@ export async function getGlobalChat(sinceMs?: number): Promise<ChatRoomView> {
     // The cursor comes from the client; an unparseable one falls back to the tail
     // rather than reaching `new Date()` and failing the query (see parseSinceMs).
     const since = parseSinceMs(sinceMs);
+    // Free on this path: `getT` is cached per request, and every other read here
+    // already costs a query. A herald's line is the only thing it touches.
+    const t = await getT();
     const [rows, unread, typing] = await Promise.all([
       prisma.chatMessage.findMany({
         where: {
@@ -375,7 +404,7 @@ export async function getGlobalChat(sinceMs?: number): Promise<ChatRoomView> {
     ]);
     // Oldest first: the pane renders top-to-bottom and appends at the end.
     return {
-      lines: rows.reverse().map((row) => toLine(row, empireId)),
+      lines: rows.reverse().map((row) => toLine(t, row, empireId)),
       unread,
       typing,
     };
@@ -532,6 +561,7 @@ export async function getChatThread(
       { senderEmpireId: partnerId, recipientEmpireId: empireId },
     ];
 
+    const t = await getT();
     const since = parseSinceMs(sinceMs);
     const rows = await prisma.chatMessage.findMany({
       where: {
@@ -578,7 +608,10 @@ export async function getChatThread(
 
     return {
       partner,
-      lines: rows.reverse().map((row) => toLine(row, empireId)),
+      // No herald ever writes into a private thread, so `t` here only ever
+      // passes a player's own free text straight through. Threaded anyway
+      // because `toLine` has one signature and one caller-visible contract.
+      lines: rows.reverse().map((row) => toLine(t, row, empireId)),
       unread,
       typing,
     };
@@ -728,7 +761,7 @@ export async function sendChat(input: {
     });
 
     await clearTyping(empireId);
-    return { line: toLine(row, empireId) };
+    return { line: toLine(t, row, empireId) };
   } catch (err) {
     await logError("chat.sendChat", err);
     return { error: t("אירעה שגיאה, נסה שוב") };

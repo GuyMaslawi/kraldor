@@ -785,6 +785,11 @@ export const EN: Record<string, string> = {
   "האיסוף נכשל": "The collection failed",
   "אין הישגים בקטגוריה הזו": "No achievements in this category",
   "אין הישגים חדשים לאיסוף": "No new achievements to collect",
+  "הישג אחד נאסף": "One achievement collected",
+  "אסוף את הפרס של {name}": "Collect the reward for {name}",
+  "הפרס הזה כבר נאסף או שעדיין לא נפתח":
+    "That reward has already been collected, or is not open yet",
+  "הישג לא מוכר": "Unknown achievement",
 
   /* categories — "ריגול" is already above, under the armory */
   "מלחמה": "War",
@@ -1111,9 +1116,9 @@ export const EN: Record<string, string> = {
     "Every allocated point raises mine output. The demon fruit, the trousers and the boots add a flat amount of resources on every regular update; the sword and the buckler raise mine output by a percentage.",
   "כל אחוז מחפצים מגדיל את סיכוי הצלחת משימת הריגול שלך.":
     "Every percent from gear raises the chance your spy mission succeeds.",
-  "תורות לעדכון יומי": "turns per daily update",
-  "חפצים מוסיפים תורות בכמות קבועה בכל עדכון יומי (לא באחוזים).":
-    "Gear adds a flat number of turns on every daily update — never a percentage.",
+  "תורות לעדכון רגיל": "turns per regular update",
+  "חפצים מוסיפים תורות בכמות קבועה בכל עדכון רגיל (לא באחוזים).":
+    "Gear adds a flat number of turns on every regular update — never a percentage.",
   "אזרחים לעדכון יומי": "citizens per daily update",
   "חפצים מוסיפים אזרחים בכמות קבועה בכל עדכון יומי (לא באחוזים).":
     "Gear adds a flat number of citizens on every daily update — never a percentage.",
@@ -1794,6 +1799,80 @@ export const EN: Record<string, string> = {
   "{boss} עוד עומד.{left} {haul}{cost} צא שוב וסיים את העבודה.":
     "{boss} is still standing.{left} {haul}{cost} March again and finish the job.",
   "מצור על {boss}": "The siege of {boss}",
+  "המאגר משותף לכל שחקני העיר, והפסים המוזהבים הם הנזק של התקיפה הזו. הפצעים נשארים עליו גם אחרי שהקרב נגמר.":
+    "The pool is shared by every player in the city, and the gold band is this attack's damage. The wounds stay on him after the battle ends.",
+  "נזק בקרב הזה מתוך המאגר המשותף של העיר":
+    "damage in this battle, out of the city's shared pool",
+
+  /* the tyrant is the whole city's, since 2026-08-14 */
+  "האימפריה שלך בדיוק גדלה — נסה שוב":
+    "Your empire just grew — try again",
+  "{haul}{cost} אוצר ההפלה מתחלק בין כל מי שפצע אותו, והוא יקום לתחייה בעוד שעה.":
+    "{haul}{cost} The kill hoard is shared out among everyone who wounded him, and he rises again in an hour.",
+  " · {count} עבדים":
+    " · {count} slaves",
+  " · {count} ניסיון לגיבור":
+    " · {count} hero experience",
+  "👑 {boss} נפל — הנה חלקך":
+    "👑 {boss} has fallen — here is your share",
+  "{slayer} הנחית את המכה האחרונה, ואוצר {boss} התחלק בין כל מי שפצע אותו. חלקך, לפי הנזק שגרמת: {gold} זהב · {wood} עץ · {iron} ברזל · {stone} אבן{slaves}{xp}":
+    "{slayer} landed the final blow, and the hoard of {boss} was shared out among everyone who wounded him. Your share, by the damage you dealt: {gold} gold · {wood} wood · {iron} iron · {stone} stone{slaves}{xp}",
+  "⚔️ {empire} הנחית את המכה האחרונה על {boss}, עריץ {city}.":
+    "⚔️ {empire} landed the final blow on {boss}, tyrant of {city}.",
+  "{boss}, {title}, עומד שוב על שערי {city} בחיים מלאים. כל העיר תוקפת אותו יחד — צא למצור.":
+    "{boss}, {title}, stands at the gates of {city} again at full health. The whole city fights him together — march.",
+  "{slayer} הפיל את {boss}":
+    "{slayer} felled {boss}",
+  "משותף · {count} שחקנים":
+    "Shared · {count} players",
+  "עריץ אחד לכל העיר, בדיוק כמו מפלצת העולם: כל שחקני {city} תוקפים את אותו מאגר חיים. המאגר נקבע לפי {count} השחקנים הפעילים בדרגה — מנה של {share} לכל אחד — והשלל שלך נמדד מול המנה שלך, לא מול המאגר כולו.":
+    "One tyrant for the whole city, exactly like the world boss: every player in {city} attacks the same pool of health. The pool is sized by the {count} active players in the tier — a share of {share} each — and your spoils are measured against your own share, not against the whole pool.",
+  "פצוע ב־{pct}% מ־{sorties} תקיפות של העיר — הפצעים נשארים עד שהוא נופל":
+    "Wounded {pct}% by {sorties} of the city’s attacks — the wounds stay until he falls",
+  " · הנזק שלך: {damage} ({pct}%)":
+    " · your damage: {damage} ({pct}%)",
+  "זה מה ששווה מנה אחת — שלך. {chip}% ממנה משולמים לפי הנזק שאתה גורם, על כל תקיפה, גם כזו שלא הפילה אותו. את השאר ({kill}%) מתחלקים כשהוא נופל בין כל מי שפצע אותו, לפי הנזק. הציוד הולך למי שמנחית את המכה האחרונה.":
+    "That is what one share — yours — is worth. {chip}% of it is paid for the damage you deal, on every attack, including one that did not fell him. The rest ({kill}%) is split the moment he falls among everyone who wounded him, by damage. The gear goes to whoever lands the final blow.",
+  "בקצב הזה צריך כ־{sorties} תקיפות רק כדי לסיים את המנה שלך, וכל אחת עולה {turns} תורות":
+    "At this rate it takes about {sorties} attacks just to work through your own share, and each one costs {turns} turns",
+  ". אתה עדיין מקבל שלל על כל נזק, ובני העיר נלחמים באותו עריץ יחד — אבל עדיף לגדל צבא ולהעלות את הגיבור, ואז לתקוף.":
+    ". You are still paid for every point of damage, and the city fights this tyrant together — but growing the army and levelling the hero first is the better trade.",
+  "תקיפה אחת מסיימת את המנה שלך":
+    "one attack finishes your share",
+  "כ־{sorties} תקיפות למנה שלך":
+    "about {sorties} attacks for your share",
+  ", וכ־{sorties} תקיפות להפיל אותו לבד":
+    ", and about {sorties} to fell him single-handed",
+  "מי צר על {boss} עכשיו":
+    "Who is besieging {boss} right now",
+  "העריץ משותף לכל העיר, אבל השלל אישי: מאגר החיים שלו הוא מנה לכל שחקן בדרגה, וכל מה שאתה מקבל נמדד מול המנה שלך בלבד — כך שאותה תקיפה שווה בדיוק אותו דבר בעיר מלאה ובעיר ריקה. {chip}% מהמנה משולמים לפי הנזק שאתה גורם, מיד בסוף כל תקיפה. את {kill}% הנותרים — אוצר ההפלה, שגדל עד ×{grade} לפי איכות המכה האחרונה — מחלקים ברגע שהוא נופל בין כל מי שפצע אותו, לפי הנזק. השלל גדל עם התקדמות העונה ועם מספר הערים שלך.":
+    "The tyrant is shared by the whole city, but the spoils are personal: his health pool is one share per player in the tier, and everything you take is measured against your own share alone — so the same attack is worth exactly the same in a crowded city and an empty one. {chip}% of the share is paid for the damage you deal, at the end of every attack. The remaining {kill}% — the kill hoard, which grows up to ×{grade} with the quality of the final blow — is split the moment he falls among everyone who wounded him, by damage. The spoils grow with the season and with the number of cities you hold.",
+  "המנה שלך":
+    "your share",
+  "עריץ אחד לכל העיר":
+    "One tyrant per city",
+  "כל שחקני הדרגה תוקפים את אותו שליט ואת אותו מאגר חיים, בדיוק כמו מפלצת העולם. המאגר נקבע בלידתו לפי מספר השחקנים הפעילים בדרגה (מי שנראה במשחק בשבוע האחרון) — מנה אחת לכל אחד — וכל מה שאתה מקבל נמדד מול המנה שלך בלבד. לכן אותה תקיפה שווה בדיוק אותו דבר בעיר צפופה ובעיר ריקה.":
+    "Every player in the tier attacks the same ruler and the same pool of health, exactly like the world boss. The pool is fixed at birth by the number of active players in the tier (anyone seen in the game in the last week) — one share each — and everything you take is measured against your own share alone. That is why the same attack is worth exactly the same in a crowded city and an empty one.",
+  "{p0}% מהמנה משולמים לפי הנזק שהספקת לגרום — גם בתקיפה שלא הפילה אותו. תקיפה שלא סיימה את העבודה עדיין משתלמת.":
+    "{p0}% of your share is paid for the damage you managed to deal — including on an attack that did not fell him. An attack that did not finish the job still pays.",
+  "{p0}% נשמרים לרגע הנפילה ומתחלקים בין כל מי שפצע את השליט, לפי הנזק שכל אחד גרם. הם גדלים עד ×{p1} בדירוג S — שנקבע לפי הקריאות הנכונות{p2} של המכה האחרונה, ודורש לפחות {p3} סבבים: הפלה במכה אחת לא מגיעה ל־S.":
+    "{p0}% is held back for the moment he falls and split among everyone who wounded the ruler, by the damage each dealt. It grows up to ×{p1} at grade S — scored on the correct reads{p2} of the final blow, and needing at least {p3} rounds: a one-round kill never reaches S.",
+  "אפשר לתקוף שוב ושוב — התורות הן הגבול היחיד. השלל חסום על ידי המנה שלך, כך שתקיפות נוספות קונות התקדמות, לא כפל שלל. שליט שנופל חוזר אחרי {p0} דקות עם מאגר חדש — לכל העיר יחד.":
+    "You may attack again and again — turns are the only limit. The spoils are bounded by your share, so extra attacks buy progress rather than a second payout. A fallen ruler returns after {p0} minutes with a fresh pool — for the whole city at once.",
+  "שליט שנופל מפיל תמיד חפץ — ברצפת דרגה {p0} ומעלה, ובדירוג S דרגה אחת מעל זה. החפץ הולך למי שהנחית את המכה האחרונה בלבד; הזהב מתחלק בין כולם, אבל שריון אי אפשר לחלק.":
+    "A fallen ruler always leaves an item — at rarity {p0} or better, and one rung above that at grade S. The item goes to whoever landed the final blow and to nobody else; gold divides among everyone, armour does not.",
+  "מנה לשחקן":
+    "Share per player",
+  "שלל למנה":
+    "Spoils per share",
+  "יציאות למנה":
+    "Sorties per share",
+  "לכל אחת מעשר דרגות הערים יש שליט אחד — קיר PvE שכוחו  <0>, והוא <6>. לוחצים <1> פעם אחת, והצבא יוצא לקרב של  <2> סבבים שרץ כ־ <3> שניות בזמן אמת. אפשר לצפות, ואפשר לעבור לדף אחר ולהמשיך לשחק — כשהקרב נגמר מגיעה הודעה עם כל השלל. לבוס יש <4>, וכשהוא נופל הוא קם לתחייה אחרי  <5> דקות.":
+    "Each of the ten city tiers has one ruler — a PvE wall whose power is <0>, and he is <6>. You press <1> once and the army marches out for a <2>-round battle that runs about <3> seconds in real time. You may watch it, or move to another page and keep playing — a message with the whole haul arrives when it ends. The boss has <4>, and once he falls he rises again after <5> minutes.",
+  "משותף לכל שחקני העיר":
+    "shared by every player in the city",
+  "אף שליט לא נופל בתקיפה אחת. צבא שעומד <0> צריך בערך <1> תקיפות כדי לרוקן מנה אחת מהמאגר, צבא בכפול מהכוח — <2>, ובפי שלושה — אחת. צבא מתחת לקיר פשוט מכרסם לאורך יותר תקיפות, <3>: השלל משולם לפי הנזק, כך שאף תקיפה לא הולכת לאיבוד. בתמורה למצור הארוך, מה שיש לשליט בכיסים גדול בהתאם — הפלה אחת שווה יותר מיום שלם של תקיפות רגילות.":
+    "No ruler falls to a single attack. An army standing <0> needs about <1> attacks to empty one share of the pool, an army at double the power — <2>, and at triple — one. An army under the wall simply chips away over more attacks, <3>: spoils are paid by damage, so no attack is ever wasted. In return for the long siege, what the ruler is sitting on is proportionally larger — one kill is worth more than a whole day of ordinary raids.",
 
   /* the VIP pass */
   "{vip} כבר ברשותך": "You already hold {vip}",
@@ -2179,8 +2258,8 @@ export const EN: Record<string, string> = {
   // carries it ("Battle power"), and the guide's legend heading is the same word.
   "לצד כל אחוז לחימה יש גם כוח קבוע, באותו משקל. הוא נספר יחד עם החיילים והנשקים — לא מעליהם — ולכן כל האחוזים מוכפלים גם עליו. חרב ראשית נותנת {p0} ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100; חפץ שנותן את הסטט כמשני נותן רבע עד חצי מזה. נעליים הן המשבצת היחידה בלי כוח קרב — היא לא נלחמת.":
     "Every combat percentage is matched by a flat power of the same weight. It is counted together with the soldiers and the weapons — not on top of them — so every percentage multiplies it too. A sword's headline power is {p0} at level 1, {p1} at level 50 and {p2} at level 100; a slot that carries the stat as an extra pays a quarter to a half of that. Boots are the one slot with no combat power at all — they do not fight.",
-  "מכנסיים הן המשבצת היחידה שמזקקת יהלומים, וכמשני בלבד: {p0} ליום ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100. זה טפטוף מכוון — יהלומים הם מטבע אמיתי, ולא אמורים להיות הכנסה.":
-    "Trousers are the one slot that distils diamonds, and only as a minor extra: {p0} a day at level 1, {p1} at level 50 and {p2} at level 100. The trickle is deliberate — diamonds are real currency, and are not meant to be an income.",
+  "מכנסיים הן המשבצת היחידה שמזקקת יהלומים, וכמשני בלבד: {p0} בכל עדכון יומי ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100 — כלומר {p3} יהלומים ביום בציוד המקסימלי. זה טפטוף מכוון — יהלומים הם מטבע אמיתי, ולא אמורים להיות הכנסה, ולכן הם היחידים (יחד עם האזרחים) שממתינים לעדכון היומי.":
+    "Trousers are the one slot that distils diamonds, and only as a minor extra: {p0} per daily update at level 1, {p1} at level 50 and {p2} at level 100 — that is {p3} diamonds a day on maxed gear. The trickle is deliberate: diamonds are real currency and are not meant to be an income, which is why they (with the citizens) are the only gear bonus that waits for the daily update.",
   "כוח קרב קבוע שנוסף לצבא שלך בתקיפה, בדיוק כמו כוח מנשקים — ואז כל האחוזים מוכפלים גם עליו.":
     "Flat combat power added to your army when attacking, exactly like the power from weapons — and every percentage then multiplies it too.",
   "כוח קרב קבוע שנוסף לצבא שלך בהגנה, בדיוק כמו כוח מנשקים — ואז כל האחוזים מוכפלים גם עליו.":
@@ -2188,8 +2267,8 @@ export const EN: Record<string, string> = {
   "כוח ריגול קבוע שנוסף למרגלים ולנשקי הריגול שלך בכל משימת ריגול, לפני מכפיל המודיעין.":
     "Flat spy power added to your spies and spy weapons on every spy mission, before the intelligence multiplier.",
   "יהלומים לעדכון יומי": "Diamonds per daily update",
-  "סלוט אחד בלבד (מכנסיים) מזקק יהלומים, ובכמות קטנה — עד 25 ליום בציוד המקסימלי.":
-    "A single slot (trousers) distils diamonds, and only a trickle — up to 25 a day on maxed gear.",
+  "סלוט אחד בלבד (מכנסיים) מזקק יהלומים, ובכמות קטנה — עד 25 בכל עדכון יומי בציוד המקסימלי.":
+    "A single slot (trousers) distils diamonds, and only a trickle — up to 25 per daily update on maxed gear.",
   "כוח מודיעין": "Intelligence power",
   "הברית החזקה": "The strongest guild",
   "כוח חברי הברית": "Guild members' power",
@@ -2212,11 +2291,22 @@ export const EN: Record<string, string> = {
   "אימון צבא": "Train the army",
   "אימון מרגלים": "Train spies",
   "סך הכל מהגיבור": "Everything the hero pays",
-  "מה שאתה מקבל בפועל מהנקודות והחפצים יחד. שורות מודגשות פעילות; שורות עמומות ממתינות לחפץ מתאים.":
-    "What the points and the gear actually pay you, together. Bright rows are live; dim ones are waiting on the right item.",
+  "מה שאתה מקבל בפועל מהנקודות והחפצים יחד. שורות מודגשות פעילות; שורות עמומות ממתינות לחפץ מתאים. התשואה מסודרת לפי מתי היא מגיעה: משאבים ותורות בכל עדכון רגיל, אזרחים ויהלומים בעדכון היומי, וכוח הקרב בקרב עצמו.":
+    "What the points and the gear actually pay you, together. Bright rows are live; dim ones are waiting on the right item. The yield is grouped by when it arrives: resources and turns on every regular update, citizens and diamonds on the daily one, and combat power inside the battle itself.",
   "בונוסי קרב · באחוזים": "Battle bonuses · as percentages",
   "תשואה קבועה מחפצים · בכמויות": "Flat yield from gear · as amounts",
   "תפוקת משאבים · אחוזים + כמות": "Resource output · percentage + amount",
+  /* the three cadence headings on the hero's yield panel, and the clock each
+     one runs on — see HERO_CADENCE_META / HERO_FLAT_CADENCE */
+  "בכל עדכון רגיל": "On every regular update",
+  /* "בכל עדכון יומי" is already carried by the guide's section below */
+  "בכל קרב": "In every battle",
+  "נוסף בכל עדכון רגיל": "added on every regular update",
+  "נספר בקרב עצמו — לא על השעון": "counted inside the battle — never on the clock",
+  "כל {minutes} דקות": "every {minutes} minutes",
+  "פעמיים ביום — כל {hours} שעות": "twice a day — every {hours} hours",
+  "לא על השעון": "not on the clock",
+  "×{updates} עדכונים = {perDay} ביום": "×{updates} updates = {perDay} a day",
   "נקודות": "Points",
   "חפצים": "Gear",
   "דמות": "Class",
@@ -2290,6 +2380,12 @@ export const EN: Record<string, string> = {
   "מחכה לך לאיסוף": "waiting for you",
   "אסוף את השלל": "Take the haul",
   "אסוף את השלל החינמי": "Take the free haul",
+  "אסוף את דרגה {tier} ב{track} — {reward}":
+    "Collect tier {tier} on {track} — {reward}",
+  "הפרס הזה כבר נאסף": "That reward has already been collected",
+  "הפרס הזה שמור למסלול הפרימיום": "That reward belongs to the premium track",
+  "עדיין לא הגעת לדרגה {tier}": "You have not reached tier {tier} yet",
+  "דרגה לא מוכרת": "Unknown tier",
   "הרכישה נכשלה": "The purchase failed",
   "כל פעולה במשחק מזכה בניסיון — תקוף או בנה כדי לפתוח את הדרגה הראשונה":
     "Every action in the game earns experience — attack or build to open the first tier",
@@ -2561,6 +2657,9 @@ export const EN: Record<string, string> = {
   "דרגה:": "Rarity:",
   "רמת פריט:": "Item level:",
   "סט:": "Set:",
+  "×{count} עותקים זהים": "×{count} identical copies",
+  "×{count} בתיק — כל פעולה כאן חלה על עותק אחד":
+    "×{count} in the pack — every action here applies to a single copy",
   "דרישת רמה": "Level requirement",
   "גיבור רמה {level}": "Level {level} hero",
   "שדרוג לרמה": "Upgrade to level",
@@ -2725,6 +2824,8 @@ export const EN: Record<string, string> = {
   "התיק מלא — חפצים חדשים לא ייכנסו. זרוק או שדרג כדי לפנות מקום.":
     "The pack is full — nothing new will fit. Discard or upgrade to clear a slot.",
   "{slot} רמה {level}": "{slot}, level {level}",
+  "{slot} רמה {level} — {count} עותקים":
+    "{slot}, level {level} — {count} copies",
   "לחץ לפרטים": "tap for details",
   "זרוק הכל": "Discard all",
   "שדרג הכל": "Upgrade all",
@@ -4111,8 +4212,8 @@ export const EN: Record<string, string> = {
   "החלק שלך אם היא תיפול עכשיו": "Your share if it falls right now",
   "אומדן חי — החלק השווה קטן ככל שמצטרפים עוד שחקנים, וחלק הנזק גדל עם כל מכה שלך":
     "A live estimate — the even share shrinks as more players join, and the damage share grows with every blow you land",
-  "ייאסף בכפתור כאן ברגע שהיא תיפול — גם אם לא אתה תפיל אותה.":
-    "Collected with a button right here the moment it falls — even if you are not the one who fells it.",
+  "ישולם לך אוטומטית ברגע שהיא תיפול — גם אם לא אתה תפיל אותה.":
+    "Paid to you automatically the moment it falls — even if you are not the one who fells it.",
   "המכה האחרונה: {name}": "Killing blow: {name}",
   "המפלצת עדיין עומדת — אין שלל לחלק.":
     "The beast is still standing — there are no spoils to divide.",
@@ -4120,7 +4221,7 @@ export const EN: Record<string, string> = {
   "לא הכית את המפלצת השבוע — אין חלק בשלל.":
     "You did not strike the beast this week — no share of the spoils.",
   "כבר אספת את חלקך.": "You have already collected your share.",
-  "אספת את חלקך.": "You have collected your share.",
+  "חלקך בשלל שולם.": "Your share of the spoils has been paid.",
   "חלקך בשלל: {spoils}. ({pct}% מהנזק)":
     "Your share of the spoils: {spoils}. ({pct}% of the damage)",
 
@@ -4992,6 +5093,12 @@ export const EN: Record<string, string> = {
 
   /* message-kind labels on the inbox rows */
   "מערכת": "System",
+  /* the herald — an admin's announcement, in a dialog in the middle of the
+     screen. The kind's own label on the mailbox row, and the dialog's chrome;
+     the title and the body are free text an admin typed once and are not keys */
+  "הכרזה": "Announcement",
+  "הכרזת הממלכה": "A Proclamation",
+  "קחו אותי לשם": "Take me there",
   "קרב": "Battle",
 
   /* the two VIP bank shortcuts */
@@ -5129,8 +5236,8 @@ export const EN: Record<string, string> = {
     "A season reset deletes and rebuilds every empire, so the link does not survive it. The invite link itself does — it belongs to the account, not to the empire. The right way to read that: bringing back a friend who drifted away, exactly at the new season, is precisely the behaviour worth paying for again.",
   "איפוסי היריב (↻)": "The rival's resets (↻)",
   "אל תשלח צבא בלי גיבור": "Do not send an army without a hero",
-  "אלה לא רצים עם הכלכלה — בניין הגידול משלם כמות קבועה בכל עדכון יומי — ולכן הם עולים בחזקת הדרגה ובתקרה נמוכה בכוונה: נעליים רמה 1 נותנות {p0} אזרחים, רמה 10 נותנות {p1}, ורמה 100 נותנות {p2}. חפץ לא אמור להחליף את הבניין שקיים בשביל זה.":
-    "These do not run with the economy — the growth building pays a fixed amount on every daily update — so they rise with the power of the tier and to a deliberately low ceiling: level 1 boots give {p0} citizens, level 10 give {p1}, and level 100 give {p2}. An item is not meant to replace the building that exists for this.",
+  "אלה לא רצים עם הכלכלה — בניין הגידול משלם כמות קבועה בכל עדכון יומי, ושדרוג התורות משלם רמה אחת בכל עדכון רגיל — ולכן שניהם עולים בחזקת הדרגה ובתקרה נמוכה בכוונה. נעליים רמה 1 נותנות {p0} אזרחים בכל עדכון יומי, רמה 10 נותנות {p1}, ורמה 100 נותנות {p2}. כנפיים רמה 100 נותנות {p3} תורות בכל עדכון רגיל — בדיוק כמו שדרוג התורות המלא, ולא יותר. חפץ לא אמור להחליף את הבניין או את השדרוג שקיימים בשביל זה.":
+    "These do not run with the economy — the growth building pays a fixed amount on every daily update, and the turns upgrade pays one level on every regular update — so both rise with the power of the tier and to a deliberately low ceiling. Level 1 boots give {p0} citizens per daily update, level 10 give {p1}, and level 100 give {p2}. Level 100 wings give {p3} turns per regular update — exactly the full turns upgrade, and no more. An item is not meant to replace the building or the upgrade that exist for this.",
   "אם אתה לא יודע מה לעשות עכשיו — זה הסדר שעובד. כל שלב פותח את הבא אחריו.":
     "If you do not know what to do next, this is the order that works. Every step opens the one after it.",
   "אם הצבא מאבד {p0}% מכוחו הוא נסוג באמצע הקרב, ו-{p1}% מהשלל שנצבר אובד. בפועל זה מאיים רק על צבא שנלחם מול בוס בסדר הגודל שלו.":
@@ -5336,8 +5443,8 @@ export const EN: Record<string, string> = {
   "חרב · {slot}": "Sword · {slot}",
   "חשבון שני שלך הוא לא חבר": "Your own second account is not a friend",
   "יהלומים ביום השביעי": "Diamonds on the seventh day",
-  "יהלומים הם המטבע הנדיר. הם לא נופלים ממכרות, לא מהעונה ולא מחפצי הגיבור — רק מווג׳ אחד בגלגל המזל ומרכישה אמיתית. לכן כל הוצאה שלהם היא החלטה.":
-    "Diamonds are the rare currency. They do not come from mines, nor from the season, nor from the hero's gear — only from one wedge on the wheel of fortune and from a real purchase. So every diamond you spend is a decision.",
+  "יהלומים הם המטבע הנדיר. הם לא נופלים ממכרות ולא מהעונה — רק מווג׳ אחד בגלגל המזל, מטפטוף של המכנסיים בעדכון היומי, ומרכישה אמיתית. לכן כל הוצאה שלהם היא החלטה.":
+    "Diamonds are the rare currency. They do not come from mines, nor from the season — only from one wedge on the wheel of fortune, from the trousers' trickle on the daily update, and from a real purchase. So every diamond you spend is a decision.",
   "יהלומים, למי שהפיל אותה": "Diamonds, for whoever brought it down",
   "יום בעונה": "Day of the season",
   "יום שהוחמץ שובר את הרצף": "A missed day breaks the streak",
@@ -5469,6 +5576,9 @@ export const EN: Record<string, string> = {
   "מחשבון תפוקת מכרה": "Mine output calculator",
   "מי מקליד": "Who is typing",
   "מי שלא הכה לא מקבל": "No blow, no share",
+  "השלל משולם מעצמו": "The spoils pay themselves out",
+  "ברגע שהמפלצת נופלת, החלק של כל מי שהכה בה נכנס לאוצר שלו ומגיעה הודעה לתיבה עם הפירוט. אין מה ללחוץ ואין חלון שנסגר — גם מי שלא היה מחובר באותו רגע מקבל את חלקו המלא.":
+    "The moment the beast falls, everyone who struck it has their share paid into their treasury and a message with the breakdown arrives in their inbox. There is nothing to press and no window that closes — a player who was not online at that moment still receives their full share.",
   "מי שנשא את הקרב עדיין מרוויח מזה שנשא אותו.":
     "Whoever carried the fight still profits from having carried it.",
   "מיני־משחקים": "Mini-games",
@@ -5697,7 +5807,10 @@ export const EN: Record<string, string> = {
   "• <0> בכל הגנה שנפרצת": "• <0> for every defence that is breached",
   "• <0> סיבובי גלגל מזל": "• <0> spins of the wheel of fortune",
   "• <0> — מ-<1>  נקודות:  <2>  ביזה": "• <0> — from <1> points: <2> plunder",
-  "• אזרחים ותורות מחפצי הגיבור": "• Citizens and turns from the hero's gear",
+  "• אזרחים ויהלומים מחפצי הגיבור — ורק הם; כל שאר בונוסי החפצים מגיעים בעדכון הרגיל":
+    "• Citizens and diamonds from the hero's gear — and only those; every other gear bonus arrives on the regular update",
+  "• תורות מחפצי הגיבור (כנפיים, קסדה, מגן, נעליים)":
+    "• Turns from the hero's gear (wings, helmet, buckler, boots)",
   "• אזרחים חדשים — בלי תקרה, כולל כל הצבירה שהחמצת":
     "• New citizens — no ceiling, including everything you banked while away",
   "• איפוס דרך התהילה ומכסת הניצחונות על שליט העיר":
@@ -6124,6 +6237,48 @@ export const EN: Record<string, string> = {
   "√כוחך": "√your power",
 
 
+  /* ------------------------------------------------------------------ */
+  /* the heralds — what the game says to more than one player at once    */
+  /* (server/herald.ts: stored as keys, assembled per reader)            */
+  /* ------------------------------------------------------------------ */
+
+  /* a city tyrant felled — one line in the public room */
+  "⚔️ {empire} הפיל את {boss}, עריץ {city}.":
+    "⚔️ {empire} has felled {boss}, tyrant of {city}.",
+
+  /* the same tyrant, back on its feet — to its owner alone */
+  "👹 {boss} קם לתחייה": "👹 {boss} has risen again",
+  "{boss}, {title}, עומד שוב על שערי {city}. הצבא שלך יכול לצאת למצור.":
+    "{boss}, {title}, stands at the gates of {city} once more. Your army may march on the siege.",
+
+  /* a world boss on the loose */
+  "🌍 מפלצת עולם חדשה: {boss}": "🌍 A new world boss: {boss}",
+  "{lore} {hp} נקודות חיים, והיא נופלת רק אם כל השרת יכה בה. הזירה פתוחה עד סוף השבוע.":
+    "{lore} {hp} hit points, and it falls only if the whole server strikes it. The arena is open until the end of the week.",
+  "{sigil} {boss} עלתה על העולם. הזירה פתוחה — כל אימפריה מוזמנת להכות.":
+    "{sigil} {boss} has risen over the world. The arena is open — every empire is invited to strike.",
+
+  /* and a world boss brought down. Past tense throughout: the herald is sent
+     after the shares have been paid, not to summon anybody to collect them. */
+  "🏆 {boss} הופלה": "🏆 {boss} has been felled",
+  "{slayer} חלקו של כל מי שהכה אותה השבוע כבר נכנס לאוצר שלו.":
+    "{slayer} Everyone who struck it this week has had their share paid into their treasury.",
+  "{name} הנחית את המכה האחרונה.": "{name} landed the final blow.",
+  "🏆 {slayer} הפיל את {boss}! השלל חולק בין כל מי שהכה בה.":
+    "🏆 {slayer} has felled {boss}! The spoils have been split between everyone who struck it.",
+  "🏆 {boss} הופלה! השלל חולק בין כל מי שהכה בה.":
+    "🏆 {boss} has been felled! The spoils have been split between everyone who struck it.",
+
+  /* one contender's own share of that kill, paid without being asked for */
+  "🏆 חלקך בשלל {boss}": "🏆 Your share of {boss}'s spoils",
+  "המפלצת נפלה והשלל חולק. קיבלת {spoils} — {pct}% מהנזק שנגרם לה.":
+    "The beast fell and the spoils were split. You received {spoils} — {pct}% of the damage dealt to it.",
+  /* the separator that chains a spoils line together, clause by clause, so the
+     list survives translation whole — see spoilsClause */
+  "{item} · {rest}": "{item} · {rest}",
+  /* the fallback name a share still owed by a retired catalog key falls back to
+     is "מפלצת העולם", already carried above with the arena's own heading */
+
   /* Three of the manual's worked examples, rewritten as whole sentences with
      slots. They were the only places the paragraph pass left as fragments, and
      the fragments would not have reordered into English. */
@@ -6131,7 +6286,7 @@ export const EN: Record<string, string> = {
     "Without fervor you take <0>. In a **Blaze** you take <1> — against an enemy holding <2> gold that is the difference between <3> and <4>.",
   "רמה <0> דורשת <1> נק׳, רמה <2> דורשת <3>, ורמה <4> דורשת <5>.":
     "Level <0> needs <1> points, level <2> needs <3>, and level <4> needs <5>.",
-  "פרי שטן ברמה <0> = דרגה <1> מתוך <2>, ובכל זאת <3> זהב בכל עדכון רגיל — יותר ממה שמכרה של אימפריה בת עיר אחת מפיק. חרב ברמה <4> = דרגה <5>, כלומר <6> מהתקרה באחוזים: <7> התקפה, ועוד <8> תפוקת מכרות ו־<9> אזרחים כמשניים; אותה רמה בכנפיים = <10> תורות בכל עדכון יומי.":
-    "A devil's fruit at level <0> is step <1> of <2>, and still pays <3> gold on every regular update — more than a one-city empire's mine produces. A sword at level <4> is step <5>, that is <6> of the percentage ceiling: <7> attack, plus <8> mine output and <9> citizens as secondaries; the same level on wings is <10> turns per daily update.",
+  "פרי שטן ברמה <0> = דרגה <1> מתוך <2>, ובכל זאת <3> זהב בכל עדכון רגיל — יותר ממה שמכרה של אימפריה בת עיר אחת מפיק. חרב ברמה <4> = דרגה <5>, כלומר <6> מהתקרה באחוזים: <7> התקפה, ועוד <8> תפוקת מכרות ו־<9> אזרחים כמשניים; אותה רמה בכנפיים = <10> תורות בכל עדכון רגיל.":
+    "A devil's fruit at level <0> is step <1> of <2>, and still pays <3> gold on every regular update — more than a one-city empire's mine produces. A sword at level <4> is step <5>, that is <6> of the percentage ceiling: <7> attack, plus <8> mine output and <9> citizens as secondaries; the same level on wings is <10> turns per regular update.",
 
 };

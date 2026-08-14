@@ -265,7 +265,8 @@ export async function getSeasonPassState(): Promise<SeasonPassState | null> {
   if (!empire) return null;
 
   const progress = await loadCycle(prisma, empireId, season?.id ?? null, now);
-  const pricing = seasonPassPricing(season, now.getTime());
+  // Priced at the cycle's own start, not at `now` — see seasonPassPricing.
+  const pricing = seasonPassPricing(season, progress.cycleStartedAt.getTime());
   return buildState(progress, empire.diamonds, pricing, now, await getT());
 }
 
@@ -371,7 +372,7 @@ export async function buySeasonPassPremium(): Promise<SeasonPassResult> {
       const fresh = await tx.seasonPassProgress.findUniqueOrThrow({
         where: { empireId },
       });
-      const pricing = seasonPassPricing(season, now.getTime());
+      const pricing = seasonPassPricing(season, fresh.cycleStartedAt.getTime());
       return {
         ok: true as const,
         message: t("מסלול הפרימיום נפתח לכל העונה! 👑"),
@@ -426,15 +427,26 @@ async function grantReward(
   return amount;
 }
 
+/** A single rung on a single track, when the player collects one at a time. */
+export interface SeasonPassClaimTarget {
+  tier: number;
+  track: "free" | "premium";
+}
+
 /**
- * Collect every unlocked, unclaimed reward on both tracks.
+ * Collect unlocked, unclaimed rewards — every one on both tracks, or the single
+ * tile named by `target`.
  *
  * Each tier is marked with a guarded `updateMany` whose `NOT: { has: tier }`
  * predicate fails if a concurrent request already pushed that tier — so a
  * double-submit grants each reward exactly once. Only tiers that actually
  * flipped from unclaimed to claimed are then paid out.
+ *
+ * `target` only ever *narrows* that sweep: the reach check (`t.tier > level`)
+ * and the premium check still run, so asking for a single rung can never
+ * collect one the collect-all button would have refused.
  */
-export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
+async function runClaim(target: SeasonPassClaimTarget | null): Promise<SeasonPassResult> {
   const t = await getT();
   try {
     const empireId = await requireOwnEmpireId();
@@ -448,12 +460,27 @@ export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
         select: { id: true, startsAt: true, endsAt: true },
       });
       const progress = await loadCycle(tx, empireId, season?.id ?? null, now);
-      const pricing = seasonPassPricing(season, now.getTime());
+      // The cycle's own price, so what a rung pays is fixed when the ladder
+      // opens: a claim held back across the season's day rollover is worth
+      // exactly what the tile said it was worth. See seasonPassPricing.
+      const pricing = seasonPassPricing(season, progress.cycleStartedAt.getTime());
       const level = tierForXp(progress.xp);
       if (level === 0) {
         return {
           ok: false as const,
           error: t("עדיין לא הגעת לאף דרגה במחזור הזה"),
+        };
+      }
+      if (target !== null && target.tier > level) {
+        return {
+          ok: false as const,
+          error: t("עדיין לא הגעת לדרגה {tier}", { tier: target.tier }),
+        };
+      }
+      if (target !== null && target.track === "premium" && !progress.premium) {
+        return {
+          ok: false as const,
+          error: t("הפרס הזה שמור למסלול הפרימיום"),
         };
       }
 
@@ -469,20 +496,24 @@ export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
 
       for (const t of SEASON_PASS_TIERS) {
         if (t.tier > level) break;
+        if (target !== null && t.tier !== target.tier) continue;
 
         // Every reward kind on the ladder is a plain resource/turn/citizen
         // credit that cannot fail to land, so taking the claim flag first is
         // safe — there is no case left where a tier is marked collected and
         // then delivers nothing.
-        const tookFree = await tx.seasonPassProgress.updateMany({
-          where: { empireId, NOT: { claimedFree: { has: t.tier } } },
-          data: { claimedFree: { push: t.tier } },
-        });
-        if (tookFree.count > 0) {
-          credit(t.free.kind, await grantReward(tx, empireId, t.free, pricing), t.tier);
+        if (target === null || target.track === "free") {
+          const tookFree = await tx.seasonPassProgress.updateMany({
+            where: { empireId, NOT: { claimedFree: { has: t.tier } } },
+            data: { claimedFree: { push: t.tier } },
+          });
+          if (tookFree.count > 0) {
+            credit(t.free.kind, await grantReward(tx, empireId, t.free, pricing), t.tier);
+          }
         }
 
         if (!progress.premium) continue;
+        if (target !== null && target.track !== "premium") continue;
         const tookPremium = await tx.seasonPassProgress.updateMany({
           where: { empireId, NOT: { claimedPremium: { has: t.tier } } },
           data: { claimedPremium: { push: t.tier } },
@@ -495,7 +526,8 @@ export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
       if (granted.size === 0) {
         return {
           ok: false as const,
-          error: t("אין תגמולים חדשים לאיסוף"),
+          error:
+            target === null ? t("אין תגמולים חדשים לאיסוף") : t("הפרס הזה כבר נאסף"),
         };
       }
 
@@ -539,4 +571,32 @@ export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
     await logError("seasonPass.claimSeasonPassRewards", err);
     return { ok: false, error: t("אירעה שגיאה, נסה שוב") };
   }
+}
+
+/** Collect the whole ladder in one press. */
+export async function claimSeasonPassRewards(): Promise<SeasonPassResult> {
+  return runClaim(null);
+}
+
+/**
+ * Collect one rung on one track — the per-tile button.
+ *
+ * The arguments come off the wire, so they are bounds-checked here rather than
+ * trusted: a non-integer tier would sail through the `t.tier !== target.tier`
+ * comparison as "matches nothing" and report "already collected", which is a
+ * lie about a request that was simply malformed.
+ */
+export async function claimSeasonPassTier(
+  tier: number,
+  track: "free" | "premium"
+): Promise<SeasonPassResult> {
+  const valid =
+    Number.isInteger(tier) &&
+    tier >= 1 &&
+    tier <= SEASON_PASS_TIERS.length &&
+    (track === "free" || track === "premium");
+  if (!valid) {
+    return { ok: false, error: (await getT())("דרגה לא מוכרת") };
+  }
+  return runClaim({ tier, track });
 }

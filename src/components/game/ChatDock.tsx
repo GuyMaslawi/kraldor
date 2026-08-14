@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/ui/CloseButton";
 import {
   useCallback,
   useEffect,
@@ -168,6 +169,9 @@ function fromSupport(line: SupportLine): ChatLine {
     empireId: null,
     name: line.name,
     body: line.body,
+    // A person on the other end, even when they answer for the game — the
+    // centred herald notice would be exactly the wrong shape for a reply.
+    system: false,
     at: line.at,
     time: line.time,
     mine: !line.fromStaff,
@@ -750,7 +754,22 @@ export function ChatDock({
               : t("החדר שקט. תהיה הראשון שמדבר.")}
           </p>
         ))}
-      {lines.map((line) => (
+      {lines.map((line) =>
+        /* A herald is not somebody talking, so it is deliberately not a bubble
+           on either side: a centred, full-width notice with a gold hairline,
+           which is the one shape in the room that reads as the game speaking.
+           See the note below on why every *player's* line is signed — this is
+           the exception that note anticipates. */
+        line.system ? (
+          <div key={line.id} className="my-1 flex justify-center">
+            <div className="w-full rounded-lg border border-gold/30 bg-gold-deep/12 px-3 py-1.5 text-center">
+              <p className="whitespace-pre-wrap break-words text-[12px] font-bold leading-relaxed text-gold-bright">
+                {line.body}
+              </p>
+              <span className="nums text-[10px] text-bone-dim/70">{line.time}</span>
+            </div>
+          </div>
+        ) : (
         <div
           key={line.id}
           // dir="rtl", so `start` is the right edge: mine hugs the right, every
@@ -858,7 +877,8 @@ export function ChatDock({
             </div>
           </div>
         </div>
-      ))}
+        )
+      )}
       {staffOpen && staffClosed && lines.length > 0 && (
         <p className="pt-2 text-center text-[11px] text-bone-dim">
           {t("הפנייה סומנה כטופלה. אם זה עדיין לא נפתר — כתוב שוב כאן.")}
@@ -1129,14 +1149,7 @@ export function ChatDock({
             </div>
           </>
         )}
-        <button
-          type="button"
-          onClick={closeDock}
-          aria-label={t("סגירת הצ׳אט")}
-          className="ms-auto flex h-6 w-6 shrink-0 items-center justify-center rounded text-bone-dim transition-colors hover:bg-white/10 hover:text-gold-bright"
-        >
-          ✕
-        </button>
+        <CloseButton onClick={closeDock} label={t("סגירת הצ׳אט")} className="ms-auto" />
       </div>
 
       {/* The public room is exactly where someone is already looking for other

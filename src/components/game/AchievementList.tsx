@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition, type CSSProperties } from "react";
 import { Icon, RESOURCE_ICON, RESOURCE_ICON_COLOR } from "@/components/ui/Icon";
 import { useAfterFirstPaint } from "@/components/ui/motion";
-import { claimAchievements } from "@/server/actions/achievements";
+import { claimAchievement, claimAchievements } from "@/server/actions/achievements";
 import { useT } from "@/i18n/client";
 import type { T } from "@/i18n/translate";
 import {
@@ -118,17 +118,55 @@ function LockedCard({ item, t }: { item: AchievementView; t: T }) {
   );
 }
 
-function ReadyCard({ item, t }: { item: AchievementView; t: T }) {
+/**
+ * A collectable achievement, with a collect button of its own.
+ *
+ * "אסוף הכל" is the fast path, not the only one: a player who wants a single
+ * milestone — the gold for the upgrade they are two clicks from buying, and
+ * nothing else — had to empty the whole ladder to get it. So every ready row
+ * carries a full-size button next to the reward it pays.
+ */
+function ReadyCard({
+  item,
+  t,
+  onClaim,
+  busy,
+  disabled,
+}: {
+  item: AchievementView;
+  t: T;
+  onClaim: () => void;
+  /** This row's own claim is in flight. */
+  busy: boolean;
+  /** Some claim is in flight — this row's, another's, or the collect-all. */
+  disabled: boolean;
+}) {
   return (
-    <div className="panel flex items-center gap-3 rounded-xl border-gold/60 bg-gradient-to-l from-amber-950/40 to-transparent p-3.5 shadow-[0_0_20px_-10px_var(--gold)]">
+    // Wraps on a narrow phone: medallion + name + reward on the first line, the
+    // button across the second. Keeping all four inline at 320px left the
+    // milestone's name as two letters and an ellipsis.
+    <div className="panel flex flex-wrap items-center gap-3 rounded-xl border-gold/60 bg-gradient-to-l from-amber-950/40 to-transparent p-3.5 shadow-[0_0_20px_-10px_var(--gold)]">
       <Medallion item={item} />
       <div className="min-w-0 flex-1">
         <p className="truncate font-black text-zinc-100">{t(item.name, item.params)}</p>
-        <p className="flex items-center gap-1 text-[11px] font-bold text-gold-bright">
-          <Icon name="gift" size={12} /> {t("מוכן לאיסוף")}
+        {/* `min-w-0` on the nested flex row, not just the column: a flex
+            container's own min-width is `auto`, so this line held the whole
+            card open at its natural width and the row could not shrink to a
+            320px phone even before the button was added to it. */}
+        <p className="flex min-w-0 items-center gap-1 text-[11px] font-bold text-gold-bright">
+          <Icon name="gift" size={12} className="shrink-0" />
+          <span className="truncate">{t("מוכן לאיסוף")}</span>
         </p>
       </div>
       <RewardPill item={item} />
+      <button
+        onClick={onClaim}
+        disabled={disabled}
+        aria-label={t("אסוף את הפרס של {name}", { name: t(item.name, item.params) })}
+        className="btn btn-gold w-full shrink-0 px-4 py-2 text-sm font-black disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+      >
+        {busy ? t("אוסף...") : t("אסוף")}
+      </button>
     </div>
   );
 }
@@ -148,9 +186,25 @@ function ClaimedCard({ item, t }: { item: AchievementView; t: T }) {
   );
 }
 
-function Card({ item, t }: { item: AchievementView; t: T }) {
+function Card({
+  item,
+  t,
+  onClaim,
+  busy,
+  disabled,
+}: {
+  item: AchievementView;
+  t: T;
+  onClaim: () => void;
+  busy: boolean;
+  disabled: boolean;
+}) {
   if (item.claimed) return <ClaimedCard item={item} t={t} />;
-  return item.unlocked ? <ReadyCard item={item} t={t} /> : <LockedCard item={item} t={t} />;
+  return item.unlocked ? (
+    <ReadyCard item={item} t={t} onClaim={onClaim} busy={busy} disabled={disabled} />
+  ) : (
+    <LockedCard item={item} t={t} />
+  );
 }
 
 /** One chip in the category filter row. */
@@ -196,7 +250,10 @@ function PayoutSummary({
     <div className="mx-auto max-w-xl rounded-xl border border-gold/50 bg-gradient-to-b from-amber-950/60 to-black/60 p-3">
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-sm font-black text-gold-bright">
-          <Icon name="gift" size={15} /> {t("נאספו {count} הישגים", { count })}
+          <Icon name="gift" size={15} />{" "}
+          {/* A single-row collect is now the common case, and "נאספו 1 הישגים"
+              reads as a string-formatting bug. */}
+          {count === 1 ? t("הישג אחד נאסף") : t("נאספו {count} הישגים", { count })}
         </p>
         <button
           onClick={onDismiss}
@@ -235,6 +292,10 @@ export function AchievementList({ state }: { state: AchievementsState }) {
   );
   const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState<AchievementCategory | "all">("all");
+  // Which row's button is spinning. Null while the collect-all runs, so only
+  // the big button says "אוסף..." then and fifty rows do not all claim to be
+  // mid-collect at once.
+  const [claiming, setClaiming] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   // The completion bar grows into place from empty on the first paint rather
   // than appearing already filled — the ladder's one bit of ceremony.
@@ -248,6 +309,7 @@ export function AchievementList({ state }: { state: AchievementsState }) {
   function handleClaim() {
     if (pending || collectable === 0) return;
     setError(null);
+    setClaiming(null);
     startTransition(async () => {
       const res = await claimAchievements();
       if (res.ok) {
@@ -255,6 +317,24 @@ export function AchievementList({ state }: { state: AchievementsState }) {
       } else {
         setError(res.error ?? t("האיסוף נכשל"));
       }
+    });
+  }
+
+  /** Collect one milestone, leaving the rest of the ladder where it is. */
+  function handleClaimOne(key: string) {
+    if (pending) return;
+    setError(null);
+    setClaiming(key);
+    startTransition(async () => {
+      const res = await claimAchievement(key);
+      if (res.ok) {
+        setPayout({ count: res.count ?? 0, totals: res.totals ?? [] });
+      } else {
+        setError(res.error ?? t("האיסוף נכשל"));
+      }
+      // Cleared here rather than in an effect: the transition only settles once
+      // the revalidated page has landed, so the row is already gone by now.
+      setClaiming(null);
     });
   }
 
@@ -374,10 +454,22 @@ export function AchievementList({ state }: { state: AchievementsState }) {
           {visible.map((a, i) => (
             <div
               key={a.key}
-              className="tro-card"
+              // `min-w-0`: a grid item's automatic minimum is its content's
+              // min-content width, and the ready row's title is `truncate`
+              // (white-space: nowrap) — so a long milestone name held the whole
+              // column open past the viewport on a narrow phone instead of
+              // being ellipsised. Without this the collect button pushed the
+              // row off the screen edge entirely.
+              className="tro-card min-w-0"
               style={{ "--i": Math.min(i, 12) } as CSSProperties}
             >
-              <Card item={a} t={t} />
+              <Card
+                item={a}
+                t={t}
+                onClaim={() => handleClaimOne(a.key)}
+                busy={claiming === a.key}
+                disabled={pending}
+              />
             </div>
           ))}
         </div>

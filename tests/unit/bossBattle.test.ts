@@ -21,11 +21,13 @@ import {
   bossFightScore,
   bossGrade,
   bossKillFraction,
+  bossKillShareFraction,
   bossLossScale,
   bossPayout,
   bossExpectedSortieDamage,
   bossExpectedSortieLosses,
   bossReadChance,
+  bossSharedMaxHp,
   bossSiegeMaxHp,
   bossSortiesToKill,
   canReleaseFury,
@@ -779,6 +781,48 @@ describe("splitting the haul", () => {
     const haul = bossReward(1, 1);
     const paid = bossPayout(haul, ceiling);
     expect(paid.gold).toBeLessThanOrEqual(Math.round(haul.gold * 1.3));
+  });
+
+  it("pays a besieger the same haul however many neighbours share the tyrant", () => {
+    // The whole promise of sharing the fixture: the pool is the city's, the
+    // denominator is the player's. An empire that does one share's worth of
+    // damage takes exactly one haul out of the life — alone, or in a city of
+    // twenty — because both the pool and nothing else grew with the head count.
+    const share = bossSiegeMaxHp(1);
+    for (const heads of [1, 2, 7, 20]) {
+      const pool = bossSharedMaxHp(1, heads);
+      expect(pool).toBe(share * heads);
+      // Priced against the share, not the pool. Reading `pool` here instead is
+      // the one mistake this fixture can make, and it would divide every payout
+      // in the game by the number of neighbours.
+      expect(bossChipFraction(share, pool / heads)).toBeCloseTo(BOSS_CHIP_SHARE, 10);
+      expect(bossKillShareFraction(share, pool / heads, "C")).toBeCloseTo(
+        BOSS_KILL_SHARE,
+        10
+      );
+    }
+  });
+
+  it("splits the kill purse by damage, and never past one full purse", () => {
+    const share = bossSiegeMaxHp(1);
+    // Three besiegers who did a third of a share each take a third of a purse.
+    const thirds = [share / 3, share / 3, share / 3].map((d) =>
+      bossKillShareFraction(d, share, "S")
+    );
+    expect(thirds.reduce((a, b) => a + b, 0)).toBeCloseTo(bossKillFraction("S"), 10);
+    // …and the empire that carried it alone takes the whole purse and no more,
+    // however far its killing blow overshot.
+    expect(bossKillShareFraction(share * 40, share, "S")).toBeCloseTo(
+      bossKillFraction("S"),
+      10
+    );
+    expect(bossKillShareFraction(-1, share, "S")).toBe(0);
+    expect(bossKillShareFraction(share, 0, "S")).toBe(0);
+  });
+
+  it("floors the shared pool at one head, so an empty city still meets something", () => {
+    expect(bossSharedMaxHp(1, 0)).toBe(bossSiegeMaxHp(1));
+    expect(bossSharedMaxHp(1, -3)).toBe(bossSiegeMaxHp(1));
   });
 
   it("scales a payout down without inventing captives", () => {

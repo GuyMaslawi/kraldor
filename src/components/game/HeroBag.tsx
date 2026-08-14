@@ -24,12 +24,25 @@ import { itemDetails, uiRarity, type HeroItemView } from "@/components/game/hero
 import { useT } from "@/i18n/client";
 
 /**
- * The hero's bag: unequipped items in a 5×3 grid of slots with rarity filters.
- * One item per slot — duplicates are not merged, because each copy really does
- * occupy a slot and the free-slot count has to be honest. Clicking an item
- * opens its detail dialog (wear / upgrade / discard). A selection mode lets the
- * player mark many items and discard or upgrade them all at once.
+ * The hero's bag: unequipped items in a 5-wide grid of slots with rarity
+ * filters. Identical copies (same slot *and* item level) share one tile with an
+ * ×N badge, so a bag of near-duplicates reads at a glance — but each copy still
+ * costs a slot, so the counter and the drawn free slots are counted per copy,
+ * not per stack. Clicking a stack opens its detail dialog (wear / upgrade /
+ * discard — always on one copy). A selection mode lets the player mark many
+ * items and discard or upgrade them all at once; there a click takes the whole
+ * stack.
  */
+/** One tile of the grid: every copy of the same piece at the same level. */
+interface BagStack {
+  /** slot × level — what makes two pieces the same item. */
+  key: string;
+  /** The copy the tile (and the dialog) speaks for. */
+  item: HeroItemView;
+  /** Ids of every copy in the stack, the first being `item`. */
+  ids: string[];
+}
+
 export function HeroBag({
   items,
   heroLevel,
@@ -46,7 +59,7 @@ export function HeroBag({
   forgeDiscount?: boolean;
 }) {
   const [filter, setFilter] = useState<HeroRarity | null>(null);
-  const [openItem, setOpenItem] = useState<HeroItemView | null>(null);
+  const [openItem, setOpenItem] = useState<BagStack | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmUpgrade, setConfirmUpgrade] = useState(false);
@@ -60,7 +73,23 @@ export function HeroBag({
     (a, b) => rarityRank(b.rarity) - rarityRank(a.rarity) || b.level - a.level
   );
   const visible = filter ? sorted.filter((i) => i.rarity === filter) : sorted;
-  // Every slot the bag has is drawn, so a full bag reads as full at a glance.
+  // Identical pieces collapse into one tile. An item's identity is slot × level
+  // (rarity is derived from the level), so that pair is the stack key; the
+  // sorted order above decides where each stack lands.
+  const stacks: BagStack[] = [];
+  const stackByKey = new Map<string, BagStack>();
+  for (const item of visible) {
+    const key = `${item.slot}:${item.level}`;
+    const stack = stackByKey.get(key);
+    if (stack) stack.ids.push(item.id);
+    else {
+      const fresh: BagStack = { key, item, ids: [item.id] };
+      stackByKey.set(key, fresh);
+      stacks.push(fresh);
+    }
+  }
+  // Every *free* slot is drawn, so a full bag reads as full at a glance — the
+  // copies inside a stack each still hold a slot of their own.
   const emptySlots = Math.max(0, HERO_BAG_CAPACITY - items.length);
   const bagFull = items.length >= HERO_BAG_CAPACITY;
 
@@ -71,11 +100,16 @@ export function HeroBag({
   const allVisibleSelected =
     visible.length > 0 && visible.every((i) => selected.has(i.id));
 
-  const toggleSelect = (id: string) =>
+  // Selection works on a whole stack: the tile is one thing on screen, so one
+  // click marks (or clears) every copy behind it.
+  const toggleStack = (stack: BagStack) =>
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      const allOn = stack.ids.every((id) => next.has(id));
+      for (const id of stack.ids) {
+        if (allOn) next.delete(id);
+        else next.add(id);
+      }
       return next;
     });
 
@@ -235,24 +269,34 @@ export function HeroBag({
           )}
 
           <div className="mt-2 grid grid-cols-5 gap-2">
-            {visible.map((item) => {
-              const isSelected = selected.has(item.id);
+            {stacks.map((stack) => {
+              const item = stack.item;
+              const copies = stack.ids.length;
+              const isSelected = stack.ids.every((id) => selected.has(id));
               return (
                 <button
-                  key={item.id}
+                  key={stack.key}
                   type="button"
                   onClick={() =>
-                    selecting ? toggleSelect(item.id) : setOpenItem(item)
+                    selecting ? toggleStack(stack) : setOpenItem(stack)
                   }
                   className={`relative block w-full rounded-xl transition ${
                     selecting && isSelected
                       ? "ring-2 ring-gold ring-offset-2 ring-offset-black"
                       : ""
                   }`}
-                  aria-label={t("{slot} רמה {level}", {
-                    slot: t(SLOT_META[item.slot].label),
-                    level: item.level,
-                  })}
+                  aria-label={
+                    copies > 1
+                      ? t("{slot} רמה {level} — {count} עותקים", {
+                          slot: t(SLOT_META[item.slot].label),
+                          level: item.level,
+                          count: copies,
+                        })
+                      : t("{slot} רמה {level}", {
+                          slot: t(SLOT_META[item.slot].label),
+                          level: item.level,
+                        })
+                  }
                 >
                   <ItemTile
                     slug={SLOT_META[item.slot].slug}
@@ -260,6 +304,7 @@ export function HeroBag({
                     level={item.level}
                     rarity={uiRarity(item.rarity)}
                     size="sm"
+                    count={copies}
                     details={
                       selecting
                         ? undefined
@@ -337,7 +382,8 @@ export function HeroBag({
 
       {openItem && (
         <ItemDialog
-          item={openItem}
+          item={openItem.item}
+          copies={openItem.ids.length}
           heroLevel={heroLevel}
           gold={gold}
           equipped={false}

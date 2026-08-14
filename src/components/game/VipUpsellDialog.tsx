@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/ui/CloseButton";
 import Link from "next/link";
 import { useActionState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
@@ -50,13 +51,7 @@ export function VipUpsellDialog({
           <Icon name="crown" size={20} className="text-crimson-bright" />
           {t(VIP_LABEL)}
         </h2>
-        <button
-          onClick={onClose}
-          aria-label={t("סגור")}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gold/30 text-sm text-gold-dim transition hover:bg-gold/10 hover:text-gold-bright"
-        >
-          ✕
-        </button>
+        <CloseButton onClick={onClose} />
       </div>
 
       {action && (

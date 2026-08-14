@@ -559,9 +559,13 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
               ))}
             </span>
             {state.claimed ? (
+              // The normal ending. The kill pays every contender on the spot, so
+              // by the time anybody reads this the purse is already banked —
+              // "collected" would credit the reader with a button press they
+              // never made, and send them looking for one that is not there.
               <p className="inline-flex items-center gap-2 text-sm font-bold text-emerald-300">
                 <Icon name="check" size={16} />
-                {t("אספת את חלקך.")}
+                {t("חלקך בשלל שולם.")}
               </p>
             ) : state.claimable ? (
               <button
@@ -578,11 +582,12 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
               </p>
             ) : (
               // Standing beast, and this reader has struck it: the purse above
-              // is a quote, and the button that pays it opens the moment it
-              // falls. Saying so is what stops the quote from reading as
-              // something already banked.
+              // is a quote, and it is paid the moment the beast falls. Saying so
+              // is what stops the quote from reading as something already
+              // banked — and the promise it makes is now one the server keeps
+              // without the player being here, which is the part worth stating.
               <p className="text-[11px] text-zinc-500">
-                {t("ייאסף בכפתור כאן ברגע שהיא תיפול — גם אם לא אתה תפיל אותה.")}
+                {t("ישולם לך אוטומטית ברגע שהיא תיפול — גם אם לא אתה תפיל אותה.")}
               </p>
             )}
           </div>

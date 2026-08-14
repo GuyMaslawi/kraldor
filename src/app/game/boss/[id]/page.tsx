@@ -131,8 +131,10 @@ export default async function BossFightPage({
       ? fight.battle.correctCounters / fight.battle.decisions
       : null;
 
-  // Progress against the cycle's pool, not against a single fight: `bossMaxHp` is
-  // 0 on reports written before the siege rework, which fall back to the old
+  // Progress against the life's pool, not against a single fight — and since the
+  // tyrant became the whole city's that pool is the city's too, so a single
+  // report's bar is deliberately a small dent in a large wall. `bossMaxHp` is 0
+  // on reports written before the siege rework, which fall back to the old
   // power-versus-power bar.
   const hasPool = fight.bossMaxHp > 0;
   const damagePct = hasPool ? Math.min(100, (fight.damageDealt / fight.bossMaxHp) * 100) : 0;
@@ -271,7 +273,7 @@ export default async function BossFightPage({
                   −{formatNumber(Math.round(fight.damageDealt))}
                 </span>
                 <span className="text-zinc-500">
-                  {t("נזק בקרב הזה מתוך מאגר של")}{" "}
+                  {t("נזק בקרב הזה מתוך המאגר המשותף של העיר")}{" "}
                   <span className="nums" dir="ltr">
                     {formatNumber(fight.bossMaxHp)}
                   </span>

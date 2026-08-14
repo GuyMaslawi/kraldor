@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/ui/CloseButton";
 import { useActionState, useState } from "react";
 import type { CSSProperties } from "react";
 import { Icon } from "@/components/ui/Icon";
@@ -205,14 +206,7 @@ function MonumentPanel({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t("סגור")}
-          className="btn btn-ghost -mt-1 h-8 w-8 shrink-0 !p-0 text-base"
-        >
-          ✕
-        </button>
+        <CloseButton onClick={onClose} className="-mt-1" />
       </div>
 
       <div className="rule-gold my-3" />

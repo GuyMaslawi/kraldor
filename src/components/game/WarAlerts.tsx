@@ -42,6 +42,17 @@ const KIND_STYLE: Record<LiveAlert["kind"], KindStyle> = {
     accent: "240 205 120",
     tagClass: "bg-amber-500 text-black",
   },
+  // Never actually drawn: `getInboxPulse` keeps announcements out of `alerts`
+  // entirely, because they are delivered by AnnouncementDialog instead and a
+  // message in both channels would have to be dismissed twice. It is here so
+  // the map stays exhaustive over the kinds — and so that if a future alert
+  // path ever does emit one, it renders as itself rather than crashing.
+  ANNOUNCEMENT: {
+    icon: <Icon name="messages" size={22} />,
+    tag: "הכרזה",
+    accent: "251 191 36",
+    tagClass: "bg-amber-400 text-black",
+  },
   PLAYER: {
     icon: <Icon name="messages" size={22} />,
     tag: "משחקן",

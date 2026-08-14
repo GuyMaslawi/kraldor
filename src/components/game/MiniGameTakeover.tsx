@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useScrollLock } from "@/components/ui/scrollLock";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { MINIGAME_TYPE_META, type MiniGameState } from "@/lib/game/minigame";
 import { useT } from "@/i18n/client";
 
@@ -223,6 +224,20 @@ export function MiniGameTakeover({
       <div className="mgt-shock" aria-hidden />
       <div className="mgt-shock mgt-shock--second" aria-hidden />
 
+      {/* Dismissible by a tap anywhere was true from the start and is invisible
+          from the outside: a player who does not know that sees a screen that
+          took over their game with no marked way back. Pinned to the corner of
+          the viewport rather than placed in the column below, so it does not
+          scroll away with the stage on a short phone. No stopPropagation: the
+          click reaching the backdrop calls the same `close`, which is guarded
+          against running twice. */}
+      <CloseButton
+        onClick={close}
+        tone="onDark"
+        label={t("סגור את ההודעה")}
+        className="mgt-close"
+      />
+
       <div className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-3 text-center">
         <p className="mgt-rise mgt-kicker" style={{ ["--mgt-delay" as string]: "0.1s" }}>
           {t(flavour.kicker)}
@@ -294,10 +309,16 @@ export function MiniGameTakeover({
           {t(flavour.cta)}
         </button>
 
+        {/* Was a bare 16px-tall text link in 45%-white — legible on a desk,
+            not a target a thumb can hit. It is one of only two marked ways off
+            this screen, so it is a button with a real hit area. */}
         <button
           type="button"
-          onClick={close}
-          className="mgt-rise text-xs font-bold text-white/45 underline-offset-4 transition-colors hover:text-white/80 hover:underline"
+          onClick={(e) => {
+            e.stopPropagation();
+            close();
+          }}
+          className="mgt-rise rounded-lg border border-white/20 px-5 py-2.5 text-xs font-bold text-white/60 transition-colors hover:border-white/40 hover:bg-white/5 hover:text-white/90"
           style={{ ["--mgt-delay" as string]: "0.95s" }}
         >
           {t("אחר כך — הכפתור למעלה שומר לי אותו")}

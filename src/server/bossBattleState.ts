@@ -174,9 +174,15 @@ export async function getBossArenaState(empireId: string): Promise<BossArenaStat
     furyMax: BOSS_FURY_MAX,
     routLine: BOSS_ROUT_LOSS_FRACTION,
 
+    // Against one empire's share of the pool, exactly as the settle will pay it —
+    // never against `siege.maxHp`, which on a shared tyrant is the whole city's
+    // pool and would quote every player a fraction of what they are owed.
     earned: bossPayout(
       lifeHaul,
-      bossChipFraction(Math.min(damageSoFar, battle.hpAtStart), battle.siege.maxHp),
+      bossChipFraction(
+        Math.min(damageSoFar, battle.hpAtStart),
+        battle.siege.maxHp / Math.max(1, battle.siege.participants)
+      ),
       happyHourFactor(happyHour, "boostPlunder")
     ),
   };

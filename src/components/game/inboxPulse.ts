@@ -1,7 +1,11 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { getInboxPulse, type InboxPulse } from "@/server/actions/messages";
+import {
+  getInboxPulse,
+  type InboxPulse,
+  type LiveAlert,
+} from "@/server/actions/messages";
 
 /**
  * One poller for the whole command bar.
@@ -51,8 +55,19 @@ function unchanged(prev: InboxPulse | null, next: InboxPulse): boolean {
     prev !== null &&
     prev.unreadMessages === next.unreadMessages &&
     prev.newReports === next.newReports &&
-    prev.alerts.length === next.alerts.length &&
-    prev.alerts.every((alert, i) => alert.id === next.alerts[i]!.id)
+    sameIds(prev.alerts, next.alerts) &&
+    // Compared for the same reason the alerts are, and it is not redundant with
+    // `unreadMessages`: dismissing an announcement drops that count by one, so
+    // an arriving announcement and a message read elsewhere in the same four
+    // seconds would cancel out and the dialog would never open.
+    sameIds(prev.announcements, next.announcements)
+  );
+}
+
+/** Positional id comparison — the server returns both lists in a stable order. */
+function sameIds(prev: LiveAlert[], next: LiveAlert[]): boolean {
+  return (
+    prev.length === next.length && prev.every((a, i) => a.id === next[i]!.id)
   );
 }
 

@@ -361,6 +361,79 @@ body {
   color: #fff;
 }
 
+/* --- The close ✕, shared by every overlay (see ui/CloseButton) ---
+   Two sizes at once, on purpose. The disc is 2rem so it can sit in a dialog
+   header without dominating it; the ::before pushes the *hit* area out to the
+   44px a fingertip needs, which is what the phone bug report was actually
+   about. Never let it shrink — as the last child of a flex-wrap header a narrow
+   screen will squeeze it to a clipped sliver, which is how the mini-game board
+   ended up with no visible way out at 320px. */
+.close-x {
+  /* The button is the 44px target and is invisible; the disc inside it is what
+     the eye sees. Two elements rather than one with a padded ::before, because
+     these rules are UNLAYERED and therefore beat every Tailwind utility — a
+     `position` here would silently defeat the `absolute`/`sticky` the callers
+     place it with. Set nothing a caller might want to say. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--gold-dim);
+}
+.close-x-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-gold-strong);
+  background: rgba(10, 9, 7, 0.72);
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+.close-x:hover {
+  color: var(--gold-bright);
+}
+.close-x:hover .close-x-face {
+  border-color: var(--gold);
+  background: rgba(228, 195, 90, 0.12);
+}
+.close-x:focus-visible {
+  outline: none;
+}
+.close-x:focus-visible .close-x-face {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+/* On the takeovers there is no panel behind it — it needs its own plate or it
+   sits directly on the artwork and reads as part of the scenery. */
+.close-x--on-dark {
+  color: rgba(255, 255, 255, 0.75);
+}
+.close-x--on-dark .close-x-face {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1.05rem;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+.close-x--on-dark:hover {
+  color: #fff;
+}
+.close-x--on-dark:hover .close-x-face {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.75);
+}
+
 /* --- Section heading (centered gold title + optional sub-line + rule) --- */
 .section-heading {
   text-align: center;
@@ -8450,6 +8523,18 @@ body {
   animation: mgt-in 0.3s ease-out both;
 }
 
+/* The ✕ on a takeover: fixed to the viewport corner, not to the content
+   column, so a stage taller than a short phone cannot scroll it out of reach.
+   `inset-inline-start` rather than `left` — this is the corner opposite the
+   text, in whichever direction the player is reading. */
+.mgt-close,
+.hh-close {
+  position: fixed;
+  top: max(0.75rem, env(safe-area-inset-top));
+  inset-inline-start: 0.75rem;
+  z-index: 20;
+}
+
 .mgt[data-game="cups"] {
   background: radial-gradient(circle at 50% 42%, rgba(6, 58, 42, 0.94), rgba(0, 0, 0, 0.95) 68%);
   --mgt-accent: #34d399;
@@ -13398,4 +13483,138 @@ body {
   }
   .arn-mote { display: none; }
   .arn-winbar { transition: none; }
+}
+
+/* ==========================================================================
+   The herald — an admin's announcement, in the middle of the screen (`ann-`)
+   ==========================================================================
+   Every other alert in the game fades in a corner. This one has to read as an
+   interruption worth having, so it gets a proclamation banner: light turning
+   behind a wax-sealed scroll, and the title arriving a beat after it. The
+   motion is all in the banner and none of it in the body text — a patch note
+   is there to be *read*, and animating the paragraph would be showmanship at
+   the cost of the only thing the dialog exists to do.
+   See src/components/game/AnnouncementDialog.tsx. */
+
+.ann-banner {
+  /* The banner is the lid of the card, so its corners follow the dialog's own
+     rather than sitting inside them as a second rounded box. */
+  animation: ann-banner-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes ann-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Slow light behind the seal. Sits under everything (the banner's children are
+   painted over it in source order) and is clipped by the banner's overflow. */
+.ann-rays {
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(240, 205, 120, 0.16) 0deg,
+    transparent 26deg,
+    transparent 64deg,
+    rgba(240, 205, 120, 0.16) 90deg,
+    transparent 116deg,
+    transparent 154deg,
+    rgba(240, 205, 120, 0.16) 180deg,
+    transparent 206deg,
+    transparent 244deg,
+    rgba(240, 205, 120, 0.16) 270deg,
+    transparent 296deg,
+    transparent 334deg,
+    rgba(240, 205, 120, 0.16) 360deg
+  );
+  /* Faded out at the rim so the rays end in light rather than at a hard circle
+     edge — the mask is what makes this read as a glow and not as a pinwheel. */
+  mask-image: radial-gradient(circle at center, #000 15%, transparent 68%);
+  -webkit-mask-image: radial-gradient(circle at center, #000 15%, transparent 68%);
+  animation: ann-rays-turn 26s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes ann-rays-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The seal, hung and settling. `inline-block` because a bare emoji is text and
+   would ignore the transform entirely. */
+.ann-seal {
+  position: relative;
+  display: inline-block;
+  font-size: 2.75rem;
+  line-height: 1;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.65));
+  animation:
+    ann-seal-drop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) backwards,
+    ann-seal-sway 5s ease-in-out 0.7s infinite;
+}
+
+@keyframes ann-seal-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-28px) rotate(-14deg) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ann-seal-sway {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+/* Eyebrow and title, arriving after the seal has landed. `backwards` rather
+   than `both`: the delay must hold the *start* frame, and `both` would also
+   pin the end frame forever and freeze anything applied later. */
+.ann-eyebrow {
+  animation: ann-line-in 0.45s ease-out 0.28s backwards;
+}
+
+.ann-title {
+  animation: ann-line-in 0.45s ease-out 0.38s backwards;
+}
+
+.ann-body {
+  animation: ann-line-in 0.45s ease-out 0.5s backwards;
+}
+
+@keyframes ann-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ann-banner,
+  .ann-seal,
+  .ann-eyebrow,
+  .ann-title,
+  .ann-body {
+    animation: none;
+  }
+  .ann-rays { display: none; }
 }

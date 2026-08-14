@@ -32,6 +32,7 @@ export interface PlayerInboxProps {
 
 const KIND_LABEL: Record<MessageKind, string> = {
   SYSTEM: "מערכת",
+  ANNOUNCEMENT: "הכרזה",
   BATTLE: "קרב",
   SPY: "ריגול",
   PLAYER: "שחקן",

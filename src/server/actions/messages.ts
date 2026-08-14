@@ -25,7 +25,8 @@ import {
   MESSAGE_TITLE_MAX,
 } from "@/lib/game/messages";
 import type { ActionState } from "./game";
-import { settleDueAssault } from "@/server/bossSiege";
+import { settleDueAssault, sweepCityBoss } from "@/server/bossSiege";
+import { sweepWorldBossSpoils } from "@/server/worldBossSpoils";
 import { logError } from "@/server/errorLog";
 import { getT } from "@/i18n/server";
 import { renderMessageText } from "@/lib/game/messageText";
@@ -90,7 +91,7 @@ export async function searchMessageRecipients(
 
 export type LiveAlert = {
   id: string;
-  kind: "SYSTEM" | "BATTLE" | "SPY" | "PLAYER";
+  kind: "SYSTEM" | "BATTLE" | "SPY" | "PLAYER" | "ANNOUNCEMENT";
   title: string;
   body: string;
   href: string | null;
@@ -114,8 +115,23 @@ export type InboxPulse = {
    * things I ordered on purpose, so they never light the badge.
    */
   newReports: number;
-  /** Newest unread messages, oldest first, for the live toasts. */
+  /**
+   * Newest unread messages, oldest first, for the live toasts. Announcements
+   * are deliberately absent — they get the dialog instead, and a message that
+   * arrived in both channels would be dismissed twice.
+   */
   alerts: LiveAlert[];
+  /**
+   * Unread admin announcements, oldest first — the ones still owed the dialog.
+   *
+   * Its own list rather than a filter over `alerts` because the two have
+   * opposite failure modes: a toast that scrolls past is a toast nobody needed,
+   * while an announcement is the one message the game promised to put in front
+   * of the player, and `alerts` holds only the newest eight unread rows. Eight
+   * raids overnight would push a patch note out of that window and it would
+   * never be shown at all.
+   */
+  announcements: LiveAlert[];
 };
 
 /** Nothing learned this round — see `InboxPulse.stale`. */
@@ -124,6 +140,7 @@ const STALE_PULSE: InboxPulse = {
   unreadMessages: 0,
   newReports: 0,
   alerts: [],
+  announcements: [],
 };
 
 /**
@@ -170,30 +187,65 @@ export async function getInboxPulse(): Promise<InboxPulse> {
       // the boss banner are both stale now.
       revalidatePath("/game", "layout");
     }
-
-    const empire = await prisma.empire.findUnique({
+    // The other half of the same lazy clock, and since the tyrant became the
+    // whole city's it covers three things rather than one: a boss felled an hour
+    // ago is back on its feet, a neighbour who closed their tab mid-reveal has an
+    // assault nobody has settled, and the kill purse that assault is holding is
+    // owed to everyone who wounded the life. Nothing else in the deployment runs
+    // at the instant any of those becomes true. Costs one indexed probe that
+    // finds nothing on all but a handful of polls a day — see `sweepCityBoss`.
+    const me = await prisma.empire.findUnique({
       where: { id: empireId },
-      select: { reportsSeenAt: true },
+      select: { reportsSeenAt: true, cities: true },
     });
-    if (!empire) return STALE_PULSE;
-    const seenAt = empire.reportsSeenAt;
+    if (!me) return STALE_PULSE;
+    if (await sweepCityBoss(me.cities)) {
+      // The banner's countdown has run out and its attack button is live again.
+      revalidatePath("/game", "layout");
+    }
+    // The third lazy clock, and the only one here that is not about this player:
+    // a world boss pays every contender the moment it falls, and if the request
+    // that felled it died mid-fan-out the rest are owed a share nothing else
+    // will hand them. Gated to one probe a minute per instance rather than one
+    // per poll — see `sweepWorldBossSpoils`, and note it deliberately does not
+    // report back, since what it pays out is somebody else's screen.
+    await sweepWorldBossSpoils();
 
-    const [messages, unreadMessages, battleReports, spyReports] =
+    const seenAt = me.reportsSeenAt;
+
+    const ALERT_FIELDS = {
+      id: true,
+      kind: true,
+      title: true,
+      titleParams: true,
+      body: true,
+      bodyParams: true,
+      href: true,
+      createdAt: true,
+    } as const;
+
+    const [messages, announcements, unreadMessages, battleReports, spyReports] =
       await Promise.all([
         prisma.message.findMany({
-          where: { empireId, readAt: null },
+          // Announcements are excluded here rather than filtered out of the
+          // result: they have their own dialog, and leaving them in would let a
+          // patch note eat one of the eight slots the toasts are drawn from.
+          where: { empireId, readAt: null, kind: { not: "ANNOUNCEMENT" } },
           orderBy: { createdAt: "desc" },
           take: 8,
-          select: {
-            id: true,
-            kind: true,
-            title: true,
-            titleParams: true,
-            body: true,
-            bodyParams: true,
-            href: true,
-            createdAt: true,
-          },
+          select: ALERT_FIELDS,
+        }),
+        // The announcements still owed the dialog. A second query on the hot
+        // path, which this file otherwise guards jealously — it is affordable
+        // because it rides the same `[empireId, readAt]` index the count beside
+        // it already uses and, on all but a handful of polls a day, finds
+        // nothing. Oldest first so a run of patch notes is read in the order it
+        // was written; three at a time is a queue, not a wall.
+        prisma.message.findMany({
+          where: { empireId, readAt: null, kind: "ANNOUNCEMENT" },
+          orderBy: { createdAt: "asc" },
+          take: 3,
+          select: ALERT_FIELDS,
         }),
         prisma.message.count({ where: { empireId, readAt: null } }),
         prisma.battleReport.count({
@@ -210,17 +262,27 @@ export async function getInboxPulse(): Promise<InboxPulse> {
         }),
       ]);
 
+    // The stored row is keys plus values — rendered here, in the poller's own
+    // language, because whoever wrote it was somebody else. See
+    // renderMessageText. (An admin broadcast is the exception the rule survives:
+    // it is free text typed once, so it matches no key and renders unchanged.)
+    const toAlert = ({
+      titleParams,
+      bodyParams,
+      ...m
+    }: (typeof messages)[number]): LiveAlert => ({
+      ...m,
+      ...renderMessageText(t, { ...m, titleParams, bodyParams }),
+      createdAt: m.createdAt.getTime(),
+    });
+
     return {
       unreadMessages,
       newReports: battleReports + spyReports,
-      // Oldest first so toasts stack in chronological order. The stored row is
-      // keys plus values — rendered here, in the poller's own language, because
-      // whoever wrote it was somebody else. See renderMessageText.
-      alerts: messages.reverse().map(({ titleParams, bodyParams, ...m }) => ({
-        ...m,
-        ...renderMessageText(t, { ...m, titleParams, bodyParams }),
-        createdAt: m.createdAt.getTime(),
-      })),
+      // Oldest first so toasts stack in chronological order.
+      alerts: messages.reverse().map(toAlert),
+      // Already oldest first — that is the order they are meant to be read in.
+      announcements: announcements.map(toAlert),
     };
   } catch {
     // Polling is best-effort — a missed round just retries in a few seconds.
@@ -244,6 +306,38 @@ export async function markMessagesRead(): Promise<void> {
     if (updated.count > 0) revalidatePath("/game", "layout");
   } catch {
     // Losing a mark-read is harmless — the badge clears on the next visit.
+  }
+}
+
+/**
+ * Acknowledge one admin announcement: the dialog that showed it has been
+ * closed, so the message is read and must not stop the player again.
+ *
+ * Server-side and per-message on purpose. The toast stack remembers what it has
+ * already shown in `localStorage`, which is the right call for something that
+ * merely scrolled past — but an announcement is a thing the player was made to
+ * dismiss, and remembering it per *browser* would show the same patch note again
+ * on their phone, and forget it entirely when they cleared their cache. `readAt`
+ * is the account's own answer, and it is the same column the inbox already
+ * writes, so an announcement read in the dialog is read in the mailbox too.
+ *
+ * Narrower than `markMessagesRead` in every direction: one row, mine, unread,
+ * and an announcement. The `empireId` in the guard is what makes the id in the
+ * argument harmless — a stranger's id matches nothing.
+ */
+export async function dismissAnnouncement(id: string): Promise<void> {
+  try {
+    if (typeof id !== "string" || id.length === 0 || id.length > 64) return;
+    const empireId = await requireOwnEmpireId();
+    const updated = await prisma.message.updateMany({
+      where: { id, empireId, kind: "ANNOUNCEMENT", readAt: null },
+      data: { readAt: new Date() },
+    });
+    // The messages badge in the command bar is one lower now.
+    if (updated.count > 0) revalidatePath("/game", "layout");
+  } catch {
+    // Best-effort, like every other mark-read here: the dialog has already
+    // closed itself locally, and a lost write only means it opens once more.
   }
 }
 

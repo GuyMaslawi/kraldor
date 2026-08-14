@@ -54,10 +54,13 @@ async function grantReward(
 }
 
 /**
- * Collect every unlocked, uncollected achievement.
+ * Collect unlocked, uncollected achievements — the whole batch, or the single
+ * one named by `only`.
  *
  * Conditions are re-evaluated here straight from the database rather than
  * trusted from the caller, so a client cannot claim a reward it has not earned.
+ * `only` therefore narrows *which* rewards are considered; it never grants
+ * anything the full sweep would not have granted anyway.
  *
  * The receipt row is inserted *before* the payout, and the unique constraint on
  * `(empireId, key)` is what makes a double-submit a no-op: two concurrent
@@ -65,7 +68,7 @@ async function grantReward(
  * entirely. Every reward is a plain resource increment that cannot fail to
  * land, so there is no case where a receipt exists but nothing was paid.
  */
-export async function claimAchievements(): Promise<ClaimAchievementsResult> {
+async function runClaim(only: string | null): Promise<ClaimAchievementsResult> {
   const t = await getT();
   try {
     // Enforces the ban/verification gate on the action too, not just page loads.
@@ -83,6 +86,7 @@ export async function claimAchievements(): Promise<ClaimAchievementsResult> {
 
       const granted: { kind: AchievementRewardKind; amount: number }[] = [];
       for (const a of ACHIEVEMENTS) {
+        if (only !== null && a.key !== only) continue;
         if (claimedKeys.has(a.key)) continue;
         // Positive test on purpose: `progress < goal` would let an absent or
         // NaN stat through, because comparisons against NaN are always false.
@@ -111,7 +115,13 @@ export async function claimAchievements(): Promise<ClaimAchievementsResult> {
       }
 
       if (granted.length === 0) {
-        return { ok: false as const, error: t("אין הישגים חדשים לאיסוף") };
+        return {
+          ok: false as const,
+          error:
+            only === null
+              ? t("אין הישגים חדשים לאיסוף")
+              : t("הפרס הזה כבר נאסף או שעדיין לא נפתח"),
+        };
       }
       // One line per resource rather than one per achievement — collecting a
       // whole category at once otherwise prints dozens of fragments.
@@ -132,4 +142,23 @@ export async function claimAchievements(): Promise<ClaimAchievementsResult> {
     await logError("achievements.claimAchievements", err);
     return { ok: false, error: t("אירעה שגיאה, נסה שוב") };
   }
+}
+
+/** Collect everything that is unlocked and uncollected, in one sweep. */
+export async function claimAchievements(): Promise<ClaimAchievementsResult> {
+  return runClaim(null);
+}
+
+/**
+ * Collect one specific achievement.
+ *
+ * The key is checked against the ladder before it reaches the transaction —
+ * not for safety (an unknown key simply matches nothing) but so a stale client
+ * gets a sentence instead of the generic "already collected".
+ */
+export async function claimAchievement(key: string): Promise<ClaimAchievementsResult> {
+  if (typeof key !== "string" || !ACHIEVEMENTS.some((a) => a.key === key)) {
+    return { ok: false, error: (await getT())("הישג לא מוכר") };
+  }
+  return runClaim(key);
 }

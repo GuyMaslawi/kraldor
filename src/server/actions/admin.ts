@@ -2572,13 +2572,18 @@ export async function clearEmpireHistory(
     }
     if (what === "boss" || what === "all") {
       count += (await prisma.bossFight.deleteMany({ where: { empireId } })).count;
-      // Reports first, then the sieges they came out of: BossFight.battleId is
+      // Reports first, then the battles they came out of: BossFight.battleId is
       // ON DELETE SET NULL, so a surviving report would keep a battle row alive
-      // that no longer has a siege to belong to. Dropping the siege cascades its
-      // battles, which also clears an open sortie — clearing a player's boss
-      // history and leaving them mid-fight against a boss with no record would
-      // be the stranger outcome.
-      count += (await prisma.bossSiege.deleteMany({ where: { empireId } })).count;
+      // that no longer has a report to belong to. Dropping the battles also
+      // clears an open sortie — clearing a player's boss history and leaving them
+      // mid-fight against a fight with no record would be the stranger outcome.
+      count += (await prisma.bossBattle.deleteMany({ where: { empireId } })).count;
+      // The siege itself is the *city's*, not this player's, and must survive:
+      // erasing it would revive the tyrant for everyone at full health because
+      // one player's history was cleared. What does go is this player's line on
+      // its contribution board — which is also what takes them out of the next
+      // kill purse, since the purse is shared out over exactly these rows.
+      count += (await prisma.bossSiegeStrike.deleteMany({ where: { empireId } })).count;
     }
     await logAdmin(admin, {
       action: "empire.history_clear",
@@ -2628,7 +2633,7 @@ export async function sendMessageToEmpire(
   }
 }
 
-const kindSchema = z.enum(["SYSTEM", "BATTLE", "SPY"]);
+const kindSchema = z.enum(["ANNOUNCEMENT", "SYSTEM", "BATTLE", "SPY"]);
 const channelSchema = z.enum(["events", "updates"]);
 
 /** Broadcast a message to a target audience (all / season / guild / empire). */
@@ -2643,7 +2648,13 @@ export async function broadcastMessage(
     const title = str(formData, "title", 200);
     const body = str(formData, "body", 4000);
     const href = optHref(formData, "href");
-    const kind = (kindSchema.safeParse(formData.get("kind")).data ?? "SYSTEM") as MessageKind;
+    // ANNOUNCEMENT by default, and that default is the feature: a broadcast is
+    // typed by hand precisely when something has to *reach* people — a bug
+    // fixed, a rule changed, a feature opened — and an announcement is the one
+    // kind the game stops the player to show (see AnnouncementDialog). The
+    // quieter kinds stay available for a notice that only needs to be on record.
+    const kind = (kindSchema.safeParse(formData.get("kind")).data ??
+      "ANNOUNCEMENT") as MessageKind;
     // Which Discord room the mirror lands in. A broadcast is free text and can
     // be either thing — "the new hero shop is live" belongs with the updates,
     // "the boss is up for an hour" with the events — so the admin picks, and
@@ -4379,6 +4390,15 @@ function worldBossAlive(maxHp: number) {
     defeatedAt: null,
     slayerId: null,
     slayerName: null,
+    // Both are claims on something that happens **once per kill**, and a revived
+    // beast has a kill still ahead of it. Left stamped, the next one would
+    // announce nothing (`heraldWorldBossDefeat` finds its claim taken) and, far
+    // worse, pay nobody: `settleWorldBossSpoils` looks for a felled boss whose
+    // spoils are unsettled, so a stale marker would quietly reinstate the very
+    // bug the fan-out was written to fix — an arena full of strikers owed a
+    // share that nothing in the game will ever hand them.
+    defeatAnnouncedAt: null,
+    spoilsSettledAt: null,
   };
 }
 
@@ -4595,14 +4615,15 @@ export async function resetWorldBoss(
 /**
  * Restore city bosses to full life.
  *
- * Acts on the **newest** life of each (empire, tier) pair, which is the one row
- * `currentLife` will read next — an older siege is history and reviving it would
- * change nothing anybody can see. A dead one is brought back on the spot rather
- * than having its clock shortened: `killedAt`/`revivesAt` cleared and the pool
- * refilled, so the row that was a corpse is the life standing in front of the
- * player on their next march.
+ * Acts on the **newest** life of each tier, which is the one row `currentLife`
+ * will read next — an older siege is history and reviving it would change nothing
+ * anybody can see. A dead one is brought back on the spot rather than having its
+ * clock shortened: `killedAt`/`revivesAt` cleared and the pool refilled, so the
+ * row that was a corpse is the tyrant standing in front of the city on its next
+ * march.
  *
- * Scope is one of: every empire, one city tier, or one empire.
+ * Scope is one city tier, or all of them. There is no per-player scope any more,
+ * and there cannot be one: a tyrant belongs to its whole city (see BossSiege).
  */
 export async function reviveCityBosses(
   _prev: AdminActionState,
@@ -4610,27 +4631,23 @@ export async function reviveCityBosses(
 ): Promise<AdminActionState> {
   try {
     const admin = await requireAdmin();
-    const empireId = str(formData, "empireId");
     const tier = Math.round(optNum(formData, "cityTier", 0));
 
-    const where: Prisma.BossSiegeWhereInput = {
-      ...(empireId ? { empireId } : {}),
-      ...(tier > 0 ? { cityTier: clampLevel(tier, 1, MAX_CITIES) } : {}),
-    };
+    const where: Prisma.BossSiegeWhereInput =
+      tier > 0 ? { cityTier: clampLevel(tier, 1, MAX_CITIES) } : {};
 
-    // Newest life per (empire, tier). Read as rows rather than updated in one
-    // statement because "newest" is not something a Prisma updateMany can say —
-    // and an updateMany over every matching row would resurrect sieges that were
+    // Newest life per tier. Read as rows rather than updated in one statement
+    // because "newest" is not something a Prisma updateMany can say — and an
+    // updateMany over every matching row would resurrect sieges that were
     // superseded long ago.
     const sieges = await prisma.bossSiege.findMany({
       where,
-      orderBy: { createdAt: "desc" },
-      select: { id: true, empireId: true, cityTier: true, hp: true, maxHp: true },
+      orderBy: { life: "desc" },
+      select: { id: true, cityTier: true, hp: true, maxHp: true },
     });
-    const newest = new Map<string, (typeof sieges)[number]>();
+    const newest = new Map<number, (typeof sieges)[number]>();
     for (const siege of sieges) {
-      const key = `${siege.empireId}:${siege.cityTier}`;
-      if (!newest.has(key)) newest.set(key, siege);
+      if (!newest.has(siege.cityTier)) newest.set(siege.cityTier, siege);
     }
     if (newest.size === 0) return { error: "לא נמצאו בוסים בטווח שנבחר" };
 
@@ -4640,21 +4657,31 @@ export async function reviveCityBosses(
     // the two halves must not be able to land apart: a row with its corpse
     // cleared but its pool still empty is a boss that is neither alive nor
     // counting down.
+    // The board goes with the corpse. A revive has to leave a genuinely *fresh*
+    // life, not a healed one: the kill purse is shared out by each empire's
+    // damage against this row, so resurrecting it with the old contributions
+    // still on it would pay every besieger a second time for damage they dealt
+    // to the tyrant that already fell — and `spoilsPaidAt`, which is the receipt
+    // that stops exactly that, has to be cleared for the new kill to pay at all.
+    await prisma.bossSiegeStrike.deleteMany({ where: { siegeId: { in: ids } } });
     const restored = await prisma.$executeRaw`
       UPDATE "BossSiege"
-      SET hp = "maxHp", "killedAt" = NULL, "revivesAt" = NULL
+      SET hp = "maxHp",
+          "damageDealt" = 0,
+          sorties = 0,
+          "killedAt" = NULL,
+          "revivesAt" = NULL,
+          "slayerId" = NULL,
+          "slayerName" = NULL,
+          "spoilsPaidAt" = NULL,
+          "revivedNotifiedAt" = NULL
       WHERE id = ANY(${ids})
     `;
 
-    const scope = empireId
-      ? "שחקן אחד"
-      : tier > 0
-        ? `דרגת עיר ${clampLevel(tier, 1, MAX_CITIES)}`
-        : "כל הדרגות";
+    const scope = tier > 0 ? `דרגת עיר ${clampLevel(tier, 1, MAX_CITIES)}` : "כל הדרגות";
     await logAdmin(admin, {
       action: "boss.revive",
-      targetType: empireId ? "empire" : "bossSiege",
-      targetId: empireId || undefined,
+      targetType: "bossSiege",
       summary: `${restored} בוסי עיר הוחזרו לחיים מלאים (${scope})`,
     });
     revalidateBossScreens();

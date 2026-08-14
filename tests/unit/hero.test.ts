@@ -14,6 +14,14 @@ import {
   MINOR_EXTRA_WEIGHT,
   HERO_POWER_STATS,
   HERO_PERCENT_STATS,
+  HERO_CADENCE_META,
+  HERO_CADENCE_ORDER,
+  HERO_FLAT_CADENCE,
+  HERO_FLAT_STATS,
+  HERO_STAT_META,
+  UPDATES_PER_DAY,
+  flatStatPerDay,
+  flatStatsWithCadence,
   POWER_STAT_FOR,
   type HeroStat,
   RARITY_ORDER,
@@ -51,6 +59,11 @@ import {
   tierForLevel,
   xpToNextLevel,
 } from "@/lib/game/hero";
+import {
+  DAILY_UPDATE_TIMES,
+  TICKS_PER_DAY,
+  TURNS_UPGRADE_MAX_LEVEL,
+} from "@/lib/game/constants";
 
 const alive = { health: HERO_MAX_HEALTH, diedAt: null };
 
@@ -455,10 +468,11 @@ describe("item stats", () => {
   });
 
   it("keeps citizens and turns small at level 1 — their base does not grow", () => {
-    // These two are measured against a *fixed* intake (the growth building pays
-    // 20 + 10·level per daily update, capped), so gear that started large would
-    // retire the building that exists for the job. They keep the accelerating
-    // power curve and the deliberately low ceiling.
+    // These two are measured against a *fixed* base rather than against the
+    // economy — the growth building pays 20 + 10·level per daily update (capped),
+    // and the turns upgrade pays its level per regular update (capped at 5) — so
+    // gear that started large would retire the thing that exists for the job.
+    // They keep the accelerating power curve and the deliberately low ceiling.
     for (const slot of SLOT_ORDER) {
       for (const stat of ["turns", "citizens"] as const) {
         if (!slotGrants(slot, stat)) continue;
@@ -471,6 +485,24 @@ describe("item stats", () => {
     expect(itemStatBonus("BOOTS", 100, "citizens")).toBeLessThan(1020);
   });
 
+  it("never lets a turn item out-pay the upgrade that exists for turns", () => {
+    // Turns are quoted per *regular* update, in the same unit as
+    // TURNS_PER_REGULAR_UPDATE, and the whole ladder tops out at exactly that
+    // upgrade's ceiling: a maxed 🪽 is worth the whole upgrade, never more. This
+    // is the assertion that keeps the one metered currency in the game from being
+    // minted by gear — the old bug paid 40 a *tick*, eight upgrade ladders a day.
+    for (const slot of SLOT_ORDER) {
+      if (!slotGrants(slot, "turns")) continue;
+      expect(itemStatBonus(slot, 100, "turns")).toBeLessThanOrEqual(
+        TURNS_UPGRADE_MAX_LEVEL
+      );
+    }
+    expect(itemStatBonus("WINGS", 100, "turns")).toBe(TURNS_UPGRADE_MAX_LEVEL);
+    expect(flatStatPerDay("turns", itemStatBonus("WINGS", 100, "turns"))).toBe(
+      TURNS_UPGRADE_MAX_LEVEL * TICKS_PER_DAY
+    );
+  });
+
   it("grows flat stats faster than linearly, so late gear is worth its price", () => {
     // Upgrade prices are geometric (×3.95 per series). A linear bonus curve
     // meant every rung bought less than the one before it, all the way up.
@@ -479,6 +511,16 @@ describe("item stats", () => {
       if (!["resources", "turns", "citizens"].includes(stat)) continue;
       const quarter = itemStatBonus(slot, ITEM_LEVELS[9], stat); // rung 10
       const full = itemStatBonus(slot, 100, stat); // rung 40
+      if (stat === "turns") {
+        // Turns are the one exception, and the cadence is why: paid per 5-minute
+        // tick in the upgrade's own unit, the entire line is five integers wide
+        // (1→5, floored at 1 because whole units on a 288-a-day clock cannot go
+        // lower). It cannot be convex over 40 rungs, and it is not what a wing's
+        // upgrade is bought for — its spy and power lines are geometric and carry
+        // the price. What must still hold is that the top out-pays the middle.
+        expect(full).toBeGreaterThan(quarter);
+        continue;
+      }
       // Four times the rung is far more than four times the bonus.
       expect(full).toBeGreaterThan(quarter * 8);
     }
@@ -641,6 +683,83 @@ describe("item stats", () => {
     for (const slot of SLOT_ORDER) {
       if (slot === "PANTS") continue;
       expect(itemStatBonus(slot, 100, "diamonds")).toBe(0);
+    }
+  });
+});
+
+describe("when a flat bonus is paid", () => {
+  // The cadence table is what `applyPendingUpdates` pays from and what the hero
+  // page groups its yield lines by. These are the assertions that keep the two
+  // ends honest — the bug they exist for is a stat paid on one clock while every
+  // label in the game named the other.
+
+  it("gives every flat stat exactly one cadence", () => {
+    for (const stat of HERO_FLAT_STATS) {
+      expect(HERO_CADENCE_ORDER).toContain(HERO_FLAT_CADENCE[stat]);
+    }
+    // …and the three groups partition the flat stats: nothing paid twice, nothing
+    // left with no clock at all.
+    const grouped = HERO_CADENCE_ORDER.flatMap((c) => flatStatsWithCadence(c));
+    expect(grouped.sort()).toEqual([...HERO_FLAT_STATS].sort());
+  });
+
+  it("pays gear on the 5-minute tick, and only citizens and diamonds daily", () => {
+    // The rule, stated once: everything an item conjures arrives on the regular
+    // update, except the two stats whose base is itself daily.
+    expect(flatStatsWithCadence("regular").sort()).toEqual(["resources", "turns"]);
+    expect(flatStatsWithCadence("daily").sort()).toEqual(["citizens", "diamonds"]);
+    // The three power stats are on no clock at all — they are counted inside the
+    // fight, which is why a settlement pays them nothing.
+    expect(flatStatsWithCadence("battle").sort()).toEqual(
+      [...HERO_POWER_STATS].sort()
+    );
+  });
+
+  it("names its own cadence in every label the player reads", () => {
+    // This is the drift check. A stat's `itemLabel` is what an item tile prints
+    // ("תורות לעדכון רגיל"), and it used to disagree with the code that paid it.
+    const CADENCE_WORD: Record<"regular" | "daily", string> = {
+      regular: "עדכון רגיל",
+      daily: "עדכון יומי",
+    };
+    for (const stat of HERO_FLAT_STATS) {
+      const cadence = HERO_FLAT_CADENCE[stat];
+      if (cadence === "battle") continue;
+      const meta = HERO_STAT_META[stat];
+      const word = CADENCE_WORD[cadence];
+      const other = CADENCE_WORD[cadence === "regular" ? "daily" : "regular"];
+      // resources is the one stat with two instruments, so its own label is the
+      // generic one and the per-resource lines carry the cadence (see
+      // itemBonusLines); every other flat stat states it in its item label.
+      const text = `${meta.itemLabel} ${meta.description}`;
+      expect(text, `${stat} never says "${word}"`).toContain(word);
+      expect(text, `${stat} still claims "${other}"`).not.toContain(other);
+    }
+    // The per-resource lines an item splits into carry it too.
+    for (const line of itemBonusLines("RELIC", 10)) {
+      if (line.resource) expect(line.label).toContain("עדכון רגיל");
+    }
+  });
+
+  it("counts a day's worth of each clock", () => {
+    expect(UPDATES_PER_DAY.regular).toBe(TICKS_PER_DAY);
+    expect(UPDATES_PER_DAY.daily).toBe(DAILY_UPDATE_TIMES.length);
+    // A battle stat has no clock, so it has no daily total either — null, not 0,
+    // which would read as "it pays nothing".
+    expect(UPDATES_PER_DAY.battle).toBe(0);
+    for (const stat of HERO_POWER_STATS) {
+      expect(flatStatPerDay(stat, 1_000)).toBeNull();
+    }
+    // The two figures the hero page prints beside each other.
+    expect(flatStatPerDay("citizens", 450)).toBe(900);
+    expect(flatStatPerDay("turns", 5)).toBe(1_440);
+  });
+
+  it("gives every cadence a heading and a note to render", () => {
+    for (const cadence of HERO_CADENCE_ORDER) {
+      const meta = HERO_CADENCE_META[cadence];
+      expect(meta.label.length).toBeGreaterThan(0);
+      expect(meta.note.length).toBeGreaterThan(0);
     }
   });
 });

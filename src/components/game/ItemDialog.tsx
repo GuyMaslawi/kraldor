@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/ui/CloseButton";
 import { useState, useTransition } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { Icon, RESOURCE_ICON, RESOURCE_ICON_COLOR } from "@/components/ui/Icon";
@@ -36,12 +37,15 @@ import {
  * Full-screen detail dialog for a single hero item: shows its stats large and
  * offers the three actions — wear/remove, upgrade to the next tier level (for
  * gold), and discard. Opened by clicking a tile in the bag or on the hero.
+ * A bag tile can stand for several identical copies (`copies`); the actions
+ * still act on the one copy this dialog was opened with.
  */
 export function ItemDialog({
   item,
   heroLevel,
   gold,
   equipped,
+  copies = 1,
   wheelSpinBonus = 0,
   forgeDiscount = false,
   onClose,
@@ -49,6 +53,12 @@ export function ItemDialog({
   item: HeroItemView;
   heroLevel: number;
   gold: number;
+  /**
+   * How many identical copies the player holds — the bag draws them as one
+   * stacked tile. Every action here still touches a single copy, so the dialog
+   * says so rather than letting the stack imply otherwise.
+   */
+  copies?: number;
   /** Whether this item is currently worn (shows "remove" instead of "wear"). */
   equipped: boolean;
   /** Wheel-luck upgrade bonus (fraction) added to the discard spin chance. */
@@ -161,14 +171,15 @@ export function ItemDialog({
             {t("סט:")}{" "}
             <span className="text-zinc-300">{t(itemSetForLevel(level).label)}</span>
           </p>
+          {/* Only while this copy is still part of the stack: an upgrade here
+              lifts it to a level of its own, and the count stops applying. */}
+          {copies > 1 && level === item.level && (
+            <p className="nums mt-1 text-[11px] font-bold text-gold-dim">
+              {t("×{count} בתיק — כל פעולה כאן חלה על עותק אחד", { count: copies })}
+            </p>
+          )}
         </div>
-        <button
-          onClick={onClose}
-          aria-label={t("סגור")}
-          className="btn btn-ghost -mt-1 h-8 w-8 !p-0 text-base"
-        >
-          ✕
-        </button>
+        <CloseButton onClick={onClose} className="-mt-1" />
       </div>
 
       <div className="rule-gold my-4" />

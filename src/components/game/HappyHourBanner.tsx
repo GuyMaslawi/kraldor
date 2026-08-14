@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useScrollLock } from "@/components/ui/scrollLock";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { pollHappyHour, type HappyHourState } from "@/server/actions/happyHour";
 import { HAPPY_HOUR_EFFECTS } from "@/lib/game/happyHour";
 import { useDir, useT } from "@/i18n/client";
@@ -181,6 +182,11 @@ function Takeover({ state, onDone }: { state: HappyHourState; onDone: () => void
       <div className="hh-rays" aria-hidden />
       <div className="hh-shock" aria-hidden />
       <div className="hh-shock hh-shock--second" aria-hidden />
+
+      {/* Same reasoning as the mini-game takeover's: a tap anywhere always
+          closed this, but nothing on screen said so, and the CTA is the only
+          marked control. Fixed to the viewport corner (see `.hh-close`). */}
+      <CloseButton onClick={close} tone="onDark" label={t("סגור את ההודעה")} className="hh-close" />
       {/* Deterministic spread rather than random: a fixed comb of embers looks
           like a designed rain, and re-renders identically. */}
       {Array.from({ length: 14 }).map((_, i) => (

@@ -877,15 +877,15 @@ export function BossLadder({
                       <b className="nums" dir="ltr">{int(bossTurnCost(boss.tier))}</b>
                     </span>
                     <span className="flex items-center gap-1 text-gold-bright">
-                      <Icon name="gold" size={12} /> {t("שלל מחזור")}
+                      <Icon name="gold" size={12} /> {t("שלל למנה")}
                       <b className="nums" dir="ltr">{formatShort(reward.gold)}</b>
                     </span>
                     <span className="flex items-center gap-1 text-bone-bright">
-                      <Icon name="heart" size={12} /> {t("חיים")}
+                      <Icon name="heart" size={12} /> {t("מנה לשחקן")}
                       <b className="nums" dir="ltr">{formatShort(maxHp)}</b>
                     </span>
                     <span className="flex items-center gap-1 text-sky-300">
-                      <Icon name="army" size={12} /> {t("יציאות")}
+                      <Icon name="army" size={12} /> {t("יציאות למנה")}
                       <b className="nums" dir="ltr">
                         {Number.isFinite(sorties) ? sorties : "—"}
                       </b>

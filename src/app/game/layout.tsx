@@ -26,6 +26,7 @@ import { InboxNav } from "@/components/game/InboxNav";
 import { AdminNav } from "@/components/game/AdminNav";
 import { ImpersonationBanner } from "@/components/game/ImpersonationBanner";
 import { WarAlerts } from "@/components/game/WarAlerts";
+import { AnnouncementDialog } from "@/components/game/AnnouncementDialog";
 import { ChatDock } from "@/components/game/ChatDock";
 import { ActivePotions } from "@/components/game/ActivePotions";
 import { FervorGauge } from "@/components/game/FervorGauge";
@@ -197,6 +198,10 @@ export default async function GameLayout({ children }: { children: ReactNode }) 
       <ImpersonationBanner empireName={empire.name} />
       {/* Live toasts for incoming attacks / spies / messages. */}
       <WarAlerts />
+      {/* The herald: an admin's announcement, in the middle of the screen and
+          once. Free to render — it reads the inbox pulse the toasts and the
+          badges already run, and returns null unless something is waiting. */}
+      <AnnouncementDialog />
       {/* The day's chest, on the first game screen of the day and nowhere else.
           Free to render: buildStreakState reads columns requireEmpire has
           already loaded, and the component returns null the moment the roll is

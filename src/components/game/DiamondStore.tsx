@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/ui/CloseButton";
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
@@ -422,6 +423,17 @@ function CheckoutModal({
           aria-hidden
           className="pointer-events-none absolute -top-16 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-sky-400/15 blur-3xl"
         />
+
+        {/* Every branch of this card already ends in a "ביטול"/"הבנתי" button,
+            but with the buyer-details form open that button is a scroll away on
+            a phone — so there is a ✕ at the top as well. Not while redirecting:
+            the card says "אל תסגור את החלון" in that state and offering a
+            close would contradict it. */}
+        {!redirecting && (
+          <div className="sticky top-0 z-20 -mt-2 mb-1 flex justify-end">
+            <CloseButton onClick={onClose} label={t("סגור את חלון הרכישה")} />
+          </div>
+        )}
 
         {redirecting ? (
           <div className="relative space-y-3 text-center">

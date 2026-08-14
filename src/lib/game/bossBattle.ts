@@ -128,7 +128,15 @@ export function bossAssaultDuration(rounds: number): number {
 export const BOSS_HP_PER_POWER = 18;
 
 /**
- * The health pool one life of the boss of `cities` carries.
+ * **One empire's share** of a boss life's health pool.
+ *
+ * Every figure in this file is calibrated against this number rather than
+ * against the shared pool the city actually faces: it is what three marches at
+ * the printed wall come to, and — more importantly — it is the divisor loot is
+ * priced against (`bossChipFraction`). A city of ten meets a tyrant ten times as
+ * deep (`bossSharedMaxHp`) and each empire is still paid for its damage as a
+ * share of *this*, which is what makes sharing the fixture a social change
+ * rather than a tenfold pay cut.
  *
  * `powerMultiplier` is the admin scalar on the boss's printed power (so the pool
  * follows the wall it advertises), and `hpMultiplier` scales only the pool — the
@@ -143,6 +151,30 @@ export function bossSiegeMaxHp(
   return Math.round(
     bossPower(cities, powerMultiplier) * BOSS_HP_PER_POWER * Math.max(0.01, hpMultiplier)
   );
+}
+
+/**
+ * The pool a *shared* life carries: one empire's share × the empires in the city.
+ *
+ * Frozen onto the row at spawn and never recomputed, for the reason
+ * `worldBossMaxHp` is frozen — a tyrant that got deeper because somebody founded
+ * a city on Thursday would punish the city for growing, and would silently
+ * change the denominator of a fight already half fought.
+ *
+ * The head count is the *whole* city, not the players who happen to be awake.
+ * Sizing it to attendance would make a quiet night's tyrant a windfall for
+ * whoever noticed, and there is no penalty for a city that never fells its boss:
+ * chip loot is paid per march regardless, so an unattended pool costs the city
+ * the kill purse and nothing else.
+ */
+export function bossSharedMaxHp(
+  cities: number,
+  participants: number,
+  powerMultiplier = 1,
+  hpMultiplier = 1
+): number {
+  const heads = Math.max(1, Math.floor(participants) || 1);
+  return Math.round(bossSiegeMaxHp(cities, powerMultiplier, hpMultiplier) * heads);
 }
 
 /**
@@ -898,19 +930,26 @@ export function bossGrade(
 /* ------------------------------ splitting the haul ------------------------------ */
 
 /**
- * How the cycle's haul divides between wearing the boss down and felling it.
+ * How a life's haul divides between wearing the boss down and felling it.
  *
  * The chip share is what makes a sortie that fails to kill still worth marching:
  * loot arrives in proportion to the damage dealt, so an under-powered empire can
- * work at the boss across several sorties and be paid for the work. The kill
- * share is the hoard behind the gates, and it is the only part the grade
- * multiplies — it is also the only part that cannot be farmed, since a siege can
- * be killed once per cycle.
+ * work at the boss across several sorties and be paid for the work. It is paid
+ * at each settle.
  *
- * Because chip loot is pro-rata against `maxHp`, the two together pay at most
- * `BOSS_CHIP_SHARE + BOSS_KILL_SHARE × grade bonus` of the haul per cycle, no
- * matter how many sorties it took. That bound is what replaced the old
- * one-victory-per-cycle cap.
+ * The kill share is the hoard behind the gates, and it is the only part the
+ * grade multiplies. Since the tyrant became a shared fixture it is **not** the
+ * slayer's alone: when the life falls, the purse is shared out over everyone who
+ * wounded it, each on the same `damage ÷ share of the pool` basis as their chip
+ * loot (see `bossKillShareFraction` and `payKillSpoils`). What belongs to the
+ * blow that closed it is the grade, the gear it leaves behind and the line in
+ * the public room — the moment, not the money.
+ *
+ * Because both halves are pro-rata against one empire's share of the pool, an
+ * empire takes at most `BOSS_CHIP_SHARE + BOSS_KILL_SHARE × grade bonus` of the
+ * haul out of a life however many sorties it spent — which is the economic bound
+ * that replaced the old one-victory-per-cycle cap, and it survives sharing
+ * unchanged.
  */
 export const BOSS_CHIP_SHARE = 0.55;
 export const BOSS_KILL_SHARE = 0.45;
@@ -926,15 +965,40 @@ export const BOSS_KILL_SHARE = 0.45;
  */
 export const BOSS_ROUT_LOOT_PENALTY = 0.5;
 
-/** Fraction of the cycle's haul earned by dealing `damage` out of `maxHp`. */
-export function bossChipFraction(damage: number, maxHp: number): number {
-  if (maxHp <= 0) return 0;
-  return Math.min(1, Math.max(0, damage) / maxHp) * BOSS_CHIP_SHARE;
+/**
+ * Fraction of the haul earned by dealing `damage` out of `share`.
+ *
+ * `share` is **one empire's share of the pool** (`bossSiegeMaxHp`), never the
+ * shared pool the city faces. Passing `maxHp` off a shared siege row would divide
+ * every payout by the head count — the one mistake that turns this fixture from
+ * a shared fight into a shared wage.
+ */
+export function bossChipFraction(damage: number, share: number): number {
+  if (share <= 0) return 0;
+  return Math.min(1, Math.max(0, damage) / share) * BOSS_CHIP_SHARE;
 }
 
-/** Fraction of the cycle's haul the killing blow pays, grade included. */
+/** Fraction of the haul the kill purse pays in full, grade included. */
 export function bossKillFraction(grade: BossGrade): number {
   return BOSS_KILL_SHARE * BOSS_GRADE_BONUS[grade];
+}
+
+/**
+ * One besieger's cut of the kill purse: their damage against one empire's share
+ * of the pool, times the purse the closing blow's grade earned.
+ *
+ * Same denominator as `bossChipFraction` on purpose. An empire that did a full
+ * share's worth of damage takes a full kill purse, so felling a tyrant with ten
+ * people pays each of them what felling it alone used to — and an empire that
+ * landed one march takes the slice of the purse that march was worth.
+ */
+export function bossKillShareFraction(
+  damage: number,
+  share: number,
+  grade: BossGrade
+): number {
+  if (share <= 0) return 0;
+  return Math.min(1, Math.max(0, damage) / share) * bossKillFraction(grade);
 }
 
 /**

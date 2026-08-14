@@ -125,6 +125,10 @@ export interface ItemTileDetails {
  * tile locked (dimmed + 🔒). The tooltip floats in a portal, so it survives
  * scrolling grids and screen edges without being clipped.
  *
+ * `count` marks the tile as a stack of identical copies: an ×N badge in the
+ * corner and a matching tooltip line. Passed by the bag, where duplicates share
+ * one tile.
+ *
  * `still` strips the moving parts (the light sweep, the twinkles, the breathing
  * aura) and keeps only the static rarity frame. The shimmer is a treasure
  * effect for the handful of pieces on the hero's body or in the bag; a wall of
@@ -140,6 +144,7 @@ export function ItemTile({
   size = "md",
   details,
   still = false,
+  count,
 }: {
   slug?: string;
   icon: string;
@@ -149,6 +154,8 @@ export function ItemTile({
   size?: "sm" | "md" | "lg";
   details?: ItemTileDetails;
   still?: boolean;
+  /** How many identical copies this tile stands for; ×N is drawn from 2 up. */
+  count?: number;
 }) {
   const t = useT();
   const [imgOk, setImgOk] = useState(false);
@@ -196,6 +203,11 @@ export function ItemTile({
         <p className="text-[10px] text-zinc-500">
           {t("סט:")}{" "}
           <span className="text-zinc-300">{t(itemSetForLevel(level).label)}</span>
+        </p>
+      )}
+      {count != null && count > 1 && (
+        <p className="nums mt-0.5 text-[10px] font-bold text-gold-dim">
+          {t("×{count} עותקים זהים", { count })}
         </p>
       )}
 
@@ -345,6 +357,16 @@ export function ItemTile({
             className="absolute bottom-1 left-1 rounded bg-black/80 px-1 text-[11px]"
           >
             🔒
+          </span>
+        )}
+        {/* stack size — identical copies share one slot in the bag's grid */}
+        {count != null && count > 1 && (
+          <span
+            className={`nums absolute bottom-1 right-1 rounded border border-white/15 bg-black/80 px-1 py-0.5 text-[10px] font-black ${r.badge}`}
+            dir="ltr"
+            title={t("×{count} עותקים זהים", { count })}
+          >
+            ×{count}
           </span>
         )}
         {details?.equipped && (

@@ -375,8 +375,10 @@ const DAY_MS = 86_400_000;
  * forever. Without an active season everything falls back to day 1.
  *
  * Note this is a *day*, not the wheel's per-daily-update `seasonCycle`: the
- * pass refreshes twice a day but its payouts are priced once per day, so both
- * of a day's ladders are worth the same.
+ * pass refreshes twice a day but its payouts are priced once per day, so two
+ * consecutive ladders are usually worth the same — they differ only across the
+ * one boundary a day where the season's own day rolls over, and each ladder is
+ * priced once, at its start (see `seasonPassPricing`).
  */
 export function seasonPassDay(
   season: Pick<GameSeason, "startsAt" | "endsAt"> | null | undefined,
@@ -410,11 +412,27 @@ export interface SeasonPassPricing {
   days: number;
 }
 
+/**
+ * Price a ladder at an instant — which is the **cycle's start**, not `now`.
+ *
+ * The season day rolls over on the season's own start-of-day offset (whatever
+ * hour an admin happened to open it), while the ladder refills on the game
+ * clock's 07:30/19:30 boundaries. Priced at `now`, those two disagree inside a
+ * single cycle: the rungs a player was looking at silently grew mid-ladder —
+ * the one thing the modal promises does not happen ("both refills are worth the
+ * same") — and holding a claim back until after the flip paid a full day's
+ * growth (×1.5 on a 30-day season) for waiting. Pinned to the cycle start, every
+ * rung of one ladder is worth what it said it was worth when the ladder opened,
+ * whenever it is collected.
+ */
 export function seasonPassPricing(
   season: Pick<GameSeason, "startsAt" | "endsAt"> | null | undefined,
-  now: number
+  cycleStartedAt: number
 ): SeasonPassPricing {
-  return { day: seasonPassDay(season, now), days: seasonPassDays(season) };
+  return {
+    day: seasonPassDay(season, cycleStartedAt),
+    days: seasonPassDays(season),
+  };
 }
 
 /** Quantity a reward pays at a given point in the season. */
@@ -423,9 +441,16 @@ export function seasonPassRewardAmount(
   pricing: SeasonPassPricing
 ): number {
   // 0 on day 1, 1 on the last day — the season's length only sets the pace.
+  //
+  // A season one day long (and the no-season fallback, which reports the same
+  // shape) is day *one*, so it sits at 0. It used to sit at 1, which is the
+  // season's **final day** — so with no active `GameSeason` row the ladder paid
+  // its end-of-season ceiling from the very first cycle: 1.67B gold on rung one,
+  // 33B for a free clear, twice a day. Every window without an active season —
+  // a local database, the gap between two seasons — minted the endgame economy.
   const progress =
     pricing.days <= 1
-      ? 1
+      ? 0
       : Math.min(
           1,
           Math.max(0, (Math.max(pricing.day, 1) - 1) / (pricing.days - 1))

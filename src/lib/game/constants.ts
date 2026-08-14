@@ -828,9 +828,11 @@ export function empireUpgradeMaxLevel(
 
 /**
  * The generic ladder — CITIZEN_GROWTH, INTELLIGENCE and BANK_DEPOSIT_COUNT all
- * price against it. The base is a full day of a brand-new empire's gold income,
- * so the very first rung costs something; the old `1,700 × level` opened at 7%
- * of a day and was the purchase playtesters described as free.
+ * price against it, citizens through the ×
+ * {@link CITIZEN_UPGRADE_COST_MULTIPLIER} of their own. The base is a full day
+ * of a brand-new empire's gold income, so the very first rung costs something;
+ * the old `1,700 × level` opened at 7% of a day and was the purchase
+ * playtesters described as free.
  */
 const EMPIRE_UPGRADE_BASE_COST = {
   gold: 25_000,
@@ -847,7 +849,8 @@ const EMPIRE_UPGRADE_BASE_COST = {
  * city by 2.5 per tier — and 1.1¹⁰ ≈ 2.59. So ten citizen rungs cost about what
  * one city tier costs, and the ladder stays pinned to the pace at which the game
  * unlocks it however far an empire gets. The full 100-rung citizen ladder now
- * totals ~3.1B, against ~8.4M before.
+ * totals ~31B — ~3.1B on the shared base, times
+ * {@link CITIZEN_UPGRADE_COST_MULTIPLIER} — against ~8.4M before.
  *
  * The two short ladders that share this curve land where they should as a
  * side effect: all 14 intelligence rungs come to ~700K, all 8 bank-deposit
@@ -865,6 +868,29 @@ export function empireUpgradeCost(level: number) {
   };
 }
 
+/**
+ * Citizens ride on the same ×1.1 curve as intelligence and bank deposits, but
+ * off a base ten times higher. The shape is right — ten rungs still cost about
+ * one city tier, see {@link EMPIRE_UPGRADE_COST_GROWTH} — the *level* was not:
+ * citizens are the raw material of every soldier, the ladder is by far the
+ * longest of the three (ten rungs per city, so 100 at {@link MAX_CITIES}), and
+ * at 25K opening gold it read as free in play. The other two ladders are short
+ * and capped, so they keep the plain base.
+ */
+export const CITIZEN_UPGRADE_COST_MULTIPLIER = 10;
+
+/** Cost to take citizen intake from `level` to `level + 1`. */
+export function citizenGrowthUpgradeCost(level: number) {
+  const base = empireUpgradeCost(level);
+  const m = CITIZEN_UPGRADE_COST_MULTIPLIER;
+  return {
+    gold: base.gold * m,
+    wood: base.wood * m,
+    iron: base.iron * m,
+    stone: base.stone * m,
+  };
+}
+
 /** Cost to take the turns gain from `level` to `level + 1`. */
 export function turnsUpgradeCost(level: number) {
   const g = TURNS_UPGRADE_COST_GROWTH;
@@ -878,6 +904,7 @@ export function turnsUpgradeCost(level: number) {
 
 /** Cost to upgrade the given empire upgrade from `level` to `level + 1`. */
 export function empireUpgradeCostFor(type: EmpireUpgradeType, level: number) {
+  if (type === "CITIZEN_GROWTH") return citizenGrowthUpgradeCost(level);
   if (type === "TURNS_PER_REGULAR_UPDATE") return turnsUpgradeCost(level);
   if (type === "WHEEL_LUCK") return wheelLuckUpgradeCost(level);
   if (type === "BANK_DAILY_INTEREST") return bankInterestUpgradeCost(level);

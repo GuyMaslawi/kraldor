@@ -39,6 +39,9 @@ import {
   attackWinXp,
   effectiveHeroLevel,
   levelGapXpFactor,
+  resetGapXpFactor,
+  RESET_GAP_XP_DECAY,
+  MIN_RESET_GAP_XP_FACTOR,
   atSetCeiling,
   canEquipItem,
   canUpgradeItem,
@@ -182,6 +185,51 @@ describe("battle XP", () => {
     expect(xpToNextLevel(30) / gain).toBeLessThan(4);
     // …and still strictly more than the same fight against your own level.
     expect(gain).toBeGreaterThan(attackWinXp(me, me, 1e9, 0.015 * 1e9));
+  });
+
+  it("pays a prestiged hero in full only against his own weight class", () => {
+    // The rule as a player reads it: as many resets as you, or more, is full pay.
+    expect(resetGapXpFactor(0, 0)).toBe(1);
+    expect(resetGapXpFactor(2, 2)).toBe(1);
+    expect(resetGapXpFactor(1, 3)).toBe(1);
+    // Every reset you stand above him halves it, down to the floor.
+    expect(resetGapXpFactor(1, 0)).toBeCloseTo(RESET_GAP_XP_DECAY);
+    expect(resetGapXpFactor(2, 0)).toBeCloseTo(RESET_GAP_XP_DECAY ** 2);
+    expect(resetGapXpFactor(9, 0)).toBe(MIN_RESET_GAP_XP_FACTOR);
+    // Never zero: a win is always worth something.
+    expect(resetGapXpFactor(50, 0)).toBeGreaterThan(0);
+  });
+
+  it("makes farming un-reset players a poor ladder after a reset", () => {
+    const rookie = { level: 40, resets: 0 };
+    const power = 100_000;
+    // A hero fresh off a reset, pointing his kept army at someone who has
+    // never prestiged: the same fight pays a fraction of what it pays a peer.
+    const prestiged = { level: 1, resets: 1 };
+    const peer = { level: 1, resets: 0 };
+    expect(attackWinXp(prestiged, rookie, power, power)).toBeLessThan(
+      attackWinXp(peer, rookie, power, power) / 2
+    );
+    // …and a second reset cuts it again.
+    expect(attackWinXp({ level: 1, resets: 2 }, rookie, power, power)).toBeLessThan(
+      attackWinXp(prestiged, rookie, power, power)
+    );
+  });
+
+  it("leaves a fight against equal prestige exactly where it was", () => {
+    // The gate must not tax the fights it is meant to push players toward: two
+    // heroes of the same standing pay each other the same at every reset count.
+    const power = 100_000;
+    const zero = attackWinXp(
+      { level: 30, resets: 0 },
+      { level: 30, resets: 0 },
+      power,
+      power
+    );
+    for (const resets of [1, 2, 5]) {
+      const me = { level: 30, resets };
+      expect(attackWinXp(me, me, power, power)).toBe(zero);
+    }
   });
 
   it("has no defence counterpart — repelling a raid pays nothing", () => {

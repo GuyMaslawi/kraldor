@@ -49,6 +49,7 @@ import {
 } from "@/lib/game/bossBattle";
 import {
   BOSS_REVIVE_MS,
+  BOSS_REWARD_SCALE,
   bossHeroXp,
   bossPower,
   bossReviveMs,
@@ -322,16 +323,27 @@ describe("the balance the whole fight rests on", () => {
   });
 
   it("makes an army at the printed wall fight a siege, not press a button", () => {
-    // The 2026-08-06 rebalance, and the reason BOSS_HP_PER_POWER exists. At 6.5 a
-    // parity army took ~98% of the pool off in one march and the whole encounter
-    // was one click; three marches is the shape the fight is tuned for now.
+    // The reason BOSS_HP_PER_POWER exists. At 6.5 a parity army took ~98% of the
+    // pool off in one march and the whole encounter was one click; 2026-08-06
+    // made that three marches, and 2026-08-14 made it five on the instruction
+    // that the tyrant should simply be hard.
     const dealt = bossExpectedSortieDamage(power, 1, true);
-    expect(dealt).toBeLessThan(maxHp / 2);
-    expect(bossSortiesToKill(power, maxHp, 1, true)).toBe(3);
-    // ...and it stays a siege for a good hero too: the hero buys comfort inside
-    // the three, not a way around them.
-    expect(bossSortiesToKill(power, maxHp, 30, true)).toBe(3);
-    expect(bossSortiesToKill(power, maxHp, 60, true)).toBe(3);
+    expect(dealt).toBeLessThan(maxHp / 4);
+    expect(bossSortiesToKill(power, maxHp, 1, true)).toBe(5);
+    expect(bossSortiesToKill(power, maxHp, 30, true)).toBe(5);
+  });
+
+  it("lets a levelled hero buy back a whole assault at the wall", () => {
+    // New at 2026-08-14, and the half of that pass that is not a nerf. At 18 HP
+    // per power every hero from 1 to 100 needed the same three marches, so
+    // levelling bought comfort inside the fight and nothing a player could
+    // count. At 30 the read rate is worth a whole assault — 20% of the turn
+    // price of a kill — which is the one thing the longer siege gives back.
+    expect(bossSortiesToKill(power, maxHp, 60, true)).toBe(4);
+    expect(bossSortiesToKill(power, maxHp, 100, true)).toBe(4);
+    expect(bossSortiesToKill(power, maxHp, 100, true)).toBeLessThan(
+      bossSortiesToKill(power, maxHp, 1, true)
+    );
   });
 
   it("makes the hero, not just the army, move the projection", () => {
@@ -342,12 +354,16 @@ describe("the balance the whole fight rests on", () => {
     expect(bossExpectedSortieDamage(power, 60, false)).toBeLessThan(weak);
   });
 
-  it("reads the printed power as a ladder: triple ends it in one, double in two", () => {
+  it("reads the printed power as a ladder: triple ends it in two, double in three", () => {
     // The wall is not a pass/fail line — it is a scale a player can locate
-    // themselves on, and every rung has to be worth climbing to.
-    expect(bossSortiesToKill(power * 3, maxHp, 1, true)).toBe(1);
-    expect(bossSortiesToKill(power * 2, maxHp, 1, true)).toBe(2);
-    expect(bossSortiesToKill(power / 2, maxHp, 1, true)).toBeGreaterThan(3);
+    // themselves on, and every rung has to be worth climbing to. Each rung moved
+    // up by the 2026-08-14 pool raise, but the *shape* is the invariant: more
+    // army is always strictly fewer marches, and never a one-click kill.
+    expect(bossSortiesToKill(power * 3, maxHp, 1, true)).toBe(2);
+    expect(bossSortiesToKill(power * 2, maxHp, 1, true)).toBe(3);
+    expect(bossSortiesToKill(power / 2, maxHp, 1, true)).toBeGreaterThan(5);
+    // Nothing short of a truly overwhelming army removes a life in one march.
+    expect(bossSortiesToKill(power * 3, maxHp, 1, true)).toBeGreaterThan(1);
   });
 
   it("still answers 'how many assaults' for an army far below the wall", () => {
@@ -877,18 +893,27 @@ describe("the reward scale-up", () => {
     }
   });
 
-  it("raises the haul by more than it raised the pool", () => {
-    // The whole bargain of the 2026-08-06 rebalance: the tyrant costs ~4.6x the
-    // turns it used to, so it has to pay more than 4.6x or "harder" is a nerf
-    // with a story attached. Chip loot is pro-rata against the pool, so this
-    // ratio *is* the loot-per-turn any army earns, whatever its size.
-    const before = { power: 12_000, hpPerPower: 6.5, scale: 2.5 };
-    const harder = (bossPower(1) * BOSS_HP_PER_POWER) / (before.power * before.hpPerPower);
-    const richer = bossReward(1, 1).gold / (50_000 * before.scale);
-    expect(harder).toBeGreaterThan(4);
-    expect(richer).toBeGreaterThan(harder);
-    // ...and not so much richer that the boss becomes the only thing worth doing.
-    expect(richer / harder).toBeLessThan(1.5);
+  it("charges the 2026-08-14 difficulty raise to the haul, on purpose", () => {
+    // This test used to assert the opposite, and the reversal is the point.
+    //
+    // 2026-08-06 struck a bargain: the tyrant cost ~4.6× the turns it used to,
+    // so it was paid more than 4.6× — "harder, and worth it". That left the boss
+    // the best-paying turn in the game, which is exactly what 2026-08-14 was
+    // told to stop. So the pool went up ×2.5 (BOSS_BASE_POWER ×1.5 into
+    // BOSS_HP_PER_POWER ×1.67) and BOSS_REWARD_SCALE was left alone.
+    //
+    // Chip loot is pro-rata against the pool, so this ratio *is* the loot-per-turn
+    // every army earns, whatever its size: the boss now pays ~40% of what it did.
+    const before = { power: 20_000, hpPerPower: 18 };
+    const harder =
+      (bossPower(1) * BOSS_HP_PER_POWER) / (before.power * before.hpPerPower);
+    expect(harder).toBeCloseTo(2.5, 1);
+    // The haul did not move with it — pinned here so nobody "fixes" the nerf
+    // back by quietly raising the scale alongside a future pool change.
+    expect(BOSS_REWARD_SCALE).toBe(15);
+    // Still worth marching on, though: a felled first-city tyrant on day one is
+    // worth far more than the turns it cost as ordinary attacks would have been.
+    expect(bossReward(1, 1).gold).toBeGreaterThan(500_000);
   });
 });
 

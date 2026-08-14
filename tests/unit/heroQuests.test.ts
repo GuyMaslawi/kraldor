@@ -8,6 +8,7 @@ import {
   heroQuestDurationMs,
   heroQuestFortuneByKey,
   heroQuestHours,
+  heroQuestCityCostFactor,
   heroQuestTurnCost,
   heroQuestUnlocked,
   heroQuestXp,
@@ -91,6 +92,45 @@ describe("turn cost", () => {
   it("still costs more in absolute turns for a longer run", () => {
     for (let t = 2; t <= MAX_CITIES; t++) {
       expect(heroQuestTurnCost(t)).toBeGreaterThan(heroQuestTurnCost(t - 1));
+    }
+  });
+
+  it("leaves a one-city empire's board exactly where it was", () => {
+    // The 2026-08-14 surcharge is aimed at the late game, where the haul has
+    // grown ×2,642 against a price that had not moved at all. A beginner's board
+    // is untouched, and that is deliberate: at one city the boss already
+    // out-earns the quest several times over per turn.
+    expect(heroQuestCityCostFactor(1)).toBe(1);
+    for (let t = 1; t <= MAX_CITIES; t++) {
+      expect(heroQuestTurnCost(t, 1)).toBe(heroQuestTurnCost(t));
+    }
+  });
+
+  it("prices a quest against the empire sending it, not the rung alone", () => {
+    // The structural fix: the haul is keyed to the city count, so the price has
+    // to be too, exactly as the boss's turn cost is (BOSS_TURN_COST_PER_CITY).
+    for (let cities = 2; cities <= MAX_CITIES; cities++) {
+      expect(heroQuestCityCostFactor(cities)).toBeGreaterThan(
+        heroQuestCityCostFactor(cities - 1)
+      );
+      expect(heroQuestTurnCost(1, cities)).toBeGreaterThan(
+        heroQuestTurnCost(1, cities - 1)
+      );
+    }
+    // A ten-city empire pays several times over for the same errand.
+    expect(heroQuestTurnCost(MAX_CITIES, MAX_CITIES)).toBeGreaterThan(
+      heroQuestTurnCost(MAX_CITIES) * 5
+    );
+  });
+
+  it("keeps the long rungs the turn-efficient ones at every city count", () => {
+    // The surcharge is a flat factor, so rule 3 in the header survives it: what
+    // unlocking a long run buys is still turns per hour, at one city and at ten.
+    for (const cities of [1, 5, MAX_CITIES]) {
+      const perHour = (t: number) => heroQuestTurnCost(t, cities) / heroQuestHours(t);
+      for (let t = 2; t <= MAX_CITIES; t++) {
+        expect(perHour(t)).toBeLessThan(perHour(t - 1));
+      }
     }
   });
 });

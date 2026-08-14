@@ -190,18 +190,27 @@ export function bossTurnCost(cities: number): number {
 /* ------------------------------ power ------------------------------ */
 
 /**
- * Attack power the first city's boss fields — ~2,000 soldiers, or the same power
- * bought as weapons (the weapon table pays exactly 1 power per 10 gold at every
- * tier).
+ * Attack power the first city's boss fields — the same power bought as weapons
+ * (the weapon table pays exactly 1 power per 10 gold at every tier).
  *
- * Raised from 12,000 on 2026-08-06. Twelve thousand was "what a player holds
- * after their first week", which made the very first tyrant something you walked
- * past on the way to the second one. The wall a boss advertises should be an
- * army you had to *decide* to build, so it is now a good fortnight's worth — and
- * because the health pool is a multiple of this number (`bossSiegeMaxHp`),
+ * Raised twice, and the second raise changed what the number is for:
+ *
+ *  - **12,000 → 20,000 (2026-08-06).** Twelve thousand was "what a player holds
+ *    after their first week", which made the very first tyrant something you
+ *    walked past on the way to the second one. The wall a boss advertises should
+ *    be an army you had to *decide* to build.
+ *  - **20,000 → 30,000 (2026-08-14).** On the instruction that the tyrant should
+ *    be hard to beat, full stop. Read this one together with
+ *    {@link BOSS_HP_PER_POWER}, which went 18 → 30 on the same pass: the pool is
+ *    the product of the two, so a life now carries **2.5× the health it did**,
+ *    and — unlike 2026-08-06 — {@link BOSS_REWARD_SCALE} was deliberately left
+ *    where it was. See the note there for why that is the point rather than an
+ *    oversight.
+ *
+ * Because the health pool is a multiple of this number (`bossSiegeMaxHp`),
  * raising it raises the length of the siege by the same factor.
  */
-export const BOSS_BASE_POWER = 20_000;
+export const BOSS_BASE_POWER = 30_000;
 
 /**
  * Power multiplier per city tier. Matches CITY_COST_TIER_MULTIPLIER, so the
@@ -263,6 +272,14 @@ export const BOSS_REWARD_BASE: BossReward = {
  *    Six times the haul against 4.6× the work leaves the boss ~30% better per turn
  *    than it was, which is the intended shape: the most expensive thing you can
  *    point banked turns at is also the best-paying one.
+ *
+ * **Deliberately left at 15 by the 2026-08-14 pass**, which raised the pool ×2.5
+ * (`BOSS_BASE_POWER` ×1.5 into `BOSS_HP_PER_POWER` ×1.67) and paid nothing back.
+ * That is the opposite of what 2026-08-06 did, and it is the whole instruction:
+ * the tyrant was the best-paying turn in the game and was asked to stop being an
+ * easy one. Chip loot is pro-rata against the pool, so the boss now pays ~40% of
+ * what it did per turn — for every army, since the ratio is size-independent.
+ * `boss.rewardMultiplier` is the live dial if that reads as too much.
  *
  * A sortie that lands the kill with an S grade takes home `0.55 + 0.45 × 1.5` of
  * this — so a felled first-city tyrant is worth ~900k gold on day one, and the

@@ -46,7 +46,11 @@ import type { GloryView } from "@/lib/game/achievements";
  *   words for a reader who is listening rather than looking.
  * - **The reader**: their own progress — the gold light rising inside the
  *   alcove to `--glory-p` of its height, plus one small fraction at the floor.
- *   Never written out anywhere else.
+ *   Never written out anywhere else, and **only while the record is still
+ *   open**: the moment somebody in the world takes a capstone, the race for it
+ *   is over and how far the reader got stops being a question the wall answers.
+ *   A taken alcove keeps one mark about the reader and only one — the check, if
+ *   they reached the ceiling too — because that is a standing, not a meter.
  * - **The ceiling itself**: the engraved figure, which is the same for everyone
  *   and never moves.
  *
@@ -75,22 +79,27 @@ function GloryNiche({ item, index }: { item: GloryView; index: number }) {
   const won = item.unlocked;
   const open = item.record === null;
 
+  // The reader's own standing is only drawn while the record is still up for
+  // grabs. Once it is taken — by them or by anyone else — the tide and the
+  // fraction come off the wall: they measured a race that has been won.
+  const racing = open;
+
   // The tide and the counter read this one number. Held at 0 until the first
   // frame has committed, so the alcove fills from empty instead of being
   // painted full — see useAfterFirstPaint.
   const pct = item.goal > 0 ? Math.min(1, item.progress / item.goal) : 0;
-  const fill = painted ? pct : 0;
+  const fill = painted && racing ? pct : 0;
 
   // The counter rolls to the live figure. A capstone already earned shows a
   // check instead: it is pinned to full either way, and rolling "10 / 10" on a
   // ceiling reached weeks ago is noise.
-  const rolled = useCountUp(won ? 0 : Math.round(item.progress));
+  const rolled = useCountUp(won || !racing ? 0 : Math.round(item.progress));
 
   return (
     <li
       className={`glory-niche ${crowned ? "is-crowned" : ""} ${
         won ? "is-won" : ""
-      } ${open ? "is-open" : ""} ${pct <= 0 ? "is-dry" : ""}`}
+      } ${open ? "is-open" : ""} ${!racing || pct <= 0 ? "is-dry" : ""}`}
       style={{ "--i": index, "--glory-p": fill } as React.CSSProperties}
     >
       {/* The keystone at the apex of the arch — a plain lozenge, or the crown
@@ -104,7 +113,7 @@ function GloryNiche({ item, index }: { item: GloryView; index: number }) {
 
       <div className="glory-arch">
         <span className="glory-beam" aria-hidden />
-        <span className="glory-tide" aria-hidden />
+        {racing && <span className="glory-tide" aria-hidden />}
 
         <span className="glory-relic" aria-hidden>
           <Icon name={item.icon} size={30} />
@@ -127,18 +136,25 @@ function GloryNiche({ item, index }: { item: GloryView; index: number }) {
         </p>
         <p className="glory-unit">{t(item.unit)}</p>
 
-        {/* The reader's own standing, small, at the floor of the alcove. */}
-        <span className="glory-tally" dir="ltr">
-          {won ? (
-            <span className="glory-done" aria-label={t("הושג")}>
-              <Icon name="check" size={11} />
-            </span>
-          ) : (
-            <span className="nums">
-              {formatCompact(rolled)} / {formatCompact(item.goal)}
-            </span>
-          )}
-        </span>
+        {/* The reader's own standing, small, at the floor of the alcove. The
+            fraction is only there while the record is open — once it is taken,
+            a half-full bar toward a ceiling somebody else already reached is
+            measuring a finished race. The check survives being taken: it says
+            "you got here too", which stays true and stays interesting. The span
+            is absolutely positioned, so dropping it leaves no hole in the wall. */}
+        {(won || racing) && (
+          <span className="glory-tally" dir="ltr">
+            {won ? (
+              <span className="glory-done" aria-label={t("הושג")}>
+                <Icon name="check" size={11} />
+              </span>
+            ) : (
+              <span className="nums">
+                {formatCompact(rolled)} / {formatCompact(item.goal)}
+              </span>
+            )}
+          </span>
+        )}
 
         {/* The sentence version, kept off the wall: revealed on hover or when
             the plaque's link takes focus, and always present for a reader who

@@ -5576,8 +5576,10 @@ body {
   background: linear-gradient(90deg, transparent, var(--gold-bright), transparent);
   box-shadow: 0 0 9px 1px rgba(228, 195, 90, 0.45);
 }
-/* Nothing achieved yet: the waterline would otherwise sit on the floor and
-   read as a fixture rather than as a level. */
+/* Dry when there is nothing to measure — nothing achieved yet (the waterline
+   would otherwise sit on the floor and read as a fixture rather than as a
+   level), or the record already taken, in which case the component does not
+   render the tide at all: the race it measured is over. */
 .glory-niche.is-dry .glory-tide { display: none; }
 
 /* --- what stands in the alcove --- */

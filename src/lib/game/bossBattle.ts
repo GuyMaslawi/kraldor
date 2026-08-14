@@ -104,28 +104,38 @@ export function bossAssaultDuration(rounds: number): number {
  * it is a vending machine — and it made the printed power a pass/fail line rather
  * than something to grow past.
  *
- * At 18 an assault takes roughly a third of the pool at parity, so the shape of
- * the fight is a *siege*, and the printed power reads as a ladder:
+ * **And 18 until 2026-08-14, when it went to 30.** Three marches had become the
+ * number every serious empire planned around, which made the tyrant a routine on
+ * the calendar rather than the hardest thing in the game. At 30 an assault takes
+ * roughly a fifth of the pool at parity, so the shape of the fight is a *siege*,
+ * and the printed power reads as a ladder:
  *
  *  - a level-1 hero's officers read the tyrant right 45% of the time — ~6.3× the
- *    army's power per assault, so three marches at the wall, four under it.
- *  - a mid-level hero (~30) reads it 60% of the time, worth ~7.2×: still three,
- *    and the hero is what makes the third one comfortable rather than a coin flip.
- *  - an army at double the wall ends it in two, at triple in one.
+ *    army's power per assault, so five marches at the wall, more under it.
+ *  - a mid-level hero (~30) reads it 60% of the time, worth ~7.2×: still five.
+ *  - a hero at the cap reads it 75% of the time, worth ~8.1× — **four**, and that
+ *    is the change worth knowing about. At 18 every hero from 1 to 100 needed the
+ *    same three marches, so levelling bought comfort inside the fight and nothing
+ *    a player could count. It now buys a whole assault back, which is 20% of the
+ *    turn price of a kill.
+ *  - an army at double the wall ends it in three, at triple in two.
  *  - an unlucky assault underperforms and nothing more: since
  *    {@link BOSS_ROUND_LOSS_BASE} went to zero it cannot break the formation, so
  *    what a bad run costs is the turns and another march.
  *
- * Nobody is paid less for the longer siege: chip loot is pro-rata against this
- * pool, and `BOSS_REWARD_SCALE` went up by more than this did, so every army —
- * including one far under the wall, which now simply chips for longer — earns
- * about 30% more per turn than it did before the boss got hard.
+ * **The 2026-08-14 pass did not raise the haul with the wall**, which reverses the
+ * bargain 2026-08-06 struck (see {@link BOSS_REWARD_SCALE}). Chip loot is pro-rata
+ * against this pool, so together with `BOSS_BASE_POWER` going 20,000 → 30,000 the
+ * tyrant now pays about 40% of what it did per turn spent. That is the instruction
+ * being carried out, not a side effect: the boss was the best turn in the game and
+ * was meant to stop being easy. `boss.rewardMultiplier` is the live dial if the
+ * cut lands too hard.
  *
  * These figures are asserted in tests/unit/bossBattle.test.ts, because every
  * multiplier below moves them and "how many marches does the printed power cost
  * me" is the promise the printed power makes.
  */
-export const BOSS_HP_PER_POWER = 18;
+export const BOSS_HP_PER_POWER = 30;
 
 /**
  * **One empire's share** of a boss life's health pool.

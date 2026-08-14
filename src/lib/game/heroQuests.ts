@@ -210,17 +210,60 @@ export const HERO_QUEST_TURNS_PER_HOUR_BASE = 22;
 export const HERO_QUEST_TURNS_PER_HOUR_DROP = 1.6;
 
 /**
- * Turns to send the hero on a quest: 22 for the one-hour run, down to ~7.6 an
- * hour (182 turns) for the full-day run. Spent at departure and never refunded
- * — recalling the hero early is not offered, so there is nothing to refund.
+ * Extra turns demanded per city the empire holds, as a fraction of the rate
+ * above — the term that was missing until 2026-08-14, and the reason the board
+ * had quietly become the cheapest thing in the game.
+ *
+ * The payout scales with the empire (`HERO_QUEST_REWARD_CITY_MULTIPLIER`, ×2.4
+ * per city, ×2,642 across the ladder) and with the season day on top of that.
+ * The price did not scale with anything: the full-day run cost 182 turns at one
+ * city and 182 turns at ten. Measured at city 10 on day 30, that left the board
+ * paying **twice the city boss's gold per turn and nearly six times its hero XP
+ * per turn** — for a click that risks no army, needs no army, and cannot fail.
+ *
+ * So the price now climbs the same ladder the haul does, exactly as the boss's
+ * does (`BOSS_TURN_COST_PER_CITY`). At 0.65 a ten-city empire pays ×6.85 for the
+ * same run, which puts quest income back *under* the boss on both counts —
+ * where a risk-free errand belongs.
+ *
+ * **Keyed to cities, not to the quest's tier.** The tier already discounts the
+ * long runs (that is what unlocking them buys, see the header's rule 3) and a
+ * tier is capped by the city count anyway; keying the surcharge to the empire is
+ * what makes it track the payout, which is also keyed to the empire. It also
+ * leaves the early game untouched: at one city the factor is exactly 1, and a
+ * beginner's board is the board it always was — the boss already out-earns the
+ * quest ~7× per turn there, so there was never anything to fix at that end.
  */
-export function heroQuestTurnCost(tier: number): number {
+export const HERO_QUEST_TURNS_PER_CITY = 0.65;
+
+/**
+ * The surcharge an empire of `cities` pays on every quest: ×1 at one city,
+ * ×6.85 at ten.
+ */
+export function heroQuestCityCostFactor(cities: number): number {
+  return 1 + HERO_QUEST_TURNS_PER_CITY * (clampTier(cities) - 1);
+}
+
+/**
+ * Turns to send the hero on a quest: 22 for a one-city empire's one-hour run,
+ * down to ~7.6 an hour (182 turns) for its full-day run — then multiplied by
+ * `heroQuestCityCostFactor`, so the ten-city empire pays 1,247 turns for that
+ * same full-day run. Spent at departure and never refunded — recalling the hero
+ * early is not offered, so there is nothing to refund.
+ *
+ * `cities` defaults to 1 so a caller that only wants to compare the rungs to
+ * each other (the guide's price table) gets the un-surcharged ladder.
+ */
+export function heroQuestTurnCost(tier: number, cities = 1): number {
   const t = clampTier(tier);
   const perHour = Math.max(
     1,
     HERO_QUEST_TURNS_PER_HOUR_BASE - HERO_QUEST_TURNS_PER_HOUR_DROP * (t - 1)
   );
-  return Math.max(1, Math.round(HERO_QUEST_HOURS[t - 1] * perHour));
+  return Math.max(
+    1,
+    Math.round(HERO_QUEST_HOURS[t - 1] * perHour * heroQuestCityCostFactor(cities))
+  );
 }
 
 /* ------------------------------ rewards ------------------------------ */
@@ -379,10 +422,15 @@ export const HERO_QUEST_RICH_SHARE = 1.45;
 export const HERO_QUEST_LEAN_SHARE = 0.6;
 
 /**
- * Resource payout multiplier per city held. The same ×2.4 curve the city boss
- * pays on, so quest income keeps pace with the empire exactly as boss loot
- * does — and, like the boss, it is keyed to the empire's own city count so a
+ * Resource payout multiplier per city held, so quest income keeps pace with the
+ * empire — and, like the boss, it is keyed to the empire's own city count so a
  * lost city lowers it automatically.
+ *
+ * Slightly under the boss's own ×2.5 (`BOSS_REWARD_TIER_MULTIPLIER`, which was
+ * 2.4 when this comment first claimed the two matched). The gap is left as it is
+ * on purpose: `HERO_QUEST_TURNS_PER_CITY` is the term that prices this curve, and
+ * it is keyed to the same city count, so the two are held in step by the *price*
+ * rather than by the two multipliers being equal.
  */
 export const HERO_QUEST_REWARD_CITY_MULTIPLIER = 2.4;
 

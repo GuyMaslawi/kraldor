@@ -25,6 +25,7 @@ import {
   matchupXpFactor,
   effectiveHeroLevel,
   levelGapXpFactor,
+  resetGapXpFactor,
   tierForLevel,
   upgradeStep,
   xpToNextLevel,
@@ -596,8 +597,9 @@ export function HeroXpCalc() {
   const foeEff = effectiveHeroLevel(foeLevel, foeResets);
   const base = 40 + level * 10;
   const gap = levelGapXpFactor(ownEff, foeEff);
+  const resetGap = resetGapXpFactor(resets, foeResets);
   const matchup = matchupXpFactor(ownPower, foePower);
-  const raw = Math.round(base * gap * matchup);
+  const raw = Math.round(base * gap * resetGap * matchup);
   const withClass = Math.round(raw * (shadow ? 1.1 : 1));
   const gain = withClass * (potion ? 2 : 1);
 
@@ -613,7 +615,11 @@ export function HeroXpCalc() {
           hint={t("רמה אפקטיבית {p0}", { p0: int(ownEff) })} />
         <Field label={t("רמת גיבור היריב")} icon="hero" value={foeLevel} onChange={setFoeLevel} min={1} max={100} />
         <Field label={t("איפוסי היריב (↻)")} icon="crown" value={foeResets} onChange={setFoeResets} max={20}
-          hint={t("רמה אפקטיבית {p0} — פער ×{p1}", { p0: int(foeEff), p1: gap.toFixed(2) })} />
+          hint={
+            resetGap < 1
+              ? t("רמה אפקטיבית {p0} — פער ×{p1}, פער איפוסים ×{p2}", { p0: int(foeEff), p1: gap.toFixed(2), p2: resetGap.toFixed(2) })
+              : t("רמה אפקטיבית {p0} — פער ×{p1}, איפוסים מלאים", { p0: int(foeEff), p1: gap.toFixed(2) })
+          } />
         <Field label={t("כוח התקפה שלך")} icon="attack" value={ownPower} onChange={setOwnPower} max={50_000_000} step={5000} />
         <Field label={t("כוח הגנת היריב")} icon="shield" value={foePower} onChange={setFoePower} max={50_000_000} step={5000}
           hint={t("יחס קרב ×{p0}", { p0: matchup.toFixed(2) })} />
@@ -634,6 +640,9 @@ export function HeroXpCalc() {
         <div className="panel-inset rounded-xl px-3 py-2">
           <Step label={t("בסיס — 40 + {p0}×10", { p0: level })} value={int(base)} />
           <Step label={t("פער רמות ×{p0}", { p0: gap.toFixed(2) })} value={`= ${int(base * gap)}`} tone="text-purple-300" />
+          {resetGap < 1 && (
+            <Step label={t("פער איפוסים ×{p0}", { p0: resetGap.toFixed(2) })} value={`= ${int(base * gap * resetGap)}`} tone="text-red-300" />
+          )}
           <Step label={t("יחס קרב ×{p0}", { p0: matchup.toFixed(2) })} value={`= ${int(raw)}`} tone="text-sky-300" />
           {shadow && <Step label={t("מקצוע הצל ×1.1")} value={`= ${int(withClass)}`} tone="text-purple-300" />}
           {potion && <Step label={t("שיקוי הניסיון ×2")} value={`= ${int(gain)}`} tone="text-gold" />}
@@ -650,7 +659,7 @@ export function HeroXpCalc() {
       <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
         <RichText
           text={t(
-            "פער הרמות נגזר מ־**0.25 + (רמה אפקטיבית של היריב ÷ שלך) × 0.75** ונחסם בטווח **0.25–2.5**. רמה אפקטיבית = רמה + איפוסים × **100**, ולכן יריב ברמה 1 אחרי איפוס אחד נחשב רמה **101** ומשלם בהתאם. יחס הקרב נגזר מ־**0.3 + ∛(כוח היריב ÷ כוחך) × 1.4** ונחסם בטווח **0.3–2.0** — לרמוס יריב חלש משתלם פחות מלנצח יריב שקול, וניצחון על חזק ממך משלם הכי הרבה. השורש נמצא שם כי הכוח במשחק גדל בקפיצות מסדרי גודל: בלעדיו כמעט כל קרב אמיתי נפל על רצפת ה־**0.3**."
+            "פער הרמות נגזר מ־**0.25 + (רמה אפקטיבית של היריב ÷ שלך) × 0.75** ונחסם בטווח **0.25–2.5**. רמה אפקטיבית = רמה + איפוסים × **100**, ולכן יריב ברמה 1 אחרי איפוס אחד נחשב רמה **101** ומשלם בהתאם. פער האיפוסים הוא שער נפרד: יריב עם מספר האיפוסים שלך או יותר משלם מלא, וכל איפוס שאתה מעליו חותך את הניסיון בחצי עד רצפה של **0.05** — אחרי איפוס מטפסים מחדש מול בני המשקל שלך. יחס הקרב נגזר מ־**0.3 + ∛(כוח היריב ÷ כוחך) × 1.4** ונחסם בטווח **0.3–2.0** — לרמוס יריב חלש משתלם פחות מלנצח יריב שקול, וניצחון על חזק ממך משלם הכי הרבה. השורש נמצא שם כי הכוח במשחק גדל בקפיצות מסדרי גודל: בלעדיו כמעט כל קרב אמיתי נפל על רצפת ה־**0.3**."
           )}
           strong="nums font-semibold text-zinc-400"
         />

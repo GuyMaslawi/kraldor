@@ -73,6 +73,7 @@ import {
   ITEM_DROP_CHANCE_BY_RARITY,
   MAX_LEVEL_GAP_XP_FACTOR,
   MIN_LEVEL_GAP_XP_FACTOR,
+  MIN_RESET_GAP_XP_FACTOR,
   RESET_LEVEL_EQUIV,
   RARITY_META,
   RARITY_ORDER,
@@ -109,8 +110,10 @@ import {
   HERO_QUEST_FORTUNES,
   HERO_QUEST_PEOPLE_CITY_MULTIPLIER,
   HERO_QUEST_REWARD_CITY_MULTIPLIER,
+  HERO_QUEST_TURNS_PER_CITY,
   HERO_QUEST_TURNS_PER_HOUR_BASE,
   HERO_QUEST_TURNS_PER_HOUR_DROP,
+  heroQuestCityCostFactor,
   heroQuestDurationLabel,
   heroQuestTurnCost,
   heroQuestXp,
@@ -123,6 +126,7 @@ import {
   BOSS_POWER_TIER_MULTIPLIER,
   BOSS_TURN_COST_BASE,
   CITY_BOSSES,
+  bossPower,
   bossReviveMs,
 } from "@/lib/game/bosses";
 import {
@@ -143,6 +147,8 @@ import {
   BOSS_ROUT_LOSS_FRACTION,
   BOSS_SORTIE_ROUNDS,
   BOSS_TACTIC_META,
+  bossSiegeMaxHp,
+  bossSortiesToKill,
 } from "@/lib/game/bossBattle";
 import {
   GUILD_AID_MAX_LEVEL,
@@ -1996,6 +2002,8 @@ export async function GuideContent({
                     <O>×</O>
                     <V>{t("פער רמות")}</V>
                     <O>×</O>
+                    <V>{t("פער איפוסים")}</V>
+                    <O>×</O>
                     <V>{t("יחס קרב")}</V>
                   </>
                 }
@@ -2007,6 +2015,10 @@ export async function GuideContent({
                   {
                     term: t("פער רמות"),
                     desc: t("0.25 + (הרמה האפקטיבית של היריב ÷ שלך) × 0.75, חסום ב־{p0}–{p1}. יריב שקול = ×1, גבוה ממך = יותר, נמוך ממך = קצת.", { p0: MIN_LEVEL_GAP_XP_FACTOR, p1: MAX_LEVEL_GAP_XP_FACTOR }),
+                  },
+                  {
+                    term: t("פער איפוסים"),
+                    desc: t("יריב עם מספר האיפוסים שלך או יותר משלם ניסיון מלא. על כל איפוס שאתה מעליו — הניסיון נחתך בחצי, עד רצפה של ×{p0}. אחרי איפוס אתה מטפס מחדש מול בני המשקל שלך: לרמוס מי שמעולם לא איפס כמעט לא מקדם אותך.", { p0: MIN_RESET_GAP_XP_FACTOR }),
                   },
                   {
                     term: t("יחס קרב"),
@@ -2039,6 +2051,7 @@ export async function GuideContent({
                     <li><RichText text={t("• כל איפוס מוסיף <0> נקודות פתיחה לצמיתות: אחרי איפוס אחד מגיעים לרמה {p0} עם  <1> נקודות, אחרי שניים עם <2>", { p0: HERO_MAX_LEVEL })} slots={[<><b className="nums">+{HERO_RESET_POINTS}</b></>, <><b className="nums">{heroPointPool(HERO_MAX_LEVEL, 1)}</b></>, <><b className="nums">{heroPointPool(HERO_MAX_LEVEL, 2)}</b></>]} /></li>
                     <li>{t("• הציוד הלבוש נשאר עליך וממשיך לפעול — אך חפץ שתסיר יינעל בתיק עד שתחזור לרמתו")}</li>
                     <li>{t("• תג ↻ קבוע — וכל איפוס נחשב {p0} רמות בחישוב הניסיון, כך שגם ברמה 1 מי שמנצח אותך מקבל ניסיון של יריב ותיק", { p0: RESET_LEVEL_EQUIV })}</li>
+                    <li>{t("• הטיפוס מחדש הוא מול בני המשקל שלך: תקיפת יריב עם פחות איפוסים ממך משלמת חצי ניסיון על כל איפוס שאתה מעליו")}</li>
                   </ul>
                 </div>
                 <div className="panel-gold rounded-xl p-4">
@@ -2543,7 +2556,8 @@ export async function GuideContent({
                     <tr>
                       <th>{t("מסע")}</th>
                       <th>{t("משך")}</th>
-                      <th>{t("תורות")}</th>
+                      <th>{t("תורות — עיר 1")}</th>
+                      <th>{t("תורות — {p0} ערים", { p0: MAX_CITIES })}</th>
                       <th>{t("תורות לשעה")}</th>
                       <th>{t("ניסיון")}</th>
                       <th>{t("חפץ / שיקוי")}</th>
@@ -2564,6 +2578,9 @@ export async function GuideContent({
                         <td className="nums" dir="ltr">
                           {nf(heroQuestTurnCost(quest.tier))}
                         </td>
+                        <td className="nums text-amber-300" dir="ltr">
+                          {nf(heroQuestTurnCost(quest.tier, MAX_CITIES))}
+                        </td>
                         <td className="nums text-zinc-400" dir="ltr">
                           {(heroQuestTurnCost(quest.tier) / quest.hours).toFixed(1)}
                         </td>
@@ -2582,6 +2599,8 @@ export async function GuideContent({
 
               <Note tone="green" icon="quest"><RichText text={t("שליחה עולה תורות בלבד — הגיבור <0> גם בזמן שהוא בדרכים, ומסע שכבר יצא לדרך מסתיים גם אם הגיבור נופל בינתיים. מה שהוא לא יכול לעשות זה לצאת למסע כשהוא מת.")} slots={[<><b>{t("ממשיך להעניק את כל הבונוסים שלו")}</b></>]} /></Note>
 
+              <Note tone="gold" icon="turns" title={t("המחיר עולה עם האימפריה")}><RichText text={t("השלל של מסע גדל עם מספר הערים שלך, ולכן גם המחיר: כל עיר מוסיפה <0> למחיר התורות, כך שאימפריה בת {p0} ערים משלמת <1> על אותו מסע עצמו. בעיר אחת אין תוספת כלל — הטבלה למעלה מראה את שני הקצוות. זה מה שמחזיר את לוח המסעות למקומו: הכנסה משנית ללא סיכון, שמשתלמת פחות לתור מאשר מצור על שליט.", { p0: MAX_CITIES })} slots={[<><b className="nums">+{Math.round(HERO_QUEST_TURNS_PER_CITY * 100)}%</b></>, <><b className="nums">×{heroQuestCityCostFactor(MAX_CITIES).toFixed(2)}</b></>]} /></Note>
+
               <Note tone="gold" icon="hero">{t("השלל מוגרל ונחתם ברגע היציאה — האימפריה שממנה שלחת אותו היא זו שמשלמת, גם אם הקמת (או איבדת) עיר בזמן שהוא היה בדרך. מה שהוגרל שמור אצל הגיבור בלבד: אין דרך להציץ בשק לפני שהוא נכנס בשער, ואין דרך לגלגל אותו מחדש.")}</Note>
             </GuideSection>
 
@@ -2589,7 +2608,7 @@ export async function GuideContent({
             <GuideSection meta={sections.bosses} index={INDEX.bosses}>
               <Lead><RichText text={t("לכל אחת מעשר דרגות הערים יש שליט אחד — קיר PvE שכוחו  <0>, והוא <6>. לוחצים <1> פעם אחת, והצבא יוצא לקרב של  <2> סבבים שרץ כ־ <3> שניות בזמן אמת. אפשר לצפות, ואפשר לעבור לדף אחר ולהמשיך לשחק — כשהקרב נגמר מגיעה הודעה עם כל השלל. לבוס יש <4>, וכשהוא נופל הוא קם לתחייה אחרי  <5> דקות.")} slots={[<><b>{t("פומבי וקבוע")}</b></>, <><b>{t("תקיפה")}</b></>, <><b className="nums">{BOSS_SORTIE_ROUNDS}</b></>, <><b className="nums">{Math.round(BOSS_ASSAULT_DURATION_MS / 1000)}</b></>, <><b>{t("מאגר חיים שנשמר בין תקיפות")}</b></>, <><b className="nums">{reviveMinutes}</b></>, <><b>{t("משותף לכל שחקני העיר")}</b></>]} /></Lead>
 
-              <Note tone="red" icon="attack" title={t("שליט הוא מצור, לא לחיצה")}><RichText text={t("אף שליט לא נופל בתקיפה אחת. צבא שעומד <0> צריך בערך <1> תקיפות כדי לרוקן מנה אחת מהמאגר, צבא בכפול מהכוח — <2>, ובפי שלושה — אחת. צבא מתחת לקיר פשוט מכרסם לאורך יותר תקיפות, <3>: השלל משולם לפי הנזק, כך שאף תקיפה לא הולכת לאיבוד. בתמורה למצור הארוך, מה שיש לשליט בכיסים גדול בהתאם — הפלה אחת שווה יותר מיום שלם של תקיפות רגילות.")} slots={[<><b>{t("בדיוק על הכוח המודפס שלו")}</b></>, <><b className="nums">3</b></>, <><b className="nums">2</b></>, <><b>{t("ומקבל שלל על כל אחת מהן")}</b></>]} /></Note>
+              <Note tone="red" icon="attack" title={t("שליט הוא מצור, לא לחיצה")}><RichText text={t("אף שליט לא נופל בתקיפה אחת. צבא שעומד <0> צריך בערך <1> תקיפות כדי לרוקן מנה אחת מהמאגר, צבא בכפול מהכוח — <2>, ובפי שלושה — <3>. גיבור ברמה גבוהה חוסך תקיפה שלמה מהמניין. צבא מתחת לקיר פשוט מכרסם לאורך יותר תקיפות, <4>: השלל משולם לפי הנזק, כך שאף תקיפה לא הולכת לאיבוד.")} slots={[<><b>{t("בדיוק על הכוח המודפס שלו")}</b></>, <><b className="nums">{bossSortiesToKill(bossPower(1), bossSiegeMaxHp(1), 1, true)}</b></>, <><b className="nums">{bossSortiesToKill(bossPower(1) * 2, bossSiegeMaxHp(1), 1, true)}</b></>, <><b className="nums">{bossSortiesToKill(bossPower(1) * 3, bossSiegeMaxHp(1), 1, true)}</b></>, <><b>{t("ומקבל שלל על כל אחת מהן")}</b></>]} /></Note>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Fact

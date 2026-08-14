@@ -1871,6 +1871,8 @@ export const EN: Record<string, string> = {
     "Each of the ten city tiers has one ruler — a PvE wall whose power is <0>, and he is <6>. You press <1> once and the army marches out for a <2>-round battle that runs about <3> seconds in real time. You may watch it, or move to another page and keep playing — a message with the whole haul arrives when it ends. The boss has <4>, and once he falls he rises again after <5> minutes.",
   "משותף לכל שחקני העיר":
     "shared by every player in the city",
+  "אף שליט לא נופל בתקיפה אחת. צבא שעומד <0> צריך בערך <1> תקיפות כדי לרוקן מנה אחת מהמאגר, צבא בכפול מהכוח — <2>, ובפי שלושה — <3>. גיבור ברמה גבוהה חוסך תקיפה שלמה מהמניין. צבא מתחת לקיר פשוט מכרסם לאורך יותר תקיפות, <4>: השלל משולם לפי הנזק, כך שאף תקיפה לא הולכת לאיבוד.":
+    "No ruler falls to a single attack. An army standing <0> needs about <1> attacks to empty one share of the pool, an army at double the power — <2>, and at triple — <3>. A high-level hero saves a whole attack off the count. An army under the wall simply chips away over more attacks, <4>: spoils are paid by damage, so no attack is ever wasted.",
   "אף שליט לא נופל בתקיפה אחת. צבא שעומד <0> צריך בערך <1> תקיפות כדי לרוקן מנה אחת מהמאגר, צבא בכפול מהכוח — <2>, ובפי שלושה — אחת. צבא מתחת לקיר פשוט מכרסם לאורך יותר תקיפות, <3>: השלל משולם לפי הנזק, כך שאף תקיפה לא הולכת לאיבוד. בתמורה למצור הארוך, מה שיש לשליט בכיסים גדול בהתאם — הפלה אחת שווה יותר מיום שלם של תקיפות רגילות.":
     "No ruler falls to a single attack. An army standing <0> needs about <1> attacks to empty one share of the pool, an army at double the power — <2>, and at triple — one. An army under the wall simply chips away over more attacks, <3>: spoils are paid by damage, so no attack is ever wasted. In return for the long siege, what the ruler is sitting on is proportionally larger — one kill is worth more than a whole day of ordinary raids.",
 
@@ -4603,6 +4605,8 @@ export const EN: Record<string, string> = {
   "אנחנו רשאים לשנות מחירים, גדלי חבילות והטבות בכל עת. שינוי לא חל רטרואקטיבית על רכישה שכבר בוצעה.":
     "We may change prices, pack sizes and bonuses at any time. A change does not apply retroactively to a purchase already made.",
   "רכישות ותשלומים": "Purchases and payments",
+  "השלל של מסע גדל עם מספר הערים שלך, ולכן גם המחיר: כל עיר מוסיפה <0> למחיר התורות, כך שאימפריה בת {p0} ערים משלמת <1> על אותו מסע עצמו. בעיר אחת אין תוספת כלל — הטבלה למעלה מראה את שני הקצוות. זה מה שמחזיר את לוח המסעות למקומו: הכנסה משנית ללא סיכון, שמשתלמת פחות לתור מאשר מצור על שליט.":
+    "A quest's haul grows with your city count, so the price does too: every city adds <0> to the turn cost, so a {p0}-city empire pays <1> for that very same run. At one city there is no surcharge at all — the table above shows both ends. This is what puts the quest board back in its place: a risk-free second income that pays less per turn than laying siege to a ruler.",
   "המחירים נקובים בשקלים חדשים (₪) וכוללים מס אם וככל שחל.":
     "Prices are stated in new Israeli shekels (₪) and include tax if and to the extent it applies.",
   "התשלום נגבה באמצעות ספק סליקה חיצוני. פרטי אמצעי התשלום שלך נמסרים ישירות לספק ואינם נשמרים אצלנו.":
@@ -5362,6 +5366,7 @@ export const EN: Record<string, string> = {
   "הלוח נפתח בכניסה הראשונה": "The board opens on your first visit",
   "המד יושב בשורה העליונה, ליד שעון העדכון.":
     "The meter sits on the top row, next to the update clock.",
+  "המחיר עולה עם האימפריה": "The price rises with the empire",
   "המחיר גיאומטרי, התשואה קווית": "Geometric price, linear return",
   "הממוצע נגזר ממספר הערים שלך — לכן כל הדרגות משלמות אותו ממוצע לשעה, ומסע של שעה לא מתיישן לעולם.":
     "The average follows from your number of cities — so every tier pays the same average per hour, and an hour-long expedition never goes out of date.",
@@ -5457,6 +5462,8 @@ export const EN: Record<string, string> = {
   "יחס קרב": "Battle ratio",
   "יחס קרב ×{p0}": "Battle ratio ×{p0}",
   "ימים, ואז מתחיל מחדש": "days, and then it starts again",
+  "יריב עם מספר האיפוסים שלך או יותר משלם ניסיון מלא. על כל איפוס שאתה מעליו — הניסיון נחתך בחצי, עד רצפה של ×{p0}. אחרי איפוס אתה מטפס מחדש מול בני המשקל שלך: לרמוס מי שמעולם לא איפס כמעט לא מקדם אותך.":
+    "A rival with as many resets as you or more pays full experience. For every reset you stand above him the experience is halved, down to a ×{p0} floor. After a reset you climb again against your own weight class: trampling someone who has never reset barely advances you.",
   "יעדים שגדלים איתך": "Goals that grow with you",
   "יציאות": "Sorties",
   "יתרה בסוף התקופה": "Balance at the end of the period",
@@ -5690,8 +5697,10 @@ export const EN: Record<string, string> = {
   "פי מאה כוח שווה קצת יותר מפי שלושה נזק. בלי זה, הלוח היה נסגר לפני שהאימפריות הקטנות הספיקו לטעון את הדף, וחלקן בשלל היה מתעגל לאפס.":
     "A hundred times the power is worth a little over three times the damage. Without that, the board would close before the small empires had finished loading the page, and their share of the spoils would round to zero.",
   "פעם אחת, ואי אפשר לשנות": "Once, and it cannot be changed",
-  "פער הרמות נגזר מ־**0.25 + (רמה אפקטיבית של היריב ÷ שלך) × 0.75** ונחסם בטווח **0.25–2.5**. רמה אפקטיבית = רמה + איפוסים × **100**, ולכן יריב ברמה 1 אחרי איפוס אחד נחשב רמה **101** ומשלם בהתאם. יחס הקרב נגזר מ־**0.3 + ∛(כוח היריב ÷ כוחך) × 1.4** ונחסם בטווח **0.3–2.0** — לרמוס יריב חלש משתלם פחות מלנצח יריב שקול, וניצחון על חזק ממך משלם הכי הרבה. השורש נמצא שם כי הכוח במשחק גדל בקפיצות מסדרי גודל: בלעדיו כמעט כל קרב אמיתי נפל על רצפת ה־**0.3**.":
-    "The level gap follows from **0.25 + (the rival's effective level ÷ yours) × 0.75** and is clamped to **0.25–2.5**. Effective level = level + resets × **100**, so a rival at level 1 after one reset counts as level **101** and pays accordingly. The battle ratio follows from **0.3 + ∛(the rival's power ÷ yours) × 1.4** and is clamped to **0.3–2.0** — trampling a weak rival pays less than beating an even one, and beating someone stronger than you pays the most. The root is there because power in this game grows in jumps of whole orders of magnitude: without it almost every real battle landed on the **0.3** floor.",
+  "פער הרמות נגזר מ־**0.25 + (רמה אפקטיבית של היריב ÷ שלך) × 0.75** ונחסם בטווח **0.25–2.5**. רמה אפקטיבית = רמה + איפוסים × **100**, ולכן יריב ברמה 1 אחרי איפוס אחד נחשב רמה **101** ומשלם בהתאם. פער האיפוסים הוא שער נפרד: יריב עם מספר האיפוסים שלך או יותר משלם מלא, וכל איפוס שאתה מעליו חותך את הניסיון בחצי עד רצפה של **0.05** — אחרי איפוס מטפסים מחדש מול בני המשקל שלך. יחס הקרב נגזר מ־**0.3 + ∛(כוח היריב ÷ כוחך) × 1.4** ונחסם בטווח **0.3–2.0** — לרמוס יריב חלש משתלם פחות מלנצח יריב שקול, וניצחון על חזק ממך משלם הכי הרבה. השורש נמצא שם כי הכוח במשחק גדל בקפיצות מסדרי גודל: בלעדיו כמעט כל קרב אמיתי נפל על רצפת ה־**0.3**.":
+    "The level gap follows from **0.25 + (the rival's effective level ÷ yours) × 0.75** and is clamped to **0.25–2.5**. Effective level = level + resets × **100**, so a rival at level 1 after one reset counts as level **101** and pays accordingly. The reset gap is a separate gate: a rival with as many resets as you or more pays in full, and every reset you stand above him halves the XP, down to a **0.05** floor — after a reset you climb again against your own weight class. The battle ratio follows from **0.3 + ∛(the rival's power ÷ yours) × 1.4** and is clamped to **0.3–2.0** — trampling a weak rival pays less than beating an even one, and beating someone stronger than you pays the most. The root is there because power in this game grows in jumps of whole orders of magnitude: without it almost every real battle landed on the **0.3** floor.",
+  "פער איפוסים": "Reset gap",
+  "פער איפוסים ×{p0}": "Reset gap ×{p0}",
   "פער רמות": "Level gap",
   "פער רמות ×{p0}": "Level gap ×{p0}",
   "פרויקט של עונה שלמה": "A whole season's project",
@@ -5742,6 +5751,10 @@ export const EN: Record<string, string> = {
   "רמה אפקטיבית": "Effective level",
   "רמה אפקטיבית {p0}": "Effective level {p0}",
   "רמה אפקטיבית {p0} — פער ×{p1}": "Effective level {p0} — gap ×{p1}",
+  "רמה אפקטיבית {p0} — פער ×{p1}, איפוסים מלאים":
+    "Effective level {p0} — gap ×{p1}, full reset pay",
+  "רמה אפקטיבית {p0} — פער ×{p1}, פער איפוסים ×{p2}":
+    "Effective level {p0} — gap ×{p1}, reset gap ×{p2}",
   "רמות בכל מבנה": "Levels per monument",
   "רמת גיבור היריב": "The rival's hero level",
   "רמת הגיבור שלך": "Your hero's level",
@@ -5843,6 +5856,8 @@ export const EN: Record<string, string> = {
     "• Revives after <0> hour, or at once for <1> diamonds — on the button at the top of the hero page",
   "• ריבית על הזהב שבבנק, ופתיחת מכסת הפקדות חדשה":
     "• Interest on the gold in the bank, and a fresh deposit quota opens",
+  "• הטיפוס מחדש הוא מול בני המשקל שלך: תקיפת יריב עם פחות איפוסים ממך משלמת חצי ניסיון על כל איפוס שאתה מעליו":
+    "• The climb back up is against your own weight class: attacking a rival with fewer resets than you pays half the experience for every reset you stand above him",
   "• תג ↻ קבוע — וכל איפוס נחשב {p0} רמות בחישוב הניסיון, כך שגם ברמה 1 מי שמנצח אותך מקבל ניסיון של יריב ותיק":
     "• A permanent ↻ badge — and every reset counts as {p0} levels in the experience sum, so even at level 1 whoever beats you gets a veteran's experience",
   '• תורות משדרוג "קבלת תורות" (+1 לכל רמה)':
@@ -6224,6 +6239,8 @@ export const EN: Record<string, string> = {
     "An attacker takes <0> of every <1> resource of yours. Before you sign off, deposit into the warehouses and the bank. What is left outside is an open invitation.",
   "תורות בכל עדכון יומי.": "turns per daily update.",
   "תורות לשעה": "Turns per hour",
+  "תורות — עיר 1": "Turns — 1 city",
+  "תורות — {p0} ערים": "Turns — {p0} cities",
   "תיקח": "you would take",
   "תכה בקלות שלוש שעות של דרך קשה.": "will beat three hours of a hard road easily.",
   "תפוקה במכרה": "Output at the mine",

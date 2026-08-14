@@ -162,6 +162,45 @@ export function matchupXpFactor(ownPower: number, foePower: number): number {
   );
 }
 
+/**
+ * How the two sides' *prestige* compares, as a reward factor — the term that
+ * makes re-climbing the ladder a matter of who you are willing to fight rather
+ * than of how big the army you kept is.
+ *
+ * `levelGapXpFactor` already reads resets, through the effective level, and it
+ * does slow a prestiged hero down: measured over a full 1→100 climb against
+ * level-40 no-reset targets, one reset behind you costs ~1,130 wins where a
+ * fresh player needs ~581. But it decays *gradually* and it is bounded below by
+ * `MIN_LEVEL_GAP_XP_FACTOR`, so a veteran who farms rookies still climbs — just
+ * at a discount. That is the wrong shape for prestige: a reset is meant to be a
+ * fresh climb against your own weight class, not the same climb with a level-100
+ * army pointed at people who have never had one.
+ *
+ * So resets get their own term, and it is a **gate rather than a slope**:
+ *
+ * - a foe with **as many resets as you, or more, pays in full** (×1). This is
+ *   the whole rule, and the only thing a player needs to remember. It is capped
+ *   at ×1 rather than paying a bonus because `levelGapXpFactor` already pays for
+ *   a more-prestiged foe through his effective level — a second bonus here would
+ *   count the same reset twice.
+ * - every reset you stand **above** him halves it (`RESET_GAP_XP_DECAY`), down
+ *   to a `MIN_RESET_GAP_XP_FACTOR` floor. One reset ahead ≈ ×4 the wins for a
+ *   full climb, two ahead ≈ ×9.5 — while a fight against your own standing is
+ *   left exactly where it was.
+ *
+ * A floor rather than zero, like every other factor in this file: a win must
+ * always be worth something, or the board of legitimate targets a prestiged
+ * hero can even *see* becomes the thing that gates him.
+ */
+export const RESET_GAP_XP_DECAY = 0.5;
+export const MIN_RESET_GAP_XP_FACTOR = 0.05;
+export function resetGapXpFactor(ownResets: number, foeResets: number): number {
+  const gap =
+    Math.max(0, Math.floor(ownResets)) - Math.max(0, Math.floor(foeResets));
+  if (gap <= 0) return 1;
+  return Math.max(MIN_RESET_GAP_XP_FACTOR, RESET_GAP_XP_DECAY ** gap);
+}
+
 /** Where a hero stands: his level and the resets behind him. */
 export type HeroStanding = { level: number; resets: number };
 
@@ -185,6 +224,11 @@ export type HeroStanding = { level: number; resets: number };
  *   ×1, and one far below you pays the ×0.25 floor. A foe's resets count here in
  *   full: a level-1 hero with one reset still pays like the level-101 veteran he
  *   effectively is.
+ * - **reset gap** — whether he is in your weight class at all
+ *   (`resetGapXpFactor`). Full pay for a foe of your own prestige or above,
+ *   halved for every reset you stand ahead of him. The level gap answers "how
+ *   far up the ladder is he"; this answers "how many ladders has he climbed",
+ *   and only this one is a gate.
  * - **matchup** — how real the fight was, from the two armies' power
  *   (`matchupXpFactor`), so the number moves with every battle rather than being
  *   fixed by the two nameplates.
@@ -202,6 +246,7 @@ export function attackWinXp(
         effectiveHeroLevel(attacker.level, attacker.resets),
         effectiveHeroLevel(defender.level, defender.resets)
       ) *
+      resetGapXpFactor(attacker.resets, defender.resets) *
       matchupXpFactor(attackerPower, defenderPower)
   );
 }

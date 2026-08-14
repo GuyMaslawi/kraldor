@@ -146,7 +146,11 @@ export async function startHeroQuest(
         return { error: t("הגיבור כבר במסע — הוא יוצא רק לאחד בכל פעם.") };
       }
 
-      const turnCost = heroQuestTurnCost(quest.tier);
+      // Priced against the empire that is sending him, not against the rung
+      // alone: the haul scales with `empire.cities` and so must the price (see
+      // HERO_QUEST_TURNS_PER_CITY). Read off the settled row inside the lock, so
+      // a city founded a moment ago is already paid for.
+      const turnCost = heroQuestTurnCost(quest.tier, empire.cities);
       const notEnoughTurns = {
         error: t('נדרשות {turns} תורות כדי לשלוח את הגיבור ל"{quest}".', {
           turns: turnCost.toLocaleString("en-US"),

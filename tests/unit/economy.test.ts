@@ -3,6 +3,7 @@ import {
   BANK_DAILY_INTEREST_MAX_LEVEL,
   BANK_INTEREST_MAX_RATE,
   CITIZEN_GROWTH_LEVELS_PER_CITY,
+  CITIZEN_UPGRADE_COST_MULTIPLIER,
   CITY_COST_TIER_MULTIPLIER,
   EMPIRE_UPGRADE_COST_GROWTH,
   MAX_CITIES,
@@ -13,6 +14,7 @@ import {
   WHEEL_LUCK_MAX_LEVEL,
   bankInterestRate,
   bankInterestUpgradeCost,
+  citizenGrowthUpgradeCost,
   cityCost,
   empireUpgradeCost,
   empireUpgradeCostFor,
@@ -221,9 +223,25 @@ describe("the linear ladders that were repriced", () => {
   });
 
   it("is the curve the purchase actions actually charge", () => {
-    expect(empireUpgradeCostFor("CITIZEN_GROWTH", 7)).toEqual(empireUpgradeCost(7));
+    expect(empireUpgradeCostFor("CITIZEN_GROWTH", 7)).toEqual(citizenGrowthUpgradeCost(7));
     expect(empireUpgradeCostFor("INTELLIGENCE", 7)).toEqual(empireUpgradeCost(7));
     expect(empireUpgradeCostFor("BANK_DEPOSIT_COUNT", 7)).toEqual(empireUpgradeCost(7));
+  });
+
+  it("charges citizens ten times the shared base, on the same curve", () => {
+    // Citizens are the raw material of every soldier and the ladder is the
+    // longest of the three, so it carries a multiplier the other two do not —
+    // but the *shape* has to stay the shared one, or the tuning above stops
+    // describing it.
+    const m = CITIZEN_UPGRADE_COST_MULTIPLIER;
+    for (const level of [1, 7, 40, 100]) {
+      const rung = citizenGrowthUpgradeCost(level);
+      const shared = empireUpgradeCost(level);
+      expect(rung.gold).toBe(shared.gold * m);
+      expect(rung.wood).toBe(shared.wood * m);
+      expect(rung.iron).toBe(shared.iron * m);
+      expect(rung.stone).toBe(shared.stone * m);
+    }
   });
 
   it("charges a mine only in its own resource", () => {

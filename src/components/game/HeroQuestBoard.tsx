@@ -182,6 +182,7 @@ export function HeroQuestBoard({
           <QuestRow
             key={quest.key}
             tier={quest.tier}
+            cities={cities}
             unlocked={quest.tier <= cities}
             turns={turns}
             busy={active !== null}
@@ -439,6 +440,7 @@ function HomecomingPanel({
 
 function QuestRow({
   tier,
+  cities,
   unlocked,
   turns,
   busy,
@@ -447,6 +449,7 @@ function QuestRow({
   onSend,
 }: {
   tier: number;
+  cities: number;
   unlocked: boolean;
   turns: number;
   busy: boolean;
@@ -458,7 +461,9 @@ function QuestRow({
   const quest = heroQuestByTier(tier);
   if (!quest) return null;
 
-  const cost = heroQuestTurnCost(tier);
+  // The empire's own price, not the rung's — the board must quote what the
+  // server will actually charge (see heroQuestTurnCost).
+  const cost = heroQuestTurnCost(tier, cities);
   const affordable = turns >= cost;
   // Every reason the button can be dead, most specific first — the row states
   // exactly one of them rather than greying out silently.

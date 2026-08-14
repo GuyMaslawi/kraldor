@@ -5706,8 +5706,8 @@ export const EN: Record<string, string> = {
   "פרויקט של עונה שלמה": "A whole season's project",
   "פרי שטן, מכנסיים ונעליים מוסיפים כמות קבועה מעל המכפיל — לא אחוז.":
     "Devil's fruit, trousers and boots add a flat amount on top of the multiplier — not a percentage.",
-  "פרי שטן, מכנסיים ונעליים נותנים כמות קבועה בכל עדכון רגיל (עד +{p0}), וככל שהדרגה גבוהה יותר סוגי משאבים. לכל משבצת סדר משלה: פרי שטן פותח בזהב, מכנסיים בברזל, נעליים באבן. חרב ומגן פועלים הפוך — הם מכפילים את תפוקת כל המכרות באחוזים (עד +{p1}%), קטן בהתחלה ומשמעותי בסוף.":
-    "Devil's fruit, trousers and boots give a flat amount on every regular update (up to +{p0}), and the higher the grade the more kinds of resource. Each slot has an order of its own: devil's fruit opens with gold, trousers with iron, boots with stone. The sword and shield work the other way round — they multiply the output of every mine by a percentage (up to +{p1}%), small at first and substantial at the end.",
+  "פרי שטן, מכנסיים ונעליים נותנים כמות קבועה בכל עדכון רגיל (עד +{p0}), וככל שהדרגה גבוהה יותר סוגי משאבים. לכל משבצת סדר משלה: פרי שטן פותח בזהב, מכנסיים באבן, נעליים בברזל. חרב ומגן פועלים הפוך — הם מכפילים את תפוקת כל המכרות באחוזים (עד +{p1}%), קטן בהתחלה ומשמעותי בסוף.":
+    "Devil's fruit, trousers and boots give a flat amount on every regular update (up to +{p0}), and the higher the grade the more kinds of resource. Each slot has an order of its own: devil's fruit opens with gold, trousers with stone, boots with iron. The sword and shield work the other way round — they multiply the output of every mine by a percentage (up to +{p1}%), small at first and substantial at the end.",
   "פשוט שווה רסיס אחד בין אם הוא מהעשור הראשון או העשירי, והזמנה עולה אותו דבר תמיד. אין קצה זול לחקור ואין ארביטראז׳.":
     "A Plain is worth one shard whether it comes from the first decade or the tenth, and an order always costs the same. There is no cheap end to work out and no arbitrage.",
   "פתח דרגות נשק — הן משותפות": "Unlock weapon tiers — they are shared",

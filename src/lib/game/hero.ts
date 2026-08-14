@@ -808,7 +808,7 @@ export interface SlotMeta {
    *
    * Each flat resource slot leads with a different resource, which is the
    * cheapest way to make two items of the same tier a real choice: an early
-   * מכנסיים solves an iron shortage, an early פרי שטן a gold one. Omitted on
+   * מכנסיים solves a stone shortage, an early פרי שטן a gold one. Omitted on
    * slots that grant no resources — and on the slots that pay them as a
    * percentage, which multiplies every mine at once and so has nothing to lead
    * with (see `SlotStatWeight.mode`).
@@ -1038,16 +1038,18 @@ export const SLOT_META: Record<HeroItemSlot, SlotMeta> = {
       minor("citizens"),
       minor("diamonds"),
     ],
-    // The quartermaster's pockets — what an army actually runs out of.
-    resourceOrder: ["iron", "gold", "stone", "wood"],
+    // The quartermaster's pockets — what an army actually runs out of. Leads
+    // with stone because nothing else does early: the פרי שטן already reaches
+    // wood and iron long before its fourth resource.
+    resourceOrder: ["stone", "gold", "iron", "wood"],
   },
   BOOTS: {
     label: "נעליים",
     icon: "🥾",
     slug: "boots",
     stats: [primary("citizens"), extra("turns"), minor("resources", "flat")],
-    // What you can carry home on foot: whatever you walked over.
-    resourceOrder: ["stone", "wood", "gold", "iron"],
+    // What you can carry home on foot: ore first, then whatever you walked over.
+    resourceOrder: ["iron", "wood", "gold", "stone"],
   },
 };
 

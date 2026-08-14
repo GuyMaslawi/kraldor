@@ -170,7 +170,10 @@ const BOSS_SWEEP_EVERY_MS = 60_000;
  * takes — a city is at most a handful of marches an hour.
  */
 async function lockTier(tx: Prisma.TransactionClient, cityTier: number): Promise<void> {
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(${BOSS_TIER_LOCK}::int, ${cityTier}::int)`;
+  // `$executeRaw`, not `$queryRaw`: the function returns `void`, and Prisma cannot
+  // deserialize a void column — `$queryRaw` throws "Failed to deserialize column of
+  // type 'void'" and takes the whole assault down with it.
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(${BOSS_TIER_LOCK}::int, ${cityTier}::int)`;
 }
 
 /** Lock one empire's row. Always after `lockTier`, never before. */

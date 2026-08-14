@@ -179,28 +179,32 @@ function Takeover({ state, onDone }: { state: HappyHourState; onDone: () => void
       })}
       dir="rtl"
     >
-      <div className="hh-rays" aria-hidden />
-      <div className="hh-shock" aria-hidden />
-      <div className="hh-shock hh-shock--second" aria-hidden />
+      {/* Clipped scenery layer — see the note on `.takeover-scenery` in the
+          mini-game takeover: these are absolute children of the scroller and
+          were adding a screenful of empty scroll below the announcement. */}
+      <div className="takeover-scenery" aria-hidden>
+        <div className="hh-rays" />
+        <div className="hh-shock" />
+        <div className="hh-shock hh-shock--second" />
+        {/* Deterministic spread rather than random: a fixed comb of embers looks
+            like a designed rain, and re-renders identically. */}
+        {Array.from({ length: 14 }).map((_, i) => (
+          <span
+            key={i}
+            className="hh-spark"
+            style={{
+              left: `${(i * 7.3 + 3) % 100}%`,
+              animationDuration: `${2.6 + (i % 5) * 0.45}s`,
+              animationDelay: `${(i % 7) * 0.32}s`,
+            }}
+          />
+        ))}
+      </div>
 
       {/* Same reasoning as the mini-game takeover's: a tap anywhere always
           closed this, but nothing on screen said so, and the CTA is the only
           marked control. Fixed to the viewport corner (see `.hh-close`). */}
       <CloseButton onClick={close} tone="onDark" label={t("סגור את ההודעה")} className="hh-close" />
-      {/* Deterministic spread rather than random: a fixed comb of embers looks
-          like a designed rain, and re-renders identically. */}
-      {Array.from({ length: 14 }).map((_, i) => (
-        <span
-          key={i}
-          className="hh-spark"
-          aria-hidden
-          style={{
-            left: `${(i * 7.3 + 3) % 100}%`,
-            animationDuration: `${2.6 + (i % 5) * 0.45}s`,
-            animationDelay: `${(i % 7) * 0.32}s`,
-          }}
-        />
-      ))}
 
       <div className="relative z-10 flex max-w-2xl flex-col items-center gap-4 text-center">
         {/* The kicker carries the moment, not the name — the name is the big

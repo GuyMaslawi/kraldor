@@ -684,7 +684,10 @@ function MiniGameStage({
       // `max-h-full` against a dvh-sized overlay, not `max-h-[90vh]` — see the
       // note in ui/Dialog: on a phone `vh` is the toolbar-collapsed height, so
       // the guess keypad at the bottom of this board ended up unreachable.
-      className="panel-gold relative z-10 max-h-full w-full max-w-3xl overflow-y-auto overscroll-contain rounded-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_20px_60px_rgba(0,0,0,0.85)] sm:p-5"
+      // No top padding: the title bar below is `sticky top-0` and carries its
+      // own, so the card's padding would otherwise leave a band above the bar
+      // for the board to scroll through.
+      className="panel-gold relative z-10 max-h-full w-full max-w-3xl overflow-y-auto overscroll-contain rounded-2xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_20px_60px_rgba(0,0,0,0.85)] sm:px-5"
     >
       {/* ── Title bar: sticky, because the card itself is the scroller ──
           This board is taller than a phone screen on every one of the four
@@ -694,7 +697,7 @@ function MiniGameStage({
           window had no visible way out, which is the bug players reported.
           Now the name and the ✕ ride above the scroll and the badges — which
           are information, not an escape route — wrap freely underneath. */}
-      <div className="sticky top-0 z-20 -mx-4 -mt-4 flex items-start gap-3 border-b border-gold/25 bg-[var(--panel-inset)]/95 px-4 py-3 backdrop-blur-sm sm:-mx-5 sm:-mt-5 sm:px-5">
+      <div className="sticky top-0 z-20 -mx-4 flex items-start gap-3 border-b border-gold/25 bg-[#0d0c10]/95 px-4 py-3 backdrop-blur-sm sm:-mx-5 sm:px-5">
         <span
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gold/50 bg-black/40 ${
             interactive ? "animate-bounce" : ""

@@ -8523,6 +8523,19 @@ body {
   animation: mgt-in 0.3s ease-out both;
 }
 
+/* Both takeovers put their beams, shockwaves and embers in here. It exists to
+   clip them out of the SCROLL box, not merely out of sight: an absolutely
+   positioned child still extends its scroll container's scrollable area, and
+   `.mgt-rays` / `.hh-rays` are 190vmax discs hung off the centre point. On a
+   phone that gave a six-second announcement most of a screen of empty black
+   below it to flick into. */
+.takeover-scenery {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 /* The ✕ on a takeover: fixed to the viewport corner, not to the content
    column, so a stage taller than a short phone cannot scroll it out of reach.
    `inset-inline-start` rather than `left` — this is the corner opposite the

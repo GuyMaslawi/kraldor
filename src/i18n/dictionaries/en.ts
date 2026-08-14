@@ -2372,6 +2372,10 @@ export const EN: Record<string, string> = {
   "מסלול פרימיום — נעול": "Premium track — locked",
   "דרגות מוכנות לאיסוף": "tiers ready to collect",
   "סגור את דרך התהילה": "Close the Road of Glory",
+  "סגור את ההודעה": "Dismiss this announcement",
+  "סגור את ההכרזה": "Dismiss the proclamation",
+  "סגור את הגלגל": "Close the wheel",
+  "סגור את חלון הרכישה": "Close the purchase window",
   "מתאפס בעדכון היומי הבא בעוד": "Resets at the next daily update, in",
   "— וכל יום שעובר בעונה מגדיל את התגמולים":
     "— and every day of the season raises the rewards",

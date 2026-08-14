@@ -220,9 +220,19 @@ export function MiniGameTakeover({
       aria-label={t("{game} — {title}", { game: t(meta.label), title: state.title })}
       dir="rtl"
     >
-      <div className="mgt-rays" aria-hidden />
-      <div className="mgt-shock" aria-hidden />
-      <div className="mgt-shock mgt-shock--second" aria-hidden />
+      {/* The scenery gets its own clipped layer, and that is a scrolling fix,
+          not a tidiness one. These are absolutely-positioned children of the
+          overlay, which IS the scroller — and `.mgt-rays` is 190vmax wide with
+          a -95vmax margin, so it was handing the overlay ~600px of scrollable
+          overflow below the fold. On a phone a flick past the announcement fell
+          into that: a screen and a half of pure black under a six-second
+          notice. `inset: 0` + `overflow: hidden` keeps the beams painted and
+          out of the scroll box. */}
+      <div className="takeover-scenery" aria-hidden>
+        <div className="mgt-rays" />
+        <div className="mgt-shock" />
+        <div className="mgt-shock mgt-shock--second" />
+      </div>
 
       {/* Dismissible by a tap anywhere was true from the start and is invisible
           from the outside: a player who does not know that sees a screen that

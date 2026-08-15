@@ -1693,8 +1693,8 @@ export const EN: Record<string, string> = {
   "ההודעה כבר הוסרה": "That message is already hidden",
   "שלחת יותר מדי הודעות — נסה שוב בעוד כמה דקות":
     "You have sent too many messages — try again in a few minutes",
-  "בחר עד {recipients} נמענים ומלא נושא (עד {title} תווים) ותוכן (עד {body} תווים)":
-    "Pick up to {recipients} recipients and fill in a subject (up to {title} characters) and a body (up to {body} characters)",
+  "בחר עד {recipients} נמענים וכתוב הודעה (עד {body} תווים)":
+    "Pick up to {recipients} recipients and write a message (up to {body} characters)",
   "לא נבחרו נמענים תקינים": "No valid recipients were selected",
   "שלחת הודעות ליותר מדי שחקנים בזמן קצר — נסה שוב בעוד כמה דקות":
     "You have written to too many players too quickly — try again in a few minutes",
@@ -3000,7 +3000,6 @@ export const EN: Record<string, string> = {
   "הודעה": "Message",
   "שלח הודעה": "Send a message",
   "ללא עלות": "Free",
-  "נמען": "Recipient",
   "נמענים": "Recipients",
   "הסרת {name}": "Remove {name}",
   "חיפוש שחקן לפי שם אימפריה": "Search for a player by empire name",
@@ -3009,14 +3008,33 @@ export const EN: Record<string, string> = {
     "Showing the first {count} players — type a name to search the whole game.",
   "הגעת למקסימום {max} נמענים בהודעה אחת.":
     "You have hit the ceiling of {max} recipients in one message.",
-  "נושא": "Subject",
-  "על מה ההודעה?": "What is it about?",
   "תוכן ההודעה": "The message",
   "עד {max} תווים": "up to {max} characters",
-  "ההודעה תגיע לתיבת הדואר של הנמענים.":
-    "The message lands in the recipients' inbox.",
+  "ההודעה תגיע לתיבת הדואר של הנמענים ותופיע גם בשיחה הפרטית איתם בצ׳אט.":
+    "The message lands in the recipients' inbox, and in your private conversation with them in the chat.",
   "שולח...": "Sending…",
   "שליחה": "Send",
+
+  /* ------------------------------------------------------------------ */
+  /* answering one — the conversation behind a letter                    */
+  /* ------------------------------------------------------------------ */
+  /* the title the mailbox gives a letter, now that there is no subject line
+     to write one; see MAIL_TITLE_KEY */
+  "הודעה מאת {name}": "A message from {name}",
+  "השב": "Reply",
+  "פתיחת השיחה ומענה": "Open the conversation and reply",
+  "לפרופיל": "To the profile",
+  "טוען…": "Loading…",
+  "לא הצלחנו לטעון את השיחה — נסה שוב בעוד רגע.":
+    "We could not load the conversation — try again in a moment.",
+  "אין עדיין שיחה ביניכם — ההודעה הראשונה תפתח אותה.":
+    "You have not spoken yet — the first message opens the conversation.",
+  /* the author of a line in one's own transcript */
+  "אתה": "You",
+  "נשלח כהודעה לתיבת הדואר": "Sent as mail, to the inbox",
+  "כתוב תשובה…": "Write a reply…",
+  "התשובה תגיע לתיבת הדואר שלו ותופיע גם בשיחה הפרטית בצ׳אט.":
+    "Your reply lands in their inbox, and in your private conversation in the chat.",
 
   /* ------------------------------------------------------------------ */
   /* signing the guild up for the war                                    */
@@ -4148,6 +4166,19 @@ export const EN: Record<string, string> = {
   "הנדיב": "The Generous",
   "המשוגע לדבר": "Utterly Obsessed",
   "נקנה בחנות התארים": "Bought in the title shop",
+  /* the sales line on each shop card — a boast, never a claim to a feat */
+  "לא כל אחד יכול להרשות לעצמו את התואר הזה. אתה כן.":
+    "Not everyone can afford this title. You can.",
+  "יש לך אחד מכל דבר במשחק. עכשיו יש לך גם את זה.":
+    "You have one of everything in the game. Now you have this too.",
+  "הגלגל, הכוסות, הכספת — תמיד עוד סיבוב אחד.":
+    "The wheel, the cups, the safe — always one more round.",
+  "שלוש לפנות בוקר, ואתה עדיין סופר תורות.":
+    "Three in the morning, and you are still counting turns.",
+  "נותן לברית, נותן לחלשים, ונותן לעצמו תואר.":
+    "Gives to the guild, gives to the weak, and gives themself a title.",
+  "יש חיים גם מחוץ למשחק. שמעת עליהם פעם.":
+    "There is a life outside the game. You heard about it once.",
 
   /* ------------------------------------------------------------------ */
   /* מפלצת העולם — the world boss                                        */
@@ -4472,6 +4503,11 @@ export const EN: Record<string, string> = {
   "מקום {place}": "Place {place}",
   "לא נרשמת לזירה הזו.": "You did not enter that arena.",
   "הטבלה הסופית": "The final table",
+  "הקלף שבוטל": "The cancelled card",
+  "הזירה בוטלה — נרשמת לבד": "Arena cancelled — you entered alone",
+  "קבל את התורות בחזרה": "Take your turns back",
+  "עדיין אין לך יריב. אם אף אחד נוסף לא יירשם עד חצות הקלף יבוטל ותקבל את {turns} התורות בחזרה.":
+    "You still have no opponent. If nobody else enters by midnight the card is cancelled and you get your {turns} turns back.",
   "מי נרשם": "Who has entered",
   "ניצחונות–הפסדים": "wins–losses",
   "עדיין אף אחד לא נרשם. היה הראשון.": "Nobody has entered yet. Be the first.",
@@ -4479,8 +4515,8 @@ export const EN: Record<string, string> = {
   /* --- how it works --- */
   "איך הזירה עובדת": "How the arena works",
   "נרשמים": "Enter",
-  "כניסה עולה {turns} תורות, פעם אחת ביום. אין מה עוד לעשות — מרגע ההרשמה אתה בטבלה.":
-    "Entry costs {turns} turns, once a day. There is nothing else to do — from the moment you enter you are on the table.",
+  "כניסה עולה {turns} תורות, פעם אחת ביום. אין מה עוד לעשות — מרגע ההרשמה אתה בטבלה. אם תישאר הנרשם היחיד הקלף מתבטל והתורות חוזרות.":
+    "Entry costs {turns} turns, once a day. There is nothing else to do — from the moment you enter you are on the table. If you end up the only entrant the card is cancelled and the turns come back.",
   "נלחמים בדרגה שלך": "You fight your own tier",
   "יש זירה נפרדת לכל דרגת ערים, כמו בכל קרב אחר במשחק. אתה אף פעם לא פוגש אימפריה מליגה אחרת.":
     "There is a separate arena for every city tier, as in every other fight in the game. You never meet an empire from another league.",
@@ -4504,6 +4540,8 @@ export const EN: Record<string, string> = {
     "Gold for every duel you took. A strong card of thirty wins is worth more gold than the podium itself.",
   "פרסי הפודיום נעולים עד שיירשמו {min} משתתפים ({have} עד כה). מתחת לזה הזירה עדיין נלחמת ועדיין משלמת — פרס השתתפות וזהב לכל ניצחון — אבל בלי יהלומים.":
     "Podium prizes are locked until {min} entrants sign up ({have} so far). Below that the arena still fights and still pays — a participation purse and gold per win — but no diamonds.",
+  "צריך לפחות {min} נרשמים כדי שיהיה בכלל דו־קרב. אם תישאר לבד על הקלף הזירה מתבטלת, אין שום פרס — ו־{turns} התורות שההרשמה עלתה חוזרות אליך במלואן.":
+    "At least {min} entrants are needed for there to be a duel at all. If you are left alone on the card the arena is cancelled, there is no prize whatsoever — and the {turns} turns entry cost come back to you in full.",
 
   "כבר נרשמת לזירה של היום.": "You have already entered today's arena.",
   "הזירה של היום מלאה ({max} משתתפים).":
@@ -4517,6 +4555,8 @@ export const EN: Record<string, string> = {
     "Place {place} in the arena, {wins} wins. You received {spoils}.",
   "מקום {place} בזירה, {wins} ניצחונות. קיבלת {spoils} — פרסי הפודיום נפתחים מ-{min} משתתפים.":
     "Place {place} in the arena, {wins} wins. You received {spoils} — podium prizes open from {min} entrants.",
+  "הזירה בוטלה — נרשמת לבד ולא היה נגד מי להילחם. {spoils} הוחזרו לך במלואן.":
+    "The arena was cancelled — you entered alone and there was nobody to fight. {spoils} were refunded to you in full.",
   "חשבונות הנהלה אינם משתתפים בזירה.":
     "Staff accounts do not take part in the arena.",
 
@@ -5677,6 +5717,9 @@ export const EN: Record<string, string> = {
     "Resource points + the Merchant class bonus + the sword and shield, which add percentages to output.",
   "נרשמים לזירה": "Entrants in the arena",
   "נרשמים, אחרת אין יהלומים": "Enter, or there are no diamonds",
+  "נרשמת לבד? הקלף מתבטל": "Entered alone? The card is cancelled",
+  "טורניר של נרשם אחד הוא אפס דו־קרבות, ומקום ראשון בו לא אומר כלום. מתחת ל־ <0> נרשמים הזירה מבוטלת: אין פרס בכלל, ובמקומו חוזרות אליך  <1>  התורות שההרשמה עלתה, בדיוק כמו שהן — אף פעם לא תפסיד תורות על יום שבו לא היה נגד מי להילחם. גם מלחמת הבריתות מתבטלת כשנרשמה רק ברית אחת, ושם ההרשמה ממילא לא עולה כלום.":
+    "A tournament with one entrant is zero duels, and first place in it means nothing. Below <0> entrants the arena is cancelled: no prize at all, and in its place the <1> turns entry cost come back to you exactly as they were — you never lose turns over a day with nobody to fight. The guild war is cancelled the same way when only one guild enrols, and there enrolling costs nothing to begin with.",
   "נשק הוא הדרך להפוך משאבים לכוח. יש  <0> דרגות בכל אחת משלוש הקטגוריות — התקפה, הגנה וריגול. בכל דרגה המחיר  <1> (×{p0}) אבל הכוח גדל  <2> — ולכן כל דרגה נותנת  <3>  יותר כוח לכל זהב מזו שמתחתיה. תמיד שווה לקנות את הדרגה הגבוהה ביותר שנפתחה לך.":
     "Weapons are how resources become power. There are <0> tiers in each of the three categories — attack, defence and spying. At every tier the price <1> (×{p0}) but the power grows <2> — so every tier gives <3> more power per gold than the one below it. It is always worth buying the highest tier you have unlocked.",
   "סביב רמת הגיבור שלך": "Around your hero's level",
@@ -5727,8 +5770,15 @@ export const EN: Record<string, string> = {
   "פי מאה כוח שווה קצת יותר מפי שלושה נזק. בלי זה, הלוח היה נסגר לפני שהאימפריות הקטנות הספיקו לטעון את הדף, וחלקן בשלל היה מתעגל לאפס.":
     "A hundred times the power is worth a little over three times the damage. Without that, the board would close before the small empires had finished loading the page, and their share of the spoils would round to zero.",
   "פעם אחת, ואי אפשר לשנות": "Once, and it cannot be changed",
-  "פער הרמות נגזר מ־**0.25 + (רמה אפקטיבית של היריב ÷ שלך) × 0.75** ונחסם בטווח **0.25–2.5**. רמה אפקטיבית = רמה + איפוסים × **100**, ולכן יריב ברמה 1 אחרי איפוס אחד נחשב רמה **101** ומשלם בהתאם. פער האיפוסים הוא שער נפרד: יריב עם מספר האיפוסים שלך או יותר משלם מלא, וכל איפוס שאתה מעליו חותך את הניסיון בחצי עד רצפה של **0.05** — אחרי איפוס מטפסים מחדש מול בני המשקל שלך. יחס הקרב נגזר מ־**0.3 + ∛(כוח היריב ÷ כוחך) × 1.4** ונחסם בטווח **0.3–2.0** — לרמוס יריב חלש משתלם פחות מלנצח יריב שקול, וניצחון על חזק ממך משלם הכי הרבה. השורש נמצא שם כי הכוח במשחק גדל בקפיצות מסדרי גודל: בלעדיו כמעט כל קרב אמיתי נפל על רצפת ה־**0.3**.":
-    "The level gap follows from **0.25 + (the rival's effective level ÷ yours) × 0.75** and is clamped to **0.25–2.5**. Effective level = level + resets × **100**, so a rival at level 1 after one reset counts as level **101** and pays accordingly. The reset gap is a separate gate: a rival with as many resets as you or more pays in full, and every reset you stand above him halves the XP, down to a **0.05** floor — after a reset you climb again against your own weight class. The battle ratio follows from **0.3 + ∛(the rival's power ÷ yours) × 1.4** and is clamped to **0.3–2.0** — trampling a weak rival pays less than beating an even one, and beating someone stronger than you pays the most. The root is there because power in this game grows in jumps of whole orders of magnitude: without it almost every real battle landed on the **0.3** floor.",
+  "פער הרמות נגזר מ־**0.25 + (רמה אפקטיבית של היריב ÷ שלך) × 0.75** ונחסם בטווח **0.25–2.5**. רמה אפקטיבית = רמה + איפוסים × **100**, ולכן יריב ברמה 1 אחרי איפוס אחד נחשב רמה **101** ומשלם בהתאם. פער האיפוסים הוא שער נפרד: יריב עם מספר האיפוסים שלך או יותר משלם מלא, וכל איפוס שאתה מעליו חותך את הניסיון בחצי עד רצפה של **0.05** — אחרי איפוס מטפסים מחדש מול בני המשקל שלך. יחס הקרב נגזר מ־**0.3 + ∛(כוח היריב ÷ כוחך) × 1.4** ונחסם בטווח **0.3–2.0** — לרמוס יריב חלש משתלם פחות מלנצח יריב שקול, וניצחון על חזק ממך משלם הכי הרבה. השורש נמצא שם כי הכוח במשחק גדל בקפיצות מסדרי גודל: בלעדיו כמעט כל קרב אמיתי נפל על רצפת ה־**0.3**. מעל כל אלה יש הבטחה אחת: ניצחון משלם תמיד לפחות חלק אחד מ־**50** מהרמה שאתה עומד בה, בכל רמה ובכל מספר איפוסים — למכפלה של ארבעת המקדמים אין רצפה משל עצמה, ובלי ההבטחה הזו גיבור אחרי כמה איפוסים היה מקבל **0** ניסיון על ניצחון.":
+    "The level gap follows from **0.25 + (the rival's effective level ÷ yours) × 0.75** and is clamped to **0.25–2.5**. Effective level = level + resets × **100**, so a rival at level 1 after one reset counts as level **101** and pays accordingly. The reset gap is a separate gate: a rival with as many resets as you or more pays in full, and every reset you stand above him halves the XP, down to a **0.05** floor — after a reset you climb again against your own weight class. The battle ratio follows from **0.3 + ∛(the rival's power ÷ yours) × 1.4** and is clamped to **0.3–2.0** — trampling a weak rival pays less than beating an even one, and beating someone stronger than you pays the most. The root is there because power in this game grows in jumps of whole orders of magnitude: without it almost every real battle landed on the **0.3** floor. Over all of these sits one promise: a win always pays at least one fiftieth of the level you are standing on, at every level and every number of resets — the product of the four factors has no floor of its own, and without this promise a hero a few resets in was earning **0** XP for a win.",
+  "ולפחות הרצפה": "and at least the floor",
+  "רצפת ניצחון": "Win floor",
+  "רצפת ניצחון — לפחות {p0} ניצחונות לרמה": "Win floor — at most {p0} wins per level",
+  "כל ניצחון משלם לפחות חלק אחד מ־{p0} מהניסיון הדרוש לרמה שאתה עומד בה — לא משנה כמה איפוסים מאחוריך, באיזו רמה אתה ומי היריב. ארבעת המקדמים קובעים כמה ניצחון שווה; הם לעולם לא קובעים שהוא לא שווה כלום.":
+    "Every win pays at least one {p0}th of the XP the level you are standing on requires — no matter how many resets are behind you, what level you are, or who the rival is. The four factors decide how much a win is worth; they never decide that it was worth nothing.",
+  "• אבל אף פעם לא כלום: כל ניצחון משלם לפחות חלק אחד מ־{p0} מהרמה שאתה עומד בה, בכל מספר איפוסים":
+    "• But never nothing: every win pays at least one {p0}th of the level you are standing on, at any number of resets",
   "פער איפוסים": "Reset gap",
   "פער איפוסים ×{p0}": "Reset gap ×{p0}",
   "פער רמות": "Level gap",
@@ -5747,7 +5797,8 @@ export const EN: Record<string, string> = {
     "Unlocking a tier is <0> — unlocked tier 7? It opened for attack, for defence and for spying together. You start with tiers <1> open, and every <2> tiers demands a higher city level and a higher hero level.",
   "צריך להיות גדול ממש מכוח המודיעין של היעד.":
     "It has to be strictly greater than the target's intelligence power.",
-  "צ׳אט מול תיבת הדואר": "Chat against the mailbox",
+  "צ׳אט מול תיבת הדואר — שני פתחים, שיחה אחת":
+    "Chat against the mailbox — two doors, one conversation",
   "קיבולת מחסן": "Warehouse capacity",
   "קסם ברית — הגנה": "Guild spell — defence",
   "קסם ברית — התקפה": "Guild spell — attack",
@@ -6258,8 +6309,8 @@ export const EN: Record<string, string> = {
     "Sending costs turns alone — the hero <0> even while he is on the road, and an expedition already underway finishes even if the hero falls meanwhile. What he cannot do is set out while dead.",
   "שני הגורמים מוכפלים זה בזה, אז המכפלה גדלה הכי מהר כשהם מתקדמים יחד. עבדי מכרות עולים אזרח אחד בלבד ומגיעים גם כשבויים מתקיפות מנצחות — אבל רמת המכרה היא זו שמכפילה את כל העבדים בבת אחת.":
     "The two factors multiply each other, so the product grows fastest when they advance together. A mine slave costs one citizen and also arrives as a captive from winning attacks — but it is the mine's level that multiplies every slave at once.",
-  "שני ערוצים שונים בכוונה. הצ׳אט הוא שיחה חיה וקצרה שנקראת עכשיו; תיבת ההודעות בסרגל העליון היא הארכיון — דוחות קרב, ריגול, שלל של שליטי ערים והודעות ארוכות, שממתינות שם עד שתקרא אותן. הודעה פרטית בצ׳אט מדליקה מונה על הלשונית, לא בתיבה.":
-    "Two deliberately different channels. The chat is a live, short conversation read now; the message box in the top bar is the archive — battle reports, spy reports, city-boss spoils and long messages, waiting there until you read them. A private message in the chat lights a counter on the tab, not in the box.",
+  "השיחה הפרטית בין שני שחקנים היא אותה שיחה בשני המקומות. הודעה ששלחת מדף ההודעות או מהדוסיה מופיעה גם בשיחה הפרטית בצ׳אט, מסומנת ב־✉, וכל מה שנאמר בצ׳אט מופיע כשלוחצים על השב בתיבה — אין שתי היסטוריות ואין מה לסנכרן. ההבדל היחיד הוא הרעש: הודעה שנשלחה כדואר נוחתת גם בתיבת הנמען ומדליקה לו מונה שם, כי היא נכתבה למי שאולי לא ליד המקלדת; שורת צ׳אט מדליקה רק את המונה של הצ׳אט. התיבה נשארת הארכיון — דוחות קרב, ריגול ושלל שליטי ערים ממתינים בה בלי קשר לשיחות.":
+    "A private conversation between two players is one conversation, in both places. A message you send from the messages page or from a dossier also appears in your private conversation in the chat, marked with a ✉, and everything said in the chat appears when you press Reply in the mailbox — there are not two histories, and nothing to keep in step. The only difference is the noise: a message sent as mail also lands in the recipient's inbox and lights a counter there, because it was written to somebody who may not be at the keyboard; a chat line lights only the chat's counter. The mailbox stays the archive — battle reports, spy reports and city-boss spoils wait there regardless of any conversation.",
   "שעה שמחה": "Happy Hour",
   "שעות המסע": "Hours on the road",
   "תואר": "Title",

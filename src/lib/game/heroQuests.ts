@@ -6,6 +6,7 @@
 import type { T } from "@/i18n/translate";
 import type { StorableResource } from "./constants";
 import { MAX_CITIES } from "./constants";
+import { POTION_DROP_CHANCE } from "./potions";
 import { secureRandom } from "./random";
 
 /**
@@ -27,7 +28,8 @@ import { secureRandom } from "./random";
  * 3. **Every rung pays the same per hour — on average.** The payout scales with
  *    the empire's *city count*, not with the quest's tier, so a one-hour run is
  *    never obsolete. What the long rungs buy is turn efficiency (fewer turns per
- *    hour of quest, see `heroQuestTurnCost`) and much better loot odds per run;
+ *    hour of quest, see `heroQuestTurnCost`) and much better *gear* odds per run
+ *    (the potion roll is flat across the ladder — see `HERO_QUESTS`);
  *    what the short rungs buy is loot *per hour* and the freedom to react.
  *
  * That trade is the whole design: an attentive player farms short runs, a
@@ -61,7 +63,10 @@ export interface HeroQuest {
   hours: number;
   /** Chance the run brings back a piece of gear. */
   itemChance: number;
-  /** Chance the run brings back a potion (rolled independently of the gear). */
+  /**
+   * Chance the run brings back a potion (rolled independently of the gear).
+   * The same for every rung — see the note on the derivation below.
+   */
   potionChance: number;
   /** Accent as an `R G B` triple, so the row can tint from one token. */
   accent: string;
@@ -74,14 +79,13 @@ export interface HeroQuest {
  */
 export const HERO_QUEST_HOURS: readonly number[] = [1, 2, 3, 4, 6, 8, 10, 12, 16, 24];
 
-const QUEST_TABLE: ReadonlyArray<Omit<HeroQuest, "tier" | "hours">> = [
+const QUEST_TABLE: ReadonlyArray<Omit<HeroQuest, "tier" | "hours" | "potionChance">> = [
   {
     key: "border_raid",
     name: "פשיטת הגבול",
     lore: "שיירת אספקה חוצה את קצה הנחלה בלי ליווי. הגיבור יוצא לבדו, חוזר לפני רדת הלילה.",
     sigil: "🗡",
     itemChance: 0.08,
-    potionChance: 0.1,
     accent: "180 160 120",
   },
   {
@@ -90,7 +94,6 @@ const QUEST_TABLE: ReadonlyArray<Omit<HeroQuest, "tier" | "hours">> = [
     lore: "סוחרים משלמים בזהב כדי שמישהו יצעד לצדם דרך המעבר. הגיבור לוקח את התשלום ואת מה שנופל בדרך.",
     sigil: "🐫",
     itemChance: 0.14,
-    potionChance: 0.16,
     accent: "205 150 70",
   },
   {
@@ -99,7 +102,6 @@ const QUEST_TABLE: ReadonlyArray<Omit<HeroQuest, "tier" | "hours">> = [
     lore: "מערה מתחת לגבעות שממנה יוצאים פושטים כל לילה. מי שנכנס פנימה חייב לצאת עם ראש.",
     sigil: "🔥",
     itemChance: 0.19,
-    potionChance: 0.21,
     accent: "196 92 48",
   },
   {
@@ -108,7 +110,6 @@ const QUEST_TABLE: ReadonlyArray<Omit<HeroQuest, "tier" | "hours">> = [
     lore: "שלושה ראשי שבט חולקים את הערבה ואת השלל שגנבו ממך. הגיבור יוצא לגבות חוב.",
     sigil: "🏹",
     itemChance: 0.24,
-    potionChance: 0.26,
     accent: "62 200 140",
   },
   {
@@ -117,7 +118,6 @@ const QUEST_TABLE: ReadonlyArray<Omit<HeroQuest, "tier" | "hours">> = [
     lore: "מבצר עץ על צוק, ובתוכו כל מה שנשדד מהאזור בעשור האחרון. מצור לוקח זמן.",
     sigil: "🏰",
     itemChance: 0.32,
-    potionChance: 0.33,
     accent: "150 168 190",
   },
   {
@@ -126,7 +126,6 @@ const QUEST_TABLE: ReadonlyArray<Omit<HeroQuest, "tier" | "hours">> = [
     lore: "אין שם דרך ואין שם מים — רק ערים שרופות שאיש לא בזז מאז שנפלו.",
     sigil: "🌋",
     itemChance: 0.4,
-    potionChance: 0.4,
     accent: "255 140 52",
   },
   {
@@ -135,7 +134,6 @@ const QUEST_TABLE: ReadonlyArray<Omit<HeroQuest, "tier" | "hours">> = [
     lore: "נסיך גולה החביא את אוצרו מתחת לארמון נטוש. המפה עלתה לגיבור יותר ממה שהוא מודה.",
     sigil: "🗝",
     itemChance: 0.47,
-    potionChance: 0.46,
     accent: "228 195 90",
   },
   {
@@ -144,7 +142,6 @@ const QUEST_TABLE: ReadonlyArray<Omit<HeroQuest, "tier" | "hours">> = [
     lore: "מעברים שקפואים תשעה חודשים בשנה, ומנזר בפסגה ששומר על משהו ישן מהאימפריה.",
     sigil: "🏔",
     itemChance: 0.54,
-    potionChance: 0.52,
     accent: "96 156 224",
   },
   {
@@ -153,7 +150,6 @@ const QUEST_TABLE: ReadonlyArray<Omit<HeroQuest, "tier" | "hours">> = [
     lore: "ספינה אחת, צוות ששכרת בנמל, ויבשת שאיש מאנשיך לא ראה. הוא יחזור — כנראה.",
     sigil: "⛵",
     itemChance: 0.65,
-    potionChance: 0.6,
     accent: "150 96 232",
   },
   {
@@ -162,16 +158,25 @@ const QUEST_TABLE: ReadonlyArray<Omit<HeroQuest, "tier" | "hours">> = [
     lore: "המגדל שממנו שלט הקיסר האפל הראשון. יממה שלמה של טיפוס, ובראשו כל מה שנשאר מקראלדור הישנה.",
     sigil: "👑",
     itemChance: 0.8,
-    potionChance: 0.75,
     accent: "232 82 82",
   },
 ];
 
-/** The ten expeditions, in city order. `tier` and `hours` follow the position. */
+/**
+ * The ten expeditions, in city order. `tier` and `hours` follow the position.
+ *
+ * `potionChance` is **not** in the table above and is not a per-rung knob: every
+ * quest rolls the game-wide `POTION_DROP_CHANCE`, the same 2% a won attack
+ * rolls. The rungs used to climb 10% → 75%, which made the overnight run a
+ * standing potion delivery — the exact "permanent belt" the attack rate was
+ * lowered to kill. What a long rung buys is turn efficiency and better *gear*
+ * odds; a brew is a windfall from any direction or it is not a windfall.
+ */
 export const HERO_QUESTS: readonly HeroQuest[] = QUEST_TABLE.map((quest, index) => ({
   ...quest,
   tier: index + 1,
   hours: HERO_QUEST_HOURS[index],
+  potionChance: POTION_DROP_CHANCE,
 }));
 
 /** Clamp any tier-ish number onto the catalog. */

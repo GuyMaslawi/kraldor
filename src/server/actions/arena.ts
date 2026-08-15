@@ -10,7 +10,9 @@ import { REWARD_LABEL, type Reward } from "@/lib/game/rewards";
 import {
   ARENA_ENTRY_TURNS,
   ARENA_MAX_ENTRANTS,
+  ARENA_MIN_ENTRANTS,
   ARENA_PODIUM_MIN_ENTRANTS,
+  arenaCardFought,
   arenaPodiumPays,
   arenaReward,
   rankArena,
@@ -269,6 +271,8 @@ export async function getArenaState(): Promise<ArenaState | null> {
     turns: empire.turns,
     entrants,
     maxEntrants: ARENA_MAX_ENTRANTS,
+    minEntrants: ARENA_MIN_ENTRANTS,
+    cardFought: arenaCardFought(entrants),
     podiumMinEntrants: ARENA_PODIUM_MIN_ENTRANTS,
     podiumPays: arenaPodiumPays(entrants),
 
@@ -399,11 +403,12 @@ export async function collectArena(): Promise<ActionState> {
       if (!entry) return { error: t("אין לך שלל זירה לאסוף.") };
 
       // The size of the card that was actually fought, counted here rather than
-      // trusted from the screen. This is what decides whether a placing is worth
-      // a podium purse: a tier with one entrant ranks that entrant first by
-      // arithmetic alone, and without this the diamonds would be a standing
-      // daily grant to anybody alone in a thin tier. See
-      // ARENA_PODIUM_MIN_ENTRANTS.
+      // trusted from the screen. It decides both of the thin-card rules: a tier
+      // with one entrant ranks that entrant first by arithmetic alone without a
+      // duel being fought, so that card is void and pays the entry back
+      // (ARENA_MIN_ENTRANTS), and without the second floor the diamonds would be
+      // a standing daily grant to anybody alone in a thin tier
+      // (ARENA_PODIUM_MIN_ENTRANTS).
       const entrants = await tx.arenaEntry.count({
         where: { arenaId: entry.arenaId },
       });
@@ -419,6 +424,17 @@ export async function collectArena(): Promise<ActionState> {
         empireId,
         arenaReward(entry.place, entry.wins, empire.cities, entrants)
       );
+
+      // Nobody else turned up, so no duel was fought and there is no result to
+      // dress up as one: the entry comes back and the receipt says why.
+      if (!arenaCardFought(entrants)) {
+        return {
+          success: t(
+            "הזירה בוטלה — נרשמת לבד ולא היה נגד מי להילחם. {spoils} הוחזרו לך במלואן.",
+            { spoils: describeRewards(t, paid) }
+          ),
+        };
+      }
 
       const podium = entry.place <= 3 && arenaPodiumPays(entrants);
       return {

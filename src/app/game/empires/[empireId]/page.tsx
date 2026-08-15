@@ -16,7 +16,7 @@ import {
 } from "@/lib/game/actionButtonStyles";
 import { SabotagePanel } from "@/components/game/SabotagePanel";
 import { SABOTAGE_MISSIONS, type SabotageOption } from "@/lib/game/sabotage";
-import { MessageCompose } from "@/components/game/MessageCompose";
+import { MessageThread } from "@/components/game/MessageThread";
 import { ShieldBadges } from "@/components/game/ShieldBadges";
 import { ActivePotions } from "@/components/game/ActivePotions";
 import { getActiveShields, shieldFlags } from "@/lib/game/diamondEffects";
@@ -480,8 +480,8 @@ export default async function EmpireProfilePage({
                       currentTurns={myEmpire.turns}
                       attackBlockedReason={allied ? t("בן ברית — אין תקיפה") : null}
                       messageAction={
-                        <MessageCompose
-                          lockedRecipient={{ id: empire.id, name: empire.name }}
+                        <MessageThread
+                          partner={{ id: empire.id, name: empire.name }}
                           triggerLabel={t("הודעה")}
                           triggerClassName={`${RANK_ACTION_BUTTON_BASE} ${RANK_ACTION_MESSAGE_STYLE}`}
                         />
@@ -514,10 +514,15 @@ export default async function EmpireProfilePage({
 
                 {/* When there is a war row the mail trigger lives inside it,
                     beside spying. Without one it is the only verb on the page,
-                    so it stands on its own — same green skin either way. */}
+                    so it stands on its own — same green skin either way.
+
+                    It opens the conversation rather than a blank composer: on a
+                    dossier you are as likely to be picking up something already
+                    said as starting something new, and the two are the same
+                    transcript now. See MessageThread. */}
                 {!canEngage && (
-                  <MessageCompose
-                    lockedRecipient={{ id: empire.id, name: empire.name }}
+                  <MessageThread
+                    partner={{ id: empire.id, name: empire.name }}
                     triggerLabel={t("שלח הודעה")}
                     triggerClassName={`${RANK_ACTION_BUTTON_BASE} ${RANK_ACTION_MESSAGE_STYLE} sm:w-56`}
                   />

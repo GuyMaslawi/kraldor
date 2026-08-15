@@ -266,14 +266,21 @@ export const INITIAL_WEAPON_UNLOCKED_TIER = 2;
 
 export const MAX_WEAPON_TIER = TIERS_PER_CATEGORY;
 
-/** Cost to unlock tier `currentUnlockedTier + 1` in a category. */
+/**
+ * Cost to unlock tier `currentUnlockedTier + 1` in a category — exactly what a
+ * single weapon of that tier costs.
+ *
+ * Pricing the unlock off the weapon it opens is the whole point: it rides the
+ * same ×{@link WEAPON_COST_GROWTH} ladder as the arsenal, so every step up the
+ * foundry costs double the step below it and lands where the player's income
+ * already is. (The old rule was linear in the tier — a few hundred thousand gold
+ * at tier 35, next to nothing beside the 859B the weapon itself costs, so the
+ * unlock stopped being a decision long before the ladder ended.) What is bought
+ * for that doubling is a weapon ×{@link WEAPON_POWER_GROWTH} stronger, which is
+ * why climbing still beats stacking the cheap tier.
+ */
 export function weaponTierUnlockCost(currentUnlockedTier: number): WeaponCost {
-  return {
-    gold: Math.round(2500 * currentUnlockedTier * 1.8),
-    wood: Math.round(1200 * currentUnlockedTier * 1.6),
-    iron: Math.round(1200 * currentUnlockedTier * 1.6),
-    stone: Math.round(900 * currentUnlockedTier * 1.5),
-  };
+  return weaponCostForTier(currentUnlockedTier + 1);
 }
 
 /* ------------------------------ progression gates ------------------------------ */

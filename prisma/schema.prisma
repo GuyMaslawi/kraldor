@@ -2616,6 +2616,16 @@ enum ChatChannel {
 /// kind that behaves unlike every other kind, and every inbox query growing a
 /// `kind NOT IN (…)` filter. See src/lib/game/chat.ts.
 ///
+/// The one place the two tables *do* meet is a DIRECT line between two players.
+/// A player-to-player letter writes a row here as well as a `Message`, because a
+/// conversation is one thing even when it is held through two doors: whatever
+/// was said in the dock has to be there when the other side answers from the
+/// mailbox, and the reverse. **This table is the transcript** — the single
+/// ordered record of what two players said to each other — and the `Message`
+/// row a letter also writes is the *notification*: the thing that rings the
+/// mailbox badge, survives in the 50-row archive, and reaches a player who never
+/// opens the chat at all. See `viaMail` and server/actions/messages.ts.
+///
 /// `senderName` is denormalised on purpose. A chat pane renders a hundred lines
 /// at a time and each one needs an author, so the alternative is a join (or an
 /// N+1) on the hottest polled query in the game; and when an empire is deleted
@@ -2651,8 +2661,29 @@ model ChatMessage {
   hiddenAt   DateTime?
   hiddenById String?
 
+  /// This line was posted as a *letter* — written in the mailbox or on a
+  /// profile, not typed into the dock — and so it also has a `Message` row in
+  /// the recipient's inbox.
+  ///
+  /// Worth a column rather than being inferred, for two reasons the transcript
+  /// cannot answer on its own. A letter may run to MESSAGE_BODY_MAX (1000
+  /// characters against the chat's 300) and keeps its line breaks, so the dock
+  /// has to know it is drawing a letter before it draws it. And the same words
+  /// mean different things through the two doors: a chat line is a shout at
+  /// somebody who is probably there, a letter is left for somebody who is
+  /// probably not — the ✉ marker is what tells the reader which one they are
+  /// looking at, and which one the other side will have been notified about.
+  viaMail Boolean @default(false)
+
   /// When the recipient of a DIRECT line saw it — drives the unread badge.
   /// Always null for GLOBAL, where "unread" is a client-side high-water mark.
+  ///
+  /// A letter carries its own, separate receipt on its `Message` row: reading a
+  /// conversation clears the dock's badge, walking into the mailbox clears the
+  /// mailbox's. Deliberately not shared — the two badges answer different
+  /// questions ("is anyone talking to me right now" against "is there post"),
+  /// and a player who lives in one door must not have the other silently
+  /// marked read behind their back.
   readAt DateTime?
 
   createdAt DateTime @default(now())

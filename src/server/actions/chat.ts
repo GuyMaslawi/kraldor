@@ -83,6 +83,14 @@ export type ChatLine = {
   mine: boolean;
   /** Marks the game's own staff in the public room. */
   staff: boolean;
+  /**
+   * This line was posted as a *letter* — written in the mailbox or on a profile
+   * rather than typed into the dock — and so it also landed in the other side's
+   * inbox. Drawn with a ✉ marker: it can be three times a chat line's length,
+   * it keeps its paragraphs, and it was written to somebody who was not
+   * expected to be at the keyboard. See `deliverPlayerMail`.
+   */
+  viaMail: boolean;
 };
 
 export type ChatThread = {
@@ -186,6 +194,7 @@ const LINE_SELECT = {
   system: true,
   body: true,
   bodyParams: true,
+  viaMail: true,
   createdAt: true,
   // `isStaff` rather than the owner's role: it is a column on the row already
   // being read, where the role costs a join to User on every line of every
@@ -200,6 +209,7 @@ type LineRow = {
   system: boolean;
   body: string;
   bodyParams: unknown;
+  viaMail: boolean;
   createdAt: Date;
   sender: { isStaff: boolean } | null;
 };
@@ -229,6 +239,7 @@ function toLine(t: T, row: LineRow, meId: string): ChatLine {
     // would make every system line read as "mine".
     mine: !row.system && row.senderEmpireId === meId,
     staff: row.sender?.isStaff ?? false,
+    viaMail: row.viaMail,
   };
 }
 

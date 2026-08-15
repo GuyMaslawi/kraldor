@@ -173,12 +173,25 @@ export function ArenaBoard({ state }: { state: ArenaState }) {
             {state.resolved ? (
               state.myPlace > 0 ? (
                 <>
-                  <span className="flex items-center gap-2 rounded-xl border border-gold/50 bg-black/50 px-4 py-2">
-                    <Icon name="laurel" size={16} className="text-crimson-bright" />
-                    <span className="font-black text-gold-bright">
-                      {t("מקום {place}", { place: state.myPlace })}
+                  {/* A void card has a first place the same way a race with one
+                      runner has a winner. Saying "מקום 1" over a night nobody
+                      fought would read as a prize being withheld; the card was
+                      simply cancelled and the ticket is coming back. */}
+                  {state.cardFought ? (
+                    <span className="flex items-center gap-2 rounded-xl border border-gold/50 bg-black/50 px-4 py-2">
+                      <Icon name="laurel" size={16} className="text-crimson-bright" />
+                      <span className="font-black text-gold-bright">
+                        {t("מקום {place}", { place: state.myPlace })}
+                      </span>
                     </span>
-                  </span>
+                  ) : (
+                    <span className="flex items-center gap-2 rounded-xl border border-amber-500/40 bg-black/50 px-4 py-2">
+                      <Icon name="lock" size={16} className="text-amber-300" />
+                      <span className="font-black text-amber-200">
+                        {t("הזירה בוטלה — נרשמת לבד")}
+                      </span>
+                    </span>
+                  )}
                   <PurseChips rewards={state.reward} />
                   {state.claimed ? (
                     <span className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-300">
@@ -192,7 +205,11 @@ export function ArenaBoard({ state }: { state: ArenaState }) {
                       disabled={pending || !state.claimable}
                       className="btn btn-gold px-4 py-2 text-sm disabled:opacity-60"
                     >
-                      {pending ? t("אוסף…") : t("אסוף שלל")}
+                      {pending
+                        ? t("אוסף…")
+                        : state.cardFought
+                          ? t("אסוף שלל")
+                          : t("קבל את התורות בחזרה")}
                     </button>
                   )}
                 </>
@@ -200,10 +217,21 @@ export function ArenaBoard({ state }: { state: ArenaState }) {
                 <p className="text-sm text-zinc-400">{t("לא נרשמת לזירה הזו.")}</p>
               )
             ) : state.entered ? (
-              <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-600/40 bg-emerald-950/40 px-4 py-2 text-sm font-bold text-emerald-300">
-                <Icon name="check" size={16} />
-                {t("אתה בפנים. הקרבות ייערכו בחצות.")}
-              </span>
+              <>
+                <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-600/40 bg-emerald-950/40 px-4 py-2 text-sm font-bold text-emerald-300">
+                  <Icon name="check" size={16} />
+                  {t("אתה בפנים. הקרבות ייערכו בחצות.")}
+                </span>
+                {/* The only thing left that could still go wrong for them, said
+                    now rather than at midnight. */}
+                {!state.cardFought && (
+                  <span className="text-xs font-bold text-amber-300">
+                    {t("עדיין אין לך יריב. אם אף אחד נוסף לא יירשם עד חצות הקלף יבוטל ותקבל את {turns} התורות בחזרה.", {
+                      turns: state.entryTurns,
+                    })}
+                  </span>
+                )}
+              </>
             ) : (
               <>
                 <button
@@ -267,7 +295,7 @@ function Steps({ entryTurns }: { entryTurns: number }) {
     {
       icon: "turns",
       title: t("נרשמים"),
-      body: t("כניסה עולה {turns} תורות, פעם אחת ביום. אין מה עוד לעשות — מרגע ההרשמה אתה בטבלה.", {
+      body: t("כניסה עולה {turns} תורות, פעם אחת ביום. אין מה עוד לעשות — מרגע ההרשמה אתה בטבלה. אם תישאר הנרשם היחיד הקלף מתבטל והתורות חוזרות.", {
         turns: entryTurns,
       }),
     },
@@ -416,11 +444,27 @@ function Spoils({ state }: { state: ArenaState }) {
         </div>
       </div>
 
+      {/* The stronger of the two thin-card rules, and the one a player is
+          entitled to know *before* they pay: with nobody else on the card there
+          is no duel to fight, so the night is void and the ticket comes back.
+          See ARENA_MIN_ENTRANTS. */}
+      {!state.cardFought && (
+        <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs leading-relaxed text-amber-200/90">
+          <Icon name="turns" size={14} className="shrink-0" />
+          <span>
+            {t("צריך לפחות {min} נרשמים כדי שיהיה בכלל דו־קרב. אם תישאר לבד על הקלף הזירה מתבטלת, אין שום פרס — ו־{turns} התורות שההרשמה עלתה חוזרות אליך במלואן.", {
+              min: state.minEntrants,
+              turns: state.entryTurns,
+            })}
+          </span>
+        </p>
+      )}
+
       {/* Said up front rather than discovered at the payout. A thin tier still
           runs its card and still pays the participation purse and the per-win
           gold — only the diamonds wait for there to be a tournament to win.
           See ARENA_PODIUM_MIN_ENTRANTS. */}
-      {!state.podiumPays && (
+      {state.cardFought && !state.podiumPays && (
         <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs leading-relaxed text-amber-200/90">
           <Icon name="lock" size={14} className="shrink-0" />
           <span>
@@ -472,7 +516,11 @@ function Standings({ state }: { state: ArenaState }) {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-base font-black tracking-wide text-gold-bright">
           <Icon name="rankings" size={19} className="text-crimson-bright" />
-          {state.resolved ? t("הטבלה הסופית") : t("מי נרשם")}
+          {state.resolved
+            ? state.cardFought
+              ? t("הטבלה הסופית")
+              : t("הקלף שבוטל")
+            : t("מי נרשם")}
         </h3>
         {state.resolved && (
           <span className="text-[11px] font-bold text-zinc-500" dir="ltr">
@@ -509,7 +557,12 @@ function Standings({ state }: { state: ArenaState }) {
                   />
                 )}
                 <span className="flex min-w-0 items-center gap-2">
-                  <PlaceMark place={place} resolved={state.resolved} />
+                  {/* No medal on a void card: an automatic first place over an
+                      empty table is not a placing. */}
+                  <PlaceMark
+                    place={place}
+                    resolved={state.resolved && state.cardFought}
+                  />
                   <PlayerLink
                     empireId={row.empireId}
                     name={row.empireName}

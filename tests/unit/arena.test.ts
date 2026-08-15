@@ -4,8 +4,10 @@ import {
   ARENA_ENTRY_TURNS,
   ARENA_LUCK,
   ARENA_MAX_ENTRANTS,
+  ARENA_MIN_ENTRANTS,
   ARENA_PODIUM,
   ARENA_PODIUM_MIN_ENTRANTS,
+  arenaCardFought,
   arenaPodiumPays,
   arenaReward,
   duelSeed,
@@ -288,9 +290,11 @@ describe("a thin tier does not mint diamonds", () => {
 
   it("still pays a thin card its earned half, so it is never a dead screen", () => {
     // The consolation purse and the per-win gold are earned rather than
-    // awarded, so they are not withheld — only the diamonds are.
-    const solo = arenaReward(1, 0, 1, 1);
-    expect(solo.find((r) => r.kind === "turns")!.amount).toBeGreaterThan(
+    // awarded, so they are not withheld — only the diamonds are. Quoted at the
+    // smallest card that was actually fought: below that there is no result to
+    // have earned anything with, and the ticket is refunded instead.
+    const thin = arenaReward(1, 0, 1, ARENA_MIN_ENTRANTS);
+    expect(thin.find((r) => r.kind === "turns")!.amount).toBeGreaterThan(
       ARENA_ENTRY_TURNS
     );
     const withWins = (wins: number) =>
@@ -307,6 +311,73 @@ describe("a thin tier does not mint diamonds", () => {
       );
       expect(hasDiamonds).toBe(pays);
     }
+  });
+});
+
+describe("a card nobody else entered is void, and the ticket comes back", () => {
+  /**
+   * The other half of the thin-tier story, and the one the *player* pays for. A
+   * round-robin of one entrant is zero duels: nothing was fought, nothing was
+   * won, and "first place" is arithmetic rather than a result. Paying the
+   * consolation purse there — which is deliberately worth more than the entry —
+   * made "enter alone, collect, repeat" a standing daily profit in turns and
+   * gold. Paying nothing at all would be the opposite mistake: the player bought
+   * a ticket to a tournament that never happened.
+   *
+   * So the card is void and the entry is refunded, exactly as it was paid. The
+   * guild war has always worked this way (GUILD_WAR_MIN_GUILDS) — it simply has
+   * nothing to hand back, because enrolling a guild is free.
+   */
+  it("needs at least one opponent for a card to count", () => {
+    expect(arenaCardFought(0)).toBe(false);
+    expect(arenaCardFought(1)).toBe(false);
+    expect(arenaCardFought(ARENA_MIN_ENTRANTS)).toBe(true);
+    expect(ARENA_MIN_ENTRANTS).toBe(2);
+  });
+
+  it("refunds the entry exactly, and pays nothing else", () => {
+    for (const entrants of [0, 1]) {
+      const purse = arenaReward(1, 0, 1, entrants);
+      expect(purse).toEqual([{ kind: "turns", amount: ARENA_ENTRY_TURNS }]);
+    }
+  });
+
+  it("refunds the price paid rather than a city-scaled purse", () => {
+    // The entry is a flat ARENA_ENTRY_TURNS at every city count, so a scaled
+    // refund would make a void card the best turn faucet a large empire has.
+    for (const cities of [1, 4, MAX_CITIES]) {
+      expect(arenaReward(1, 0, cities, 1)).toEqual([
+        { kind: "turns", amount: ARENA_ENTRY_TURNS },
+      ]);
+    }
+  });
+
+  it("cannot leave a solo entrant worse off than not entering", () => {
+    const refunded = arenaReward(1, 0, 1, 1).find((r) => r.kind === "turns")!;
+    expect(refunded.amount).toBe(ARENA_ENTRY_TURNS);
+  });
+
+  it("pays no gold for the wins a one-row table cannot have", () => {
+    // Defensive: the resolver can never hand a solo entrant wins, and if some
+    // future one did, a void card still must not mint gold from them.
+    expect(arenaReward(1, 30, MAX_CITIES, 1).some((r) => r.kind === "gold")).toBe(
+      false
+    );
+  });
+
+  it("starts paying the fought-card purses the moment an opponent turns up", () => {
+    const fought = arenaReward(1, 1, 1, ARENA_MIN_ENTRANTS);
+    expect(fought.find((r) => r.kind === "turns")!.amount).toBeGreaterThan(
+      ARENA_ENTRY_TURNS
+    );
+    expect(fought.some((r) => r.kind === "gold")).toBe(true);
+  });
+
+  it("keeps the two floors in the order the design needs", () => {
+    // Void-below-this is the harder rule and must sit under the diamond floor:
+    // a card between them is fought, pays its earned half, and simply mints no
+    // diamonds.
+    expect(ARENA_MIN_ENTRANTS).toBeLessThan(ARENA_PODIUM_MIN_ENTRANTS);
   });
 });
 

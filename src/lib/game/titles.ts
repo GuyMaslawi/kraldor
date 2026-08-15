@@ -89,6 +89,18 @@ export interface TitleDefinition {
   label: string;
   /** One line saying how it is come by, shown on the selection screen. */
   hint: string;
+  /**
+   * The sales line — bought titles only, and shown *instead* of the hint on the
+   * shop card.
+   *
+   * A bought title's `hint` is "נקנה בחנות התארים", which is the honest answer
+   * to the guide's "איך משיגים" column and completely wasted on the shelf where
+   * it is being sold: the card was spending its one line of prose telling the
+   * reader where they already are. The flavour is written in the same boastful
+   * register as the label — the shop is allowed to be fun about what it sells,
+   * as long as it never claims a feat.
+   */
+  flavor?: string;
   kind: TitleKind;
   /**
    * How hard it is — earned only. A bought title has no tier at all rather than
@@ -135,6 +147,24 @@ export const TITLE_GOALS = {
   /* shared wording */
   cap: HERO_MAX_LEVEL,
 } as const;
+
+/**
+ * What every title in the shop costs — one price for the whole shelf.
+ *
+ * It was a 150/200/300 ladder, which priced the *joke* rather than the thing
+ * being sold: all six are the same product (a word beside your name, no power),
+ * and a cheaper one only ever read as the lesser word. One price makes the
+ * choice about which boast fits you, which is the only question the shelf should
+ * be asking.
+ *
+ * Set to 1000 on 2026-08-15, deliberately at parity with `VIP_COST` rather than
+ * under it. The old rule was "well under the headline purchase, so a title never
+ * competes with it"; the pitch now is that a title is the *other* thousand-
+ * diamond thing you can own — VIP buys convenience for a season, a title is
+ * permanent and public. Nothing enforces the relationship between the two
+ * numbers, so if VIP is ever repriced, decide this one again on purpose.
+ */
+export const TITLE_PRICE = 1000;
 
 /** The effective hero level `warlord` really tests: one full climb, then some. */
 const WARLORD_EFFECTIVE_LEVEL = HERO_MAX_LEVEL + TITLE_GOALS.warlordLevel;
@@ -277,49 +307,55 @@ export const TITLES: readonly TitleDefinition[] = [
     key: "rich",
     label: "בעל המאה",
     hint: "נקנה בחנות התארים",
+    flavor: "לא כל אחד יכול להרשות לעצמו את התואר הזה. אתה כן.",
     kind: "bought",
     accent: "228 195 90",
-    price: 150,
+    price: TITLE_PRICE,
   },
   {
     key: "collector",
     label: "האספן",
     hint: "נקנה בחנות התארים",
+    flavor: "יש לך אחד מכל דבר במשחק. עכשיו יש לך גם את זה.",
     kind: "bought",
     accent: "150 96 232",
-    price: 150,
+    price: TITLE_PRICE,
   },
   {
     key: "gambler",
     label: "המהמר",
     hint: "נקנה בחנות התארים",
+    flavor: "הגלגל, הכוסות, הכספת — תמיד עוד סיבוב אחד.",
     kind: "bought",
     accent: "62 200 140",
-    price: 150,
+    price: TITLE_PRICE,
   },
   {
     key: "insomniac",
     label: "מי שלא ישן",
     hint: "נקנה בחנות התארים",
+    flavor: "שלוש לפנות בוקר, ואתה עדיין סופר תורות.",
     kind: "bought",
     accent: "96 156 224",
-    price: 200,
+    price: TITLE_PRICE,
   },
   {
     key: "philanthropist",
     label: "הנדיב",
     hint: "נקנה בחנות התארים",
+    flavor: "נותן לברית, נותן לחלשים, ונותן לעצמו תואר.",
     kind: "bought",
     accent: "255 150 60",
-    price: 200,
+    price: TITLE_PRICE,
   },
   {
     key: "unhinged",
     label: "המשוגע לדבר",
     hint: "נקנה בחנות התארים",
+    flavor: "יש חיים גם מחוץ למשחק. שמעת עליהם פעם.",
     kind: "bought",
     accent: "232 82 82",
-    price: 300,
+    price: TITLE_PRICE,
   },
 ];
 
@@ -377,6 +413,8 @@ export interface TitleView {
   key: string;
   label: string;
   hint: string;
+  /** The shop's sales line — bought only, drawn instead of `hint` on the card. */
+  flavor: string | null;
   kind: TitleKind;
   /** Earned only — null on a bought title, which sits on no difficulty ladder. */
   tier: TitleTier | null;
@@ -410,6 +448,7 @@ export function buildTitlesState(
       key: definition.key,
       label: definition.label,
       hint: definition.hint,
+      flavor: definition.flavor ?? null,
       kind: definition.kind,
       tier: definition.tier ?? null,
       accent: definition.accent,

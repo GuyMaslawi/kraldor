@@ -4,9 +4,10 @@
  * the compose form needs these values at render time.
  */
 
+import { clampChars, stripInvisible } from "./text";
+
 /** Hard cap on how many players one message may be addressed to. */
 export const MESSAGE_MAX_RECIPIENTS = 10;
-export const MESSAGE_TITLE_MAX = 80;
 export const MESSAGE_BODY_MAX = 1000;
 
 /**
@@ -34,6 +35,32 @@ export const MESSAGE_RECIPIENT_WINDOW_MS = 5 * 60 * 1000;
 
 export const MESSAGE_PAIR_LIMIT = 5;
 export const MESSAGE_PAIR_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * Collapse a written letter to what actually gets stored.
+ *
+ * Mail used to be `trim()` and nothing else, which was survivable while the
+ * body only ever appeared in its own card in the mailbox. It is not survivable
+ * now: the same text is also a line in the chat transcript (see
+ * `deliverPlayerMail`), where a run of two hundred blank rows scrolls the pane
+ * clean, and where a zero-width run passes every length check while rendering
+ * as nothing.
+ *
+ * Deliberately gentler than `normalizeChatBody`, because the two are different
+ * kinds of writing. A chat line is a shout and is collapsed to at most one
+ * break; a letter is allowed paragraphs, so runs of three or more breaks fall
+ * to a blank line rather than to none. The hard clamp only ever bites what the
+ * collapse could not shorten — validation rejects an over-long body first.
+ */
+export function normalizeMailBody(raw: string): string {
+  const collapsed = stripInvisible(raw)
+    .replace(/\r\n?/g, "\n")
+    // Four or more breaks (with any spacing between them) become one blank line.
+    .replace(/\n[ \t]*\n[ \t]*(\n[ \t]*)+/g, "\n\n")
+    .replace(/[ \t]{3,}/g, "  ")
+    .trim();
+  return clampChars(collapsed, MESSAGE_BODY_MAX);
+}
 
 /* ------------------------- the addressee picker ------------------------- */
 

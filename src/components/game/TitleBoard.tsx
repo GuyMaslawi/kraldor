@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { FormMessage } from "@/components/ui/FormMessage";
 import { formatNumber } from "@/lib/game/format";
@@ -84,28 +85,69 @@ export function TitleBoard({ state }: { state: TitlesState }) {
         title={t("חנות התארים")}
         blurb={t("נרכשים ביהלומים, ואינם מתיימרים להיות הישג. מי שקורא את הדירוג יידע להבדיל.")}
         diamonds={state.diamonds}
+        shop
       >
-        <TitleGrid titles={bought} diamonds={state.diamonds} />
+        <TitleGrid titles={bought} diamonds={state.diamonds} shop />
       </Shelf>
     </div>
   );
 }
 
+/**
+ * Where the dust hangs in the shop case — `left top` pairs plus the delay and
+ * period of each speck. Fixed rather than random so the shelf renders the same
+ * on the server and on the client, and spread across the whole box so the eye
+ * catches one wherever it happens to be resting.
+ */
+const SHOP_DUST: readonly { x: string; y: string; d: string; dur: string }[] = [
+  { x: "8%", y: "22%", d: "0s", dur: "5.2s" },
+  { x: "26%", y: "68%", d: "1.4s", dur: "6.1s" },
+  { x: "47%", y: "14%", d: "2.6s", dur: "4.8s" },
+  { x: "63%", y: "82%", d: "0.7s", dur: "5.9s" },
+  { x: "81%", y: "36%", d: "3.3s", dur: "5.1s" },
+  { x: "93%", y: "74%", d: "2.0s", dur: "6.4s" },
+];
+
 function Shelf({
   title,
   blurb,
   diamonds,
+  shop = false,
   children,
 }: {
   title: string;
   blurb: string;
   /** Present only on the shop shelf. */
   diamonds?: number;
+  /**
+   * The shop shelf is dressed as a lit display case — see `.title-shop` in
+   * globals.css for why only this one shelf is allowed to shine. The earned
+   * shelf stays plain on purpose: its titles sell themselves by being hard.
+   */
+  shop?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section className="panel rounded-2xl p-4 sm:p-5">
-      <h3 className="flex flex-wrap items-center gap-2 text-base font-black tracking-wide text-gold-bright">
+    <section className={`panel rounded-2xl p-4 sm:p-5 ${shop ? "title-shop" : ""}`}>
+      {shop && (
+        <span className="title-dust" aria-hidden="true">
+          {SHOP_DUST.map((speck, i) => (
+            <span
+              key={i}
+              style={
+                {
+                  "--x": speck.x,
+                  "--y": speck.y,
+                  "--d": speck.d,
+                  "--dur": speck.dur,
+                } as CSSProperties
+              }
+            />
+          ))}
+        </span>
+      )}
+      <h3 className="relative flex flex-wrap items-center gap-2 text-base font-black tracking-wide text-gold-bright">
+        {shop && <Icon name="diamond" size={18} className="text-cyan-300" />}
         {title}
         {diamonds != null && (
           <span
@@ -117,7 +159,7 @@ function Shelf({
           </span>
         )}
       </h3>
-      <p className="mt-1 text-xs leading-relaxed text-zinc-400">{blurb}</p>
+      <p className="relative mt-1 text-xs leading-relaxed text-zinc-400">{blurb}</p>
       {children}
     </section>
   );
@@ -126,14 +168,22 @@ function Shelf({
 function TitleGrid({
   titles,
   diamonds,
+  shop = false,
 }: {
   titles: TitleView[];
   diamonds?: number;
+  shop?: boolean;
 }) {
   return (
-    <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      {titles.map((entry) => (
-        <TitleCard key={entry.key} entry={entry} diamonds={diamonds} />
+    <ul className="relative mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {titles.map((entry, i) => (
+        <TitleCard
+          key={entry.key}
+          entry={entry}
+          diamonds={diamonds}
+          shop={shop}
+          index={i}
+        />
       ))}
     </ul>
   );
@@ -162,9 +212,15 @@ function TierBadge({ tier }: { tier: TitleTier }) {
 function TitleCard({
   entry,
   diamonds,
+  shop = false,
+  index = 0,
 }: {
   entry: TitleView;
   diamonds?: number;
+  shop?: boolean;
+  /** Only used to stagger the glitter — six cards twinkling on one beat reads
+      as a strobe, on six beats it reads as a case full of jewels. */
+  index?: number;
 }) {
   const t = useT();
   const [buyState, buyAction, buying] = useActionState<
@@ -174,18 +230,34 @@ function TitleCard({
 
   const forSale = entry.kind === "bought" && !entry.owned;
   const affordable = diamonds != null && diamonds >= entry.price;
+  const missing = diamonds != null ? entry.price - Math.floor(diamonds) : 0;
 
   return (
     <li
-      style={{ "--accent": entry.accent } as CSSProperties}
+      style={
+        { "--accent": entry.accent, "--i": index } as CSSProperties
+      }
       className={`title-card rounded-xl border p-3 ${
         entry.worn
           ? "title-card-worn"
-          : entry.unlocked
-            ? "border-border-subtle bg-black/25"
-            : "border-border-subtle bg-black/10 opacity-60"
+          : forSale
+            ? "title-card-sale"
+            : entry.unlocked
+              ? "border-border-subtle bg-black/25"
+              : "border-border-subtle bg-black/10 opacity-60"
       }`}
     >
+      {/* The glitter only ever goes on something that is still for sale. On a
+          title already bought it would be advertising to a customer who has
+          already paid, and on the earned shelf it would be selling something
+          that is not for sale at all. */}
+      {shop && forSale && (
+        <span aria-hidden="true">
+          <span className="title-spark title-spark-a" />
+          <span className="title-spark title-spark-b" />
+          <span className="title-spark title-spark-c" />
+        </span>
+      )}
       {/* Drawn with the same two data-attributes the title carries beside a name
           (see WornTitle.tsx), so the card is a true preview: what a player picks
           off this shelf is exactly what the rankings will show — including the
@@ -201,8 +273,15 @@ function TitleCard({
             of them, and the heading has scrolled away by then. */}
         {entry.tier && <TierBadge tier={entry.tier} />}
       </p>
-      <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-500">
-        {t(entry.hint, TITLE_PARAMS)}
+      {/* The flavour where there is one — a bought title's `hint` reads "נקנה
+          בחנות התארים", which on this shelf tells the reader where they already
+          are. See TitleDefinition.flavor. */}
+      <p
+        className={`relative mt-0.5 text-[11px] leading-relaxed ${
+          entry.flavor ? "text-zinc-400" : "text-zinc-500"
+        }`}
+      >
+        {t(entry.flavor ?? entry.hint, TITLE_PARAMS)}
       </p>
 
       <div className="mt-2.5">
@@ -212,11 +291,28 @@ function TitleCard({
             <button
               type="submit"
               disabled={buying || !affordable}
-              className="btn btn-gold flex items-center gap-1.5 px-3 py-1.5 text-xs disabled:opacity-50"
+              className="btn btn-gold title-buy flex items-center gap-1.5 px-3 py-1.5 text-xs disabled:opacity-50"
             >
-              <Icon name="diamond" size={12} />
+              <span>{t("קנה")}</span>
               <span className="nums">{entry.price}</span>
+              <Icon name="diamond" size={12} />
             </button>
+            {/* The one thing that actually stops a sale, answered on the card
+                rather than leaving the player to work out the shortfall from a
+                balance chip at the top of the shelf. */}
+            {!affordable && missing > 0 && (
+              <p className="mt-1.5 text-[11px] text-zinc-400">
+                {t("יש לך")}{" "}
+                <span className="nums">{Math.floor(diamonds ?? 0)}</span>{" "}
+                {t("יהלומים — חסרים")} <span className="nums">{missing}</span>.{" "}
+                <Link
+                  href="/game/diamonds/buy"
+                  className="whitespace-nowrap font-bold text-cyan-300 underline decoration-dotted underline-offset-2"
+                >
+                  {t("לרכישת יהלומים")}
+                </Link>
+              </p>
+            )}
           </form>
         ) : entry.worn ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300">

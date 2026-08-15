@@ -11460,6 +11460,308 @@ body {
   }
 }
 
+/* ---- the shop shelf, dressed as a lit display case --------------------- */
+
+/* The shop was drawn in exactly the same plain `.panel` as the earned shelf
+   above it, and that was a mistake about what each shelf has to do. The earned
+   shelf sells itself — its titles are hard, and a player who wants one goes and
+   plays for it. The shop asks for money, and a row of flat cards is the least
+   persuasive way to ask.
+
+   So the case gets light: a gilded pool at its top edge, a slow sheen crossing
+   the glass, and dust hanging in it.
+
+   Everything here is glitter *around* the goods and none of it touches the word
+   — `.title-name[data-kind="bought"]` above keeps its `text-shadow: none`, and
+   has to. The card is a preview of what the rankings will print beside the
+   buyer's name, and a glow here that the ladder then withholds would make the
+   shop lie about what it is selling. The case shines; the title does not. */
+.title-shop {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(228, 195, 90, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(228, 195, 90, 0.1),
+    0 8px 24px -12px rgba(0, 0, 0, 0.7);
+}
+
+/* the lamp over the case */
+.title-shop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      70% 46% at 50% 0%,
+      rgba(228, 195, 90, 0.14),
+      transparent 72%
+    ),
+    radial-gradient(
+      50% 40% at 50% 100%,
+      rgba(56, 189, 248, 0.07),
+      transparent 76%
+    );
+}
+
+/* The sheen crossing the glass. Long dark pause between passes, constant speed
+   over the run — the same lesson as `.btn-gleam`: an eased sweep parks off
+   screen at both ends and races through the only part anybody watches. */
+.title-shop::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  bottom: -40%;
+  left: 0;
+  width: 34%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 14%,
+    rgba(255, 246, 214, 0.05) 40%,
+    rgba(255, 252, 240, 0.13) 50%,
+    rgba(255, 246, 214, 0.05) 60%,
+    transparent 86%
+  );
+  transform: translateX(-200%) rotate(9deg);
+}
+
+@keyframes title-shop-sheen {
+  0% {
+    transform: translateX(-160%) rotate(9deg);
+  }
+  30%,
+  100% {
+    transform: translateX(340%) rotate(9deg);
+  }
+}
+
+/* Dust in the air of the case. Positions come from the component so the six
+   specks are spread rather than clustered, and each carries its own period —
+   equal periods would beat in unison and read as a blinking row of LEDs. */
+.title-dust {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.title-dust > span {
+  position: absolute;
+  top: var(--y);
+  left: var(--x);
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 249, 224, 0.95);
+  box-shadow: 0 0 8px 1px rgba(228, 195, 90, 0.75);
+  opacity: 0;
+  transform: scale(0.4);
+}
+
+@keyframes title-dust-twinkle {
+  0%,
+  72%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  82% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+  91% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+}
+
+/* ---- a title that is still for sale ----------------------------------- */
+
+/* Lit in its own accent rather than in gold: each of the six is a different
+   colour, and a shelf of identically gilded cards would hide exactly the thing
+   a buyer is choosing between. An owned title drops all of this — it is not for
+   sale any more, and glitter on it would be advertising to somebody who has
+   already paid. */
+.title-card-sale {
+  position: relative;
+  overflow: hidden;
+  border-color: rgb(var(--accent) / 0.45);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgb(var(--accent) / 0.16), transparent 72%),
+    rgba(0, 0, 0, 0.32);
+  box-shadow:
+    inset 0 0 22px rgb(var(--accent) / 0.1),
+    0 6px 22px -14px rgb(var(--accent) / 0.65);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.title-card-sale:hover,
+.title-card-sale:focus-within {
+  transform: translateY(-2px);
+  border-color: rgb(var(--accent) / 0.85);
+  box-shadow:
+    inset 0 0 26px rgb(var(--accent) / 0.18),
+    0 12px 30px -12px rgb(var(--accent) / 0.8);
+}
+
+/* the card's own sheen, offset per card by `--i` so the six never sweep
+   together */
+.title-card-sale::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  bottom: -50%;
+  left: 0;
+  width: 30%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 16%,
+    rgb(var(--accent) / 0.1) 42%,
+    rgba(255, 255, 255, 0.16) 50%,
+    rgb(var(--accent) / 0.1) 58%,
+    transparent 84%
+  );
+  transform: translateX(-220%) rotate(11deg);
+}
+
+@keyframes title-card-sheen {
+  0% {
+    transform: translateX(-180%) rotate(11deg);
+  }
+  26%,
+  100% {
+    transform: translateX(360%) rotate(11deg);
+  }
+}
+
+/* Four-point stars, the same geometry as the hero-item sparkles and the welcome
+   purse — the game has one shape for "this glitters" and it keeps it. Drawn in
+   the card's accent, since the accent is what the buyer is picking. */
+.title-spark {
+  position: absolute;
+  z-index: 2;
+  width: 11px;
+  height: 11px;
+  pointer-events: none;
+  background: #fffdf2;
+  clip-path: polygon(
+    50% 0%, 60% 40%, 100% 50%, 60% 60%,
+    50% 100%, 40% 60%, 0% 50%, 40% 40%
+  );
+  filter:
+    drop-shadow(0 0 4px rgb(var(--accent)))
+    drop-shadow(0 0 9px rgb(var(--accent) / 0.75));
+  opacity: 0;
+  transform: scale(0);
+}
+/* All three live in the card's inline-END gutter — the strip of padding on the
+   side the text runs away from, which is empty in Hebrew and in English alike.
+   Physical sides were tried first and cannot work: `left` is the far edge in
+   RTL and the *first letter of the title* in LTR, so either language ends up
+   with a star sitting on a glyph, where it reads as a typo rather than as
+   light. Kept inside the 12px padding band for the same reason. */
+.title-spark-a { top: 8px; inset-inline-end: 5px; width: 9px; height: 9px; }
+.title-spark-b { top: 46%; inset-inline-end: 3px; width: 8px; height: 8px; }
+.title-spark-c { bottom: 10px; inset-inline-end: 6px; }
+
+@keyframes title-spark-twinkle {
+  0%,
+  100% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(1) rotate(38deg);
+    opacity: 1;
+  }
+  58% {
+    transform: scale(0.6) rotate(60deg);
+    opacity: 0.35;
+  }
+}
+
+/* ---- the price ---- */
+
+/* A glint over the gold, on a long cycle with a dark pause. Deliberately weaker
+   than `.btn-gleam` on the welcome purse: that one is a single button on a page
+   and is allowed to shout, this is six of them on one shelf. */
+.title-buy {
+  position: relative;
+  overflow: hidden;
+}
+.title-buy::after {
+  content: "";
+  position: absolute;
+  top: -60%;
+  bottom: -60%;
+  left: 0;
+  width: 24%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 14%,
+    rgba(255, 255, 255, 0.2) 36%,
+    rgba(255, 255, 255, 0.9) 50%,
+    rgba(255, 255, 255, 0.2) 64%,
+    transparent 86%
+  );
+  transform: translateX(-260%) rotate(14deg);
+}
+/* A button the player cannot press must not shine. A glint on a disabled price
+   is the shop promising something it will refuse — the card says how many
+   diamonds are missing instead, and links to where they come from. */
+.title-buy:disabled::after {
+  display: none;
+}
+.title-buy:hover::after {
+  animation-play-state: paused;
+  opacity: 0;
+}
+
+@keyframes title-buy-glint {
+  0% {
+    transform: translateX(-170%) rotate(14deg);
+  }
+  22%,
+  100% {
+    transform: translateX(330%) rotate(14deg);
+  }
+}
+
+/* One `--i` staggers everything on a card: the sheen, the three stars and the
+   price glint all start on that card's own beat, so six cards read as a case
+   full of jewels catching the light rather than as one flashing row. */
+@media (prefers-reduced-motion: no-preference) {
+  .title-shop::after {
+    animation: title-shop-sheen 11s linear infinite;
+  }
+  .title-dust > span {
+    animation: title-dust-twinkle var(--dur) ease-in-out var(--d) infinite;
+  }
+  .title-card-sale::after {
+    animation: title-card-sheen 7s linear infinite;
+    animation-delay: calc(var(--i, 0) * 1.1s);
+  }
+  .title-spark {
+    animation: title-spark-twinkle 3.4s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.55s);
+  }
+  .title-spark-b {
+    animation-delay: calc(var(--i, 0) * 0.55s + 1.1s);
+  }
+  .title-spark-c {
+    animation-delay: calc(var(--i, 0) * 0.55s + 2.2s);
+  }
+  .title-buy:not(:disabled)::after {
+    animation: title-buy-glint 5.5s linear infinite;
+    animation-delay: calc(var(--i, 0) * 0.7s);
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* /game/worldboss — the arena                                         */
 /* ------------------------------------------------------------------ */

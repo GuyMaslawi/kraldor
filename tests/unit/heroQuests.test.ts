@@ -17,6 +17,7 @@ import {
   rollHeroQuestReward,
 } from "@/lib/game/heroQuests";
 import { MAX_CITIES } from "@/lib/game/constants";
+import { POTION_DROP_CHANCE } from "@/lib/game/potions";
 
 /** A deterministic stand-in for the CSPRNG, cycling a fixed sequence. */
 function seeded(values: number[]): () => number {
@@ -61,14 +62,21 @@ describe("catalog", () => {
     expect(heroQuestDurationMs(1)).toBe(3_600_000);
   });
 
-  it("climbs in item and potion odds with the tier", () => {
+  it("climbs in item odds with the tier", () => {
     for (let i = 1; i < HERO_QUESTS.length; i++) {
       expect(HERO_QUESTS[i].itemChance).toBeGreaterThan(HERO_QUESTS[i - 1].itemChance);
-      expect(HERO_QUESTS[i].potionChance).toBeGreaterThan(HERO_QUESTS[i - 1].potionChance);
     }
     HERO_QUESTS.forEach((q) => {
       expect(q.itemChance).toBeLessThanOrEqual(1);
-      expect(q.potionChance).toBeLessThanOrEqual(1);
+    });
+  });
+
+  it("rolls the game-wide potion chance on every rung, never more", () => {
+    // A potion is a windfall from any direction: no source may out-drop the
+    // one rate, and the long runs must not become a potion delivery service.
+    HERO_QUESTS.forEach((q) => {
+      expect(q.potionChance).toBe(POTION_DROP_CHANCE);
+      expect(q.potionChance).toBeLessThanOrEqual(0.02);
     });
   });
 });

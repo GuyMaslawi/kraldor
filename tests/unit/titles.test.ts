@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   TITLES,
   TITLE_BY_KEY,
+  TITLE_PRICE,
   buildTitlesState,
   titleUnlocked,
   wornTitle,
@@ -102,11 +103,15 @@ describe("the title catalog", () => {
     expect(TITLES.filter((x) => x.kind === "bought").length).toBeGreaterThanOrEqual(4);
   });
 
-  it("prices every bought title well under the VIP seal", () => {
-    // Titles are the cheap cosmetic tier. One that cost more than the game's
-    // headline purchase would be competing with it rather than complementing it.
+  it("prices the whole shop shelf the same", () => {
+    // Was "well under the VIP seal", on the reasoning that a title is the cheap
+    // cosmetic tier and must not compete with the headline purchase. Replaced
+    // 2026-08-15 by one flat TITLE_PRICE at parity with VIP_COST — see the note
+    // over the constant. What still has to hold is that no bought title drifts
+    // off it: a shelf of identical products at different prices only teaches
+    // players that the cheap one is the lesser word.
     for (const title of TITLES.filter((x) => x.kind === "bought")) {
-      expect(title.price).toBeLessThan(1_000);
+      expect(title.price).toBe(TITLE_PRICE);
     }
   });
 });

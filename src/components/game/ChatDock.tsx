@@ -176,6 +176,8 @@ function fromSupport(line: SupportLine): ChatLine {
     time: line.time,
     mine: !line.fromStaff,
     staff: line.fromStaff,
+    // The staff channel has no mailbox behind it — a ticket is its own record.
+    viaMail: false,
   };
 }
 
@@ -835,6 +837,19 @@ export function ChatDock({
               {line.staff && (
                 <span className="rounded bg-gold/20 px-1 text-[9px] font-black text-gold-bright">
                   {t("צוות")}
+                </span>
+              )}
+              {/* A letter, not a shout. It was written in the mailbox or on a
+                  profile, it may run to three times a chat line's length, and
+                  the recipient's inbox rang when it arrived — so it is worth
+                  saying which of the two doors it came through. */}
+              {line.viaMail && (
+                <span
+                  title={t("נשלח כהודעה לתיבת הדואר")}
+                  aria-label={t("נשלח כהודעה לתיבת הדואר")}
+                  className="text-[10px] text-gold-dim"
+                >
+                  ✉
                 </span>
               )}
               {!line.mine && line.empireId && (

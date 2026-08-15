@@ -39,6 +39,8 @@ import {
   attackWinXp,
   effectiveHeroLevel,
   levelGapXpFactor,
+  minAttackWinXp,
+  MAX_WINS_PER_LEVEL,
   resetGapXpFactor,
   RESET_GAP_XP_DECAY,
   MIN_RESET_GAP_XP_FACTOR,
@@ -213,6 +215,48 @@ describe("battle XP", () => {
     // …and a second reset cuts it again.
     expect(attackWinXp({ level: 1, resets: 2 }, rookie, power, power)).toBeLessThan(
       attackWinXp(prestiged, rookie, power, power)
+    );
+  });
+
+  it("never pays a winning attack nothing, at any level or reset count", () => {
+    // The reported bug: a player reached reset 4 and stopped gaining XP
+    // entirely. Four factors, each on its own floor, multiplied out to 0.247
+    // raw XP — and `Math.round` made that a literal zero, which the attack path
+    // treats as "no XP write at all". At five resets a level-1 hero could not
+    // leave level 1 against *any* target. The floor is over the product, so no
+    // combination of the four can ever produce it again.
+    for (const resets of [0, 1, 2, 3, 4, 5, 9, 20]) {
+      for (const level of [1, 2, 5, 20, 50, 99]) {
+        for (const foe of [
+          { level: 1, resets: 0 },
+          { level: 40, resets: 0 },
+          { level: 100, resets: 0 },
+        ]) {
+          // A genuinely helpless target: the worst every factor can do at once.
+          const gain = attackWinXp({ level, resets }, foe, 1e13, 5e5);
+          expect(gain).toBeGreaterThan(0);
+          // And worth a real share of the level, not a rounding error.
+          expect(xpToNextLevel(level) / gain).toBeLessThanOrEqual(MAX_WINS_PER_LEVEL);
+        }
+      }
+    }
+  });
+
+  it("scales the floor with the level it is filling, and only binds at the bottom", () => {
+    // A flat floor would be a dent at level 1 and invisible at level 99, so it
+    // is read off the same curve the level costs.
+    expect(minAttackWinXp(1)).toBeLessThan(minAttackWinXp(99));
+    for (const level of [1, 30, 60, 99]) {
+      expect(minAttackWinXp(level)).toBe(Math.ceil(xpToNextLevel(level) / MAX_WINS_PER_LEVEL));
+    }
+    // Out-of-range levels are clamped rather than producing nonsense.
+    expect(minAttackWinXp(0)).toBe(minAttackWinXp(1));
+    expect(minAttackWinXp(500)).toBe(minAttackWinXp(HERO_MAX_LEVEL));
+    // It must not disturb ordinary play: an even fight pays many times it, so
+    // "pick a better target, earn more" still holds everywhere above the floor.
+    const even = { level: 30, resets: 0 };
+    expect(attackWinXp(even, even, 100_000, 100_000)).toBeGreaterThan(
+      minAttackWinXp(30) * 10
     );
   });
 

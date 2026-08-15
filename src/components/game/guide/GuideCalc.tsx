@@ -18,6 +18,7 @@ import {
   REGULAR_TICK_MINUTES,
 } from "@/lib/game/constants";
 import {
+  MAX_WINS_PER_LEVEL,
   UPGRADE_LEVELS,
   bonusMultiplier,
   itemPrimaryBonus,
@@ -25,6 +26,7 @@ import {
   matchupXpFactor,
   effectiveHeroLevel,
   levelGapXpFactor,
+  minAttackWinXp,
   resetGapXpFactor,
   tierForLevel,
   upgradeStep,
@@ -599,7 +601,11 @@ export function HeroXpCalc() {
   const gap = levelGapXpFactor(ownEff, foeEff);
   const resetGap = resetGapXpFactor(resets, foeResets);
   const matchup = matchupXpFactor(ownPower, foePower);
-  const raw = Math.round(base * gap * resetGap * matchup);
+  // Same order as `attackWinXp`: the floor lands on the base figure, and the
+  // class/potion multipliers below apply on top of it.
+  const floor = minAttackWinXp(level);
+  const earned = Math.round(base * gap * resetGap * matchup);
+  const raw = Math.max(floor, earned);
   const withClass = Math.round(raw * (shadow ? 1.1 : 1));
   const gain = withClass * (potion ? 2 : 1);
 
@@ -643,7 +649,10 @@ export function HeroXpCalc() {
           {resetGap < 1 && (
             <Step label={t("פער איפוסים ×{p0}", { p0: resetGap.toFixed(2) })} value={`= ${int(base * gap * resetGap)}`} tone="text-red-300" />
           )}
-          <Step label={t("יחס קרב ×{p0}", { p0: matchup.toFixed(2) })} value={`= ${int(raw)}`} tone="text-sky-300" />
+          <Step label={t("יחס קרב ×{p0}", { p0: matchup.toFixed(2) })} value={`= ${int(earned)}`} tone="text-sky-300" />
+          {floor > earned && (
+            <Step label={t("רצפת ניצחון — לפחות {p0} ניצחונות לרמה", { p0: MAX_WINS_PER_LEVEL })} value={`= ${int(raw)}`} tone="text-emerald-300" />
+          )}
           {shadow && <Step label={t("מקצוע הצל ×1.1")} value={`= ${int(withClass)}`} tone="text-purple-300" />}
           {potion && <Step label={t("שיקוי הניסיון ×2")} value={`= ${int(gain)}`} tone="text-gold" />}
           <Step label={t("ניסיון לניצחון אחד")} value={int(gain)} strong tone="text-gold-bright" />
@@ -659,7 +668,7 @@ export function HeroXpCalc() {
       <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
         <RichText
           text={t(
-            "פער הרמות נגזר מ־**0.25 + (רמה אפקטיבית של היריב ÷ שלך) × 0.75** ונחסם בטווח **0.25–2.5**. רמה אפקטיבית = רמה + איפוסים × **100**, ולכן יריב ברמה 1 אחרי איפוס אחד נחשב רמה **101** ומשלם בהתאם. פער האיפוסים הוא שער נפרד: יריב עם מספר האיפוסים שלך או יותר משלם מלא, וכל איפוס שאתה מעליו חותך את הניסיון בחצי עד רצפה של **0.05** — אחרי איפוס מטפסים מחדש מול בני המשקל שלך. יחס הקרב נגזר מ־**0.3 + ∛(כוח היריב ÷ כוחך) × 1.4** ונחסם בטווח **0.3–2.0** — לרמוס יריב חלש משתלם פחות מלנצח יריב שקול, וניצחון על חזק ממך משלם הכי הרבה. השורש נמצא שם כי הכוח במשחק גדל בקפיצות מסדרי גודל: בלעדיו כמעט כל קרב אמיתי נפל על רצפת ה־**0.3**."
+            "פער הרמות נגזר מ־**0.25 + (רמה אפקטיבית של היריב ÷ שלך) × 0.75** ונחסם בטווח **0.25–2.5**. רמה אפקטיבית = רמה + איפוסים × **100**, ולכן יריב ברמה 1 אחרי איפוס אחד נחשב רמה **101** ומשלם בהתאם. פער האיפוסים הוא שער נפרד: יריב עם מספר האיפוסים שלך או יותר משלם מלא, וכל איפוס שאתה מעליו חותך את הניסיון בחצי עד רצפה של **0.05** — אחרי איפוס מטפסים מחדש מול בני המשקל שלך. יחס הקרב נגזר מ־**0.3 + ∛(כוח היריב ÷ כוחך) × 1.4** ונחסם בטווח **0.3–2.0** — לרמוס יריב חלש משתלם פחות מלנצח יריב שקול, וניצחון על חזק ממך משלם הכי הרבה. השורש נמצא שם כי הכוח במשחק גדל בקפיצות מסדרי גודל: בלעדיו כמעט כל קרב אמיתי נפל על רצפת ה־**0.3**. מעל כל אלה יש הבטחה אחת: ניצחון משלם תמיד לפחות חלק אחד מ־**50** מהרמה שאתה עומד בה, בכל רמה ובכל מספר איפוסים — למכפלה של ארבעת המקדמים אין רצפה משל עצמה, ובלי ההבטחה הזו גיבור אחרי כמה איפוסים היה מקבל **0** ניסיון על ניצחון."
           )}
           strong="nums font-semibold text-zinc-400"
         />

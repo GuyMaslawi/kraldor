@@ -13,6 +13,7 @@ import { markMessagesRead } from "@/server/actions/messages";
 import { MESSAGE_ROSTER_SEED } from "@/lib/game/messages";
 import { MarkSeen } from "@/components/game/MarkSeen";
 import { MessageCompose, type PlayerOption } from "@/components/game/MessageCompose";
+import { MessageThread } from "@/components/game/MessageThread";
 import { ContactStaff } from "@/components/game/ContactStaff";
 import type { MessageKind } from "@prisma/client";
 import type { CSSProperties, ReactNode } from "react";
@@ -287,6 +288,27 @@ export default async function MessagesPage() {
                         </>
                       )}
                     </div>
+
+                    {/* The thing this page was missing: somewhere to press.
+                        A letter arrived and the only way to answer it was to
+                        click through to the sender's profile and open a
+                        composer there — so most letters were simply never
+                        answered. It opens the whole conversation, not a blank
+                        form, because a reply written without what was already
+                        said is the reason a reply is hard to write. Only on a
+                        PLAYER row and only while the sender still exists: there
+                        is nobody to answer a battle report. */}
+                    {m.kind === "PLAYER" && m.senderEmpireId && m.sender && (
+                      <div className="mt-3">
+                        <MessageThread
+                          partner={{ id: m.senderEmpireId, name: m.sender.name }}
+                          // i18n-keys: MessageThread runs these through t()
+                          triggerLabel="השב"
+                          triggerTitle="פתיחת השיחה ומענה"
+                          triggerClassName="btn btn-ghost border-emerald-500/40 px-3 py-1.5 text-xs text-emerald-300 hover:border-emerald-400/70 hover:text-emerald-200"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </li>

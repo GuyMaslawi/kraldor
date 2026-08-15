@@ -184,6 +184,42 @@ export function rankArena(
 /* ------------------------------ the spoils ------------------------------ */
 
 /**
+ * Entrants a card needs before it is a tournament at all.
+ *
+ * Two, because a round-robin of one is *zero duels*. The lone entrant is ranked
+ * first by arithmetic, wins nothing, loses nothing, and has nobody to have
+ * out-fought — there is no result there to pay for. A tier holding one empire is
+ * routine at the top of the ladder and normal on a quiet day anywhere else, so
+ * this is not a corner case: it is what the arena looks like for the first
+ * player who tries it.
+ *
+ * Below this floor the card is **void**: no purse at all, and the entry turns
+ * come back exactly as they were paid (see `arenaReward`). Not the consolation
+ * purse — that one is deliberately worth *more* than the ticket, which is right
+ * for a player who fought a card and finished last, and wrong for one who
+ * fought nothing: it would make "enter alone, collect, repeat" a standing daily
+ * profit in turns and gold for the price of nothing. And not a forfeit either,
+ * which is the other failure — a player who paid to enter a tournament that
+ * never happened is owed their ticket back, not a lesson.
+ *
+ * The same rule the guild war has run on since it shipped: below
+ * GUILD_WAR_MIN_GUILDS the night is void and the lone guild is paid nothing.
+ * The war has nothing to refund because enrolling there is free; the arena
+ * charges, so voiding it has to hand the price back.
+ */
+export const ARENA_MIN_ENTRANTS = 2;
+
+/**
+ * Whether this card was a tournament — i.e. whether a single duel was fought.
+ *
+ * Shared by the screen, the claim and the guide, so the three can never
+ * disagree about whether a player is owed a purse or a refund.
+ */
+export function arenaCardFought(entrants: number): boolean {
+  return Math.max(0, Math.floor(entrants) || 0) >= ARENA_MIN_ENTRANTS;
+}
+
+/**
  * Entrants a card needs before it pays a podium at all.
  *
  * The one number standing between this feature and a diamond faucet, and it
@@ -196,10 +232,13 @@ export function rankArena(
  * accounts in the same empty tier take first *and* second.
  *
  * Five is the smallest number for which "first place" describes something that
- * happened. Below it the card still runs, still resolves, and still pays — the
- * consolation purse and the per-win gold, which are earned rather than awarded —
- * so a thin tier is never a dead screen. It simply does not mint diamonds until
- * there is a tournament to win.
+ * happened. Between ARENA_MIN_ENTRANTS and here the card still runs, still
+ * resolves, and still pays — the consolation purse and the per-win gold, which
+ * are earned rather than awarded — so a thin tier is never a dead screen. It
+ * simply does not mint diamonds until there is a tournament to win. Below
+ * ARENA_MIN_ENTRANTS there was no card to speak of and the ticket is refunded
+ * instead; the two floors answer different questions ("was this worth
+ * diamonds?" and "did this happen at all?").
  *
  * Deliberately **not** lowered when the card went daily, though a daily card
  * fills more thinly than a weekly one did. The floor is the anti-faucet, and a
@@ -280,11 +319,18 @@ export const ARENA_GOLD_PER_WIN = 800;
  * The purse for a given placing (1-based) and win count on a card of
  * `entrants` entrants.
  *
- * `entrants` is not decoration: a podium on a card too thin to have one pays
- * the consolation purse instead (see ARENA_PODIUM_MIN_ENTRANTS). It is a
- * parameter rather than a check at the call site precisely so it cannot be
- * forgotten at one of the two call sites — the screen's preview and the claim
- * both go through here, and both must reach the same answer.
+ * `entrants` is not decoration: a card too thin to have been fought at all pays
+ * the entry back and nothing else (ARENA_MIN_ENTRANTS), and a podium on a card
+ * too thin to be worth diamonds pays the consolation purse instead
+ * (ARENA_PODIUM_MIN_ENTRANTS). It is a parameter rather than a check at the
+ * call site precisely so neither can be forgotten at one of the two call
+ * sites — the screen's preview and the claim both go through here, and both
+ * must reach the same answer.
+ *
+ * The refund is deliberately **not** run through `scaleRewards`: it is the
+ * price that was paid, and the entry costs the same flat ARENA_ENTRY_TURNS at
+ * one city as at ten. Scaling it would turn a void card into the single best
+ * turn faucet a large empire has.
  *
  * Merged after scaling, and that is load-bearing rather than tidiness: both the
  * podium table and the per-win bonus pay gold, so an unmerged list comes back
@@ -302,6 +348,10 @@ export function arenaReward(
   cities: number,
   entrants: number
 ): Reward[] {
+  // Void card: the ticket back, nothing else, unscaled.
+  if (!arenaCardFought(entrants)) {
+    return [{ kind: "turns", amount: ARENA_ENTRY_TURNS }];
+  }
   const base =
     place >= 1 && place <= ARENA_PODIUM.length && arenaPodiumPays(entrants)
       ? ARENA_PODIUM[place - 1]
@@ -359,6 +409,13 @@ export interface ArenaState {
   turns: number;
   entrants: number;
   maxEntrants: number;
+  /** Entrants this card needs before it is fought at all. */
+  minEntrants: number;
+  /**
+   * Whether this card has an opponent in it. False means the night is void and
+   * the entry turns come back — see ARENA_MIN_ENTRANTS.
+   */
+  cardFought: boolean;
   /** Entrants this card needs before the podium pays diamonds. */
   podiumMinEntrants: number;
   /** Whether this card is big enough for the podium purses. */

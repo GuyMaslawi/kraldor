@@ -9,7 +9,6 @@ import {
   MESSAGE_BODY_MAX,
   MESSAGE_MAX_RECIPIENTS,
   MESSAGE_SEARCH_MIN,
-  MESSAGE_TITLE_MAX,
 } from "@/lib/game/messages";
 import type { ActionState } from "@/server/actions/game";
 import { Dialog } from "@/components/ui/Dialog";
@@ -24,7 +23,14 @@ export type PlayerOption = { id: string; name: string };
 /**
  * "Send a message" box: pick one or more players out of the game's roster (a
  * closed list — you can only write to empires that exist, never to a free-text
- * name), then write a subject and a body.
+ * name), and write.
+ *
+ * What it sends is a letter *and* a line in the private conversation with each
+ * addressee — the same conversation the chat dock opens. See
+ * `deliverPlayerMail`: the mailbox and the dock are two doors onto one
+ * transcript, so a letter written here is already there when the other side
+ * answers from the chat, and their answer is here when this box is opened
+ * again. `MessageThread` is the reply half of the same idea.
  *
  * `players` is a *seed*, not the roster: an alphabetical first page the list
  * shows at rest. Typing queries the server (searchMessageRecipients) instead of
@@ -34,27 +40,25 @@ export type PlayerOption = { id: string; name: string };
  * search has to keep rendering in its chip after the search that found it is
  * gone from the list.
  *
- * With `lockedRecipient` the roster picker is dropped and the addressee is
- * fixed — the shape a profile page needs, where you already know who you are
- * writing to. Mail is never gated on city or level: the recipient is whoever
- * the page is about, attackable or not.
+ * This is the *broadcast* door — one letter, up to MESSAGE_MAX_RECIPIENTS
+ * addressees, none of whom you are necessarily mid-conversation with. Writing to
+ * one player you already know is `MessageThread` instead, which opens what the
+ * two of you have already said rather than a blank page; it took over the
+ * profile buttons this component used to serve with a `lockedRecipient` prop.
+ * Mail is gated on neither city nor level in either door.
  */
 export function MessageCompose({
   players = [],
-  lockedRecipient,
   // i18n-keys: a default the component runs through t() itself, so callers pass Hebrew
   triggerLabel = "שלח הודעה",
   triggerClassName = "btn btn-gold px-4 py-2 text-sm",
 }: {
   players?: PlayerOption[];
-  lockedRecipient?: PlayerOption;
   triggerLabel?: string;
   triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<PlayerOption[]>(
-    lockedRecipient ? [lockedRecipient] : []
-  );
+  const [selected, setSelected] = useState<PlayerOption[]>([]);
   const [query, setQuery] = useState("");
   // Tagged with the query it answers, so "is this result current?" is a
   // comparison rather than a second piece of state the effect has to clear.
@@ -76,9 +80,7 @@ export function MessageCompose({
   if (state !== handledState) {
     setHandledState(state);
     if (state.success) {
-      // A locked addressee survives the reset — the next message from this
-      // profile still goes to the same empire.
-      setSelected(lockedRecipient ? [lockedRecipient] : []);
+      setSelected([]);
       setQuery("");
       setFound(null);
       setFormKey((k) => k + 1);
@@ -92,7 +94,7 @@ export function MessageCompose({
   // query rather than one per keystroke, and guarded by `stale` so a slow early
   // reply cannot overwrite the answer to what is in the box now.
   useEffect(() => {
-    if (!open || lockedRecipient || !searchable) return;
+    if (!open || !searchable) return;
     let stale = false;
     const timer = setTimeout(() => {
       void searchMessageRecipients(trimmed)
@@ -107,7 +109,7 @@ export function MessageCompose({
       stale = true;
       clearTimeout(timer);
     };
-  }, [open, lockedRecipient, searchable, trimmed]);
+  }, [open, searchable, trimmed]);
 
   const matches = useMemo(() => {
     // Below the search floor a single character still narrows the seed locally —
@@ -167,17 +169,7 @@ export function MessageCompose({
         </div>
 
         <form key={formKey} action={action} className="mt-4 space-y-3">
-          {/* recipients — a fixed addressee when the caller supplied one,
-              otherwise the closed list of the game's players */}
-          {lockedRecipient ? (
-            <div>
-              <p className="mb-1.5 text-xs font-semibold text-gold">{t("נמען")}</p>
-              <p className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-sm font-bold text-gold-bright">
-                {lockedRecipient.name}
-              </p>
-              <input type="hidden" name="recipients" value={lockedRecipient.id} />
-            </div>
-          ) : (
+          {/* recipients — the closed list of the game's players */}
           <div>
             <label
               htmlFor="msg-search"
@@ -271,28 +263,11 @@ export function MessageCompose({
               </p>
             )}
           </div>
-          )}
 
-          {/* subject */}
-          <div>
-            <label
-              htmlFor="msg-title"
-              className="mb-1.5 block text-xs font-semibold text-gold"
-            >
-              {t("נושא")}
-            </label>
-            <input
-              id="msg-title"
-              name="title"
-              type="text"
-              required
-              maxLength={MESSAGE_TITLE_MAX}
-              placeholder={t("על מה ההודעה?")}
-              className="w-full rounded-lg border border-border-subtle bg-panel-inset px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-gold/50 focus:outline-none"
-            />
-          </div>
-
-          {/* body */}
+          {/* body. There is no subject line: it was a required field above
+              every letter that nobody read and most people filled with the
+              first words of the message again. The mailbox titles a letter
+              itself now, from who sent it. */}
           <div>
             <label
               htmlFor="msg-body"
@@ -315,7 +290,7 @@ export function MessageCompose({
 
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] text-zinc-500">
-              {t("ההודעה תגיע לתיבת הדואר של הנמענים.")}
+              {t("ההודעה תגיע לתיבת הדואר של הנמענים ותופיע גם בשיחה הפרטית איתם בצ׳אט.")}
               {/* Somebody who opened this box to report a player or a broken
                   purchase is in the wrong place — mail addressed at a guess to
                   an admin's own empire is a letter, not a ticket. One line

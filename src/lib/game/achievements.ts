@@ -1243,9 +1243,10 @@ export const GLORY_ICON: Partial<Record<string, IconName>> = {
  *    each resource across 249 rungs (see MINE_UPGRADE_COST_GROWTH: an all-in
  *    simulated player reaches the cap around day 45). A pure grind with no gate
  *    on it, which is why it sits below the two that are gated.
- * 4. **כל {@link MAX_WEAPON_TIER} דרגות הנשק** — the foundry finished. The gold
- *    is nothing (`weaponTierUnlockCost` totals a few million); the wall is the
- *    gate on the last tier, **nine cities and hero level 80**
+ * 4. **כל {@link MAX_WEAPON_TIER} דרגות הנשק** — the foundry finished. Two walls
+ *    now, not one: `weaponTierUnlockCost` prices each unlock at the weapon it
+ *    opens, so the ladder totals ~1.7T gold with the last rung alone at 859B;
+ *    and the gate on that tier is **nine cities and hero level 80**
  *    (`weaponTierGate`), so it cannot be finished until most of the other four
  *    are.
  * 5. **גיבור ברמה {@link HERO_MAX_LEVEL}** — last, and the only ceiling the

@@ -1,0 +1,12 @@
+-- Player-to-player mail and the chat's private threads are now one transcript:
+-- a letter writes a DIRECT `ChatMessage` alongside its inbox `Message`, so a
+-- conversation reads the same from the dock and from the mailbox.
+--
+-- This flag is what tells the two apart once they share a table. A letter runs
+-- to 1000 characters against a chat line's 300 and keeps its line breaks, and
+-- it is the only kind of line whose arrival was also announced in the other
+-- side's mailbox — both of which the reader has to be able to see.
+--
+-- Backfill is deliberately absent: every row that exists today was typed into
+-- the dock, which is exactly what `false` says.
+ALTER TABLE "ChatMessage" ADD COLUMN "viaMail" BOOLEAN NOT NULL DEFAULT false;

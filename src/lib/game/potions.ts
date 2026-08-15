@@ -16,9 +16,11 @@ import { secureRandom } from "./random";
  * this empire right now?" — see lib/game/potionEffects.ts. Nothing has to be
  * cleaned up when a window closes, because every reader filters on `expiresAt`.
  *
- * Today they drop from won attacks only (rollPotionDrop, wired into
- * attackEmpire). The catalog is deliberately source-agnostic so a shop, a
- * wheel wedge or a season-pass reward can hand out the same brews later.
+ * Today they drop from won attacks (rollPotionDrop, wired into attackEmpire)
+ * and from hero quests — both at the same POTION_DROP_CHANCE, which is the one
+ * number any drop source is allowed to use. The catalog is deliberately
+ * source-agnostic so a shop, a wheel wedge or a season-pass reward can hand out
+ * the same brews later — at that rate, and never above it.
  */
 
 /** The bottle silhouettes — one per potion, so a brew is known by shape alone. */
@@ -118,12 +120,17 @@ export function forgeDiscountedCost(cost: number, active: boolean): number {
 /* ------------------------------ drops ------------------------------ */
 
 /**
- * Chance a won attack also yields a potion. Kept far below the item-drop rate
- * (19%) *on purpose*: an hour of a bent rule is the most valuable thing a raid
- * can hand out, and at one-in-a-few-raids (the old 8%) every player simply had
- * a permanent belt of them — the window stopped being an event. At 2% a brew is
- * a windfall you save for the raid that matters, and the hero quest board (see
- * lib/game/heroQuests.ts) stays the *reliable* way to go looking for one.
+ * The chance a potion drops — **everywhere**, from every source. A won attack
+ * rolls it (rollPotionDrop) and so does a returning hero quest; no source is
+ * allowed its own, higher, number. Kept far below the item-drop rate (19%) *on
+ * purpose*: an hour of a bent rule is the most valuable thing the game hands
+ * out, and at one-in-a-few-raids (the old 8%) every player simply had a
+ * permanent belt of them — the window stopped being an event.
+ *
+ * The quest board used to be the exception, climbing 10% → 75% with the tier,
+ * which made a nightly full-day run a near-guaranteed brew and put the belt
+ * straight back where it was. Since 2026-08-15 it rolls this same 2%: a potion
+ * is a windfall from *any* direction, never a schedule.
  */
 export const POTION_DROP_CHANCE = 0.02;
 

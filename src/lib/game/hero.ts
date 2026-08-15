@@ -94,6 +94,37 @@ export function xpToNextLevel(level: number): number {
 }
 
 /**
+ * The worst a winning attack is ever allowed to pay, expressed the only way a
+ * player can feel it: **how many wins it takes to fill the level he is standing
+ * on**. Whoever he attacked, however far below him they stood, and however many
+ * resets he has behind him, a win moves the bar — and fifty of them is a level.
+ *
+ * This is a *guarantee*, not a term of the formula: `attackWinXp` multiplies
+ * four independent factors, each with its own floor, and a product of floors is
+ * not itself a floor. Four factors bottoming out together landed a reset-4 hero
+ * on 0.247 raw XP against a bot garrison, which `Math.round` turned into a
+ * literal zero — and the attack path skips the hero write entirely when the
+ * gain is zero, so the bar genuinely never moved. Every reset made it worse
+ * geometrically: at five resets a level-1 hero could not leave level 1 by
+ * attacking at all, because *every* target rounded to nothing.
+ *
+ * A share of `xpToNextLevel` rather than a flat number, because the cost of a
+ * level is not flat: 3 XP is a real dent at level 1 and invisible at level 99.
+ * Reading the floor off the same curve the level costs keeps the promise
+ * identical at both ends — fifty wins, always.
+ *
+ * It binds only in the pathological corner. A normal fight pays many times this
+ * (an even match at level 30 pays 578 against a floor of 23), so the shape of
+ * the reward — pick a better target, get more — is untouched; prestige still
+ * costs, it just can no longer cost *everything*.
+ */
+export const MAX_WINS_PER_LEVEL = 50;
+export function minAttackWinXp(level: number): number {
+  const lvl = Math.min(HERO_MAX_LEVEL, Math.max(1, Math.floor(level)));
+  return Math.max(1, Math.ceil(xpToNextLevel(lvl) / MAX_WINS_PER_LEVEL));
+}
+
+/**
  * A hero's standing on one scale, resets included. A reset sends the hero back
  * to level 1, so raw level alone says nothing about a prestiged opponent: a
  * level-1 hero with one reset has already climbed the whole ladder once and
@@ -232,6 +263,10 @@ export type HeroStanding = { level: number; resets: number };
  * - **matchup** — how real the fight was, from the two armies' power
  *   (`matchupXpFactor`), so the number moves with every battle rather than being
  *   fixed by the two nameplates.
+ *
+ * Over all four sits one guarantee, `minAttackWinXp`: a win pays at least a
+ * fiftieth of the level it is filling. The factors decide how *much* a win is
+ * worth; they never decide whether it was worth anything.
  */
 export function attackWinXp(
   attacker: HeroStanding,
@@ -240,7 +275,7 @@ export function attackWinXp(
   defenderPower: number
 ): number {
   const base = 40 + Math.max(1, attacker.level) * 10;
-  return Math.round(
+  const earned = Math.round(
     base *
       levelGapXpFactor(
         effectiveHeroLevel(attacker.level, attacker.resets),
@@ -249,6 +284,11 @@ export function attackWinXp(
       resetGapXpFactor(attacker.resets, defender.resets) *
       matchupXpFactor(attackerPower, defenderPower)
   );
+  // The four factors above each have a floor, but their *product* does not —
+  // see `minAttackWinXp` for the reset-4 hero this stranded on zero. Applied to
+  // the base figure, before the class/potion/Happy-Hour multipliers, so those
+  // still multiply a win that landed on the floor.
+  return Math.max(minAttackWinXp(attacker.level), earned);
 }
 
 /**

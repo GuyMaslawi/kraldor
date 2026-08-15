@@ -22,14 +22,17 @@ import {
   MESSAGE_SEARCH_MIN,
   MESSAGE_SEND_LIMIT,
   MESSAGE_SEND_WINDOW_MS,
-  MESSAGE_TITLE_MAX,
+  normalizeMailBody,
 } from "@/lib/game/messages";
 import type { ActionState } from "./game";
 import { settleDueAssault, sweepCityBoss } from "@/server/bossSiege";
 import { sweepWorldBossSpoils } from "@/server/worldBossSpoils";
 import { logError } from "@/server/errorLog";
-import { getT } from "@/i18n/server";
+import { getT, type T } from "@/i18n/server";
 import { renderMessageText } from "@/lib/game/messageText";
+// The transcript a letter now writes into is the chat's, so the guard against
+// saying the same thing twice into it is the chat's too.
+import { isRepeat } from "@/lib/game/chat";
 
 async function requireOwnEmpireId(): Promise<string> {
   // Enforces the ban on every action (not just page loads); see getActiveEmpireId.
@@ -342,13 +345,153 @@ export async function dismissAnnouncement(id: string): Promise<void> {
 }
 
 const sendSchema = z.object({
-  title: z.string().trim().min(1).max(MESSAGE_TITLE_MAX),
   body: z.string().trim().min(1).max(MESSAGE_BODY_MAX),
   recipients: z
     .array(z.string().min(1).max(64))
     .min(1)
     .max(MESSAGE_MAX_RECIPIENTS),
 });
+
+/**
+ * The title the mailbox gives a letter now that nobody writes one.
+ *
+ * The subject line was a required field above every message, and what it
+ * actually collected was either the first words of the body again or a single
+ * character to get past the asterisk. It bought nothing: a letter is titled by
+ * *who sent it*, which is the one thing the reader wants to know from the
+ * unopened row, and which the row already had to look up anyway.
+ *
+ * Stored as a dictionary key plus the name, not a finished sentence — the
+ * sender's language must not decide the reader's. See `renderMessageText`.
+ */
+// i18n-keys: stored on the row and read through t() when the inbox is opened
+const MAIL_TITLE_KEY = "הודעה מאת {name}";
+
+/**
+ * Deliver one letter to a list of already-authorised recipients.
+ *
+ * ## Two rows per addressee, and why
+ *
+ * A letter is written into **both** tables, and neither one is a copy of the
+ * other:
+ *
+ * - `ChatMessage` (channel DIRECT) is the *transcript* — the single ordered
+ *   record of what these two players have said to each other. It is what the
+ *   chat dock draws, and it is what the mailbox's own reply view draws, so
+ *   there is exactly one history and both doors are looking at it. This is the
+ *   whole point: a player who answers from the dock is answering the letter,
+ *   and a player who answers from the mailbox sees what was said in the dock.
+ * - `Message` (kind PLAYER) is the *notification* — the mailbox badge, the
+ *   toast, the row that stays in the 50-message archive, and the only one of
+ *   the two that reaches somebody who never opens the chat at all.
+ *
+ * The reverse direction is deliberately **not** symmetric: a chat line writes
+ * no `Message`. A conversation is dozens of lines and the mailbox is a record
+ * of events, so mirroring the dock into it would bury a battle report under
+ * somebody's small talk and fire a toast per sentence. The dock has its own
+ * badge for that, and the transcript is shared either way — which is what the
+ * player was promised. Only a letter, which is rate-limited to five an hour per
+ * pair, is loud enough to be worth an inbox row.
+ *
+ * Both writes go in one transaction: a transcript line with no notification is
+ * a letter that never announced itself, and a notification with no transcript
+ * line is a reply thread with a hole in it.
+ */
+async function deliverPlayerMail(
+  sender: { id: string; name: string },
+  targets: { id: string; name: string }[],
+  body: string
+): Promise<void> {
+  // Explicit, never the column default: the database's CURRENT_TIMESTAMP writes
+  // local wall time, which lands hours away from every other timestamp the app
+  // writes — and this row has to sort against chat lines that were written
+  // correctly. See the memory on raw SQL timestamps.
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.message.createMany({
+      data: targets.map((target) => ({
+        empireId: target.id,
+        senderEmpireId: sender.id,
+        kind: "PLAYER" as const,
+        title: MAIL_TITLE_KEY,
+        titleParams: { name: sender.name },
+        body,
+        createdAt: now,
+      })),
+    }),
+    prisma.chatMessage.createMany({
+      data: targets.map((target) => ({
+        channel: "DIRECT" as const,
+        senderEmpireId: sender.id,
+        senderName: sender.name,
+        recipientEmpireId: target.id,
+        body,
+        // What tells the dock it is drawing a letter and not a shout: it may run
+        // to MESSAGE_BODY_MAX and keeps its paragraphs.
+        viaMail: true,
+        createdAt: now,
+      })),
+    }),
+  ]);
+}
+
+/**
+ * The budgets every outbound letter passes, whatever door it was written at.
+ *
+ * Returns the addressees that may actually be written to. Throttled ones are
+ * *dropped* rather than failing the send, so one over-mailed target does not
+ * block the rest of an address list; `error` is only set when nothing at all
+ * got through, because that is the only case the sender has to act on.
+ */
+async function mailBudget(
+  t: T,
+  empireId: string,
+  targets: { id: string; name: string }[]
+): Promise<
+  | { error: string }
+  | { allowed: { id: string; name: string }[]; throttled: { id: string; name: string }[] }
+> {
+  // Volume budget, charged per addressee — one send to ten players costs ten.
+  // Checked against the resolved targets rather than the submitted ids, so a
+  // list padded with dead ones does not bill for deliveries never made.
+  if (
+    !(await rateLimit(
+      `msg-recipients:${empireId}`,
+      MESSAGE_RECIPIENT_LIMIT,
+      MESSAGE_RECIPIENT_WINDOW_MS,
+      targets.length
+    ))
+  ) {
+    return {
+      error: t("שלחת הודעות ליותר מדי שחקנים בזמן קצר — נסה שוב בעוד כמה דקות"),
+    };
+  }
+
+  // Per sender→recipient budget: the volume cap above still allows a whole
+  // window to be aimed at one player, which is the harassment case.
+  const verdicts = await Promise.all(
+    targets.map((target) =>
+      rateLimit(
+        `msg-pair:${empireId}:${target.id}`,
+        MESSAGE_PAIR_LIMIT,
+        MESSAGE_PAIR_WINDOW_MS
+      )
+    )
+  );
+  const allowed = targets.filter((_, i) => verdicts[i]);
+  const throttled = targets.filter((_, i) => !verdicts[i]);
+  if (allowed.length === 0) {
+    return {
+      error:
+        targets.length === 1
+          ? t("שלחת לאחרונה כמה הודעות אל {name} — המתן לפני שתשלח שוב", {
+              name: targets[0]!.name,
+            })
+          : t("שלחת לאחרונה כמה הודעות אל השחקנים האלה — המתן לפני שתשלח שוב"),
+    };
+  }
+  return { allowed, throttled };
+}
 
 /**
  * Player-to-player mail. Recipients arrive as empire ids picked from the closed
@@ -376,21 +519,19 @@ export async function sendPlayerMessage(
   }
 
   const parsed = sendSchema.safeParse({
-    title: formData.get("title"),
-    body: formData.get("body"),
+    // Normalized before it is measured, so the length the player is judged on is
+    // the length that gets stored — and so a wall of blank lines cannot be used
+    // to scroll the shared transcript clean. See normalizeMailBody.
+    body: normalizeMailBody(String(formData.get("body") ?? "")),
     // Dedup: the same id twice must not deliver (or bill against the cap) twice.
     recipients: [...new Set(formData.getAll("recipients").map(String))],
   });
   if (!parsed.success) {
     return {
-      error: t(
-        "בחר עד {recipients} נמענים ומלא נושא (עד {title} תווים) ותוכן (עד {body} תווים)",
-        {
-          recipients: MESSAGE_MAX_RECIPIENTS,
-          title: MESSAGE_TITLE_MAX,
-          body: MESSAGE_BODY_MAX,
-        }
-      ),
+      error: t("בחר עד {recipients} נמענים וכתוב הודעה (עד {body} תווים)", {
+        recipients: MESSAGE_MAX_RECIPIENTS,
+        body: MESSAGE_BODY_MAX,
+      }),
     };
   }
 
@@ -413,57 +554,11 @@ export async function sendPlayerMessage(
       return { error: t("לא נבחרו נמענים תקינים") };
     }
 
-    // Volume budget, charged per addressee — one send to ten players costs ten.
-    // Checked against the resolved targets rather than the submitted ids, so a
-    // list padded with dead ones does not bill for deliveries never made.
-    if (
-      !(await rateLimit(
-        `msg-recipients:${empireId}`,
-        MESSAGE_RECIPIENT_LIMIT,
-        MESSAGE_RECIPIENT_WINDOW_MS,
-        targets.length
-      ))
-    ) {
-      return {
-        error: t("שלחת הודעות ליותר מדי שחקנים בזמן קצר — נסה שוב בעוד כמה דקות"),
-      };
-    }
+    const budget = await mailBudget(t, empireId, targets);
+    if ("error" in budget) return { error: budget.error };
+    const { allowed, throttled } = budget;
 
-    // Per sender→recipient budget: the volume cap above still allows a whole
-    // window to be aimed at one player, which is the harassment case. Throttled
-    // addressees are dropped from this send rather than failing it, so one
-    // over-mailed target does not block the rest of the list.
-    const verdicts = await Promise.all(
-      targets.map((target) =>
-        rateLimit(
-          `msg-pair:${empireId}:${target.id}`,
-          MESSAGE_PAIR_LIMIT,
-          MESSAGE_PAIR_WINDOW_MS
-        )
-      )
-    );
-    const allowed = targets.filter((_, i) => verdicts[i]);
-    const throttled = targets.filter((_, i) => !verdicts[i]);
-    if (allowed.length === 0) {
-      return {
-        error:
-          targets.length === 1
-            ? t("שלחת לאחרונה כמה הודעות אל {name} — המתן לפני שתשלח שוב", {
-                name: targets[0]!.name,
-              })
-            : t("שלחת לאחרונה כמה הודעות אל השחקנים האלה — המתן לפני שתשלח שוב"),
-      };
-    }
-
-    await prisma.message.createMany({
-      data: allowed.map((target) => ({
-        empireId: target.id,
-        senderEmpireId: empireId,
-        kind: "PLAYER" as const,
-        title: parsed.data.title,
-        body: parsed.data.body,
-      })),
-    });
+    await deliverPlayerMail({ id: empireId, name: me.name }, allowed, parsed.data.body);
 
     revalidatePath("/game", "layout");
     // A silent partial send would read as a full one, so the skipped names are
@@ -482,6 +577,92 @@ export async function sendPlayerMessage(
     };
   } catch (err) {
     await logError("messages.sendPlayerMessage", err);
+    return { error: t("אירעה שגיאה, נסה שוב") };
+  }
+}
+
+/**
+ * Answer a letter, from the conversation view in the mailbox or on a profile.
+ *
+ * The same delivery and the same budgets as `sendPlayerMessage` — this is a
+ * letter, not a chat line, and it rings the other side's mailbox exactly as one
+ * written from the composer does. What is different is the shape: one
+ * addressee, a plain argument instead of a `FormData`, and no `revalidatePath`.
+ * The reply view is a dialog over a page that is already rendered and it reloads
+ * the transcript itself; re-rendering the whole game shell underneath it would
+ * cost far more than the badge it would refresh, and the badge is polled anyway
+ * (see getInboxPulse).
+ */
+export async function replyToPlayer(input: {
+  toEmpireId: string;
+  body: string;
+}): Promise<{ ok: true } | { error: string }> {
+  const t = await getT();
+  let empireId: string;
+  try {
+    empireId = await requireOwnEmpireId();
+  } catch {
+    return { error: t("לא מחובר") };
+  }
+
+  if (!(await rateLimit(`msg-send:${empireId}`, MESSAGE_SEND_LIMIT, MESSAGE_SEND_WINDOW_MS))) {
+    return { error: t("שלחת יותר מדי הודעות — נסה שוב בעוד כמה דקות") };
+  }
+
+  const parsed = z
+    .object({
+      toEmpireId: z.string().min(1).max(64),
+      body: z.string().trim().min(1).max(MESSAGE_BODY_MAX),
+    })
+    .safeParse({
+      toEmpireId: String(input?.toEmpireId ?? ""),
+      body: normalizeMailBody(String(input?.body ?? "")),
+    });
+  if (!parsed.success) {
+    return { error: t("כתוב הודעה (עד {max} תווים)", { max: MESSAGE_BODY_MAX }) };
+  }
+  if (parsed.data.toEmpireId === empireId) {
+    return { error: t("אי אפשר לשלוח הודעה לעצמך") };
+  }
+
+  try {
+    const [me, target] = await Promise.all([
+      prisma.empire.findUnique({ where: { id: empireId }, select: { name: true } }),
+      prisma.empire.findFirst({
+        where: { id: parsed.data.toEmpireId, user: notBannedWhere() },
+        select: { id: true, name: true },
+      }),
+    ]);
+    if (!me) return { error: t("לא מחובר") };
+    if (!target) return { error: t("השחקן לא נמצא") };
+
+    // "Did I just say this?" — the one spam shape no per-hour budget catches,
+    // and the guard the chat has always had on this same transcript (see
+    // `isRepeat`). It belongs on the reply door in particular: this is the
+    // conversation shape, where a stalled request or a second tab turns one
+    // sentence into two identical lines in a transcript both sides read. The
+    // composer is left without it on purpose — the same letter to ten people is
+    // one deliberate send, not a repeat.
+    const previous = await prisma.chatMessage.findFirst({
+      where: {
+        senderEmpireId: empireId,
+        channel: "DIRECT",
+        recipientEmpireId: target.id,
+      },
+      orderBy: { createdAt: "desc" },
+      select: { body: true, createdAt: true },
+    });
+    if (isRepeat(parsed.data.body, previous, new Date())) {
+      return { error: t("כבר כתבת את זה") };
+    }
+
+    const budget = await mailBudget(t, empireId, [target]);
+    if ("error" in budget) return { error: budget.error };
+
+    await deliverPlayerMail({ id: empireId, name: me.name }, budget.allowed, parsed.data.body);
+    return { ok: true };
+  } catch (err) {
+    await logError("messages.replyToPlayer", err);
     return { error: t("אירעה שגיאה, נסה שוב") };
   }
 }

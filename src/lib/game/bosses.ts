@@ -288,19 +288,29 @@ export const BOSS_REWARD_BASE: BossReward = {
 export const BOSS_REWARD_SCALE = 15;
 
 /**
- * The one term the scale-up is held back on — deliberately half the resource
- * scale rather than the same number.
+ * The one term the scale-up is held back on — and since 2026-08-15 it is held
+ * back to *nothing*: the captives are paid at the day-1 base, with none of the
+ * ×15 the resources get.
  *
- * Mine slaves feed uncapped production, and a slave payout compounds twice over
- * (more slaves × a higher city production multiplier) — the same reason their
- * tier curve is gentler than the resource curve. At ×6 against the resources' ×15
- * the pens are still a visibly bigger prize per kill than they were (240 captives
- * a life at the first city, against 70), while the *rate* — captives per turn
- * spent — comes out slightly below today's, which is the right direction for the
- * one reward that never gets spent. If it still inflates, `boss.rewardMultiplier`
- * is the live knob.
+ * The reasoning that set this to 6 was right about the compounding and wrong
+ * about the size. Mine slaves feed uncapped production and a slave payout
+ * compounds twice over (more slaves × a higher city production multiplier), so
+ * the pens were rated at half the resource scale — but half of a ×15 is still a
+ * ×6 on a line that is *never spent*. Resources are consumed the moment they are
+ * paid; a captive is a permanent addition to the production engine, and 240 of
+ * them at the first city compounded into 16,493 a cycle at the tenth on day one
+ * and 112,150 by day thirty. Against a raid, which enslaves ENSLAVE_RATE (10%) of
+ * one defender's standing army, that is not a prize — it is the entire mine
+ * economy handed over on a timer, which is why empires were finishing the game in
+ * days.
+ *
+ * The correct scale for a reward with no sink is 1: the pens pay their base and
+ * grow only on the (now much gentler) tier and day curves below. Resources stay
+ * at ×15 — a boss is still by far the best-paying thing to point banked turns at,
+ * it just no longer pays in permanent production. `boss.slaveMultiplier` is the
+ * live dial if the captives ever need to move again; reach for it before this.
  */
-export const BOSS_REWARD_SCALE_SLAVES = 6;
+export const BOSS_REWARD_SCALE_SLAVES = 1;
 
 /**
  * Resource reward multiplier per city tier — deliberately *identical* to
@@ -317,10 +327,16 @@ export const BOSS_REWARD_TIER_MULTIPLIER = 2.5;
 
 /**
  * Slaves grow on a gentler curve than resources: mine slaves feed uncapped
- * production, so a ×2.4-per-tier slave payout would compound into the economy
+ * production, so a ×2.5-per-tier slave payout would compound into the economy
  * twice (more slaves × a higher city production multiplier).
+ *
+ * 1.6 was already the gentle curve and it was still nine tiers of compounding —
+ * ×68.7 by the tenth city, which is what turned a 240-captive first-city prize
+ * into a five-figure one. At 1.25 the tenth city's pens pay ×7.5 the first's,
+ * which reads as "a bigger city keeps more prisoners" without out-earning every
+ * raid the player will ever launch.
  */
-export const BOSS_SLAVE_TIER_MULTIPLIER = 1.6;
+export const BOSS_SLAVE_TIER_MULTIPLIER = 1.25;
 
 /**
  * Fraction of the base added per elapsed season day, so the haul stays relevant
@@ -330,8 +346,25 @@ export const BOSS_SLAVE_TIER_MULTIPLIER = 1.6;
  */
 export const BOSS_REWARD_DAILY_GROWTH = 0.2;
 
-function grow(base: number, tierMultiplier: number, tier: number, day: number): number {
-  const seasonal = 1 + BOSS_REWARD_DAILY_GROWTH * (Math.max(1, day) - 1);
+/**
+ * The captives' own seasonal growth, a quarter of the resources'.
+ *
+ * Resources are spent, so a day-30 haul worth 6.8× a day-1 one is just keeping
+ * pace with what a day-30 empire burns. Captives are not spent — every day's
+ * payout is still working at the end of the season — so paying them on the
+ * resource curve compounds a permanent line against itself. At 0.05 the last
+ * day's pens are ~2.5× the first's rather than ~6.8×.
+ */
+export const BOSS_SLAVE_DAILY_GROWTH = 0.05;
+
+function grow(
+  base: number,
+  tierMultiplier: number,
+  tier: number,
+  day: number,
+  dailyGrowth: number = BOSS_REWARD_DAILY_GROWTH
+): number {
+  const seasonal = 1 + dailyGrowth * (Math.max(1, day) - 1);
   return base * Math.pow(tierMultiplier, tier - 1) * seasonal;
 }
 
@@ -372,7 +405,13 @@ export function bossReward(
       return Math.max(
         1,
         Math.round(
-          grow(BOSS_REWARD_BASE.slaves, BOSS_SLAVE_TIER_MULTIPLIER, tier, day) * scale
+          grow(
+            BOSS_REWARD_BASE.slaves,
+            BOSS_SLAVE_TIER_MULTIPLIER,
+            tier,
+            day,
+            BOSS_SLAVE_DAILY_GROWTH
+          ) * scale
         )
       );
     })(),

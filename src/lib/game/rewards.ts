@@ -111,11 +111,29 @@ export const REWARD_CITY_MULTIPLIER = 2.4;
  * mine slave and a mine slave multiplies with city production, so paying them
  * on the resource curve compounds into the economy twice. heroQuests.ts makes
  * the same call for the same reason, and states it at length.
+ *
+ * **Turns, since 2026-08-15** — the one that had to be fixed rather than tuned.
+ * Turn *income* does not ride the city curve at all: the ladder tops out at
+ * `turnsPerRegularUpdate(5)` = 5 a tick, so 1,440 a day is the most an empire can
+ * earn at city one and at city ten alike. Paying turn rewards on a ×2.4-per-city
+ * curve therefore compared a payout against nothing: the weekly turn mission was
+ * 220 turns at city one and **581,198 at city ten** — four hundred days of maximum
+ * income from one mission, dealt three at a time, every week. Every board that
+ * pays turns went through here, so the missions, the login streak, the arena and
+ * the guild contracts were all faucets of the same size.
+ *
+ * Turns are the currency the whole game is gated on (ATTACK_TURN_COST,
+ * SPY_TURN_COST, a boss sortie); a currency that gates actions must stay scarce
+ * or nothing else in the economy means anything. seasonPass.ts reached the same
+ * conclusion independently and says so at TURNS_FINAL_PEAK — the pass caps a turn
+ * rung at 1,000 on the season's last day for exactly this reason. This set is now
+ * that rule applied everywhere else.
  */
 const UNSCALED: ReadonlySet<RewardKind> = new Set([
   "diamonds",
   "wheelSpins",
   "citizens",
+  "turns",
 ]);
 
 /** Cities clamped onto the board the game actually has. */
@@ -132,8 +150,7 @@ export function rewardCityFactor(cities: number): number {
  * Apply the city curve to a reward table quoted at one city.
  *
  * The four resources land on round hundreds so a board reads in round numbers;
- * turns are counted as themselves (a turn is a discrete thing a player spends
- * one of), and the unscaled kinds pass through untouched.
+ * the unscaled kinds — turns included, see UNSCALED — pass through untouched.
  */
 export function scaleRewards(
   rewards: readonly Reward[],
@@ -142,7 +159,6 @@ export function scaleRewards(
   const factor = rewardCityFactor(cities);
   return rewards.map(({ kind, amount }) => {
     if (UNSCALED.has(kind)) return { kind, amount };
-    if (kind === "turns") return { kind, amount: Math.max(1, Math.round(amount * factor)) };
     return {
       kind,
       amount: Math.max(100, Math.round((amount * factor) / 100) * 100),

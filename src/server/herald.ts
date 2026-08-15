@@ -3,7 +3,12 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { notBot } from "@/lib/bot";
 import { logError } from "@/server/errorLog";
-import { announceToDiscord, gameLink, type AnnouncementKind } from "@/server/discord";
+import {
+  announceToDiscord,
+  gameLink,
+  type AnnouncementKind,
+  type DiscordChannel,
+} from "@/server/discord";
 import { makeT } from "@/i18n/translate";
 import { DEFAULT_LOCALE } from "@/i18n/locale";
 import { renderMessageText } from "@/lib/game/messageText";
@@ -148,6 +153,15 @@ export interface HeraldMessage {
   /** Where reading more happens — an internal path, as every Message href is. */
   href?: string;
   /**
+   * How hard this knocks. `SYSTEM` (the default) lands in the inbox and toasts
+   * once; `ANNOUNCEMENT` stops the player with a dialog in the middle of the
+   * screen — see `AnnouncementDialog`, and the note on `broadcastMessage` about
+   * when that is earned. A herald fires off somebody's page load, so reach for
+   * the loud kind only when the thing announced expires: news a player can find
+   * later is news that does not need to interrupt them now.
+   */
+  kind?: "SYSTEM" | "ANNOUNCEMENT";
+  /**
    * Narrow the audience. Bots are excluded whatever this says: nobody reads a
    * garrison's inbox. Staff are *not* — an admin has every reason to be told the
    * world boss is down, and unlike a prize or a board this costs nobody
@@ -174,7 +188,7 @@ export async function heraldInbox(message: HeraldMessage): Promise<number> {
       await prisma.message.createMany({
         data: batch.map((empire) => ({
           empireId: empire.id,
-          kind: "SYSTEM" as const,
+          kind: message.kind ?? ("SYSTEM" as const),
           title: message.title.key,
           titleParams: heraldParams(message.title.params),
           body: message.body.key,
@@ -204,6 +218,13 @@ export async function heraldInbox(message: HeraldMessage): Promise<number> {
  */
 export async function heraldDiscord(announcement: {
   kind: AnnouncementKind;
+  /**
+   * Which room. Defaults to the events channel because every herald so far is a
+   * fixture with a deadline — a boss that spawned, a boss that fell. Something
+   * the game *changed* rather than something it is running belongs with the
+   * updates, and says so; see the note on `Announcement.channel`.
+   */
+  channel?: DiscordChannel;
   title: HeraldText;
   body: HeraldText;
   href?: string;
@@ -217,7 +238,7 @@ export async function heraldDiscord(announcement: {
   });
   await announceToDiscord({
     kind: announcement.kind,
-    channel: "events",
+    channel: announcement.channel ?? "events",
     title,
     body,
     url: announcement.href ? gameLink(announcement.href) : undefined,

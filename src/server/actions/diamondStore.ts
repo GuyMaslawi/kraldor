@@ -8,6 +8,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { getTunables } from "@/lib/game/config";
 import {
   DIAMOND_PACKAGES,
+  clampDiscountPct,
   discountedPrice,
   formatIls,
   isValidBuyerName,
@@ -103,7 +104,7 @@ async function preflight(packageId: string, limiterKey: string): Promise<Preflig
   }
 
   const { diamondStore } = await getTunables();
-  const discountPct = Math.min(100, Math.max(0, diamondStore.purchaseDiscountPct));
+  const discountPct = clampDiscountPct(diamondStore.purchaseDiscountPct);
 
   return {
     ok: true,

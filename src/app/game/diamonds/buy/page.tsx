@@ -1,6 +1,7 @@
 import { requireEmpire } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { getTunables } from "@/lib/game/config";
+import { clampDiscountPct } from "@/lib/game/diamondStore";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
 import { getCheckoutConfig } from "@/server/payments";
@@ -18,7 +19,7 @@ export default async function BuyDiamondsPage() {
   const empire = await requireEmpire();
   const diamonds = Math.floor(empire.diamonds);
   const { diamondStore } = await getTunables();
-  const discountPct = Math.min(100, Math.max(0, diamondStore.purchaseDiscountPct));
+  const discountPct = clampDiscountPct(diamondStore.purchaseDiscountPct);
 
   const checkout = getCheckoutConfig();
   // Before go-live only admins may actually pay, so only they get a working

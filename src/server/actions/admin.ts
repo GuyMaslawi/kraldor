@@ -124,6 +124,13 @@ import {
 } from "@/server/seasonClose";
 import { restartWorld } from "@/server/seasonRestart";
 import { announceToDiscord, gameLink } from "@/server/discord";
+import { heraldDiscord, heraldInbox, type HeraldText } from "@/server/herald";
+import {
+  DIAMOND_SALE_ANNOUNCEMENT,
+  clampDiscountPct,
+  isDiscountRelease,
+} from "@/lib/game/diamondStore";
+import { logError } from "@/server/errorLog";
 
 export interface AdminActionState {
   error?: string;
@@ -3533,6 +3540,79 @@ export async function purgeFinishedWars(
 /*                       GLOBAL BALANCE                          */
 /* ============================================================= */
 
+/**
+ * Tell the whole game a diamond sale just opened — inbox and Discord, off the
+ * same save that opened it.
+ *
+ * A discount is a tunable like any other, which means releasing one used to be
+ * two jobs: set the percentage, then go and type the same news into the
+ * broadcast form and hope the wording matched. The second job is the one that
+ * gets skipped or fumbled, and a sale nobody was told about is a price cut given
+ * away for nothing. So the release *is* the announcement: whoever moves the
+ * number cannot forget to say so, and cannot say it differently twice.
+ *
+ * `isDiscountRelease` decides whether this is news at all — the balance panel
+ * submits every tunable on every save, so silence on an unchanged (or lowered)
+ * discount is what keeps this from firing on unrelated edits.
+ *
+ * The loud kind, deliberately: a sale runs until the admin ends it and a player
+ * who finds out afterwards never had the offer. That is the same test Happy Hour
+ * and the mini-games pass, and the reason the quieter kinds exist for everything
+ * that will still be true tomorrow.
+ *
+ * Never fails the save. The tunables are already committed by the time this
+ * runs — the players are being charged the new price whether or not a webhook
+ * answers — so every failure is logged and swallowed, exactly as the other
+ * announcement tails do.
+ *
+ * @returns how many inboxes it reached, or null if this save was not a release.
+ *   Not a headcount anybody branches on — it is what the audit line records and
+ *   what the admin is told, so a sale released into an empty world still reads
+ *   as sent rather than as failed.
+ */
+async function heraldDiamondSale(
+  prevPct: number,
+  nextPct: number
+): Promise<number | null> {
+  if (!isDiscountRelease(prevPct, nextPct)) return null;
+  try {
+    // Keys and their values, stored rather than rendered — one Message row per
+    // player, each read in its own reader's language. The strings themselves
+    // live with the catalogue (see DIAMOND_SALE_ANNOUNCEMENT); only the number
+    // is filled in here.
+    const title: HeraldText = {
+      key: DIAMOND_SALE_ANNOUNCEMENT.title,
+      params: { pct: Math.round(clampDiscountPct(nextPct)) },
+    };
+    const body: HeraldText = { key: DIAMOND_SALE_ANNOUNCEMENT.body };
+    const reached = await heraldInbox({
+      kind: "ANNOUNCEMENT",
+      title,
+      body,
+      href: DIAMOND_SALE_ANNOUNCEMENT.href,
+    });
+    // The updates room, not the events one: a price is a thing about the game
+    // that changed, and it stays changed until the sale is pulled. Posted after
+    // the inbox fan-out — Discord reaches people who are not playing, and it
+    // must never be the *first* place a live player hears it.
+    await heraldDiscord({
+      kind: "announcement",
+      channel: "updates",
+      title,
+      body,
+      href: DIAMOND_SALE_ANNOUNCEMENT.href,
+    });
+    // The dialog arrives on the inbox pulse without this, but the store page
+    // itself reads the discount off the tunables — a player standing on it when
+    // the sale opens would otherwise keep seeing the old prices.
+    revalidatePath("/game", "layout");
+    return reached;
+  } catch (err) {
+    await logError("admin.heraldDiamondSale", err);
+    return null;
+  }
+}
+
 /** Persist edited global tunables (only known numeric fields are kept). */
 export async function saveTunables(
   _prev: AdminActionState,
@@ -3540,6 +3620,9 @@ export async function saveTunables(
 ): Promise<AdminActionState> {
   try {
     const admin = await requireAdmin();
+    // Read before the write: the diamond discount is announced when it *rises*,
+    // and after the upsert there is nothing left to compare against.
+    const before = await getTunables();
     const overlay: Record<string, Record<string, number>> = {};
     for (const group of Object.keys(DEFAULT_TUNABLES) as (keyof GameTunables)[]) {
       overlay[group] = {};
@@ -3564,7 +3647,27 @@ export async function saveTunables(
       details: merged as unknown as Prisma.InputJsonValue,
     });
     revalidatePath("/admin/balance");
-    return { success: "האיזון הגלובלי נשמר" };
+
+    // Outside the write and after the audit line, like every other announcement
+    // tail in this file: the balance is saved either way.
+    const prevPct = before.diamondStore.purchaseDiscountPct;
+    const nextPct = merged.diamondStore.purchaseDiscountPct;
+    const reached = await heraldDiamondSale(prevPct, nextPct);
+    if (reached !== null) {
+      await logAdmin(admin, {
+        action: "diamondsale.announce",
+        targetType: "config",
+        summary:
+          `שוחררה הנחת יהלומים ${Math.round(clampDiscountPct(nextPct))}% ` +
+          `והוכרזה ל-${reached} אימפריות ובדיסקורד`,
+        details: { prevPct, nextPct, count: reached },
+      });
+    }
+    return {
+      success:
+        "האיזון הגלובלי נשמר" +
+        (reached !== null ? " — ההנחה הוכרזה לכל השחקנים ובדיסקורד" : ""),
+    };
   } catch (e) {
     return toErr(e);
   }

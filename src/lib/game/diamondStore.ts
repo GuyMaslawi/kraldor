@@ -128,12 +128,69 @@ export function packageValuePct(pkg: DiamondPackage): number {
   return Math.max(0, Math.round((packageRate(pkg) / base - 1) * 100));
 }
 
+/**
+ * The discount as a real percentage: anything outside 0–100 is a typo, not a
+ * deal. `mergeTunables` already bounds the stored value; this is what the
+ * readers apply, so a number that reached them another way (a stale row, a
+ * hand-edited config) still cannot price a package below zero or above full.
+ */
+export function clampDiscountPct(discountPct: number): number {
+  if (!Number.isFinite(discountPct)) return 0;
+  return Math.min(100, Math.max(0, discountPct));
+}
+
 /** Apply the admin discount % to a package price, rounded to agorot. */
 export function discountedPrice(priceIls: number, discountPct: number): number {
   if (discountPct <= 0) return priceIls;
-  const clamped = Math.min(100, Math.max(0, discountPct));
-  return Math.round(priceIls * (1 - clamped / 100) * 100) / 100;
+  return Math.round(priceIls * (1 - clampDiscountPct(discountPct) / 100) * 100) / 100;
 }
+
+/**
+ * Did this edit of `purchaseDiscountPct` *release a sale* — the one event worth
+ * stopping every player to tell them about?
+ *
+ * Rising to a positive number is news: the packages cost less than they did a
+ * moment ago, and a sale nobody hears about is a sale nobody buys in. Everything
+ * else is deliberately silent, and each exclusion is a case that would otherwise
+ * announce itself for real:
+ *
+ *  - **Unchanged.** The balance panel saves *every* tunable at once, so a 50%
+ *    sale is re-submitted whenever an admin touches an unrelated number. Only a
+ *    change speaks; a re-save of the same discount cannot.
+ *  - **Down, or off.** Ending a sale, or trimming 50% to 25%, is not something a
+ *    player wants pushed to their phone — and announcing the smaller number as
+ *    if it were the news would be worse than saying nothing.
+ *
+ * Which also gives the admin an escape hatch that needs no extra button: a
+ * mis-typed 500% clamps to 100 and announces, and correcting it *downward* is
+ * silent. Going up again does announce — that really is a better deal than the
+ * one the players were last told about.
+ */
+export function isDiscountRelease(prevPct: number, nextPct: number): boolean {
+  const next = clampDiscountPct(nextPct);
+  return next > 0 && next > clampDiscountPct(prevPct);
+}
+
+/**
+ * What the game says when a sale opens — the announcement `heraldDiamondSale`
+ * sends, written once here rather than typed into the broadcast form each time.
+ *
+ * Keys, not sentences: this lands as one stored `Message` per player and is
+ * rendered in each reader's own language when their inbox opens, so `{pct}` is
+ * filled at read time. It lives in this (client-safe, key-declaring) module
+ * because /admin is outside the i18n scanner's beat — a literal written in the
+ * action itself would never be checked for an English value.
+ *
+ * Channel voice, like the broadcast defaults it replaces: the offer in the first
+ * four words, one line of what to do about it, no salutation. It is read on a
+ * phone by someone deciding in two seconds whether to open the store.
+ */
+export const DIAMOND_SALE_ANNOUNCEMENT = {
+  title: "📣 {pct}% הנחה על רכישת יהלומים לזמן מוגבל!",
+  body: "גשו לחנות ובדקו את האפשרויות השונות!",
+  /** Where the dialog's link goes — straight to the packages, not to the shop. */
+  href: "/game/diamonds/buy",
+} as const;
 
 /** Price formatted as "₪9.90". */
 export function formatIls(priceIls: number): string {

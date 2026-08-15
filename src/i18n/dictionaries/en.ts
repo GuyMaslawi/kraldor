@@ -5000,6 +5000,13 @@ export const EN: Record<string, string> = {
   "לא הצלחנו לשלוף את המסמך כרגע. נסה שוב מאוחר יותר.":
     "We could not fetch the document just now. Try again later.",
 
+  /* the sale announcement — one Message row per player, fired by the admin
+     save that opened the discount (see heraldDiamondSale) */
+  "📣 {pct}% הנחה על רכישת יהלומים לזמן מוגבל!":
+    "📣 {pct}% off diamond packs — for a limited time!",
+  "גשו לחנות ובדקו את האפשרויות השונות!":
+    "Head to the store and see what is on offer!",
+
   /* the raid notification email, sent in the recipient's stored language */
   "לביטול ההתראות: הגדרות > התראות": "To turn these off: Settings > Notifications",
   "לביטול ההתראות: הגדרות ← התראות": "To turn these off: Settings → Notifications",

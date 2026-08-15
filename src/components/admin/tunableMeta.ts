@@ -114,7 +114,14 @@ export const TUNABLE_META: {
     // of the diamond the whole game renders from the shared icon set.
     icon: "🛒",
     fields: {
-      purchaseDiscountPct: { label: "אחוז הנחה על מחירי חבילות יהלומים (0-100)" },
+      // The label carries the warning because this is the one tunable whose
+      // save is *also* a send: raising it announces the sale to every player
+      // and to Discord (see `heraldDiamondSale`). Lowering it, or re-saving the
+      // same number, is silent — which is what makes the panel's habit of
+      // submitting every field at once safe.
+      purchaseDiscountPct: {
+        label: "אחוז הנחה על מחירי חבילות יהלומים (0-100) — העלאה מכריזה אוטומטית לכל השחקנים ובדיסקורד",
+      },
     },
   },
   season: {

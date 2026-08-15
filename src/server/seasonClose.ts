@@ -145,6 +145,16 @@ export interface ChampionSnapshot {
   title: string | null;
   playerName: string | null;
   guildName: string | null;
+  /**
+   * The guild's id, so the live prize hall can open its dossier like every other
+   * guild name in the game (see components/ui/GuildLink).
+   *
+   * Live only, and dropped at the archive insert for exactly the reason `title`
+   * is: `SeasonChampion` freezes the guild's *name*, and an id is a pointer to a
+   * row the season reset deletes. The archived boards therefore keep printing
+   * the name as plain text, which is the honest rendering — that guild is gone.
+   */
+  guildId: string | null;
   power: number;
   cities: number;
   heroLevel: number;
@@ -179,7 +189,9 @@ async function buildPodium(
       militaryPower: true,
       user: { select: { name: true } },
       hero: { select: { level: true, resets: true } },
-      guildMembership: { select: { guild: { select: { name: true } } } },
+      guildMembership: {
+        select: { guildId: true, guild: { select: { name: true } } },
+      },
     },
   });
 
@@ -198,6 +210,7 @@ async function buildPodium(
       title: e.title,
       playerName: e.user?.name ?? null,
       guildName: e.guildMembership?.guild.name ?? null,
+      guildId: e.guildMembership?.guildId ?? null,
       power: Math.floor(e.militaryPower),
       cities: e.cities,
       heroLevel: e.hero?.level ?? 1,
@@ -689,10 +702,13 @@ async function archiveSeason(
   let written = 0;
   if (podium.length > 0) {
     const result = await tx.seasonChampion.createMany({
-      // `title` is destructured off rather than spread: it is the one field on a
-      // ChampionSnapshot the archive has no column for, and it is live data on a
-      // row that must be frozen. See the note on ChampionSnapshot.title.
-      data: podium.map(({ title: _title, ...c }) => ({ ...stamp, ...c })),
+      // `title` and `guildId` are destructured off rather than spread: they are
+      // the two fields on a ChampionSnapshot the archive has no column for, and
+      // both are live data on a row that must be frozen. See the notes on them.
+      data: podium.map(({ title: _title, guildId: _guildId, ...c }) => ({
+        ...stamp,
+        ...c,
+      })),
       skipDuplicates: true,
     });
     written = result.count;

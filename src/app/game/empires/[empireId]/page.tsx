@@ -25,9 +25,12 @@ import { isStaffEmpire } from "@/lib/staff";
 import { getActivePotionExpiries } from "@/lib/game/potionEffects";
 import { SHIELDS } from "@/lib/game/diamondShop";
 import { HeroPaperdoll } from "@/components/game/HeroPaperdoll";
+import { MonumentVillage } from "@/components/game/MonumentVillage";
+import { buildMonumentsState } from "@/lib/game/monuments";
 import { EmpireMedals } from "@/components/game/EmpireMedals";
 import { EmpireBio } from "@/components/game/EmpireBio";
 import { WornTitle } from "@/components/ui/WornTitle";
+import { GuildLink } from "@/components/ui/GuildLink";
 import { getEmpireMedals } from "@/server/empireMedals";
 import type { HeroItemView } from "@/components/game/heroItemView";
 import { formatNumber, formatDate } from "@/lib/game/format";
@@ -138,6 +141,9 @@ export default async function EmpireProfilePage({
     include: {
       user: { select: { name: true } },
       hero: { include: { items: { where: { equipped: true } } } },
+      // The skyline. Five rows at most, and only the two columns the build site
+      // draws with — a monument's key and how high it stands.
+      monuments: { select: { key: true, level: true } },
     },
   });
   if (!empire) notFound();
@@ -154,6 +160,18 @@ export default async function EmpireProfilePage({
     level,
     rarity: tierForLevel(level),
   }));
+
+  // The capital's skyline, drawn by the same build site as /game/monuments and
+  // read-only here. What a rival has raised is worth knowing precisely because
+  // monuments never touch combat: the field is a picture of where his gold went
+  // and which income line it went into, which is intel about the empire rather
+  // than about the next battle.
+  //
+  // Gold is passed as 0 deliberately. `affordable` is a claim about the
+  // *viewer's* purse — meaningless on somebody else's plot, and the read-only
+  // field ignores it anyway — so the one figure that must never reach this page
+  // is simply never fetched.
+  const skyline = buildMonumentsState(0, empire.monuments);
 
   const isMe = empire.id === myEmpire.id;
   // Espionage and combat are confined to your own city — an empire is "in your
@@ -396,11 +414,21 @@ export default async function EmpireProfilePage({
                   <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-gold-bright">
                     <Icon name="guild" size={14} />
                     <span>
-                      {t(
-                        "בן ברית — שניכם חברים בברית {guild}. אין תקיפות בין חברי ברית",
-                        { guild: allied.name }
-                      )}
-                      {canEngage ? t("ריגול ודואר עדיין פתוחים.") : "."}
+                      {/* The guild you share is named here and nowhere else on
+                          the dossier, so it is also where the link to its hall
+                          belongs — GuildLink sends a member to his own screen. */}
+                      {t("בן ברית — שניכם חברים בברית")}{" "}
+                      <GuildLink
+                        guildId={allied.id}
+                        name={allied.name}
+                        className="font-bold"
+                      />
+                      {". "}
+                      {t("אין תקיפות בין חברי ברית")}
+                      {/* The two halves used to run together into "...חברי
+                          בריתריגול ודואר..." — JSX drops the newline between
+                          two expressions, so the space has to be spelled. */}
+                      {canEngage ? ` ${t("ריגול ודואר עדיין פתוחים.")}` : "."}
                     </span>
                   </div>
                 )}
@@ -508,6 +536,49 @@ export default async function EmpireProfilePage({
             <EmpireBio bio={empire.bio} isMe={isMe} />
           </div>
         )}
+      </div>
+
+      {/* -------- the capital's skyline --------
+          The same build site the owner plays on, at three quarters of the size
+          and with nothing to click: a lot is a <span> here, not a button. The
+          field is the whole statement — a plot of bare stakes and one half-built
+          tower is a young empire, five crowned silhouettes is one that has spent
+          everything it ever earned — so the numbers under it stay to a single
+          line, and the per-monument reading is on the plaques where it already is. */}
+      <div className="panel rounded-xl p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 text-base font-bold tracking-wide text-gold-bright">
+            <Icon name="crown" size={20} className="text-crimson-bright" />
+            {t("מבני הבירה")}
+          </h3>
+          <span className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-panel-inset px-2.5 py-0.5 text-xs font-bold text-gold">
+            <span className="nums" dir="ltr">
+              {skyline.built}/{skyline.total}
+            </span>{" "}
+            {t("רמות")}
+          </span>
+        </div>
+
+        <MonumentVillage monuments={skyline.monuments} compact />
+
+        <p className="mt-3 text-xs text-zinc-500">
+          {skyline.built === 0
+            ? isMe
+              ? t("המגרשים שלך עדיין ריקים — אף מבנה לא נוסד.")
+              : t("המגרשים כאן ריקים — האימפריה הזו עוד לא ייסדה אף מבנה.")
+            : t("כל מבנה מוסיף אחוזים לאחד ממקורות ההכנסה — אף אחד מהם אינו נוגע בכוח הקרב.")}
+          {isMe && (
+            <>
+              {" "}
+              <Link
+                href="/game/monuments"
+                className="font-semibold text-gold hover:text-gold-bright"
+              >
+                {t("לאתר הבנייה ←")}
+              </Link>
+            </>
+          )}
+        </p>
       </div>
 
       {/* -------- the ledger of the feud --------

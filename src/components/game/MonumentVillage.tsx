@@ -23,6 +23,16 @@ import { useT } from "@/i18n/client";
  * scroll back up; now the lot opens the monument's own dialog over the field
  * (see Monuments.tsx), so the site is the only place the screen ever is.
  *
+ * ## The same field, on somebody else's dossier
+ *
+ * Without `onOpen` the scene is read-only: a lot is a `<span>` rather than a
+ * `<button>`, nothing lifts on hover and the "you can afford this" glow never
+ * fires — that flag is about the *viewer's* purse, and it would be a lie on a
+ * rival's page. `compact` shrinks the two tile numbers so the whole plot fits
+ * inside a panel that is sharing the page with other things. Both are what the
+ * empire profile draws (src/app/game/empires/[empireId]/page.tsx): a player's
+ * skyline is public, the way his hero and his gear already are.
+ *
  * ## Why clip-path and not 3D transforms
  *
  * The obvious way to draw this is `transform-style: preserve-3d` with a camera
@@ -114,20 +124,33 @@ function buildTiles(monuments: readonly MonumentView[]) {
 export function MonumentVillage({
   monuments,
   onOpen,
+  compact = false,
 }: {
   monuments: readonly MonumentView[];
-  /** Opens a monument's dialog. The scene shows state; it never changes it. */
-  onOpen: (key: string) => void;
+  /**
+   * Opens a monument's dialog. The scene shows state; it never changes it.
+   * Omitted on somebody else's dossier, where the field is a picture.
+   */
+  onOpen?: (key: string) => void;
+  /** Smaller tiles, for a field sharing a page with other panels. */
+  compact?: boolean;
 }) {
   const t = useT();
   const tiles = buildTiles(monuments);
+  const stage = `vil-stage${compact ? " vil-compact" : ""}`;
 
   // A <nav>, not a labelled <div role="img">: the five lots are real controls,
   // and `role="img"` would have made the whole subtree presentational — leaving
   // five focusable elements inside a region assistive tech is told to treat as
-  // a single picture.
+  // a single picture. Read-only there is nothing to navigate to, so it is a
+  // plain <div> and the plaques carry the names and levels as ordinary text.
+  const Stage = onOpen ? "nav" : "div";
+
   return (
-    <nav className="vil-stage" aria-label={t("אתר הבנייה של הבירה")}>
+    <Stage
+      className={stage}
+      aria-label={onOpen ? t("אתר הבנייה של הבירה") : undefined}
+    >
       <span className="vil-sky" aria-hidden />
       <div className="vil-field">
         <span className="vil-soil" aria-hidden />
@@ -165,7 +188,7 @@ export function MonumentVillage({
           <Lot key={monument.key} monument={monument} onOpen={onOpen} />
         ))}
       </div>
-    </nav>
+    </Stage>
   );
 }
 
@@ -176,15 +199,11 @@ function Lot({
   onOpen,
 }: {
   monument: MonumentView;
-  onOpen: (key: string) => void;
+  onOpen?: (key: string) => void;
 }) {
   const t = useT();
   const level = monument.level;
   const done = level >= MONUMENT_MAX_LEVEL;
-  const empty = level === 0;
-  // Scaffolding stands for exactly as long as the thing is unfinished, which
-  // here means "not at 12" — that is the whole visual grammar of the screen.
-  const building = level > 0 && !done;
   // The pieces that only appear past a threshold. The plaque hangs off the top
   // of the silhouette, so it has to be told when they are there — the CSS
   // cannot see a conditionally-rendered child.
@@ -200,28 +219,56 @@ function Lot({
     (lofted ? " is-lofted" : "") +
     (crowned ? " is-crowned" : "") +
     // "You can raise this right now" is the one piece of state the field says
-    // out loud, because it is the only one that asks the player to act.
-    (monument.affordable ? " is-ready" : "");
+    // out loud, because it is the only one that asks the player to act. It is a
+    // fact about the viewer's gold, so it never fires on a read-only field.
+    (onOpen && monument.affordable ? " is-ready" : "");
+
+  const style = {
+    "--c": monument.plot.c,
+    "--r": monument.plot.r,
+    "--lv": level,
+    "--accent": monument.accent,
+  } as CSSProperties;
+  const className = `vil-lot vil-${monument.shape}${flags}`;
+
+  // Read-only, the lot is scenery: no button, no label of its own — the plaque
+  // under it already reads "name, level out of the max" as text.
+  if (!onOpen) {
+    return (
+      <span className={className} style={style}>
+        <LotBody monument={monument} />
+      </span>
+    );
+  }
 
   return (
     <button
       type="button"
       onClick={() => onOpen(monument.key)}
-      className={`vil-lot vil-${monument.shape}${flags}`}
-      style={
-        {
-          "--c": monument.plot.c,
-          "--r": monument.plot.r,
-          "--lv": level,
-          "--accent": monument.accent,
-        } as CSSProperties
-      }
+      className={className}
+      style={style}
       aria-label={t("{monument} — רמה {level} מתוך {max}", {
         monument: t(monument.name),
         level,
         max: MONUMENT_MAX_LEVEL,
       })}
     >
+      <LotBody monument={monument} />
+    </button>
+  );
+}
+
+/** Everything standing on a lot — the same whether the lot is a button or not. */
+function LotBody({ monument }: { monument: MonumentView }) {
+  const t = useT();
+  const level = monument.level;
+  const empty = level === 0;
+  // Scaffolding stands for exactly as long as the thing is unfinished, which
+  // here means "not at 12" — that is the whole visual grammar of the screen.
+  const building = level > 0 && level < MONUMENT_MAX_LEVEL;
+
+  return (
+    <>
       <span className="vil-plot" aria-hidden />
       <span className="vil-shadow" aria-hidden />
 
@@ -257,7 +304,7 @@ function Lot({
           {level}/{MONUMENT_MAX_LEVEL}
         </span>
       </span>
-    </button>
+    </>
   );
 }
 

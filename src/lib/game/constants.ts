@@ -512,6 +512,24 @@ export function wheelLuckBonus(level: number): number {
 }
 
 /**
+ * The whole of an empire's wheel luck, as the fraction the server rolls
+ * against: the WHEEL_LUCK upgrade plus גלגל השמיים, the monument that buys the
+ * same thing. Two sources, one number, so no caller can quietly honour one of
+ * them and forget the other — which is exactly what happened while the monument
+ * only touched the daily grant.
+ *
+ * `monumentPct` is `monumentBonuses(empire.monuments).wheelLuck` — passed in
+ * rather than imported so this module stays free of the monument catalog.
+ * Together they top out at +25% (15 from the upgrade, 10 from the monument).
+ */
+export function wheelLuckChance(
+  upgradeLevel: number,
+  monumentPct: number
+): number {
+  return wheelLuckBonus(upgradeLevel) + Math.max(0, monumentPct) / 100;
+}
+
+/**
  * Wheel luck is the one upgrade priced as a luxury: free spins are the scarcest
  * currency in the game, so every percent has to hurt. The curve is geometric,
  * not linear like the other upgrades — the *first* purchase already costs 30M

@@ -12,6 +12,7 @@ import { SeasonCountdown } from "@/components/game/SeasonCountdown";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
 import { PlayerLink } from "@/components/ui/PlayerLink";
+import { GuildLink } from "@/components/ui/GuildLink";
 import { getI18n, getT } from "@/i18n/server";
 
 export async function generateMetadata() {
@@ -279,7 +280,15 @@ export default async function PrizesPage() {
                         </p>
                         <p className="text-[11px] text-zinc-500">
                           {t("כוח צבאי")} · {cityFullName(t, champ.cities)}
-                          {champ.guildName ? ` · ${champ.guildName}` : ""}
+                          {champ.guildName && (
+                            <>
+                              {" · "}
+                              <GuildLink
+                                guildId={champ.guildId}
+                                name={champ.guildName}
+                              />
+                            </>
+                          )}
                         </p>
                       </>
                     ) : (

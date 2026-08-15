@@ -215,8 +215,8 @@ function MonumentPanel({
         {t(monument.lore)}
       </p>
 
-      {/* Twelve pips rather than a bar: the ladder has twelve rungs and each one
-          is a separate purchase, so the player should be able to count them. */}
+      {/* Pips rather than a bar: every rung of the ladder is a separate
+          purchase, so the player should be able to count them. */}
       <div className="mono-pips relative mt-3" aria-hidden>
         {Array.from({ length: MONUMENT_MAX_LEVEL }, (_, i) => (
           <span key={i} className={i < monument.level ? "is-on" : ""} />

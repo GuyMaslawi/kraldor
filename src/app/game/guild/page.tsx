@@ -1,10 +1,12 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { requireEmpire } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
 import { PresenceDot } from "@/components/ui/PresenceDot";
 import { PlayerLink } from "@/components/ui/PlayerLink";
+import { GuildLink } from "@/components/ui/GuildLink";
+import { GuildHall } from "@/components/game/GuildHall";
 import { isOnline } from "@/lib/game/chat";
 import { formatNumber } from "@/lib/game/format";
 import { getT } from "@/i18n/server";
@@ -46,82 +48,6 @@ export async function generateMetadata() {
 
 /** How many guilds the recruitment browser lists. */
 const GUILD_BROWSE_LIMIT = 100;
-
-/**
- * Embers rising off the brazier: `[left %, delay s, duration s, drift px]`.
- * A fixed table, never `Math.random()` — the server and the first client render
- * have to agree on every one of these numbers.
- */
-const EMBERS: [number, number, number, number][] = [
-  [38, 0, 5.4, -14],
-  [46, 1.7, 6.2, 9],
-  [54, 3.1, 5.8, -7],
-  [61, 0.9, 6.6, 13],
-  [44, 4.3, 5.1, 16],
-  [57, 2.4, 6.9, -11],
-];
-
-/**
- * The hall at the top of both guild views: war banners on the wall, a hearth
- * in the middle of the table and one pennant per seat the guild has bought.
- *
- * The seat row is the whole reason the scene is worth drawing — it is live
- * data, not decoration. A lit pennant is a member, a dark one is a vacancy,
- * and the brightest one is you. A player with no guild yet gets the same hall
- * cold and empty, so the recruiting screen never looks like a hall he already
- * owns.
- */
-function GuildHall({
-  seats,
-  taken,
-  mySeat,
-  children,
-}: {
-  seats: number;
-  taken: number;
-  /** Index of the viewer's own seat, or -1 when he has no guild yet. */
-  mySeat: number;
-  children: ReactNode;
-}) {
-  return (
-    <div className={`panel-gold gd-hall rounded-2xl p-4${taken === 0 ? " is-empty" : ""}`}>
-      <span className="gd-banner gd-banner-r" aria-hidden />
-      <span className="gd-banner gd-banner-l" aria-hidden />
-      <span className="gd-hearth" aria-hidden />
-      {/* Sparks off the brazier — they only rise once someone is seated. */}
-      {EMBERS.map(([left, delay, duration, drift], i) => (
-        <span
-          key={i}
-          className="gd-ember"
-          aria-hidden
-          style={
-            {
-              left: `${left}%`,
-              animationDelay: `${delay}s`,
-              animationDuration: `${duration}s`,
-              "--drift": `${drift}px`,
-            } as CSSProperties
-          }
-        />
-      ))}
-
-      <div className="gd-body text-center">
-        {children}
-        <div className="mt-3 flex items-end justify-center gap-1.5" aria-hidden>
-          {Array.from({ length: seats }).map((_, i) => (
-            <span
-              key={i}
-              className={`gd-seat${i < taken ? " is-taken" : ""}${
-                i === mySeat ? " is-me" : ""
-              }`}
-              style={{ "--i": i } as CSSProperties}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* -------- no guild yet: create + browse open guilds -------- */
 
@@ -211,7 +137,9 @@ async function NoGuildView({
                   style={{ "--i": index } as CSSProperties}
                 >
                   <span className="text-sm font-bold text-gold-bright">
-                    {invite.guild.name}
+                    {/* Before you answer an invitation you want to see who is
+                        already in the hall — the name is the way in. */}
+                    <GuildLink guildId={invite.guildId} name={invite.guild.name} />
                   </span>
                   <span className="text-[11px] text-zinc-500">
                     {t("מנהיג:")}{" "}
@@ -296,7 +224,7 @@ async function NoGuildView({
                       >
                         <td className="py-3 pr-2">
                           <span className="font-semibold text-zinc-100">
-                            {guild.name}
+                            <GuildLink guildId={guild.id} name={guild.name} />
                           </span>
                         </td>
                         <td className="py-3 text-zinc-300">

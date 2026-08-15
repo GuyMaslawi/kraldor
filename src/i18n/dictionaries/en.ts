@@ -3981,6 +3981,14 @@ export const EN: Record<string, string> = {
   "רמה {level}/{max}": "Level {level}/{max}",
   "לחץ על מבנה במפה כדי לבנות או לשדרג אותו.":
     "Tap a building on the map to raise or upgrade it.",
+  /* the same site, read-only on an empire's profile */
+  "המגרשים שלך עדיין ריקים — אף מבנה לא נוסד.":
+    "Your lots are still empty — nothing has been founded yet.",
+  "המגרשים כאן ריקים — האימפריה הזו עוד לא ייסדה אף מבנה.":
+    "The lots here are empty — this empire has not founded a single building yet.",
+  "כל מבנה מוסיף אחוזים לאחד ממקורות ההכנסה — אף אחד מהם אינו נוגע בכוח הקרב.":
+    "Every building adds a percentage to one source of income — none of them touches combat power.",
+  "לאתר הבנייה ←": "To the build site ←",
   "אחרי הבנייה": "After building",
   "עלות הרמה הבאה": "Next level costs",
   "עלות הייסוד": "Founding costs",
@@ -4018,7 +4026,7 @@ export const EN: Record<string, string> = {
   "גלגל השמיים": "The Sky Wheel",
   "מבנה שאיש אינו יודע להסביר, שממשיך להסתובב גם כשאין רוח. העם מייחס לו מזל.":
     "A structure nobody can explain, still turning when there is no wind. The people credit it with luck.",
-  "+{pct}% לסיבובי גלגל המזל היומיים": "+{pct}% daily wheel spins",
+  "+{pct}% סיכוי לזכות בסיבוב גלגל מזל": "+{pct}% chance to win a wheel spin",
 
   /* ------------------------------------------------------------------ */
   /* אוצר הברית — the guild treasury                                      */
@@ -4804,6 +4812,19 @@ export const EN: Record<string, string> = {
   /* ------------------------------------------------------------------ */
   "הברית שלי | KRALDOR": "My Guild | KRALDOR",
   "הברית שלי": "My Guild",
+
+  /* another guild's hall — /game/guild/[guildId], and the link that opens it */
+  "ברית | KRALDOR": "Guild | KRALDOR",
+  "הברית {guild}": "The guild {guild}",
+  "נוסדה": "Founded",
+  "האולם ריק — לברית הזו אין חברים.": "The hall is empty — this guild has no members.",
+  "הוזמנת לברית הזו — ההזמנה תקפה ל־{hours} שעות מרגע ששלחו אותה.":
+    "You have been invited to this guild — the invitation stands for {hours} hours from the moment it was sent.",
+  "אתה כבר חבר בברית אחרת — עזוב אותה כדי שיוכלו להזמין אותך לכאן.":
+    "You are already in another guild — leave it before this one can invite you.",
+  "לעמוד הברית שלי": "To my guild's page",
+  "לבריתות הממלכה": "To the kingdom's guilds",
+
   "אולם הברית": "The guild hall",
   "מושבים תפוסים סביב השולחן": "seats taken at the table",
   "אין לך ברית": "You have no guild",
@@ -4920,8 +4941,10 @@ export const EN: Record<string, string> = {
   "הגיבור הזה יוצא לקרב בלי ציוד — תשעת הסלוטים שלו ריקים.":
     "This hero goes into battle bare — all nine of his slots are empty.",
   "ניהול הגיבור ←": "Manage the hero ←",
-  "בן ברית — שניכם חברים בברית {guild}. אין תקיפות בין חברי ברית":
-    "An ally — you are both in the guild {guild}. No attacks between guildmates",
+  /* The guild's name is a link now (GuildLink), so the sentence is broken in
+     two around it — the second half already had a key of its own further down
+     this file, from the battle report that says the same thing. */
+  "בן ברית — שניכם חברים בברית": "An ally — you are both in the guild",
   "ריגול ודואר עדיין פתוחים.": "Spying and mail are still open.",
   "בן ברית — אין תקיפה": "An ally — no attacking",
   "לאימפריה הזו {shields} — ניצחון עליה לא יניב {spoils}. התקיפה עצמה עדיין אפשרית (ניסיון, חפצים ושיקויים).":

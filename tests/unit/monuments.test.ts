@@ -10,11 +10,13 @@ import {
   buildMonumentsState,
   monumentBonuses,
   monumentCost,
+  monumentLuckChance,
   monumentMultiplier,
   monumentPct,
   monumentTotalCost,
   zeroMonumentBonuses,
 } from "@/lib/game/monuments";
+import { WHEEL_LUCK_MAX_LEVEL, wheelLuckChance } from "@/lib/game/constants";
 import { UPGRADE_COST_AT_LEVEL_100 } from "@/lib/game/hero";
 import { mineProductionBreakdown } from "@/lib/game/resources";
 
@@ -54,7 +56,7 @@ describe("the monument catalog", () => {
 describe("monumentCost", () => {
   it("starts and ends on its anchors", () => {
     expect(monumentCost(0)).toBe(MONUMENT_COST_LEVEL_1);
-    // Level 11 held is the price of the twelfth and last rung.
+    // The last level held is the price of the final rung.
     const top = monumentCost(MONUMENT_MAX_LEVEL - 1)!;
     expect(top / MONUMENT_COST_LEVEL_MAX).toBeGreaterThan(0.99);
     expect(top / MONUMENT_COST_LEVEL_MAX).toBeLessThan(1.01);
@@ -75,7 +77,7 @@ describe("monumentCost", () => {
   });
 
   it("outpaces what it pays back", () => {
-    // The price is geometric (~×2 a level) and the payout is linear (+2 points
+    // The price is geometric (~×2.4 a level) and the payout is linear (+1 point
     // a level). That gap is the only thing stopping the ladder from paying for
     // itself faster than it costs, so it is asserted rather than assumed.
     expect(MONUMENT_COST_GROWTH).toBeGreaterThan(1.5);
@@ -138,7 +140,7 @@ describe("monumentBonuses", () => {
     // Retiring a monument must degrade to no bonus, not throw inside the game
     // clock — which every page load runs.
     const bonuses = monumentBonuses([
-      { key: "a_monument_that_was_removed", level: 12 },
+      { key: "a_monument_that_was_removed", level: 10 },
     ]);
     expect(bonuses).toEqual(zeroMonumentBonuses());
   });
@@ -162,8 +164,45 @@ describe("monumentMultiplier", () => {
 
   it("caps at a multiplier the economy can absorb", () => {
     const full = monumentMultiplier(MONUMENT_MAX_LEVEL * MONUMENT_PCT_PER_LEVEL);
-    expect(full).toBeCloseTo(1.24, 5);
+    expect(full).toBeCloseTo(1.1, 5);
     expect(full).toBeLessThan(1.5);
+  });
+});
+
+/**
+ * גלגל השמיים is the one monument that is not a multiplier, and the bug it was
+ * born with is worth pinning: as `floor(spins × (1 + pct/100))` over a grant of
+ * three spins, the whole ladder paid *nothing at all* — at the +10% ceiling the
+ * multiplier is 1.1, three spins become 3.3, and the floor takes it back to
+ * three. As a chance it pays from the first rung, which is what these assert.
+ */
+describe("monumentLuckChance", () => {
+  it("is a probability, not a multiplier", () => {
+    expect(monumentLuckChance(0)).toBe(0);
+    expect(monumentLuckChance(10)).toBeCloseTo(0.1, 10);
+    expect(monumentLuckChance(-5)).toBe(0);
+  });
+
+  it("pays something at every rung, unlike the multiplier it replaced", () => {
+    const dailyGrant = 3; // config.ts daily.wheelSpins
+    for (let level = 1; level <= MONUMENT_MAX_LEVEL; level += 1) {
+      const pct = monumentPct(level);
+      expect(monumentLuckChance(pct)).toBeGreaterThan(0);
+      // The shape that used to be here, for contrast — flat zero all the way up.
+      expect(Math.floor(dailyGrant * monumentMultiplier(pct)) - dailyGrant).toBe(0);
+    }
+  });
+
+  it("stacks with the wheel-luck upgrade rather than replacing it", () => {
+    const monument = monumentPct(MONUMENT_MAX_LEVEL);
+    expect(wheelLuckChance(0, monument)).toBeCloseTo(0.1, 10);
+    expect(wheelLuckChance(WHEEL_LUCK_MAX_LEVEL, 0)).toBeCloseTo(0.15, 10);
+    // Both at full height: the ceiling on winning a spin from one roll.
+    expect(wheelLuckChance(WHEEL_LUCK_MAX_LEVEL, monument)).toBeCloseTo(0.25, 10);
+  });
+
+  it("never reads a stored level past the ladder as extra luck", () => {
+    expect(monumentLuckChance(monumentPct(9_999))).toBeCloseTo(0.1, 10);
   });
 });
 
@@ -237,18 +276,18 @@ describe("the readouts include the monument", () => {
       heroItemFlat: 0,
     };
     const without = mineProductionBreakdown({ ...params, monumentMinesPct: 0 });
-    const with12 = mineProductionBreakdown({
+    const withFull = mineProductionBreakdown({
       ...params,
       monumentMinesPct: monumentPct(MONUMENT_MAX_LEVEL),
     });
 
     expect(without.lines.some((l) => l.key === "monument")).toBe(false);
-    const line = with12.lines.find((l) => l.key === "monument")!;
-    expect(line.pct).toBe(24);
+    const line = withFull.lines.find((l) => l.key === "monument")!;
+    expect(line.pct).toBe(10);
     // The whole multiplier chain is commutative, so the monument is worth its
-    // flat +24% of the total however decorated the empire already is.
-    expect(with12.total).toBeCloseTo(without.total * 1.24, 6);
-    expect(line.amount).toBeCloseTo(without.total * 0.24, 6);
+    // flat +10% of the total however decorated the empire already is.
+    expect(withFull.total).toBeCloseTo(without.total * 1.1, 6);
+    expect(line.amount).toBeCloseTo(without.total * 0.1, 6);
   });
 
   it("keeps the diamond boost's incremental line correct behind it", () => {
@@ -260,7 +299,7 @@ describe("the readouts include the monument", () => {
       guildResourcesPct: 0,
       diamondBoostPct: 50,
       heroItemFlat: 0,
-      monumentMinesPct: 24,
+      monumentMinesPct: 10,
     };
     const breakdown = mineProductionBreakdown(params);
     // Every line sums back to the total — the incremental attribution is only

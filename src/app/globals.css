@@ -11273,17 +11273,22 @@ body {
    monument's dialog instead — and what is left is the chrome that dialog and
    its chips share. */
 
-/* One shaft of the monument's own colour, bled past the dialog's edge. Radial
-   rather than a box-shadow so it can escape the border without repainting it.
-   Its parent must be positioned and clipping — in the dialog that is the panel
-   itself, which is `relative` and scrolls. */
+/* One shaft of the monument's own colour, washing the dialog from its upper
+   corner. Radial rather than a box-shadow so it can fade out mid-panel without
+   repainting the border. Its parent must be positioned — in the dialog that is
+   the panel itself, which is `relative`.
+   The element must sit exactly on `inset: 0`, never bleed past it: the panel
+   scrolls (`overflow-y-auto`), and a decoration that overflows it is still
+   scrollable overflow — that is a scrollbar on every monument dialog no matter
+   how short the content is. The gradient is therefore aimed *outside* its own
+   box (centre at `0% 10%`, i.e. on the panel's edge) instead of the box being
+   dragged out there. */
 .mono-glow {
   position: absolute;
-  inset: -50% 40% auto -20%;
-  height: 200%;
+  inset: 0;
   pointer-events: none;
   background: radial-gradient(
-    45% 35% at 25% 30%,
+    36% 70% at 0% 10%,
     rgb(var(--accent) / 0.16),
     rgb(var(--accent) / 0.05) 50%,
     transparent 75%
@@ -12380,6 +12385,12 @@ body {
   cursor: pointer;
 }
 
+/* Read-only, a lot is scenery rather than a control: it is a <span>, so the
+   hover rules below never match it, and it must not claim a pointer either. */
+span.vil-lot {
+  cursor: default;
+}
+
 /* The footprint, lit on hover — the lot's whole click target, made visible. */
 .vil-plot {
   position: absolute;
@@ -12394,7 +12405,7 @@ body {
   pointer-events: none;
 }
 
-.vil-lot:hover .vil-plot,
+button.vil-lot:hover .vil-plot,
 .vil-lot:focus-visible .vil-plot {
   background: rgb(var(--accent) / 0.22);
 }
@@ -12421,7 +12432,7 @@ body {
   transition: transform 0.18s ease;
 }
 
-.vil-lot:hover .vil-build,
+button.vil-lot:hover .vil-build,
 .vil-lot:focus-visible .vil-build {
   transform: translateY(-4px);
 }
@@ -12710,20 +12721,23 @@ body {
 
 /* `--hf` is how much height one level buys, in tile-heights. It is the number
    that decides whether a monument towers or squats, and the five are spread on
-   purpose: at level 12 the column is roughly two and a half times the hall.
+   purpose: at full height the column is roughly two and a half times the hall.
+   All five were multiplied by 1.2 when the ladder went from twelve rungs to ten
+   — `--lh` is `--hf × --lv`, so without that the whole skyline would have lost
+   a sixth of its height for a balance change that was never about the art.
    `--eaves` is where a roofed silhouette's walls stop, and `--apex` how far its
    roof rises above that — the two numbers everything crowning it is placed
    from, including the plaque. */
 
 .vil-column {
-  --hf: 0.27;
+  --hf: 0.324;
   --sw: calc(var(--tw) * 0.44);
   --pw: calc(var(--tw) * 0.74);
   --cw: calc(var(--tw) * 0.6);
 }
 
 .vil-tower {
-  --hf: 0.28;
+  --hf: 0.336;
   --sw: calc(var(--tw) * 0.78);
   --pw: calc(var(--tw) * 1.02);
   --cw: calc(var(--tw) * 0.92);
@@ -12743,7 +12757,7 @@ body {
    the only silhouette that needs the skewed footprint, and it is the reason
    `--f` exists at all: at 0.5 it came out a cube and read as a second tower. */
 .vil-hall {
-  --hf: 0.1;
+  --hf: 0.12;
   --f: 0.72;
   --sw: calc(var(--tw) * 1.64);
   --pw: calc(var(--tw) * 1.86);
@@ -12761,7 +12775,7 @@ body {
 }
 
 .vil-gate {
-  --hf: 0.17;
+  --hf: 0.204;
   --sw: calc(var(--tw) * 0.28);
   --pw: calc(var(--tw) * 0.28);
 }
@@ -12769,7 +12783,7 @@ body {
 /* No `--cw`: the wheel is the one silhouette with no cap — the ring is what
    crowns it. */
 .vil-wheel {
-  --hf: 0.11;
+  --hf: 0.132;
   --sw: calc(var(--tw) * 0.42);
   --pw: calc(var(--tw) * 0.74);
 }
@@ -13208,7 +13222,7 @@ body {
   transition: border-color 0.18s ease, background-color 0.18s ease;
 }
 
-.vil-lot:hover .vil-plaque,
+button.vil-lot:hover .vil-plaque,
 .vil-lot:focus-visible .vil-plaque {
   border-color: rgb(var(--accent));
   background: rgb(16 14 12 / 0.95);
@@ -13219,14 +13233,28 @@ body {
 
 .vil-lot.is-done .vil-plaque-lv { color: rgb(var(--accent)); }
 
+/* ------------------------------ the small field ------------------------------ */
+
+/* The same site drawn on somebody else's dossier, where it is one panel among
+   several rather than the whole screen. Only the two tile numbers change —
+   that is the entire point of the projection being calc()-driven — so a compact
+   field is the full one at 3/4 scale, plaques and all.
+
+   `.vil-stage.vil-compact` outranks the bare `.vil-stage` in the phone queries
+   below on specificity, not on order, so the compact ladder has to restate
+   every breakpoint or a phone would render this field larger than the real one. */
+.vil-stage.vil-compact { --tw: 56px; --th: 28px; }
+
 /* -------------------------------- phones -------------------------------- */
 
 @media (max-width: 900px) {
   .vil-stage { --tw: 56px; --th: 28px; }
+  .vil-stage.vil-compact { --tw: 44px; --th: 22px; }
 }
 
 @media (max-width: 640px) {
   .vil-stage { --tw: 38px; --th: 19px; }
+  .vil-stage.vil-compact { --tw: 34px; --th: 17px; }
   .vil-plaque { font-size: 8px; padding: 0 0.25rem; gap: 0.2rem; }
 }
 

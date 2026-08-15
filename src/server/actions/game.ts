@@ -37,10 +37,11 @@ import {
   mineUpgradeCost,
   storageCapacityForLevel,
   storageUpgradeCost,
-  wheelLuckBonus,
+  wheelLuckChance,
   type StorableResource,
   type UnitKey,
 } from "@/lib/game/constants";
+import { monumentBonuses } from "@/lib/game/monuments";
 import { getTunables } from "@/lib/game/config";
 import { applyPendingUpdates, type FullEmpire } from "@/lib/game/updates";
 import { vipRequiredError, isVip } from "@/lib/game/vip";
@@ -1696,7 +1697,14 @@ export async function attackEmpire(
       if (attackerWins) {
         const wheelLuckLevel =
           attacker.upgrades.find((u) => u.type === "WHEEL_LUCK")?.level ?? 1;
-        wonWheelSpin = secureRandom() < wheelLuckBonus(wheelLuckLevel);
+        // גלגל השמיים rides on the same roll as the upgrade — the monument buys
+        // luck, and this is one of the two places luck is spent.
+        wonWheelSpin =
+          secureRandom() <
+          wheelLuckChance(
+            wheelLuckLevel,
+            monumentBonuses(attacker.monuments).wheelLuck
+          );
         if (wonWheelSpin) {
           await tx.empire.update({
             where: { id: empireId },

@@ -15,6 +15,7 @@ import { getCityBossState } from "@/server/bossState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PresenceDot } from "@/components/ui/PresenceDot";
 import { PlayerLink } from "@/components/ui/PlayerLink";
+import { GuildLink } from "@/components/ui/GuildLink";
 import { WornTitle } from "@/components/ui/WornTitle";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Tip } from "@/components/ui/Tip";
@@ -392,7 +393,10 @@ export default async function RankingsPage({
                               <span className="text-gold sm:hidden">
                                 <span aria-hidden>{guildRole.icon}</span>{" "}
                                 <span className="font-bold">
-                                  {guildMember.guild.name}
+                                  <GuildLink
+                                    guildId={guildMember.guildId}
+                                    name={guildMember.guild.name}
+                                  />
                                 </span>
                               </span>
                             )}
@@ -410,12 +414,19 @@ export default async function RankingsPage({
                     </td>
                     <td className="hidden px-4 py-3 sm:table-cell">
                       {guildMember && guildRole ? (
-                        <span
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-gold"
-                          title={t("{role} בברית {guild}", { role: t(guildRole.label), guild: guildMember.guild.name })}
-                        >
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-gold">
                           <span aria-hidden>{guildRole.icon}</span>
-                          {guildMember.guild.name}
+                          {/* The tooltip says the role, the link opens the hall
+                              — the guild is the second thing you look up about
+                              a rival, right after the rival himself. */}
+                          <GuildLink
+                            guildId={guildMember.guildId}
+                            name={guildMember.guild.name}
+                            title={t("{role} בברית {guild}", {
+                              role: t(guildRole.label),
+                              guild: guildMember.guild.name,
+                            })}
+                          />
                         </span>
                       ) : (
                         <span className="text-zinc-600">—</span>

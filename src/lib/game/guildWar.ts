@@ -386,6 +386,14 @@ export interface GuildWarFighterRow {
    */
   title: string | null;
   guildName: string;
+  /**
+   * The guild the fighter fought for, so the board's ברית column opens its hall
+   * like every other guild name in the game. Null when the clash rows name a
+   * guild that is not enrolled in this war any more — the name is denormalised
+   * onto the clash and outlives the entry, exactly like the fighter's own name
+   * outlives his account, and GuildLink degrades those to plain text.
+   */
+  guildId: string | null;
   points: number;
   wins: number;
   holds: number;

@@ -30,29 +30,38 @@ import type { IconName } from "@/components/ui/Icon";
  *    starts lying about why somebody lost. Monuments buy *income*, and the
  *    honest reading of that is: gold bought you more gold, not a win.
  *
- * 2. **Every monument settles in one place.** All five effects are applied by
- *    `applyPendingUpdates` — the lazy game clock — and nowhere else. One
- *    function reads this catalog, which is what keeps five permanent
- *    multipliers from becoming five different bugs.
+ * 2. **Every monument settles in one place.** The four *multiplier* effects are
+ *    applied by `applyPendingUpdates` — the lazy game clock — and nowhere else.
+ *    One function reads this catalog, which is what keeps four permanent
+ *    multipliers from becoming four different bugs.
  *
- * 3. **The ladder ends.** Twelve levels, and the last one costs 500B — of the
- *    same order as one top-of-the-ladder item upgrade. A monument is a
- *    season-long project, not an infinite one, and an empire that finishes all
- *    five has genuinely spent everything it had.
+ *    The fifth, `wheelLuck`, is the deliberate exception, and it has to be:
+ *    luck is not a figure the clock computes, it is a coin flipped at the
+ *    moment something is won. It is therefore read wherever a wheel spin can be
+ *    won — the daily update, a won attack, a discarded item — and it is added
+ *    to the WHEEL_LUCK upgrade's own chance rather than multiplying anything.
+ *    See `monumentLuckChance`, which is the only way to spend it.
+ *
+ * 3. **The ladder ends.** Ten levels, and the last one costs 500B — of the same
+ *    order as one top-of-the-ladder item upgrade. A monument is a season-long
+ *    project, not an infinite one, and an empire that finishes all five has
+ *    genuinely spent everything it had.
  */
 
 /* ------------------------------ the catalog ------------------------------ */
 
 /**
- * What a monument multiplies. Each of these names exactly one figure inside
- * `applyPendingUpdates` — see `monumentBonuses`, which is the only reader.
+ * What a monument buys. The first four each name exactly one figure inside
+ * `applyPendingUpdates` and multiply it — see `monumentBonuses`, which is the
+ * only reader. `wheelLuck` is not a multiplier at all but a *chance*: see rule 2
+ * above and `monumentLuckChance`.
  */
 export type MonumentEffect =
   | "mines"
   | "turns"
   | "citizens"
   | "interest"
-  | "wheelSpins";
+  | "wheelLuck";
 
 /**
  * The silhouette a monument is drawn with on the build site. Each name maps to
@@ -92,15 +101,21 @@ export interface MonumentDefinition {
  */
 export const VILLAGE_SIZE = 8;
 
-/** Levels a monument can be raised to. The twelfth is the last. */
-export const MONUMENT_MAX_LEVEL = 12;
+/** Levels a monument can be raised to. The tenth is the last. */
+export const MONUMENT_MAX_LEVEL = 10;
 
 /**
  * Percentage points each level adds. Flat rather than curved: the *price* is
  * the geometric half of this pair, and curving both ends makes a ladder nobody
- * can reason about. Twelve levels is +24% at the top of one monument.
+ * can reason about.
+ *
+ * Ten levels of one point is **+10% at the top of one monument**, and that
+ * ceiling is the point of the pair: a permanent, compounding multiplier on an
+ * income line is the strongest thing a season can sell, so it is capped at a
+ * number the rest of the economy can absorb. It was +24% (twelve levels of two)
+ * until 2026-08-15.
  */
-export const MONUMENT_PCT_PER_LEVEL = 2;
+export const MONUMENT_PCT_PER_LEVEL = 1;
 
 /**
  * The five, and the whole design in one table. Note what each of them is: a
@@ -157,9 +172,9 @@ export const MONUMENTS: readonly MonumentDefinition[] = [
     key: "sky_wheel",
     name: "גלגל השמיים",
     lore: "מבנה שאיש אינו יודע להסביר, שממשיך להסתובב גם כשאין רוח. העם מייחס לו מזל.",
-    effectLabel: "+{pct}% לסיבובי גלגל המזל היומיים",
+    effectLabel: "+{pct}% סיכוי לזכות בסיבוב גלגל מזל",
     icon: "wheel",
-    effect: "wheelSpins",
+    effect: "wheelLuck",
     accent: "150 96 232",
     shape: "wheel",
     plot: { c: 6, r: 6 },
@@ -172,13 +187,13 @@ export const MONUMENT_BY_KEY = new Map(MONUMENTS.map((m) => [m.key, m]));
 
 /**
  * The two anchors of the cost curve. Level 1 is priced at roughly what a
- * mid-game empire can raise in a session; level 12 at the order of a single
+ * mid-game empire can raise in a session; level 10 at the order of a single
  * top-of-the-ladder item upgrade, which is the most expensive thing the game
  * already sells.
  *
- * The ratio across eleven steps is ×2,500, or **×2.04 per level** — steeper
- * than the +2 percentage points each level pays back, which is what stops the
- * ladder from ever paying for itself faster than it costs.
+ * The ratio across nine steps is ×2,500, or **×2.39 per level** — steeper than
+ * the +1 percentage point each level pays back, which is what stops the ladder
+ * from ever paying for itself faster than it costs.
  */
 export const MONUMENT_COST_LEVEL_1 = 200_000_000;
 export const MONUMENT_COST_LEVEL_MAX = 500_000_000_000;
@@ -232,7 +247,7 @@ export function monumentPct(level: number): number {
 export type MonumentBonuses = Record<MonumentEffect, number>;
 
 export function zeroMonumentBonuses(): MonumentBonuses {
-  return { mines: 0, turns: 0, citizens: 0, interest: 0, wheelSpins: 0 };
+  return { mines: 0, turns: 0, citizens: 0, interest: 0, wheelLuck: 0 };
 }
 
 /**
@@ -258,9 +273,33 @@ export function monumentBonuses(
 /**
  * A percentage as the multiplier the clock applies. Mirrors `bonusMultiplier`
  * in hero.ts rather than importing it, so this module stays free of the hero.
+ *
+ * Not for `wheelLuck` — that one is a probability, not a multiplier. Use
+ * `monumentLuckChance`.
  */
 export function monumentMultiplier(pct: number): number {
   return 1 + Math.max(0, pct) / 100;
+}
+
+/**
+ * גלגל השמיים as the probability it actually is: `0.10` at full height.
+ *
+ * This monument used to *multiply the daily spin grant*, and that was a promise
+ * the game could not keep. The grant is a handful of spins — three — and a
+ * percentage of three, floored, pays exactly nothing below +34%; at the +10%
+ * ceiling that is nothing at any level, ever. A percentage only means something
+ * on a number big enough to take a percentage of, and "spins per day" is not
+ * one.
+ *
+ * So it buys *luck* instead, in the same currency the WHEEL_LUCK upgrade
+ * already spends: a flat chance, added to that upgrade's own, of a free spin
+ * every time the game rolls for one — a won attack, a discarded item — plus a
+ * chance of one extra spin at each daily update. Every rung is worth exactly
+ * what it says on the plaque from the first one, and the plaque now says
+ * "chance of a spin" rather than "more spins", because that is what it is.
+ */
+export function monumentLuckChance(pct: number): number {
+  return Math.max(0, pct) / 100;
 }
 
 /* ------------------------------ view model ------------------------------ */

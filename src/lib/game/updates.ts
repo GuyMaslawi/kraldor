@@ -24,7 +24,12 @@ import {
   type HeroFlatCadence,
   type HeroFlatStat,
 } from "./hero";
-import { monumentBonuses, monumentMultiplier } from "./monuments";
+import {
+  monumentBonuses,
+  monumentLuckChance,
+  monumentMultiplier,
+} from "./monuments";
+import { secureRandom } from "./random";
 import { getActiveGuildBuffPct } from "./guildBuffs";
 import { getActiveResourceBoosts } from "./diamondEffects";
 import { getActivePotionKinds } from "./potionEffects";
@@ -294,19 +299,22 @@ export async function applyPendingUpdates(
   // An absolute `wheelSpins: value` would clobber that grant (lost update,
   // destroying the won spins); the increment composes with it.
   //
-  // גלגל השמיים multiplies it. Floored rather than rounded: at the first rung
-  // (+2% of four spins) rounding would pay nothing anyway, and flooring makes
-  // "the monument is worth a spin from level N" a fact a player can check
-  // rather than a rounding artefact that appears on some days and not others.
+  // גלגל השמיים adds to it, as a *chance* rather than as a multiplier: one roll
+  // per missed update at the monument's own percentage, each winning one extra
+  // spin. It used to multiply the grant and floor the result, which paid
+  // literally nothing below +25% — see monumentLuckChance for why that whole
+  // shape was wrong. Rolled per update rather than once for the backlog so a
+  // week away is a week's worth of chances, exactly like the base grant.
+  const wheelLuckChance = monumentLuckChance(monuments.wheelLuck);
+  let bonusSpins = 0;
+  for (let i = 0; i < missedDailies.length; i += 1) {
+    if (wheelLuckChance > 0 && secureRandom() < wheelLuckChance) bonusSpins += 1;
+  }
   const wheelSpinsDelta =
     missedDailies.length > 0
       ? Math.max(
           0,
-          Math.floor(
-            tunables.daily.wheelSpins *
-              missedDailies.length *
-              monumentMultiplier(monuments.wheelSpins)
-          )
+          Math.floor(tunables.daily.wheelSpins * missedDailies.length) + bonusSpins
         )
       : 0;
 

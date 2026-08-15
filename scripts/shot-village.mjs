@@ -5,7 +5,7 @@
 //
 // DEV ONLY, and it WRITES to whatever database .env/.env.local point at: it
 // sets one empire's five monuments to a spread of levels so every growth stage
-// is on screen at once — 0 (surveyed plot), 3, 6, 9 and 12 (finished, lit) —
+// is on screen at once — 0 (surveyed plot), 4, 7 and 10 (finished, lit) —
 // then **puts them back** exactly as it found them, deleting rows it created.
 // The restore runs in a finally block, so a crash mid-shoot still leaves the
 // database as it was.
@@ -33,7 +33,7 @@ fs.mkdirSync(OUT, { recursive: true });
 // monuments each one step taller would hide a per-shape height bug. Override to
 // check a particular combination, e.g. every crowning piece at once:
 //
-//   VILLAGE_LEVELS=5,12,12,0,9 node scripts/shot-village.mjs /tmp/village
+//   VILLAGE_LEVELS=5,10,10,0,9 node scripts/shot-village.mjs /tmp/village
 const KEYS = [
   "workers_column",
   "clock_tower",
@@ -41,9 +41,11 @@ const KEYS = [
   "vault_hall",
   "sky_wheel",
 ];
-const LEVELS = (process.env.VILLAGE_LEVELS ?? "12,7,4,12,0")
+const LEVELS = (process.env.VILLAGE_LEVELS ?? "10,7,4,10,0")
   .split(",")
-  .map((n) => Math.max(0, Math.min(12, Number(n) || 0)));
+  // Literal rather than imported: this is a plain .mjs script and cannot read
+  // the TS catalog. Keep in step with MONUMENT_MAX_LEVEL in lib/game/monuments.
+  .map((n) => Math.max(0, Math.min(10, Number(n) || 0)));
 const STAGE = Object.fromEntries(KEYS.map((key, i) => [key, LEVELS[i] ?? 0]));
 
 const empire = await prisma.empire.findFirst({

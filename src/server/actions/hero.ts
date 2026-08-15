@@ -7,7 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { getActiveEmpireId } from "@/lib/auth";
 import { applyPendingUpdates } from "@/lib/game/updates";
 import { grantCitizens } from "@/lib/game/grants";
-import { wheelLuckBonus } from "@/lib/game/constants";
+import { wheelLuckChance } from "@/lib/game/constants";
+import { monumentBonuses } from "@/lib/game/monuments";
 import {
   HERO_BAG_CAPACITY,
   HERO_MAX_LEVEL,
@@ -377,10 +378,11 @@ export async function discardHeroItem(
       if (deleted === 0) return { error: t("הפריט לא נמצא בתיק שלך") };
 
       // The fates may reward parting with gear — rarer items pay far more often
-      // (אגדי pays 1-in-10), and the wheel-luck upgrade adds up to +15% on top.
-      // The server owns the roll.
-      const luckBonus = wheelLuckBonus(
-        empire.upgrades.find((u) => u.type === "WHEEL_LUCK")?.level ?? 1
+      // (אגדי pays 1-in-10), and wheel luck adds up to +25% on top (the upgrade
+      // and גלגל השמיים both). The server owns the roll.
+      const luckBonus = wheelLuckChance(
+        empire.upgrades.find((u) => u.type === "WHEEL_LUCK")?.level ?? 1,
+        monumentBonuses(empire.monuments).wheelLuck
       );
       const wonSpin = rollDiscardWheelSpin(item.level, luckBonus);
       if (wonSpin) {
@@ -462,10 +464,11 @@ export async function discardHeroItems(
       if (owned.length === 0) return { error: t("הפריטים לא נמצאו בתיק שלך") };
 
       // Roll each thrown item independently — rarer gear pays a wheel spin far
-      // more often (אגדי pays 1-in-10), and the wheel-luck upgrade adds up to
-      // +15% on top of every roll. The server owns every roll.
-      const luckBonus = wheelLuckBonus(
-        empire.upgrades.find((u) => u.type === "WHEEL_LUCK")?.level ?? 1
+      // more often (אגדי pays 1-in-10), and wheel luck adds up to +25% on top of
+      // every roll (the upgrade and גלגל השמיים both). The server owns every roll.
+      const luckBonus = wheelLuckChance(
+        empire.upgrades.find((u) => u.type === "WHEEL_LUCK")?.level ?? 1,
+        monumentBonuses(empire.monuments).wheelLuck
       );
       // Delete each item under its own guard and roll only for the ones THIS
       // transaction actually removed. Rolling over the pre-delete `owned`

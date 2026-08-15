@@ -16,7 +16,8 @@ import { HeroPowerSummary } from "@/components/game/HeroPowerSummary";
 import { HeroResetButton } from "@/components/game/HeroResetButton";
 import type { HeroItemView } from "@/components/game/heroItemView";
 import { formatNumber } from "@/lib/game/format";
-import { wheelLuckBonus } from "@/lib/game/constants";
+import { wheelLuckChance } from "@/lib/game/constants";
+import { monumentBonuses } from "@/lib/game/monuments";
 import {
   HERO_CLASS_META,
   HERO_DAMAGE_PER_LOST_DEFENSE,
@@ -74,9 +75,13 @@ export default async function HeroPage() {
     items.map(({ id, slot, level }) => ({ id, slot, level, rarity: tierForLevel(level) }));
   const bagItems = toView(hero.items.filter((i) => !i.equipped));
   const equippedItems = toView(hero.items.filter((i) => i.equipped));
-  // Wheel-luck upgrade raises the chance a thrown item pays a wheel spin.
-  const wheelSpinBonus = wheelLuckBonus(
-    empire.upgrades.find((u) => u.type === "WHEEL_LUCK")?.level ?? 1
+  // Wheel luck raises the chance a thrown item pays a wheel spin. Both halves
+  // of it: the upgrade and גלגל השמיים. Quoting only the upgrade here would be
+  // the "the effect is real and the readout says it isn't" bug that the
+  // monuments test file pins — a monument that reads as doing nothing.
+  const wheelSpinBonus = wheelLuckChance(
+    empire.upgrades.find((u) => u.type === "WHEEL_LUCK")?.level ?? 1,
+    monumentBonuses(empire.monuments).wheelLuck
   );
 
   // The belt: what is in hand, and what is already running. Expiries cross to

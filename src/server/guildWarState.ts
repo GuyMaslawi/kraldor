@@ -855,6 +855,12 @@ export async function buildLiveState(params: {
   }));
 
   /* ---- fighter board: points belong to whoever earned them ---- */
+  // The clash rows carry a denormalised guild *name* and no guild join, and the
+  // groupBy below is keyed on that name. The war's own entries hold both, so the
+  // id the ברית column links to comes from here rather than from a wider
+  // groupBy or a second query — the enrolled guilds are the only ones a clash
+  // in this war can name.
+  const guildIdByName = new Map(entries.map((e) => [e.guildName, e.guildId]));
   // Run in sequence, not Promise.all: an interactive transaction is a single
   // connection, and these two reads follow the same discipline.
   const byAttack = await prisma.guildWarClash.groupBy({
@@ -877,6 +883,7 @@ export async function buildLiveState(params: {
       name: row.attackerName,
       title: null,
       guildName: row.attackerGuildName,
+      guildId: guildIdByName.get(row.attackerGuildName) ?? null,
       points: row._sum.points ?? 0,
       wins: row._count._all,
       holds: 0,
@@ -890,6 +897,8 @@ export async function buildLiveState(params: {
       name: prev?.name ?? row.defenderName,
       title: null,
       guildName: prev?.guildName ?? row.defenderGuildName,
+      guildId:
+        prev?.guildId ?? guildIdByName.get(row.defenderGuildName) ?? null,
       points: (prev?.points ?? 0) + (row._sum.points ?? 0),
       wins: prev?.wins ?? 0,
       holds: row._count._all,

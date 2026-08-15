@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { PlayerLink } from "@/components/ui/PlayerLink";
+import { GuildLink } from "@/components/ui/GuildLink";
 import { formatCompact, formatNumber } from "@/lib/game/format";
 import {
   GUILD_WAR_END_LABEL,
@@ -253,7 +254,12 @@ function Arena({
           </p>
         ) : decided && champion ? (
           <p className="text-sm text-zinc-300">
-            👑 <span className="font-black text-gold-bright">{champion.guildName}</span>{" "}
+            👑{" "}
+            <GuildLink
+              guildId={champion.guildId}
+              name={champion.guildName}
+              className="font-black text-gold-bright"
+            />{" "}
             {t("כבשה את הזירה עם")}{" "}
             <span className="nums font-bold text-gold-bright" dir="ltr">
               {formatNumber(champion.score)}
@@ -386,7 +392,7 @@ function Scoreboard({
                     )}
                   </span>
                   <span className="min-w-0 flex-1 truncate font-bold text-zinc-100">
-                    {row.guildName}
+                    <GuildLink guildId={row.guildId} name={row.guildName} />
                     {row.mine && (
                       <span className="ms-2 rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-black text-gold-bright">
                         {t("הברית שלך")}
@@ -487,7 +493,9 @@ function Fighters({ state }: { state: GuildWarLiveState }) {
                     </span>
                   )}
                 </td>
-                <td className="py-2 text-zinc-400">{fighter.guildName}</td>
+                <td className="py-2 text-zinc-400">
+                  <GuildLink guildId={fighter.guildId} name={fighter.guildName} />
+                </td>
                 <td className="py-2">
                   <span className="nums text-zinc-300" dir="ltr">
                     {fighter.wins}
@@ -574,7 +582,14 @@ function Feed({
                   name={item.attackerName}
                   className={item.mine ? "font-bold text-gold-bright" : "font-semibold"}
                 />{" "}
-                <span className="text-zinc-600">({item.attackerGuildName})</span>{" "}
+                <span className="text-zinc-600">
+                  (
+                  <GuildLink
+                    guildId={item.attackerGuildId}
+                    name={item.attackerGuildName}
+                  />
+                  )
+                </span>{" "}
                 <span aria-hidden className="text-zinc-500">
                   ⟵
                 </span>{" "}
@@ -583,7 +598,14 @@ function Feed({
                   name={item.defenderName}
                   className={item.mine ? "font-bold text-gold-bright" : "font-semibold"}
                 />{" "}
-                <span className="text-zinc-600">({item.defenderGuildName})</span>
+                <span className="text-zinc-600">
+                  (
+                  <GuildLink
+                    guildId={item.defenderGuildId}
+                    name={item.defenderGuildName}
+                  />
+                  )
+                </span>
               </p>
 
               <p className="mt-0.5 text-[10px] text-zinc-600">

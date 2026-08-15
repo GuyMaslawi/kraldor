@@ -253,7 +253,15 @@ export default async function BasePage() {
               <dt className="text-zinc-400">{t("ברית")}</dt>
               {guildMembership ? (
                 <dd className="flex items-center gap-1.5 font-bold text-gold">
-                  <span>{guildMembership.guild.name}</span>
+                  {/* Straight to /game/guild rather than through GuildLink's
+                      dossier route: this is the viewer's *own* guild, and that
+                      route would only bounce him here anyway. */}
+                  <Link
+                    href="/game/guild"
+                    className="underline-offset-4 hover:text-gold-bright hover:underline"
+                  >
+                    {guildMembership.guild.name}
+                  </Link>
                   <span className="text-xs font-normal text-zinc-400">
                     {GUILD_ROLE_META[guildMembership.role].icon}{" "}
                     {t(GUILD_ROLE_META[guildMembership.role].label)}

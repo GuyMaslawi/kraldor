@@ -15,7 +15,6 @@ import {
   type WheelGrant,
   type WheelPrizeDef,
 } from "@/lib/game/wheel";
-import { HERO_BAG_CAPACITY, itemDisplayName, rollGuaranteedItem } from "@/lib/game/hero";
 import { awardSeasonPassXp } from "../seasonPassXp";
 import type { FullEmpire } from "@/lib/game/updates";
 import { getT, type T } from "@/i18n/server";
@@ -97,51 +96,10 @@ async function grantPrize(
         message: t("זכית ב־{amount} אזרחים!", { amount: num(amount) }),
         grants: [{ key: "citizens", amount }],
       };
-    case "item": {
-      const hero = empire.hero;
-      // Take the hero row lock and re-count the bag *under* it. `empire.hero.items`
-      // is the snapshot from applyPendingUpdates, taken before the spin was even
-      // consumed: two concurrent spins that both rolled this wedge each read the
-      // same pre-spin count, both passed the capacity check, and both created an
-      // item — overflowing HERO_BAG_CAPACITY. Mirrors lockHero in hero.ts, which
-      // exists for exactly this on equip/unequip.
-      let bagCount = 0;
-      if (hero) {
-        await tx.$queryRaw`SELECT id FROM "Hero" WHERE id = ${hero.id} FOR UPDATE`;
-        bagCount = await tx.heroItem.count({
-          where: { heroId: hero.id, equipped: false },
-        });
-      }
-      if (hero && bagCount < HERO_BAG_CAPACITY) {
-        // The wedge already decided an item is won, so roll one that always
-        // drops but keeps the relative rarity odds — forcing the drop gate to
-        // zero would have handed out the commonest tier every single time.
-        const drop = rollGuaranteedItem(hero.level);
-        await tx.heroItem.create({ data: { heroId: hero.id, ...drop } });
-        return {
-          message: t("זכית ב־{item} לתיק הגיבור!", {
-            item: itemDisplayName(t, drop.slot, drop.level),
-          }),
-          grants: [{ key: "item", amount: 1 }],
-        };
-      }
-      // No room / no hero — pay a gold consolation so the spin isn't wasted.
-      const consolation = wheelPrizeAmount(
-        WHEEL_PRIZES.find((p) => p.key === "gold")!,
-        clock
-      );
-      await tx.empire.update({
-        where: { id: empireId },
-        data: { gold: { increment: consolation } },
-      });
-      // Grant reflects what actually landed (gold), not the item wedge.
-      return {
-        message: t("התיק מלא — קיבלת {amount} זהב במקום החפץ.", {
-          amount: num(consolation),
-        }),
-        grants: [{ key: "gold", amount: consolation }],
-      };
-    }
+    // The hero-item wedge was removed on 2026-08-15 (see WHEEL_PRIZES) and with
+    // it this function's only failure path: a bag-full/no-hero gold consolation
+    // and the hero-row lock that stopped two concurrent spins overflowing
+    // HERO_BAG_CAPACITY. Every wedge left pays a plain balance increment.
     default:
       return { message: t("זכית בפרס!"), grants: [] };
   }

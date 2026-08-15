@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, ADMIN_INT_MAX } from "@/lib/admin";
-import { formatBanDate, isBanned } from "@/lib/ban";
+import { banLabel, formatBanDate, isBanned } from "@/lib/ban";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
 import { ActionForm } from "@/components/admin/ActionForm";
@@ -75,6 +75,7 @@ import { PlayerEmpireState } from "@/components/admin/user/PlayerEmpireState";
 import { PlayerBuffs } from "@/components/admin/user/PlayerBuffs";
 import { PlayerProgress } from "@/components/admin/user/PlayerProgress";
 import { PlayerInbox } from "@/components/admin/user/PlayerInbox";
+import { PlayerVitals } from "@/components/admin/user/PlayerVitals";
 import { makeT } from "@/i18n/translate";
 import { DEFAULT_LOCALE } from "@/i18n/locale";
 
@@ -219,8 +220,56 @@ export default async function AdminUserDetail({
         ornament={<Icon name="iron" size={22} className="text-crimson" />}
       />
 
+      {/* The page below is the complete editor; this is the part an admin
+          opened it for. See PlayerVitals. */}
+      {empire && (
+        <PlayerVitals
+          userId={user.id}
+          empire={{
+            id: empire.id,
+            cities: empire.cities,
+            cityLabel: cityName(t, empire.cities),
+            gold: empire.gold,
+            wood: empire.wood,
+            iron: empire.iron,
+            stone: empire.stone,
+            diamonds: empire.diamonds,
+            citizens: empire.citizens,
+            turns: empire.turns,
+            wheelSpins: empire.wheelSpins,
+            bankGold: empire.bankAccount?.goldBalance ?? 0,
+            soldiers: empire.army?.soldiers ?? 0,
+            spies: empire.army?.spies ?? 0,
+            mineSlaves: empire.army?.mineSlaves ?? 0,
+            heroLevel: empire.hero?.level ?? 1,
+            heroHealth: empire.hero?.health ?? 0,
+            generalPower: empire.generalPower,
+            militaryPower: empire.militaryPower,
+            spyPower: empire.spyPower,
+            vipSince: empire.vipSince,
+            protectedUntil: empire.protectedUntil,
+            lastSeenAt: empire.lastSeenAt,
+            isBot: empire.isBot,
+            isStaff: empire.isStaff,
+            seasonName: empire.season?.name ?? null,
+            guild: empire.guildMembership
+              ? {
+                  name: empire.guildMembership.guild.name,
+                  role: empire.guildMembership.role,
+                }
+              : null,
+          }}
+          account={{
+            isAdmin: user.role === "ADMIN",
+            banned: isBanned(user),
+            banText: isBanned(user) ? banLabel(user) : null,
+            emailVerified: user.emailVerified != null,
+          }}
+        />
+      )}
+
       {/* ---------------- account ---------------- */}
-      <EditorSection title="חשבון משתמש" icon="🔑">
+      <EditorSection id="sec-account" title="חשבון משתמש" icon="🔑">
         <div className="grid gap-4 lg:grid-cols-2">
           <ActionForm action={updateUserAccount} submitLabel="שמור פרטי חשבון">
             <input type="hidden" name="userId" value={user.id} />
@@ -269,19 +318,21 @@ export default async function AdminUserDetail({
         </div>
       </EditorSection>
 
-      <PlayerSecurity
-        user={{
-          id: user.id,
-          emailVerified: user.emailVerified,
-          lockedUntil: user.lockedUntil,
-          failedLogins: user.failedLogins,
-          googleId: user.googleId,
-          hasPassword: user.passwordHash != null,
-          bannedAt: user.bannedAt,
-          createdAt: user.createdAt,
-          hasEmpire: empire != null,
-        }}
-      />
+      <div id="sec-security" className="scroll-mt-4">
+        <PlayerSecurity
+          user={{
+            id: user.id,
+            emailVerified: user.emailVerified,
+            lockedUntil: user.lockedUntil,
+            failedLogins: user.failedLogins,
+            googleId: user.googleId,
+            hasPassword: user.passwordHash != null,
+            bannedAt: user.bannedAt,
+            createdAt: user.createdAt,
+            hasEmpire: empire != null,
+          }}
+        />
+      </div>
 
       {!empire ? (
         <div className="panel-inset rounded-xl p-6 text-center text-zinc-400">
@@ -290,7 +341,7 @@ export default async function AdminUserDetail({
       ) : (
         <>
           {/* ---------------- core stats ---------------- */}
-          <EditorSection title="נתוני אימפריה" icon="🏰">
+          <EditorSection id="sec-core" title="נתוני אימפריה" icon="🏰">
             <ActionForm action={updateEmpireCore} submitLabel="שמור נתוני אימפריה">
               <input type="hidden" name="empireId" value={empire.id} />
               <input type="hidden" name="userId" value={user.id} />
@@ -332,25 +383,27 @@ export default async function AdminUserDetail({
             </ActionForm>
           </EditorSection>
 
-          <PlayerEmpireState
-            empire={{
-              id: empire.id,
-              seasonId: empire.seasonId,
-              protectedUntil: empire.protectedUntil,
-              vipSince: empire.vipSince,
-              lastRegularUpdateAt: empire.lastRegularUpdateAt,
-              lastDailyUpdateAt: empire.lastDailyUpdateAt,
-              reportsSeenAt: empire.reportsSeenAt,
-              militaryPower: empire.militaryPower,
-              generalPower: empire.generalPower,
-              spyPower: empire.spyPower,
-            }}
-            userId={user.id}
-            seasons={seasons}
-          />
+          <div id="sec-state" className="scroll-mt-4">
+            <PlayerEmpireState
+              empire={{
+                id: empire.id,
+                seasonId: empire.seasonId,
+                protectedUntil: empire.protectedUntil,
+                vipSince: empire.vipSince,
+                lastRegularUpdateAt: empire.lastRegularUpdateAt,
+                lastDailyUpdateAt: empire.lastDailyUpdateAt,
+                reportsSeenAt: empire.reportsSeenAt,
+                militaryPower: empire.militaryPower,
+                generalPower: empire.generalPower,
+                spyPower: empire.spyPower,
+              }}
+              userId={user.id}
+              seasons={seasons}
+            />
+          </div>
 
           {/* ---------------- army + bank ---------------- */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div id="sec-army" className="grid scroll-mt-4 gap-4 lg:grid-cols-2">
             <EditorSection title="צבא" icon="🪖">
               <ActionForm action={updateArmy} submitLabel="שמור צבא">
                 <input type="hidden" name="empireId" value={empire.id} />
@@ -379,7 +432,7 @@ export default async function AdminUserDetail({
           </div>
 
           {/* ---------------- buildings ---------------- */}
-          <EditorSection title="מבנים" icon="🏗️">
+          <EditorSection id="sec-buildings" title="מבנים" icon="🏗️">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {BUILDING_TYPES.map((type) => {
                 const meta = BUILDING_META[type];
@@ -441,7 +494,7 @@ export default async function AdminUserDetail({
           </EditorSection>
 
           {/* ---------------- storages + upgrades ---------------- */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div id="sec-storage" className="grid scroll-mt-4 gap-4 lg:grid-cols-2">
             <EditorSection title="מחסנים" icon="📦">
               <div className="grid gap-3 sm:grid-cols-2">
                 {STORAGE_TYPES.map((type) => {
@@ -512,7 +565,7 @@ export default async function AdminUserDetail({
           </div>
 
           {/* ---------------- weapon unlocks ---------------- */}
-          <EditorSection title="פתיחת נשקים" icon="🔓">
+          <EditorSection id="sec-weapons" title="פתיחת נשקים" icon="🔓">
             <div className="grid gap-3 sm:grid-cols-3">
               {WEAPON_CATEGORIES.map((category) => {
                 const unlock = empire.weaponUnlocks.find((x) => x.category === category);
@@ -591,7 +644,7 @@ export default async function AdminUserDetail({
           </EditorSection>
 
           {/* ---------------- hero ---------------- */}
-          <EditorSection title="גיבור" icon="🛡️">
+          <EditorSection id="sec-hero" title="גיבור" icon="🛡️">
             {/* Stat points the hero is entitled to: one per level he stands at,
                 plus 25 for every reset behind him. The server fills the four
                 fields from this pool in allocation order and hands whatever is
@@ -745,7 +798,7 @@ export default async function AdminUserDetail({
           </EditorSection>
 
           {/* ---------------- guild ---------------- */}
-          <EditorSection title="ברית" icon="🤝">
+          <EditorSection id="sec-guild" title="ברית" icon="🤝">
             <p className="mb-3 text-sm text-zinc-300">
               {empire.guildMembership ? (
                 <>
@@ -786,35 +839,41 @@ export default async function AdminUserDetail({
             </ActionForm>
           </EditorSection>
 
-          <PlayerBuffs
-            empireId={empire.id}
-            userId={user.id}
-            potionStacks={empire.potions}
-            potionEffects={empire.potionEffects}
-            diamondEffects={empire.diamondEffects}
-            guildBuffs={empire.guildBuffs}
-          />
-
-          <PlayerProgress
-            empireId={empire.id}
-            userId={user.id}
-            seasonPass={empire.seasonPass}
-            heroQuest={empire.heroQuest}
-            claimedAchievements={empire.achievements.map((a) => a.key)}
-            gloryKeys={empire.gloryAwards.map((g) => g.key)}
-          />
-
-          {counts && (
-            <PlayerInbox
+          <div id="sec-buffs" className="scroll-mt-4">
+            <PlayerBuffs
               empireId={empire.id}
               userId={user.id}
-              messages={empire.messages}
-              counts={counts}
+              potionStacks={empire.potions}
+              potionEffects={empire.potionEffects}
+              diamondEffects={empire.diamondEffects}
+              guildBuffs={empire.guildBuffs}
             />
+          </div>
+
+          <div id="sec-progress" className="scroll-mt-4">
+            <PlayerProgress
+              empireId={empire.id}
+              userId={user.id}
+              seasonPass={empire.seasonPass}
+              heroQuest={empire.heroQuest}
+              claimedAchievements={empire.achievements.map((a) => a.key)}
+              gloryKeys={empire.gloryAwards.map((g) => g.key)}
+            />
+          </div>
+
+          {counts && (
+            <div id="sec-inbox" className="scroll-mt-4">
+              <PlayerInbox
+                empireId={empire.id}
+                userId={user.id}
+                messages={empire.messages}
+                counts={counts}
+              />
+            </div>
           )}
 
           {/* ---------------- message + gift to this player ---------------- */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div id="sec-send" className="grid scroll-mt-4 gap-4 lg:grid-cols-2">
             <EditorSection title="שלח הודעה לשחקן" icon="✉️">
               <ActionForm action={sendMessageToEmpire} submitLabel="שלח הודעה">
                 <input type="hidden" name="empireId" value={empire.id} />

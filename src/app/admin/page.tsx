@@ -7,6 +7,7 @@ import { notBot } from "@/lib/bot";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
 import { formatIls } from "@/lib/game/diamondStore";
+import { EconomyBoard } from "@/components/admin/EconomyBoard";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +25,14 @@ function StatCard({ label, value, icon }: { label: string; value: string | numbe
   );
 }
 
-export default async function AdminDashboard() {
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  // `?top=` picks the column the balance board is sorted by — see EconomyBoard.
+  searchParams: Promise<{ top?: string }>;
+}) {
   await requireAdmin();
+  const { top } = await searchParams;
 
   const [
     users,
@@ -104,6 +111,8 @@ export default async function AdminDashboard() {
           />
         </Link>
       </div>
+
+      <EconomyBoard sort={top} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="panel rounded-xl p-4 sm:p-5">

@@ -833,6 +833,90 @@ export async function updateArmy(
   }
 }
 
+/**
+ * The quick-glance panel at the top of a player's page: the handful of numbers
+ * an admin actually reaches for, saved in one submit.
+ *
+ * It is a shortcut around the *scrolling*, never around a rule. Every field it
+ * writes is already editable further down the same page, and it clamps exactly
+ * the way those panels do — the resources through `num` (RESOURCE_MAX), the
+ * int4 columns through `intNum`, the cities to the real ladder. Nothing new is
+ * reachable from here; the army and the treasury simply stopped being nine
+ * panels apart.
+ *
+ * Empire and army land in one transaction with the power re-sync, so the
+ * denormalised ladder figures can never commit out of step with the soldier
+ * count that produced them (see syncEmpirePower).
+ */
+export async function updateVitals(
+  _prev: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  try {
+    const admin = await requireAdmin();
+    const empireId = str(formData, "empireId");
+    const userId = str(formData, "userId");
+    await assertTargetEditable(admin, { userId, empireId });
+
+    const army = {
+      soldiers: Math.max(0, intNum(formData, "soldiers")),
+      spies: Math.max(0, intNum(formData, "spies")),
+      mineSlaves: Math.max(0, intNum(formData, "mineSlaves")),
+    };
+    const core = {
+      gold: Math.max(0, num(formData, "gold")),
+      wood: Math.max(0, num(formData, "wood")),
+      iron: Math.max(0, num(formData, "iron")),
+      stone: Math.max(0, num(formData, "stone")),
+      diamonds: Math.max(0, num(formData, "diamonds")),
+      citizens: Math.max(0, intNum(formData, "citizens")),
+      turns: Math.max(0, intNum(formData, "turns")),
+      wheelSpins: Math.max(0, intNum(formData, "wheelSpins")),
+      cities: clampLevel(num(formData, "cities"), 1, MAX_CITIES),
+    };
+
+    await prisma.$transaction(async (tx) => {
+      await tx.empire.update({ where: { id: empireId }, data: core });
+      await tx.army.upsert({
+        where: { empireId },
+        create: { empireId, ...army },
+        update: army,
+      });
+      await syncEmpirePower(tx, empireId);
+    });
+
+    await logAdmin(admin, {
+      action: "empire.vitals",
+      targetType: "empire",
+      targetId: empireId,
+      summary: `מבט מהיר עודכן: ${Math.round(core.gold)} זהב / ${Math.round(core.diamonds)} יהלומים / ${core.turns} תורות / ${army.soldiers} חיילים / ${army.mineSlaves} עבדים`,
+    });
+    revalidateEmpire(userId);
+
+    // Same reporting the core panel does: a value the parsers pulled down must
+    // never look like it saved as typed.
+    const notes = [
+      ...clampNotes(formData, VITALS_INT_FIELDS, ADMIN_INT_MAX),
+      ...clampNotes(formData, FLOAT_CORE_FIELDS, ADMIN_NUM_MAX),
+    ];
+    return {
+      success: notes.length ? `המבט המהיר נשמר — ${notes.join("; ")}` : "המבט המהיר נשמר",
+    };
+  } catch (e) {
+    return toErr(e);
+  }
+}
+
+/** Int-backed fields of the quick panel, with their Hebrew labels. */
+const VITALS_INT_FIELDS = [
+  ["citizens", "אזרחים"],
+  ["turns", "תורות"],
+  ["wheelSpins", "סיבובי גלגל"],
+  ["soldiers", "חיילים"],
+  ["spies", "מרגלים"],
+  ["mineSlaves", "עבדים"],
+] as const;
+
 /** Set the bank gold balance. */
 export async function updateBank(
   _prev: AdminActionState,

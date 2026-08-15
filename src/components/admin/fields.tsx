@@ -152,20 +152,28 @@ export function StatLine({
   );
 }
 
-/** A framed sub-section inside an editor panel. */
+/**
+ * A framed sub-section inside an editor panel.
+ *
+ * `id` is the anchor the player page's quick-glance jump links point at — see
+ * JUMP_LINKS in PlayerVitals. `scroll-mt-4` keeps the heading clear of the top
+ * edge when one of them lands.
+ */
 export function EditorSection({
+  id,
   title,
   icon,
   children,
   className = "",
 }: {
+  id?: string;
   title: string;
   icon?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <section className={`panel rounded-xl p-4 sm:p-5 ${className}`}>
+    <section id={id} className={`panel scroll-mt-4 rounded-xl p-4 sm:p-5 ${className}`}>
       <h3 className="mb-4 flex items-center gap-2 text-sm font-bold tracking-wide text-gold-bright">
         {icon && <span aria-hidden>{icon}</span>}
         {title}

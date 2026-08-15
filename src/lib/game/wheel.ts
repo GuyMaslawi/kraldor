@@ -54,9 +54,37 @@ export const WHEEL_RESOURCE_BASE = 5000;
  */
 export const WHEEL_RESOURCE_FINAL = 50_000_000_000;
 
-/** The diamond wedge, first update to last. */
+/**
+ * The diamond wedge, first update to last.
+ *
+ * The finish was 150 until 2026-08-15, and the audit that moved it counted the
+ * *spins* rather than the wedge. A wedge is 1/{@link WHEEL_PRIZES}.length, so the
+ * only figure that matters is diamonds-per-spin × spins-per-day, and the spin
+ * supply had quietly grown well past what this number was set against: three from
+ * the daily update, five a night to every member of the winning guild, forty a
+ * week from the world boss, plus the streak and the weekly mission. That is ~9.5
+ * spins a day for a player in a top guild, which at 150 was 204💎 a day at the end
+ * of a season — about ₪3.3 a day of store value handed out free, against a
+ * DIAMOND_PACKAGES entry price of 650💎 for ₪19.9.
+ *
+ * **70 rather than the 60 the retune asked for, and the floor is arithmetic.**
+ * This wedge is `growth: "linear"` at `step: 1`, and the suite holds an invariant
+ * that every daily update pays strictly more than the one before it — no jump and
+ * no plateau. Over a 61-update season that needs at least sixty integer steps
+ * between base and final, so anything under 69 makes the wedge pay the same
+ * figure two days running: at 60 the curve stalls nine separate times. 70 is the
+ * lowest finish that still climbs every single day, and the ~15% it costs against
+ * the intended 60 is far less than what the same retune took back by cutting the
+ * spin supply. Move BASE down before pushing FINAL under 70.
+ *
+ * With the spin supply cut alongside it (guild war 5 → 1 a night), a member of
+ * the winning guild now draws ~5.5 spins a day: ~64💎 a day at the season's
+ * finish against the 204 measured before this pass, and ~52 for a player in no
+ * guild at all. The base is left at 9 — the opening of a season was never the
+ * problem, the slope was.
+ */
 export const WHEEL_DIAMOND_BASE = 9;
-export const WHEEL_DIAMOND_FINAL = 150;
+export const WHEEL_DIAMOND_FINAL = 70;
 
 /**
  * The citizen wedge, first update to last. Ten times the diamond finish because
@@ -109,15 +137,35 @@ export interface WheelPrizeDef {
 }
 
 /**
- * 7 wedges (360/7° each), going clockwise from the top pointer.
+ * 6 wedges (360/6° each), going clockwise from the top pointer. Everything that
+ * draws or rolls the wheel derives its geometry and its odds from this array's
+ * length, so adding or removing a wedge is a one-line change here.
  *
- * Deliberately only resources, diamonds, citizens and a hero item: army
- * weapons are earned in the factory, never handed out here, and there is no
- * mixed "loot" pack — it paid the same four resources the plain wedges do, so
- * it only added a wedge the player had to decode. Each wedge carries the tint
- * its resource wears everywhere else in the game (gold amber, iron steel,
- * stone grey, wood umber, diamonds ice), with the hero item's violet as the
- * one obvious standout.
+ * Deliberately only resources, diamonds and citizens: army weapons are earned in
+ * the factory, never handed out here, and there is no mixed "loot" pack — it paid
+ * the same four resources the plain wedges do, so it only added a wedge the
+ * player had to decode. Each wedge carries the tint its resource wears everywhere
+ * else in the game (gold amber, iron steel, stone grey, wood umber, diamonds
+ * ice).
+ *
+ * ## The hero-item wedge, removed 2026-08-15
+ *
+ * There was a seventh wedge that paid a rolled hero item, and it was the game's
+ * third source of gear without ever being counted as one. Gear is meant to come
+ * from won attacks (ITEM_DROP_CHANCE, 19% of a *winning* attack) and from the
+ * hero shop — both of which cost turns and risk an army. A wedge is a flat
+ * 1-in-N, so at seven wedges it dropped 14.3% of *every* spin, no fight required;
+ * at ~9.5 spins a day for a member of the winning guild that was 1.36 items a
+ * day, the equivalent of seven winning attacks, won by pressing a button. The
+ * bag filled itself faster than the battlefield could fill it, which made the
+ * one source that is supposed to reward fighting the slow one.
+ *
+ * Removing it also deletes the wedge's whole tail of special cases — it was the
+ * only `"unit"` prize, the only one that could fail (a full bag or no hero) and
+ * therefore the only one needing a gold consolation and a hero-row lock against
+ * two concurrent spins overflowing HERO_BAG_CAPACITY. `WheelPrizeKind` keeps its
+ * `"unit"` arm on purpose: it costs nothing and the next non-amount prize will
+ * want it.
  */
 export const WHEEL_PRIZES: WheelPrizeDef[] = [
   { key: "diamonds", label: "יהלומים", icon: "diamond", color: "#7ad7e8", kind: "amount", base: WHEEL_DIAMOND_BASE, final: WHEEL_DIAMOND_FINAL, growth: "linear", step: 1 },
@@ -126,7 +174,6 @@ export const WHEEL_PRIZES: WheelPrizeDef[] = [
   { key: "stone", label: "אבן", icon: "stone", color: "#8e8a80", kind: "amount", base: WHEEL_RESOURCE_BASE, final: WHEEL_RESOURCE_FINAL, growth: "geometric", step: 50 },
   { key: "wood", label: "עץ", icon: "wood", color: "#b0793c", kind: "amount", base: WHEEL_RESOURCE_BASE, final: WHEEL_RESOURCE_FINAL, growth: "geometric", step: 50 },
   { key: "citizens", label: "אזרחים", icon: "citizens", color: "#d8c9a6", kind: "amount", base: WHEEL_CITIZEN_BASE, final: WHEEL_CITIZEN_FINAL, growth: "linear", step: 1 },
-  { key: "item", label: "חפץ לגיבור", icon: "spark", color: "#a074e8", kind: "unit", base: 1, step: 1, note: "דורש מקום פנוי בתיק הגיבור" },
 ];
 
 /** A concrete quantity actually granted by a spin, in the prize's own unit. */

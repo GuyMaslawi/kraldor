@@ -243,6 +243,32 @@ export interface GuildWarPrize {
  * three are *capacity*: citizens become soldiers, turns become attacks and
  * spins become another pull — the winning guild is paid in the ability to field
  * a stronger army tomorrow, which is the thing the campaign is measuring.
+ *
+ * ## Cut on 2026-08-15, and why these three lines were the ones to cut
+ *
+ * The purse was 500/300/5 and it was the largest *recurring* faucet of all three
+ * scarce currencies in the game — paid to **every member**, **every night**, for
+ * a campaign the members do not play (the guild's armies, heroes and upgrades
+ * fight it while everyone is at dinner; that is the design, see above).
+ *
+ * Being flat rather than city-scaled made it worse at exactly the end it was
+ * meant to help. Citizen intake is `20 + 100 × cities` a day, so 500 citizens a
+ * night was **4.2× a full day's intake** at one city, 1.0× at five and 0.5× at
+ * ten — and a citizen becomes a mine slave, and a mine slave multiplies with city
+ * production, so this was a resource faucet one step removed (grants.ts states
+ * the rule this broke: what keeps citizens safe is that every source of them is
+ * rate-limited, and a nightly 500 is a rate).
+ *
+ * The five spins were the quietest line and the most expensive. A spin is worth
+ * `WHEEL_DIAMOND_FINAL / WHEEL_PRIZES.length` in diamonds alone, so five a night
+ * was more free premium currency than the daily wheel itself pays.
+ *
+ * At 120/100/1 the champion still takes about a day's citizens, a third of a
+ * day's turns and a real pull — a prize that is felt on the morning it lands
+ * without being the reason the guild's members are ahead. Second place keeps its
+ * old ratio against first (roughly a third) and no longer carries a spin: the
+ * podium's two rungs have to stay visibly different, and with first at one spin
+ * that line is the one that can say so.
  */
 export const GUILD_WAR_PRIZES: readonly GuildWarPrize[] = [
   {
@@ -250,9 +276,9 @@ export const GUILD_WAR_PRIZES: readonly GuildWarPrize[] = [
     label: "אלופת המלחמה",
     icon: "crown",
     tone: "#e4c35a",
-    citizens: 500,
-    turns: 300,
-    wheelSpins: 5,
+    citizens: 120,
+    turns: 100,
+    wheelSpins: 1,
     minGuilds: GUILD_WAR_MIN_GUILDS,
   },
   {
@@ -260,9 +286,9 @@ export const GUILD_WAR_PRIZES: readonly GuildWarPrize[] = [
     label: "סגנית האלופה",
     icon: "achievements",
     tone: "#c0c8d4",
-    citizens: 175,
-    turns: 100,
-    wheelSpins: 2,
+    citizens: 40,
+    turns: 35,
+    wheelSpins: 0,
     minGuilds: GUILD_WAR_RUNNER_UP_MIN_GUILDS,
   },
 ];
@@ -289,9 +315,16 @@ export function prizeSummary(t: T, prize: GuildWarPrize): string {
   return [
     t("{count} אזרחים", { count: prize.citizens.toLocaleString("en-US") }),
     t("{count} תורות", { count: prize.turns.toLocaleString("en-US") }),
-    prize.wheelSpins === 1
-      ? t("סיבוב גלגל אחד")
-      : t("{count} סיבובי גלגל", { count: prize.wheelSpins }),
+    // A rung may carry no spins at all (second place, since the 2026-08-15 cut).
+    // Dropped rather than printed as "0 סיבובי גלגל", which reads as a prize the
+    // player failed to win rather than a line this rung does not have.
+    ...(prize.wheelSpins > 0
+      ? [
+          prize.wheelSpins === 1
+            ? t("סיבוב גלגל אחד")
+            : t("{count} סיבובי גלגל", { count: prize.wheelSpins }),
+        ]
+      : []),
   ].join(" · ");
 }
 

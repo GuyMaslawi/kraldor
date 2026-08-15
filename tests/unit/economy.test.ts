@@ -583,7 +583,11 @@ describe("the wheel", () => {
     for (const key of ["gold", "iron", "stone", "wood"]) {
       expect(amountOf(key)).toBe(50_000_000_000);
     }
-    expect(amountOf("diamonds")).toBe(150);
+    // Against the constant, not a literal: the diamond finish is a live balance
+    // dial (cut 150 → 70 on 2026-08-15) and the season pass, the guide and this
+    // assertion all have to move with it. The literals above are the ones that
+    // have never moved.
+    expect(amountOf("diamonds")).toBe(WHEEL_DIAMOND_FINAL);
     expect(amountOf("citizens")).toBe(500);
   });
 });

@@ -402,9 +402,11 @@ export function WheelOfFortune({
     let lastIdx = 0;
     let done = 0;
     // Every prize won, totalled by exact granted amount, in first-seen order.
-    // Keyed by the *grant* key (so a loot pack lands on gold/wood/iron/stone
-    // and a bag-full "item" that paid gold lands on gold) — this is exactly
-    // what the player received, not just which wedge the wheel stopped on.
+    // Keyed by the *grant* key rather than the wedge, so this stays exactly what
+    // the player received. Every wedge pays its own kind since the hero-item one
+    // was removed (see WHEEL_PRIZES), but the two have no reason to be the same
+    // field and the retired "loot pack" and bag-full-item cases both needed them
+    // apart.
     const haul: HaulEntry[] = [];
     for (let i = 0; i < batch; i++) {
       const outcome = await spinWheel();
@@ -515,9 +517,6 @@ export function WheelOfFortune({
             cycle: clock.cycle,
             total: clock.total,
           })}
-        </p>
-        <p className="mt-1 text-xs font-semibold text-zinc-400">
-          {t("פרס ״חפץ״ דורש לפחות מקום פנוי אחד בתיק הגיבור.")}
         </p>
 
         {/* wheel — fixed 340px geometry, scaled down to fit narrow phones */}

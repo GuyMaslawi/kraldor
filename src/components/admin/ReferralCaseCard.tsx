@@ -16,6 +16,7 @@ import {
 } from "@/components/admin/referralFlagMeta";
 import { decideReferral } from "@/server/actions/adminReferral";
 import type { AdminActionState } from "@/server/actions/admin";
+import { formatGameDateTime } from "@/lib/game/time";
 
 /**
  * One flagged referral, with everything the checks saw.
@@ -49,7 +50,7 @@ export function ReferralCaseCard({ item }: { item: ReferralCase }) {
         <span className="flex items-center gap-2 text-[11px] text-zinc-500">
           <StatusChip review={item.review} />
           <span dir="ltr">
-            {item.referredAt ? item.referredAt.toLocaleString("he-IL") : "—"}
+            {item.referredAt ? formatGameDateTime(item.referredAt) : "—"}
           </span>
           <span>{item.via === "link" ? "קישור" : "הוקלד ידנית"}</span>
         </span>
@@ -171,7 +172,7 @@ function PartyColumn({
         <Row label="IP הרשמה" value={party.signupIp ?? "—"} />
         <Row label="IP אחרון" value={party.lastLoginIp ?? "—"} />
         <Row label="ערים" value={String(party.cities)} />
-        <Row label="נוצר" value={party.joinedAt.toLocaleString("he-IL")} />
+        <Row label="נוצר" value={formatGameDateTime(party.joinedAt)} />
       </dl>
     </div>
   );

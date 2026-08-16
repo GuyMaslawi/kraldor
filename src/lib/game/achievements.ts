@@ -7,6 +7,7 @@ import type { IconName } from "@/components/ui/Icon";
 import { LOCALE_TAG, type Locale } from "@/i18n/locale";
 import type { TranslateParams } from "@/i18n/translate";
 import {
+  GAME_TIMEZONE,
   MAX_CITIES,
   MINE_MAX_LEVEL,
   MINE_START_LEVEL,
@@ -1385,6 +1386,10 @@ export interface GloryRecord {
  */
 const gloryDate = (locale: Locale) =>
   new Intl.DateTimeFormat(LOCALE_TAG[locale], {
+    // The zone is the game's, not the reader's: a record set at 01:00 Israel is
+    // engraved with that day, and would otherwise be dated to the one before by
+    // the UTC server that renders the board.
+    timeZone: GAME_TIMEZONE,
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",

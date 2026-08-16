@@ -15,6 +15,7 @@ import {
   updateEmpireProtection,
 } from "@/server/actions/admin";
 import { VIP_LABEL } from "@/lib/game/vip";
+import { formatGameDateTime } from "@/lib/game/time";
 
 export interface PlayerEmpireStateProps {
   empire: {
@@ -35,7 +36,7 @@ export interface PlayerEmpireStateProps {
 }
 
 function fmt(d: Date | null): string {
-  return d ? d.toLocaleString("he-IL") : "—";
+  return d ? formatGameDateTime(d) : "—";
 }
 
 /** Whole hours since `d`, for the "how stale is this clock" readout. */

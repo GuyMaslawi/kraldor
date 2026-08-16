@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { DEFAULT_LOCALE, LOCALE_TAG, type Locale } from "@/i18n/locale";
 import type { T } from "@/i18n/translate";
+import { GAME_TIMEZONE } from "@/lib/game/constants";
 
 /**
  * The two columns that describe a ban: `bannedAt` is when it was handed down,
@@ -44,9 +45,17 @@ export function notBannedWhere(now: Date = new Date()): Prisma.UserWhereInput {
   };
 }
 
-/** Date + time in the reader's language, for every line a ban is written on. */
+/**
+ * Date + time in the reader's language, for every line a ban is written on.
+ *
+ * Language from the reader, **zone from the game**. The hour a ban lifts is the
+ * one thing the notice exists to say, and it is read on a login page rendered
+ * by a UTC server — unpinned, every timed ban announced itself three hours
+ * early, and the player who came back on it found the door still shut.
+ */
 export function formatBanDate(d: Date, locale: Locale = DEFAULT_LOCALE): string {
   return d.toLocaleString(LOCALE_TAG[locale], {
+    timeZone: GAME_TIMEZONE,
     dateStyle: "short",
     timeStyle: "short",
   });

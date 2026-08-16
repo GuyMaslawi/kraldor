@@ -2,7 +2,7 @@
 
 import { useActionState, type ReactNode } from "react";
 import type { StorableResource } from "@/lib/game/constants";
-import { RESOURCE_META } from "@/lib/game/constants";
+import { GAME_TIMEZONE, RESOURCE_META } from "@/lib/game/constants";
 import type { ActionState } from "@/server/actions/game";
 import {
   buyRaidShield,
@@ -44,14 +44,23 @@ import type { T } from "@/i18n/translate";
 /**
  * Date + time of an ISO timestamp, e.g. "20.07 · 14:30" — the day is shown so a
  * next-day expiry isn't mistaken for today. Deterministic — no Date.now in render.
+ *
+ * Pinned to game time like every other clock the player reads. This one renders
+ * on both sides, so leaving the zone to the host would also have printed the
+ * server's UTC hour first and swapped it for the browser's at hydration.
  */
 function whenLabel(iso: string, locale: Locale): string {
   const d = new Date(iso);
   const tag = LOCALE_TAG[locale];
-  const date = d.toLocaleDateString(tag, { day: "2-digit", month: "2-digit" });
+  const date = d.toLocaleDateString(tag, {
+    timeZone: GAME_TIMEZONE,
+    day: "2-digit",
+    month: "2-digit",
+  });
   // 24-hour on both sides: these chips are narrow, and an "AM"/"PM" suffix
   // wraps them onto a second line.
   const time = d.toLocaleTimeString(tag, {
+    timeZone: GAME_TIMEZONE,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

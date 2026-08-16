@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import { makeT } from "@/i18n/translate";
 import {
   formatWaitDuration,
+  fromGameLocalInput,
+  gameDayStart,
   lastWallTime,
   nextWallTime,
+  toGameLocalInput,
   type WallTime,
 } from "@/lib/game/time";
 
@@ -108,6 +111,92 @@ describe("the two agree", () => {
     expect(next.getTime()).toBeGreaterThan(now.getTime());
     expect(lastWallTime(new Date(next.getTime() + 1), midnight).getTime()).toBe(
       next.getTime()
+    );
+  });
+});
+
+/**
+ * The game runs on one clock, and the machine reading it is on another: UTC on
+ * a Vercel function, and whatever the admin's laptop says in a browser. These
+ * are the helpers that stand between the two, so what they must prove is that
+ * the *host* zone never reaches the answer — which is why every case below
+ * asserts an absolute UTC instant rather than a re-formatted local string.
+ */
+describe("gameDayStart", () => {
+  it("opens the day at Israel midnight, not the host's", () => {
+    // 01:00 Israel on 30 July is still 22:00 UTC on the 29th. A day cut on the
+    // server's own calendar would put this instant in the previous day and open
+    // it three hours late — the daily raid board's window.
+    expect(gameDayStart(new Date("2026-07-29T22:00:00.000Z")).toISOString()).toBe(
+      "2026-07-29T21:00:00.000Z"
+    );
+  });
+
+  it("follows the offset across DST", () => {
+    // Summer is UTC+3, winter UTC+2, so the same wall-clock midnight is a
+    // different instant depending on the date.
+    expect(gameDayStart(new Date("2026-07-15T12:00:00.000Z")).toISOString()).toBe(
+      "2026-07-14T21:00:00.000Z"
+    );
+    expect(gameDayStart(new Date("2026-12-15T12:00:00.000Z")).toISOString()).toBe(
+      "2026-12-14T22:00:00.000Z"
+    );
+  });
+
+  it("is idempotent and never lands in the future", () => {
+    for (const iso of ["2026-03-27T00:30:00.000Z", "2026-10-25T00:30:00.000Z"]) {
+      const at = new Date(iso);
+      const start = gameDayStart(at);
+      expect(start.getTime()).toBeLessThanOrEqual(at.getTime());
+      expect(gameDayStart(start).getTime()).toBe(start.getTime());
+    }
+  });
+});
+
+/**
+ * The admin's date picker. A `datetime-local` value carries no zone, so these
+ * two decide what hour the admin typed — and the bug they exist to prevent is
+ * the panel meaning one thing in Tel Aviv and another on a laptop left on UTC.
+ */
+describe("game-time datetime-local", () => {
+  it("reads an instant as its Israel wall time", () => {
+    // 21:00 UTC in July is midnight in Israel — the picker must say 00:00 of
+    // the *next* day, which is the reading that trips a host-zone conversion.
+    expect(toGameLocalInput(new Date("2026-07-14T21:00:00.000Z"))).toBe("2026-07-15T00:00");
+    expect(toGameLocalInput(new Date("2026-12-15T10:30:00.000Z"))).toBe("2026-12-15T12:30");
+  });
+
+  it("writes a typed wall time back to the instant the admin meant", () => {
+    expect(fromGameLocalInput("2026-07-15T00:00")?.toISOString()).toBe(
+      "2026-07-14T21:00:00.000Z"
+    );
+    // Same reading, other side of DST: two hours' offset, not three.
+    expect(fromGameLocalInput("2026-12-15T00:00")?.toISOString()).toBe(
+      "2026-12-14T22:00:00.000Z"
+    );
+  });
+
+  it("round-trips every instant, on both sides of both DST switches", () => {
+    for (const iso of [
+      "2026-01-15T08:00:00.000Z",
+      "2026-03-27T09:00:00.000Z",
+      "2026-03-27T23:00:00.000Z",
+      "2026-07-15T12:34:00.000Z",
+      "2026-10-25T00:30:00.000Z",
+      "2026-12-31T22:00:00.000Z",
+    ]) {
+      const at = new Date(iso);
+      expect(fromGameLocalInput(toGameLocalInput(at))?.toISOString()).toBe(iso);
+    }
+  });
+
+  it("rejects what the picker hands over while empty", () => {
+    expect(fromGameLocalInput("")).toBeNull();
+    expect(fromGameLocalInput("not a date")).toBeNull();
+    // The browser appends seconds when the input has a step; the reading is
+    // still good, and truncating to the minute is what the field displays.
+    expect(fromGameLocalInput("2026-07-15T00:00:30")?.toISOString()).toBe(
+      "2026-07-14T21:00:00.000Z"
     );
   });
 });

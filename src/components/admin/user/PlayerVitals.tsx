@@ -9,6 +9,7 @@ import { formatNumber } from "@/lib/game/format";
 import { GUILD_ROLE_META } from "@/lib/game/guild";
 import { VIP_LABEL } from "@/lib/game/vip";
 import { isOnline } from "@/lib/game/chat";
+import { formatGameDateTime } from "@/lib/game/time";
 import type { GuildRole } from "@prisma/client";
 
 export interface PlayerVitalsProps {
@@ -165,12 +166,12 @@ export function PlayerVitals({ userId, empire, account }: PlayerVitalsProps) {
           {empire.vipSince && <Chip tone="border-cyan-400/40 text-cyan-300">👑 {VIP_LABEL}</Chip>}
           {shielded && (
             <Chip tone="border-emerald-500/30 text-emerald-300">
-              🛡️ מוגן עד {empire.protectedUntil!.toLocaleString("he-IL")}
+              🛡️ מוגן עד {formatGameDateTime(empire.protectedUntil!)}
             </Chip>
           )}
           {heroDead && <Chip tone="border-red-500/40 text-red-300">💀 גיבור מת</Chip>}
           <Chip tone={online ? "border-emerald-500/30 text-emerald-300" : "border-border-subtle text-zinc-400"}>
-            {online ? "🟢 מחובר" : `⚪ ${empire.lastSeenAt ? empire.lastSeenAt.toLocaleString("he-IL") : "לא נראה מעולם"}`}
+            {online ? "🟢 מחובר" : `⚪ ${empire.lastSeenAt ? formatGameDateTime(empire.lastSeenAt) : "לא נראה מעולם"}`}
           </Chip>
         </div>
       </div>

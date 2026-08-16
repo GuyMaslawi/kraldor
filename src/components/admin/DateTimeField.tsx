@@ -2,6 +2,14 @@
 
 import { useState, useSyncExternalStore } from "react";
 
+import { GAME_TIMEZONE } from "@/lib/game/constants";
+import {
+  fromGameLocalInput,
+  gameWallParts,
+  gameWallToUtc,
+  toGameLocalInput,
+} from "@/lib/game/time";
+
 const INPUT_CLASS =
   "w-full rounded-lg border border-border-subtle bg-panel-inset px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-gold/60";
 
@@ -10,31 +18,35 @@ const CHIP_CLASS =
 
 /* ------------------------------ time helpers ------------------------------ */
 
-/** Format an instant as the value an `<input type="datetime-local">` expects. */
-export function toLocalInput(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+const MINUTE = 60_000;
+const HOUR = 3_600_000;
+const DAY = 86_400_000;
 
 /**
- * Parse a `datetime-local` value into the instant the admin meant.
+ * Every string in this file is **Jerusalem** wall time, never the browser's.
  *
- * Only ever called in the browser. A zoneless "YYYY-MM-DDTHH:mm" is local time
- * by spec, so the browser — which shares the admin's timezone — is the only
- * place this string can be turned into an instant correctly. The server sees an
- * absolute ISO string instead (see the hidden field below).
+ * A `datetime-local` input holds a zoneless "YYYY-MM-DDTHH:mm", so somebody has
+ * to say what hour that is. Deferring to the browser used to look right, since
+ * the admin sits in Israel — until they don't: a laptop still on UTC, a trip, a
+ * VM. Then the panel that sets when a season ends means something different
+ * from the game it is setting it for, and the admin has no way to see it. The
+ * whole file therefore reads and writes the game's own clock, and the browser's
+ * zone stops mattering at all.
+ *
+ * @see src/lib/game/time.ts — toGameLocalInput / fromGameLocalInput
  */
+
+/** Format an instant as the value an `<input type="datetime-local">` expects. */
+export const toLocalInput = toGameLocalInput;
+
+/** Parse a `datetime-local` value into the instant the admin meant. */
 function fromLocalInput(local: string): Date | null {
-  if (!local) return null;
-  const d = new Date(local);
-  return Number.isNaN(d.getTime()) ? null : d;
+  return local ? fromGameLocalInput(local) : null;
 }
 
 /** Now, floored to the minute — the granularity of the input's own steps. */
 function nowLocal(): string {
-  const d = new Date();
-  d.setSeconds(0, 0);
-  return toLocalInput(d);
+  return toLocalInput(new Date());
 }
 
 function shiftLocal(local: string, ms: number): string {
@@ -42,19 +54,17 @@ function shiftLocal(local: string, ms: number): string {
   return toLocalInput(new Date(d.getTime() + ms));
 }
 
-/** The next occurrence of `hour:00`, tomorrow if today's has passed. */
+/** The next occurrence of Jerusalem `hour:00`, tomorrow if today's has passed. */
 function nextAtHour(hour: number): string {
-  const d = new Date();
-  d.setSeconds(0, 0);
-  d.setMinutes(0);
-  if (d.getHours() >= hour) d.setDate(d.getDate() + 1);
-  d.setHours(hour);
-  return toLocalInput(d);
+  const now = new Date();
+  const wall = gameWallParts(now);
+  // Rolled by adding a day to the *instant* rather than to the day number, so a
+  // month end needs no arithmetic here and DST is handled by the conversion.
+  const base = wall.hour >= hour ? gameWallParts(new Date(now.getTime() + DAY)) : wall;
+  return toLocalInput(
+    gameWallToUtc({ year: base.year, month: base.month, day: base.day, hour, minute: 0 })
+  );
 }
-
-const MINUTE = 60_000;
-const HOUR = 3_600_000;
-const DAY = 86_400_000;
 
 /* ------------------------------- the clock -------------------------------- */
 
@@ -94,17 +104,19 @@ function readClock(): number {
 /**
  * The clock, or `null` on the server render and during hydration.
  *
- * Nothing here may read the clock while rendering on the server: every string
- * below is formatted in the *viewer's* timezone, and the server's is UTC in
- * production, so rendering them on both sides would guarantee a mismatch.
- * `null` means "no timezone known yet", and every time-dependent line is gated
- * on it.
+ * Now that every string here is pinned to Jerusalem, the timezone is no longer
+ * what has to wait — but *the current time* still is. "בעוד 3 ימים" and the
+ * seeded "עכשיו" are read off `Date.now()`, which advances between the server
+ * render and hydration, so rendering them on both sides would mismatch. `null`
+ * means "the clock has not been read yet", and every line that depends on *now*
+ * — as opposed to on a fixed instant — is gated on it.
  */
 function useNow(): number | null {
   return useSyncExternalStore(subscribeToClock, readClock, () => null);
 }
 
 const ABSOLUTE_FMT = new Intl.DateTimeFormat("he-IL", {
+  timeZone: GAME_TIMEZONE,
   weekday: "short",
   day: "numeric",
   month: "long",
@@ -189,12 +201,11 @@ export function DateTimeField({
         />
       </label>
 
-      {/* The real payload: an absolute instant. Rendered only once mounted —
-          the string is timezone-derived, and a form driven by a server action
-          cannot be submitted before hydration anyway. */}
-      {now !== null && picked && (
-        <input type="hidden" name={name} value={picked.toISOString()} />
-      )}
+      {/* The real payload: an absolute instant, so a UTC server stores the
+          moment the admin picked rather than the same wall-clock reading three
+          hours off. Deterministic now that the reading is parsed as Jerusalem,
+          so it needs no mount gate of its own. */}
+      {picked && <input type="hidden" name={name} value={picked.toISOString()} />}
 
       {presets.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
@@ -227,18 +238,14 @@ export function DateTimeField({
 }
 
 /**
- * An instant, printed in the viewer's timezone.
+ * An instant, printed in game time.
  *
- * Blank until mounted, for the reason `useNow` explains: only the browser knows
- * which timezone "18:40" is supposed to mean.
+ * Renders on the server too: a fixed instant in a fixed zone is the same string
+ * on both sides, so unlike the relative readouts above there is nothing to wait
+ * for — and no blank flash before hydration.
  */
 export function LocalTime({ iso }: { iso: string }) {
-  const now = useNow();
-  return (
-    <span dir="ltr">
-      {now === null ? "" : toLocalInput(new Date(iso)).replace("T", " ")}
-    </span>
-  );
+  return <span dir="ltr">{toLocalInput(new Date(iso)).replace("T", " ")}</span>;
 }
 
 /* ---------------------------- season schedule ----------------------------- */
@@ -280,9 +287,8 @@ export function SeasonSchedule({
   const [end, setEnd] = useState("");
   const [seeded, setSeeded] = useState(false);
 
-  // Seeded on the first render that knows the timezone — an ISO instant becomes
-  // a wall-clock string only in the admin's own zone, so the server render
-  // leaves both fields blank and this fills them in the moment `now` arrives.
+  // Seeded on the first render that has read the clock: a new season defaults to
+  // starting *now*, which the server must not render or the two sides disagree.
   // (An update during render, not in an effect: it runs before paint, so the
   // fields are never briefly empty.)
   if (now !== null && !seeded) {
@@ -378,7 +384,8 @@ export function SeasonEndPicker({
   const [end, setEnd] = useState("");
   const [seeded, setSeeded] = useState(false);
 
-  // Seeded once the timezone is known — see SeasonSchedule.
+  // Seeded once the clock has been read — see SeasonSchedule. (This field's own
+  // seed is a fixed instant, but the readout below it is relative to now.)
   if (now !== null && !seeded) {
     setSeeded(true);
     setEnd(toLocalInput(new Date(endISO)));

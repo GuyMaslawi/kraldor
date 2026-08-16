@@ -7,6 +7,7 @@ import {
   unlinkGoogleAccount,
 } from "@/server/actions/admin";
 import { impersonatePlayer } from "@/server/actions/impersonation";
+import { formatGameDateTime } from "@/lib/game/time";
 
 export interface PlayerSecurityUser {
   id: string;
@@ -21,7 +22,7 @@ export interface PlayerSecurityUser {
 }
 
 function fmt(d: Date | null): string {
-  return d ? d.toLocaleString("he-IL") : "—";
+  return d ? formatGameDateTime(d) : "—";
 }
 
 /**

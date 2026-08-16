@@ -8,6 +8,7 @@ import {
   type BoardRow,
 } from "@/server/rankingsLadder";
 import { formatNumber } from "@/lib/game/format";
+import { gameDayStart } from "@/lib/game/time";
 import { cityFullName, cityName } from "@/lib/game/cities";
 import { AutoRefresh } from "@/components/game/AutoRefresh";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -148,12 +149,10 @@ async function Board({
   );
 }
 
-/** Cutoff timestamp for the raid window — local midnight, or seven days back. */
+/** Cutoff timestamp for the raid window — game midnight, or seven days back. */
 function raidCutoff(period: Period): Date {
   const now = new Date();
-  return period === "day"
-    ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  return period === "day" ? gameDayStart(now) : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 }
 
 export default async function LeaderboardsPage({

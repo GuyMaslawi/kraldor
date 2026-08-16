@@ -7,6 +7,7 @@ import {
   deletePlayerMessage,
   manageInbox,
 } from "@/server/actions/admin";
+import { formatGameDateTime } from "@/lib/game/time";
 
 export interface PlayerInboxProps {
   empireId: string;
@@ -106,7 +107,7 @@ export function PlayerInbox({ empireId, userId, messages, counts }: PlayerInboxP
                   {m.sender && <span className="text-zinc-500"> · מאת {m.sender.name}</span>}
                   <span className="text-zinc-600">
                     {" "}
-                    · {m.createdAt.toLocaleString("he-IL")}
+                    · {formatGameDateTime(m.createdAt)}
                     {!m.readAt && " · לא נקרא"}
                   </span>
                 </span>

@@ -15,6 +15,7 @@ import {
 import { SEASON_PASS_TIER_COUNT, tierForXp } from "@/lib/game/seasonPass";
 import { heroQuestDurationLabel } from "@/lib/game/heroQuests";
 import { formatNumber } from "@/lib/game/format";
+import { formatGameDateTime } from "@/lib/game/time";
 import { makeT } from "@/i18n/translate";
 import { DEFAULT_LOCALE } from "@/i18n/locale";
 import {
@@ -113,7 +114,7 @@ export function PlayerProgress({
                   label="מסע"
                   value={`דרגה ${heroQuest.tier} · ${heroQuestDurationLabel(t, heroQuest.tier)}`}
                 />
-                <StatLine label="מסתיים" value={heroQuest.endsAt.toLocaleString("he-IL")} />
+                <StatLine label="מסתיים" value={formatGameDateTime(heroQuest.endsAt)} />
                 <StatLine label="תורות שהושקעו" value={heroQuest.turnsSpent} />
                 <StatLine
                   label="שלל שנעול"

@@ -19,6 +19,7 @@ import {
   setPotionEffect,
   setPotionStack,
 } from "@/server/actions/admin";
+import { formatGameDateTime } from "@/lib/game/time";
 
 /**
  * Every timed thing running on the empire, in one place.
@@ -121,7 +122,7 @@ const DIAMOND_SPELLS: Record<DiamondEffectKind, DiamondSpellMeta> = {
 const DIAMOND_EFFECT_KINDS = Object.keys(DIAMOND_SPELLS) as DiamondEffectKind[];
 
 function fmt(d: Date | null): string {
-  return d ? d.toLocaleString("he-IL") : "—";
+  return d ? formatGameDateTime(d) : "—";
 }
 
 /** Minutes left on a clock, or "פג" once it is behind us. */

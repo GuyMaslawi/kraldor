@@ -64,6 +64,27 @@ function wallTimeToUtc(wall: Omit<WallParts, "second">): Date {
   return new Date(ts);
 }
 
+/* --------------------------- the one wall clock --------------------------- */
+
+/**
+ * The game runs on **one** clock — Jerusalem — and these are the two primitives
+ * every caller that needs to *reason* about it goes through, rather than the
+ * `Date` methods of whatever machine happens to be running.
+ *
+ * That distinction is the whole point. `d.getHours()` and an unpinned
+ * `toLocaleString()` read the *host's* zone: UTC on a Vercel function, and the
+ * traveller's own zone in a browser. Both print a time the game never acts on.
+ * A value that is only ever displayed can pin the zone in the formatter
+ * (`formatGameDateTime` below); anything that has to *compute* on the calendar —
+ * a day boundary, a form the admin types a time into — needs these.
+ */
+
+/** Wall-clock parts of an instant in Jerusalem. */
+export const gameWallParts = zonedParts;
+
+/** The UTC instant of a Jerusalem wall-clock reading, DST included. */
+export const gameWallToUtc = wallTimeToUtc;
+
 /** A Jerusalem wall-clock time of day, e.g. the 19:30 guild-war bell. */
 export interface WallTime {
   hour: number;
@@ -206,6 +227,19 @@ export function gameDay(date: Date): number {
   return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
 }
 
+/**
+ * Midnight Jerusalem opening the day `date` falls in.
+ *
+ * The cutoff for anything a player reads as "today" — the daily raid board most
+ * visibly. Derived from the zoned parts and not from `new Date(y, m, d)`, which
+ * builds midnight in the *host's* zone: on a UTC server that board would have
+ * turned over at 03:00 Israel, three hours before the day it claims to cover.
+ */
+export function gameDayStart(date: Date): Date {
+  const { year, month, day } = zonedParts(date);
+  return wallTimeToUtc({ year, month, day, hour: 0, minute: 0 });
+}
+
 /** Midnight Jerusalem opening the day *after* the one `date` falls in. */
 export function nextGameDayStart(date: Date): Date {
   const base = zonedParts(new Date(date.getTime() + 86_400_000));
@@ -257,6 +291,40 @@ export function formatGameDateTime(date: Date): string {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
+}
+
+/* ------------------------- datetime-local, in game time ------------------- */
+
+/**
+ * The bridge between an instant and the `"YYYY-MM-DDTHH:mm"` string an
+ * `<input type="datetime-local">` holds — **in Jerusalem wall time, on both
+ * sides**, whatever zone the browser is set to.
+ *
+ * A `datetime-local` value carries no zone, so something has to decide what
+ * "20:00" means. The browser's own answer is the machine's zone, which makes
+ * the admin panel say one thing to an admin in Tel Aviv and another to the same
+ * admin on a laptop still set to UTC — for the field that decides when a season
+ * ends. Reading and writing it as Jerusalem makes the picker mean the same hour
+ * everywhere, and the same hour the game itself runs on.
+ */
+export function toGameLocalInput(date: Date): string {
+  const { year, month, day, hour, minute } = zonedParts(date);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}`;
+}
+
+/** The instant a `datetime-local` reading names, read as Jerusalem wall time. */
+export function fromGameLocalInput(value: string): Date | null {
+  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
+  if (!parts) return null;
+  const at = wallTimeToUtc({
+    year: Number(parts[1]),
+    month: Number(parts[2]),
+    day: Number(parts[3]),
+    hour: Number(parts[4]),
+    minute: Number(parts[5]),
+  });
+  return Number.isNaN(at.getTime()) ? null : at;
 }
 
 const MINUTE_MS = 60_000;

@@ -1,4 +1,5 @@
 import { getLegalOperator } from "@/lib/legal";
+import { gameWallParts } from "@/lib/game/time";
 import { getT } from "@/i18n/server";
 
 /**
@@ -28,9 +29,11 @@ export async function OperatorCredit({ className = "" }: { className?: string })
   return (
     <p className={`text-center text-[11px] text-zinc-600 ${className}`}>
       {/* The name is Latin inside an RTL document: without the isolate the ©
-          and the year drift to the wrong side of it. */}
+          and the year drift to the wrong side of it. The year is the game's,
+          like every other date on the site — `getFullYear` on a UTC server
+          rolls over two hours after the players it belongs to do. */}
       <span dir="ltr" className="inline-block">
-        © {new Date().getFullYear()} {name}
+        © {gameWallParts(new Date()).year} {name}
       </span>
       {" · "}
       {t("כל הזכויות שמורות")}

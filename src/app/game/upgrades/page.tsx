@@ -16,6 +16,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { formatNumber } from "@/lib/game/format";
+import { guildCityStake } from "@/server/guildCity";
 import { getT } from "@/i18n/server";
 
 export async function generateMetadata() {
@@ -39,6 +40,9 @@ export default async function UpgradesPage() {
 
   const cities = empire.cities;
   const citizens = empire.citizens;
+  // A guild holds one city, so עליית עיר is also a resignation from it — and
+  // for a leader, the end of the guild. See server/guildCity.ts.
+  const guildStake = await guildCityStake(empire.id);
 
   return (
     <div className="space-y-6">
@@ -98,6 +102,7 @@ export default async function UpgradesPage() {
             cost={cityCost(cities)}
             available={available}
             soldiersAvailable={empire.army?.soldiers ?? 0}
+            guildStake={guildStake}
           />
         </div>
       </section>

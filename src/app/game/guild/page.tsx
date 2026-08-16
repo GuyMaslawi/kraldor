@@ -8,6 +8,7 @@ import { PlayerLink } from "@/components/ui/PlayerLink";
 import { GuildLink } from "@/components/ui/GuildLink";
 import { GuildHall } from "@/components/game/GuildHall";
 import { isOnline } from "@/lib/game/chat";
+import { cityName } from "@/lib/game/cities";
 import { GAME_TIMEZONE } from "@/lib/game/constants";
 import { formatNumber } from "@/lib/game/format";
 import { getT } from "@/i18n/server";
@@ -54,9 +55,12 @@ const GUILD_BROWSE_LIMIT = 100;
 
 async function NoGuildView({
   empireId,
+  cities,
   diamonds,
 }: {
   empireId: string;
+  /** The viewer's city tier — the only tier they can be recruited into. */
+  cities: number;
   diamonds: number;
 }) {
   const t = await getT();
@@ -71,7 +75,10 @@ async function NoGuildView({
         _count: { select: { members: true } },
         members: {
           where: { role: "LEADER" },
-          include: { empire: { select: { name: true } } },
+          // The leader's city IS the guild's city (see server/guildCity.ts), so
+          // the row can say which tier it recruits in without a column of its
+          // own — and the browser can stop pretending every guild is reachable.
+          include: { empire: { select: { name: true, cities: true } } },
         },
       },
     }),
@@ -86,7 +93,7 @@ async function NoGuildView({
             _count: { select: { members: true } },
             members: {
               where: { role: "LEADER" },
-              include: { empire: { select: { name: true } } },
+              include: { empire: { select: { name: true, cities: true } } },
             },
           },
         },
@@ -156,6 +163,17 @@ async function NoGuildView({
                   <span className="nums text-[11px] text-zinc-500" dir="ltr">
                     {memberCount}/{capacity}
                   </span>
+                  {/* An invitation is good for three days, and either side can
+                      climb a tier inside that window — joinGuild refuses the
+                      claim, so the row has to say so before it is pressed. */}
+                  {invite.guild.members[0] &&
+                    invite.guild.members[0].empire.cities !== cities && (
+                      <span className="rounded-full border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+                        {t("עיר אחרת ({city}) 🚫", {
+                          city: cityName(t, invite.guild.members[0].empire.cities),
+                        })}
+                      </span>
+                    )}
                   {invite.invitedBy && (
                     <span className="text-[11px] text-zinc-500">
                       {t("הוזמנת ע״י")}{" "}
@@ -193,7 +211,10 @@ async function NoGuildView({
               the whole bug: joining asked for nothing but a guild id, so the
               directory was an open door into any guild in the game. */}
           <p className="mb-4 text-xs text-zinc-500">
-            {t("הכניסה לברית היא בהזמנה בלבד — פנה למנהיג או לסגן כדי שיזמינו אותך.")}
+            {t("הכניסה לברית היא בהזמנה בלבד — פנה למנהיג או לסגן כדי שיזמינו אותך.")}{" "}
+            {t("ברית מאחדת שחקנים מאותה העיר בלבד — אתה ב{city}.", {
+              city: cityName(t, cities),
+            })}
           </p>
 
           {guilds.length === 0 ? (
@@ -207,6 +228,7 @@ async function NoGuildView({
                   <tr className="border-b border-border-subtle text-right text-xs text-gold-dim">
                     <th className="pb-2 pr-2 font-semibold">{t("שם הברית")}</th>
                     <th className="pb-2 font-semibold">{t("מנהיג")}</th>
+                    <th className="pb-2 font-semibold">{t("עיר")}</th>
                     <th className="pb-2 font-semibold">{t("חברים")}</th>
                     <th className="pb-2 pl-2 font-semibold">{t("הצטרפות")}</th>
                   </tr>
@@ -215,6 +237,8 @@ async function NoGuildView({
                   {guilds.map((guild, index) => {
                     const capacity = guildCapacity(guild.capacityLevel);
                     const memberCount = guild._count.members;
+                    const guildCity = guild.members[0]?.empire.cities ?? null;
+                    const reachable = guildCity === null || guildCity === cities;
                     return (
                       <tr
                         key={guild.id}
@@ -242,12 +266,25 @@ async function NoGuildView({
                           )}
                         </td>
                         <td className="py-3">
+                          <span
+                            className={
+                              reachable ? "text-zinc-300" : "text-zinc-600"
+                            }
+                          >
+                            {guildCity === null ? "—" : cityName(t, guildCity)}
+                          </span>
+                        </td>
+                        <td className="py-3">
                           <span className="nums text-zinc-200" dir="ltr">
                             {memberCount}/{capacity}
                           </span>
                         </td>
                         <td className="py-3 pl-2">
-                          {invitedGuildIds.has(guild.id) ? (
+                          {!reachable ? (
+                            <span className="inline-block rounded-full border border-zinc-600/40 bg-zinc-700/10 px-2.5 py-1 text-[11px] font-semibold text-zinc-500">
+                              {t("עיר אחרת")}
+                            </span>
+                          ) : invitedGuildIds.has(guild.id) ? (
                             <span className="inline-block rounded-full border border-gold/50 bg-gold/10 px-2.5 py-1 text-[11px] font-semibold text-gold-bright">
                               {t("הוזמנת ✉︎")}
                             </span>
@@ -306,6 +343,10 @@ export default async function GuildPage() {
                 select: {
                   id: true,
                   name: true,
+                  // The leader's tier is the guild's tier (server/guildCity.ts),
+                  // and every other member's must equal it — the roster is where
+                  // a broken row would be visible.
+                  cities: true,
                   // A staff member in the guild is named in molten gold on the
                   // roster — they lend it no power and never take the field in
                   // the war (see src/lib/staff.ts), so the roster has to say so
@@ -344,7 +385,7 @@ export default async function GuildPage() {
           title={t("הברית שלי")}
           ornament={<Icon name="base" size={22} className="text-crimson" />}
         />
-        <NoGuildView empireId={empire.id} diamonds={diamonds} />
+        <NoGuildView empireId={empire.id} cities={empire.cities} diamonds={diamonds} />
       </div>
     );
   }
@@ -353,6 +394,11 @@ export default async function GuildPage() {
   const capacity = guildCapacity(guild.capacityLevel);
   const availableGold = Math.floor(empire.gold);
   const isLeadership = membership.role !== "MEMBER";
+  // A guild holds exactly one city, and it is its leader's — see
+  // server/guildCity.ts. Falls back to the viewer's own tier only while a crown
+  // is momentarily vacant, which the next guild action repairs.
+  const guildCity =
+    guild.members.find((m) => m.role === "LEADER")?.empire.cities ?? empire.cities;
   const members = [...guild.members].sort(
     (a, b) =>
       GUILD_ROLE_META[a.role].order - GUILD_ROLE_META[b.role].order ||
@@ -412,6 +458,13 @@ export default async function GuildPage() {
           <span className="font-bold text-gold-bright">
             {GUILD_ROLE_META[membership.role].icon}{" "}
             {t(GUILD_ROLE_META[membership.role].label)}
+          </span>
+          {" · "}
+          {/* The guild's city, stated where the roster is read: it is what the
+              guild may recruit from, and what every member here stands in. */}
+          <span title={t("ברית מאחדת שחקנים מאותה העיר בלבד")}>
+            {t("עיר הברית:")}{" "}
+            <span className="font-bold text-bone">{cityName(t, guildCity)}</span>
           </span>
         </p>
         <GuildLeaveButton
@@ -484,7 +537,10 @@ export default async function GuildPage() {
 
           {/* Leader and deputy recruit straight into the roster. */}
           {isLeadership && (
-            <GuildAddMemberForm full={members.length >= capacity} />
+            <GuildAddMemberForm
+              full={members.length >= capacity}
+              cityLabel={cityName(t, guildCity)}
+            />
           )}
         </div>
       </div>

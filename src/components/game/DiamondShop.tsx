@@ -30,6 +30,8 @@ import {
   type ShieldKey,
 } from "@/lib/game/diamondShop";
 import { cityName } from "@/lib/game/cities";
+import type { GuildCityStake } from "@/lib/game/guild";
+import { GuildCityWarning } from "@/components/game/GuildCityWarning";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { FormMessage } from "@/components/ui/FormMessage";
 import { Icon, RESOURCE_ICON, RESOURCE_ICON_COLOR } from "@/components/ui/Icon";
@@ -556,11 +558,14 @@ function CityDowngradeCard({
   cities,
   readyAt,
   diamonds,
+  guildStake,
 }: {
   cities: number;
   /** When the hourly cooldown lifts, while it is still running. */
   readyAt: string | null;
   diamonds: number;
+  /** What the drop would cost the caster's guild, or null if nothing. */
+  guildStake: GuildCityStake | null;
 }) {
   const t = useT();
   const locale = useLocale();
@@ -594,6 +599,9 @@ function CityDowngradeCard({
         }
       )}
     >
+      {/* Down is a city change too: the same guild rule applies, and the
+          diamonds are gone either way. */}
+      {eligible && <GuildCityWarning stake={guildStake} />}
       <form>
         {!eligible ? (
           <span className="block rounded-lg border border-zinc-600/40 bg-zinc-700/10 px-3 py-2 text-center text-[11px] font-semibold text-zinc-400">
@@ -636,6 +644,8 @@ export interface DiamondShopProps {
   cities: number;
   /** When the city-downgrade spell comes off cooldown, while it is running. */
   cityDowngradeReadyAt: string | null;
+  /** What a city change would cost the player's guild, or null if nothing. */
+  guildStake: GuildCityStake | null;
   /**
    * Per raid shield: when it expires (null where none is running) and, once it
    * has, when the renewal cooldown lifts.
@@ -654,6 +664,7 @@ export function DiamondShop({
   bankReadyAt,
   cities,
   cityDowngradeReadyAt,
+  guildStake,
   shields,
 }: DiamondShopProps) {
   const t = useT();
@@ -735,6 +746,7 @@ export function DiamondShop({
             cities={cities}
             readyAt={cityDowngradeReadyAt}
             diamonds={diamonds}
+            guildStake={guildStake}
           />
         </div>
       </section>

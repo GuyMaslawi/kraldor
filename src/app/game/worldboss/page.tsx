@@ -13,10 +13,12 @@ export async function generateMetadata() {
 /**
  * /game/worldboss — the one fight the whole server shares.
  *
- * This page is also what *spawns* the week's boss: `getWorldBossState` creates
- * the row on the first look of the week (see the note at openWorldBoss). There
- * is no scheduler and no admin button behind it — see lib/game/worldBoss.ts for
- * why a clock fixture was the right shape.
+ * This page can also *spawn* the day's boss — `getWorldBossState` creates the
+ * row on the first look of the day (see the note at openWorldBoss) — but it is
+ * no longer what usually does: the game layout's herald read gets there first,
+ * from whatever screen the player is standing on. There is no scheduler and no
+ * admin button behind either of them; see lib/game/worldBoss.ts for why a clock
+ * fixture was the right shape.
  */
 export default async function WorldBossPage() {
   const t = await getT();

@@ -6,7 +6,7 @@ import { EditorSection, LabeledInput, LabeledSelect, StatLine } from "@/componen
 import { TUNABLE_META } from "@/components/admin/tunableMeta";
 import { DEFAULT_TUNABLES, getTunables } from "@/lib/game/config";
 import { formatNumber } from "@/lib/game/format";
-import { gameWeek } from "@/lib/game/time";
+import { gameDay } from "@/lib/game/time";
 import { MAX_CITIES } from "@/lib/game/constants";
 import { bossForCity, bossPower, bossReviveMs } from "@/lib/game/bosses";
 import { bossSiegeMaxHp } from "@/lib/game/bossBattle";
@@ -43,17 +43,17 @@ interface TierRow {
  *
  * The two halves finally look alike, because the two features now are: a city
  * tyrant is one shared row per tier fought by everybody in that city, exactly as
- * מפלצת העולם is one shared row a week fought by the whole server. See the note
+ * מפלצת העולם is one shared row a day fought by the whole server. See the note
  * above the actions in server/actions/admin.ts.
  */
 export default async function AdminBossesPage() {
   await requireAdmin();
 
   const now = new Date();
-  const week = gameWeek(now);
+  const day = gameDay(now);
   const tunables = await getTunables();
 
-  const boss = await prisma.worldBoss.findUnique({ where: { week } });
+  const boss = await prisma.worldBoss.findUnique({ where: { day } });
   const definition = boss ? WORLD_BOSS_BY_KEY.get(boss.key) : null;
 
   const [damage, participants, board, tiers] = await Promise.all([
@@ -118,7 +118,7 @@ export default async function AdminBossesPage() {
       </p>
 
       {/* ============================ world boss ============================ */}
-      <EditorSection title="מפלצת העולם — השבוע" icon="🐋">
+      <EditorSection title="מפלצת העולם — היום" icon="🐋">
         {boss && definition ? (
           <div className="space-y-4">
             <div className="panel-inset rounded-xl p-4">
@@ -157,7 +157,7 @@ export default async function AdminBossesPage() {
                   }
                 />
                 <StatLine label="קושי המפלצת (toughness)" value={definition.toughness} />
-                <StatLine label="שבוע" value={<span dir="ltr">{boss.week}</span>} />
+                <StatLine label="יום" value={<span dir="ltr">{boss.day}</span>} />
                 <StatLine label="מכים" value={participants} />
                 <StatLine label="נזק מצטבר" value={<span dir="ltr">{formatNumber(totalDamage)}</span>} />
                 <StatLine
@@ -171,7 +171,7 @@ export default async function AdminBossesPage() {
             <ActionForm action={saveWorldBoss} submitLabel="שמור את המפלצת החיה">
               <div className="grid gap-3 sm:grid-cols-3">
                 <LabeledSelect
-                  label="איזו מפלצת עומדת השבוע"
+                  label="איזו מפלצת עומדת היום"
                   name="key"
                   defaultValue={boss.key}
                   options={WORLD_BOSSES.map((b) => ({
@@ -185,7 +185,7 @@ export default async function AdminBossesPage() {
                   type="number"
                   min={1}
                   defaultValue={boss.maxHp}
-                  hint="בדרך כלל מוקפא ביצירה — כאן אפשר לשנות אותו באמצע השבוע"
+                  hint="בדרך כלל מוקפא ביצירה — כאן אפשר לשנות אותו באמצע הקרב"
                 />
                 <LabeledInput
                   label="חיים עכשיו"
@@ -210,14 +210,14 @@ export default async function AdminBossesPage() {
                 submitLabel="💀 הפל עכשיו"
                 submitVariant="secondary"
                 submitClassName="text-xs"
-                confirm="להפיל את המפלצת עכשיו? השלל ייפתח לכל מי שהכה השבוע, ואף אחד לא יקבל את יהלומי המכה האחרונה."
+                confirm="להפיל את המפלצת עכשיו? השלל ייפתח לכל מי שהכה היום, ואף אחד לא יקבל את יהלומי המכה האחרונה."
               />
               <ActionForm
                 action={resetWorldBoss}
-                submitLabel="🧹 אפס את השבוע"
+                submitLabel="🧹 אפס את היום"
                 submitVariant="danger"
                 submitClassName="text-xs"
-                confirm="לאפס את השבוע? המפלצת תחזור לחיים מלאים וכל לוח הנזק יימחק — מי שכבר אסף שלל יוכל לאסוף שוב."
+                confirm="לאפס את היום? המפלצת תחזור לחיים מלאים וכל לוח הנזק יימחק — מי שכבר אסף שלל יוכל לאסוף שוב."
               />
             </div>
 
@@ -246,10 +246,10 @@ export default async function AdminBossesPage() {
         ) : (
           <div className="space-y-3">
             <p className="panel-inset rounded-lg p-3 text-sm text-zinc-400">
-              עוד לא נוצרה מפלצת לשבוע {week}. היא נוצרת מעצמה ברגע שהשחקן הראשון פותח את הזירה —
+              עוד לא נוצרה מפלצת ליום {day}. היא נוצרת מעצמה ברגע שמישהו טוען מסך משחק כלשהו —
               או עכשיו, בכפתור הזה.
             </p>
-            <ActionForm action={spawnWorldBoss} submitLabel="🐋 צור את מפלצת השבוע" />
+            <ActionForm action={spawnWorldBoss} submitLabel="🐋 צור את מפלצת היום" />
           </div>
         )}
       </EditorSection>

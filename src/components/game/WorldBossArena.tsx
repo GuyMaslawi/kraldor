@@ -46,10 +46,10 @@ import { useT } from "@/i18n/client";
  * It is deliberately **short**, and the reason is arithmetic. The city boss's
  * assault costs 300 turns and is fought a handful of times a cycle, so a minute
  * of ceremony is an event. A strike here costs 40 turns and there are
- * WORLD_BOSS_MAX_STRIKES of them a week — at a minute each that is twenty
- * minutes of watching, which is a chore rather than a ritual. Two seconds is a
- * beat; the longer sequences are saved for the two moments that are actually
- * rare, a phase crossing and the kill.
+ * WORLD_BOSS_MAX_STRIKES of them every single day — at a minute each that is a
+ * chore rather than a ritual, and one that comes round every morning. Two
+ * seconds is a beat; the longer sequences are saved for the two moments that
+ * are actually rare, a phase crossing and the kill.
  *
  * Nothing here is authority. The blow was committed server-side before this
  * component heard about it (see `strikeWorldBoss`), so the reveal can be cut
@@ -61,7 +61,7 @@ import { useT } from "@/i18n/client";
  * A strike used to end in a printed receipt — "you hit it for 10,011, it has
  * 135,112 left" — and the whole card below it jumped every time the line
  * appeared and again when it went. That is a bad trade for a button pressed
- * WORLD_BOSS_MAX_STRIKES times a week, and it was also redundant: the health it
+ * WORLD_BOSS_MAX_STRIKES times a day, and it was also redundant: the health it
  * quoted is the bar, which is on screen permanently and is the largest thing on
  * it. So the receipt is gone, and everything a blow has to say is said **beside
  * the beast** — the figure thrown off it, the army's account over the lore, and
@@ -83,7 +83,7 @@ const IMPACT_MS = 1_500;
 const KILL_DELAY_MS = 700;
 /** How long the felled-beast sequence holds before the page settles. */
 const KILL_MS = 4_200;
-/** How long a phase announcement sits on screen. Three of these a week. */
+/** How long a phase announcement sits on screen. Three of these a fight. */
 const CRY_MS = 2_200;
 
 /**
@@ -91,7 +91,7 @@ const CRY_MS = 2_200;
  *
  * The only screen in the game whose contents change while the viewer does
  * nothing: the bar moves when a stranger strikes. Twelve seconds is slow for a
- * poll and deliberately so — this page can be left open all week, so the client
+ * poll and deliberately so — this page can be left open all day, so the client
  * additionally holds off while a reveal is playing and while the tab is hidden,
  * and stops entirely once the beast is down.
  */
@@ -319,7 +319,7 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
               where the old receipt's figure went: the running total is the
               number that actually decides your share of the spoils, and the
               blow beside it is the one you just landed. Absolute, so it can
-              appear on the first strike of the week without moving the card. */}
+              appear on the first strike of the day without moving the card. */}
           {(state.myDamage > 0 || lastBlow) && (
             <div className="wb-tally">
               <span className="wb-tally-label">{t("הנזק שלך")}</span>
@@ -411,7 +411,7 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
             </span>
             <span className="flex items-center gap-3 text-zinc-500">
               <span>{t("{count} נלחמים", { count: state.participants })}</span>
-              <WeekCountdown at={state.endsAt} serverNow={state.serverNow} />
+              <DayCountdown at={state.endsAt} serverNow={state.serverNow} />
             </span>
           </div>
         </div>
@@ -452,7 +452,7 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
               )}
             </div>
           ) : state.blocked ? (
-            // A staff account watches the week's fixture and stays out of it —
+            // A staff account watches the day's fixture and stays out of it —
             // the button is not merely disabled, it is replaced, because there
             // is no condition under which it would come back. See lib/staff.ts.
             <p className="rounded-lg border border-border-subtle bg-black/30 px-3 py-2 text-xs font-semibold text-zinc-400">
@@ -527,7 +527,7 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
             that *before* spending forty turns — quoting it only after the kill
             answered the question for everybody except the person deciding. It
             is the live figure: `state.reward` is computed from the damage and
-            the head count as they stand this second, so it moves as the week
+            the head count as they stand this second, so it moves as the day
             fills up, which is exactly what a player needs to understand about
             how the split works. */}
         {(state.defeated || state.myDamage > 0) && (
@@ -578,7 +578,7 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
               </button>
             ) : state.defeated ? (
               <p className="text-xs text-zinc-500">
-                {t("לא הכית את המפלצת השבוע — אין חלק בשלל.")}
+                {t("לא הכית את המפלצת היום — אין חלק בשלל.")}
               </p>
             ) : (
               // Standing beast, and this reader has struck it: the purse above
@@ -691,9 +691,9 @@ export function WorldBossArena({ state: initial }: { state: WorldBossState }) {
  * The last blows anybody landed.
  *
  * The damage board is standings, and standings look the same whether they were
- * earned an hour ago or on Monday. This is the part of the arena that is other
- * people: it is how a player who opens the page on Thursday can tell whether
- * the server is still fighting or has given up on the week.
+ * earned an hour ago or at breakfast. This is the part of the arena that is
+ * other people: it is how a player who opens the page in the evening can tell
+ * whether the server is still fighting or has given up on the day.
  *
  * Rows that arrived since the last read slide in, so a blow landing while
  * somebody is reading is *seen* rather than merely present on the next scroll.
@@ -794,13 +794,17 @@ function Ago({ at, serverNow }: { at: number; serverNow: number }) {
 }
 
 /**
- * The wait until the week's fixture closes, ticking in the browser.
+ * The wait until midnight, when this beast goes and the next one rises.
  *
  * `serverNow` rather than the reader's own clock, for the reason the daily
  * board's countdown states: the boundary that matters is the server's, and a
  * device an hour fast would otherwise show a fight that has already ended.
+ *
+ * Down to the minute inside the last hour, which the weekly version it replaced
+ * had no reason to do: "0ש" for the last sixty minutes of a fixture is the one
+ * stretch where the exact figure decides whether it is worth spending a strike.
  */
-function WeekCountdown({ at, serverNow }: { at: number; serverNow: number }) {
+function DayCountdown({ at, serverNow }: { at: number; serverNow: number }) {
   const t = useT();
   const [left, setLeft] = useState(() => at - serverNow);
 
@@ -808,16 +812,16 @@ function WeekCountdown({ at, serverNow }: { at: number; serverNow: number }) {
     const skew = Date.now() - serverNow;
     const tick = () => setLeft(at - (Date.now() - skew));
     tick();
-    const id = setInterval(tick, 60_000);
+    const id = setInterval(tick, 30_000);
     return () => clearInterval(id);
   }, [at, serverNow]);
 
-  if (left <= 0) return <span>{t("השבוע נגמר")}</span>;
-  const days = Math.floor(left / 86_400_000);
-  const hours = Math.floor((left % 86_400_000) / 3_600_000);
+  if (left <= 0) return <span>{t("היום נגמר")}</span>;
+  const hours = Math.floor(left / 3_600_000);
+  const minutes = Math.floor((left % 3_600_000) / 60_000);
   return (
     <span className="nums" dir="ltr">
-      {days > 0 ? t("{d}י {h}ש", { d: days, h: hours }) : t("{h}ש", { h: hours })}
+      {hours > 0 ? t("{h}ש {m}ד", { h: hours, m: minutes }) : t("{m}ד", { m: minutes })}
     </span>
   );
 }

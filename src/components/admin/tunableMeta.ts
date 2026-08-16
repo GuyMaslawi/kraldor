@@ -96,7 +96,7 @@ export const TUNABLE_META: {
       damageMultiplier: { label: "מכפיל נזק של מכת שחקן (1 = ברירת מחדל)", step: 0.05 },
       rewardMultiplier: { label: "מכפיל שלל משותף (1 = ברירת מחדל)", step: 0.05 },
       killDiamonds: { label: "יהלומים למכה שמפילה" },
-      maxStrikes: { label: "מכות לשחקן בשבוע" },
+      maxStrikes: { label: "מכות לשחקן ביום" },
       strikeTurns: { label: "עלות תורות למכה" },
     },
   },

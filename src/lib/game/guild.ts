@@ -172,6 +172,58 @@ export function spellCastCostDiamonds(type: GuildSpellType, level: number): numb
 export const GUILD_INVITE_TTL_HOURS = 72;
 export const GUILD_INVITE_TTL_MS = GUILD_INVITE_TTL_HOURS * 60 * 60 * 1000;
 
+/* ------------------------------ one guild, one city ------------------------------ */
+
+/**
+ * What the same-city rule did to a mover's guild — see `server/guildCity.ts`,
+ * which is where it is decided. The type lives here, with the rest of the guild
+ * vocabulary, so the client cards can name it without importing a server
+ * module.
+ */
+export type GuildCityOutcome =
+  /** The mover was the leader: the whole guild is gone. */
+  | { kind: "disbanded"; guildName: string }
+  /** The mover was a member or deputy: only their seat is gone. */
+  | { kind: "left"; guildName: string; guildCity: number };
+
+/**
+ * What a city change is about to cost the player, as the cards that sell one
+ * (עליית עיר, קסם ירידת עיר) print it. Null when it would cost nothing.
+ */
+export interface GuildCityStake {
+  guildName: string;
+  /** "disband" — the whole guild goes; "leave" — only this seat. */
+  effect: "disband" | "leave";
+}
+
+/**
+ * The sentence a city change appends to its own success toast when it cost the
+ * player their guild. Empty when nothing happened, so call sites can add it
+ * unconditionally.
+ *
+ * A tail rather than a second message because the two facts are one event: "you
+ * climbed, and this is what the climb cost" reads as a consequence, while a
+ * separate toast reads as an unrelated misfortune that happened to land in the
+ * same second.
+ */
+export function guildCityNote(t: T, outcome: GuildCityOutcome | null): string {
+  if (!outcome) return "";
+  if (outcome.kind === "disbanded") {
+    return (
+      " " +
+      t('הברית "{guild}" פורקה — מנהיג שעוזב את עיר הברית לוקח איתו את עיר הברית.', {
+        guild: outcome.guildName,
+      })
+    );
+  }
+  return (
+    " " +
+    t('פרשת מהברית "{guild}" — ברית מאחדת שחקנים מאותה העיר בלבד.', {
+      guild: outcome.guildName,
+    })
+  );
+}
+
 /* ------------------------------ roles ------------------------------ */
 
 export interface GuildRoleMeta {

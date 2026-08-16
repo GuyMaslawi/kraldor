@@ -18,11 +18,13 @@ import { logError } from "@/server/errorLog";
  * The share used to be a button. A contender's purse sat unpaid on their
  * `WorldBossStrike` row until they opened /game/worldboss and pressed "קח את
  * חלקך" — and because the arena only ever renders the boss of the *current*
- * week (see `getWorldBossState`), the button vanished at midnight on Saturday
- * along with any share nobody had got round to taking. Nothing swept for the
- * remainder; there was no screen that could still show it. A beast felled on
- * Thursday evening paid the players who happened to log in again before the week
- * turned over, and silently kept everyone else's.
+ * period (see `getWorldBossState`), the button vanished when that period turned
+ * over along with any share nobody had got round to taking. Nothing swept for
+ * the remainder; there was no screen that could still show it. A beast felled
+ * in the evening paid the players who happened to log in again before it turned
+ * over, and silently kept everyone else's. The fixture runs daily now, which
+ * would have made that window seven times narrower and the bug seven times
+ * worse.
  *
  * That is the exact shape of the complaint this was written for: *"I hit the
  * boss and never got anything."* From the player's side an unclaimed share and
@@ -53,8 +55,8 @@ import { logError } from "@/server/errorLog";
  *    left to pay. A fan-out cut short by a redeploy leaves it null, so the next
  *    sweep finishes the job.
  *  - **Reachable** is the sweep's `where`, which asks for *any* felled boss with
- *    unpaid shares rather than this week's — so it also settles the debts the
- *    old button left behind in weeks gone by.
+ *    unpaid shares rather than today's — so it also settles the debts the old
+ *    button left behind in the weeks this fixture used to run in.
  */
 
 /**
@@ -63,9 +65,9 @@ import { logError } from "@/server/errorLog";
  * The repair sweep rides the inbox poll, which is the only call that runs on
  * every screen — and therefore also the hottest path in the game, held to a
  * handful of indexed lookups on purpose (see `getInboxPulse`). A world boss
- * falls at most once a week, so probing for one on every poll of every player
- * would be a query per player per four seconds to answer a question whose answer
- * changes weekly.
+ * falls at most once a day, so probing for one on every poll of every player
+ * would be a query per player per four seconds to answer a question whose
+ * answer changes daily.
  *
  * A minute per instance is far more often than the debt can appear and costs
  * nothing at all in between — the gate is the same in-memory counter the poll
@@ -130,7 +132,7 @@ function spoilsClause(rewards: readonly Reward[]): Prisma.InputJsonValue | "" {
  * `bossId` narrows the sweep to the beast that has just been killed — the common
  * path, straight off the killing blow. Omitting it asks for the oldest felled
  * boss with anything still owed, which is the repair path: it is what pays off
- * a fan-out a redeploy interrupted, and what pays off the weeks the arena can no
+ * a fan-out a redeploy interrupted, and what pays off the days the arena can no
  * longer render.
  *
  * Never throws. It runs at the tail of a strike that has already committed and
@@ -147,7 +149,7 @@ export async function settleWorldBossSpoils(
         defeatedAt: { not: null },
         spoilsSettledAt: null,
       },
-      orderBy: { week: "asc" },
+      orderBy: { day: "asc" },
       select: { id: true, key: true },
     });
     if (!boss) return null;

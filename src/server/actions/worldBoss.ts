@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveEmpireId } from "@/lib/auth";
 import { applyPendingUpdates } from "@/lib/game/updates";
 import { getTunables } from "@/lib/game/config";
-import { gameWeek, nextGameWeekStart } from "@/lib/game/time";
+import { gameDay, nextGameDayStart } from "@/lib/game/time";
 import { formatNumber } from "@/lib/game/format";
 import { notStaffOrBot, notStaffOrBotEmpire } from "@/lib/bot";
 import { POLL_LIMIT, POLL_WINDOW_MS, localRateLimit } from "@/lib/rateLimit";
@@ -40,9 +40,10 @@ import { getT, type T } from "@/i18n/server";
 /**
  * מפלצת העולם — the arena.
  *
- * Three things happen here: the week's boss is spawned (lazily, on the first
+ * Three things happen here: the day's boss is spawned (lazily, on the first
  * read), it is struck, and the spoils are collected. See lib/game/worldBoss.ts
- * for why it is a clock fixture with no admin button behind it.
+ * for why it is a clock fixture with no admin button behind it, and why the
+ * fixture turns over every 24 hours rather than every week.
  *
  * The one genuinely hard part is the kill, and it is worth stating how it is
  * made safe: **the strike that takes health to zero is the same statement that
@@ -75,39 +76,46 @@ function describeRewards(t: T, rewards: readonly Reward[]): string {
 /* ------------------------------ spawn ------------------------------ */
 
 /**
- * The week's boss, creating it on the first look.
+ * The day's boss, creating it on the first look.
  *
  * Safe to race for the same reason a mission board is: the key is a pure
- * function of the week, so two concurrent first-loads compute the identical row
+ * function of the day, so two concurrent first-loads compute the identical row
  * and the unique index rejects the loser, whose `catch` re-reads what the winner
  * wrote. The health pool is the one thing that could differ between them — it
  * reads a live count — and that is exactly why the loser takes the winner's row
  * rather than its own figure.
  *
+ * "The first look" is no longer the arena's own page load: `getWorldBossHerald`
+ * calls this from the game layout and from a poll that runs on every screen, so
+ * the day's beast is standing within a minute of midnight whether or not
+ * anybody has walked into the arena. That is what makes the herald below an
+ * announcement of something that happened rather than of something the reader
+ * has just caused.
+ *
  * Staff and bots are excluded from the count. A garrison an admin planted is
  * not somebody who will turn up to fight, and counting it would raise the pool
  * against players who have to clear it.
  */
-async function openWorldBoss(week: number, hpMultiplier: number) {
-  const existing = await prisma.worldBoss.findUnique({ where: { week } });
+async function openWorldBoss(day: number, hpMultiplier: number) {
+  const existing = await prisma.worldBoss.findUnique({ where: { day } });
   if (existing) return existing;
 
-  const definition = rollWorldBoss(week);
+  const definition = rollWorldBoss(day);
   const empires = await prisma.empire.count({ where: notStaffOrBot });
   const maxHp = worldBossMaxHp(definition, empires, hpMultiplier);
 
   try {
     const created = await prisma.worldBoss.create({
-      data: { week, key: definition.key, maxHp, hp: maxHp },
+      data: { day, key: definition.key, maxHp, hp: maxHp },
     });
     // Only the winner of the create race gets here, and the claim inside makes
     // it exactly-once even so. Awaited rather than fired and forgotten: it runs
-    // once a week, and a fan-out cut short when the response is sent is a fan-out
+    // once a day, and a fan-out cut short when the response is sent is a fan-out
     // half the game never receives.
     await heraldWorldBossSpawn(created.id);
     return created;
   } catch {
-    return prisma.worldBoss.findUniqueOrThrow({ where: { week } });
+    return prisma.worldBoss.findUniqueOrThrow({ where: { day } });
   }
 }
 
@@ -119,11 +127,12 @@ const ARENA_HREF = "/game/worldboss";
 /**
  * "A world boss is loose."
  *
- * The whole server is on the same side of this fight and on the same weekly
+ * The whole server is on the same side of this fight and on the same daily
  * clock, which is the entire argument for spending an inbox message on it: a
  * player who never opens /game/worldboss has no other way to learn there is
- * something there this week, and by the time they wander in the server may
- * already have felled it.
+ * something there today, and by the time they wander in the server may already
+ * have felled it. The full-screen herald (see WorldBossTakeover) reaches the
+ * player who *is* on a game screen; these three reach everybody else.
  *
  * All three channels, because they reach three different people — the player
  * who is in the game right now (chat), the one who will open it this evening
@@ -153,7 +162,7 @@ async function heraldWorldBossSpawn(bossId: string): Promise<void> {
       params: { boss: { key: definition.name } },
     };
     const body: HeraldText = {
-      key: "{lore} {hp} נקודות חיים, והיא נופלת רק אם כל השרת יכה בה. הזירה פתוחה עד סוף השבוע.",
+      key: "{lore} {hp} נקודות חיים, והיא נופלת רק אם כל השרת יכה בה. הזירה פתוחה עד חצות — ומחר תעלה אחרת.",
       params: {
         lore: { key: definition.lore },
         hp: formatNumber(Math.round(boss.maxHp)),
@@ -219,7 +228,7 @@ async function heraldWorldBossDefeat(bossId: string): Promise<void> {
       params: { boss: { key: definition.name } },
     };
     const body: HeraldText = {
-      key: "{slayer} חלקו של כל מי שהכה אותה השבוע כבר נכנס לאוצר שלו.",
+      key: "{slayer} חלקו של כל מי שהכה אותה היום כבר נכנס לאוצר שלו.",
       params: {
         // An absent clause is simply left out and the spaces around it are
         // collapsed on the way out — see the note in messageText.ts.
@@ -241,6 +250,121 @@ async function heraldWorldBossDefeat(bossId: string): Promise<void> {
   } catch (err) {
     await logError("worldBoss.heraldWorldBossDefeat", err);
   }
+}
+
+/* ------------------------ the herald on every screen ------------------------ */
+
+/**
+ * What the game layout needs to announce a beast — and nothing else.
+ *
+ * Deliberately not `WorldBossState`. That one carries the damage board, the
+ * live feed, the viewer's own strikes and their share of the spoils: five more
+ * queries, on a read that now runs on every screen in the game rather than on
+ * the one page that draws them. This is a projection of the boss row itself.
+ */
+export interface WorldBossHeraldState {
+  /** The row id — the takeover's "have I already announced this one" key. */
+  id: string;
+  key: string;
+  name: string;
+  lore: string;
+  sigil: string;
+  accent: string;
+  maxHp: number;
+  hp: number;
+  defeated: boolean;
+  /** Midnight Jerusalem, epoch ms — when this beast's day is up. */
+  endsAt: number;
+  serverNow: number;
+  /** The day's allowance, as the tunables actually stand. */
+  maxStrikes: number;
+  strikeTurns: number;
+}
+
+/**
+ * The day's beast, opened if the day has turned over.
+ *
+ * ## This is the "every 24 hours, automatically" part
+ *
+ * There is no cron in this deployment (see server/worldBossSpoils.ts for the
+ * same argument at more length), so a fixture spawns when something looks at
+ * it. Until now the only thing that looked was /game/worldboss, which made the
+ * daily beast a lie for any server whose players do not habitually open the
+ * arena: it would appear at 9pm because somebody wandered in, having missed
+ * most of its own day, and the herald announcing it would arrive in the same
+ * breath as the news that it was already half fought.
+ *
+ * So the look moved to the game layout and to the poll below, both of which run
+ * on **every** screen. The first player to load any part of the game after
+ * midnight opens the day's row, and the players already sitting on a screen
+ * find it on their next poll — within a minute, with nobody having navigated
+ * anywhere. `openWorldBoss` fans out the chat/inbox/Discord herald exactly once
+ * from inside that create, and the client turns this state into the full-screen
+ * announcement (see WorldBossHerald).
+ *
+ * Returns null when the arena is closed from /admin/bosses, when the viewer is
+ * not a player, or when the row's catalog key has been retired — the same three
+ * nothings the arena itself degrades to.
+ */
+export async function getWorldBossHerald(): Promise<WorldBossHeraldState | null> {
+  try {
+    const empireId = await getActiveEmpireId();
+    if (empireId === null) return null;
+
+    const tunables = await getTunables();
+    if (tunables.worldBoss.enabled < 1) return null;
+
+    const now = new Date();
+    const boss = await openWorldBoss(gameDay(now), tunables.worldBoss.hpMultiplier);
+    const definition = WORLD_BOSS_BY_KEY.get(boss.key);
+    if (!definition) return null;
+
+    return {
+      id: boss.id,
+      key: definition.key,
+      name: definition.name,
+      lore: definition.lore,
+      sigil: definition.sigil,
+      accent: definition.accent,
+      maxHp: boss.maxHp,
+      hp: Math.max(0, boss.hp),
+      defeated: boss.defeatedAt !== null,
+      endsAt: nextGameDayStart(now).getTime(),
+      serverNow: now.getTime(),
+      maxStrikes: tunables.worldBoss.maxStrikes,
+      strikeTurns: tunables.worldBoss.strikeTurns,
+    };
+  } catch (err) {
+    // The herald is decoration on somebody else's screen. A boss that failed to
+    // open here is opened by the next poll, or by the arena's own read.
+    await logError("worldBoss.getWorldBossHerald", err);
+    return null;
+  }
+}
+
+/** What the layout's poll gets back. Same shape as every other poll here. */
+export interface WorldBossHeraldPoll {
+  state?: WorldBossHeraldState | null;
+  /** Nothing was learned this round; ask again, change nothing. */
+  retry?: boolean;
+}
+
+/**
+ * The herald, re-read from whatever screen the player is on.
+ *
+ * Ceilinged with the in-process counter for the reason `pollHappyHour` states:
+ * it is a read path mounted in the layout, so a refused round costs the player
+ * nothing — but a looping client must not be able to turn it into unbounded
+ * database load. A refusal is `retry` and never an empty state, so a throttled
+ * round cannot be mistaken for "the beast is gone".
+ */
+export async function pollWorldBossHerald(): Promise<WorldBossHeraldPoll> {
+  const empireId = await getActiveEmpireId();
+  if (empireId === null) return { retry: true };
+  if (!localRateLimit(`poll:wbherald:${empireId}`, POLL_LIMIT, POLL_WINDOW_MS)) {
+    return { retry: true };
+  }
+  return { state: await getWorldBossHerald() };
 }
 
 /* ------------------------------ read ------------------------------ */
@@ -266,8 +390,8 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
 
   const tunables = await getTunables();
   // Closed from /admin/bosses. Checked before `openWorldBoss` so a shut arena
-  // does not spawn the week's row on the first look — a boss nobody may strike
-  // would otherwise sit there accruing a week it never gets fought.
+  // does not spawn the day's row on the first look — a boss nobody may strike
+  // would otherwise sit there accruing a day it never gets fought.
   if (tunables.worldBoss.enabled < 1) return null;
 
   const empire = await prisma.empire.findUnique({
@@ -284,8 +408,8 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
   if (!empire) return null;
 
   const now = new Date();
-  const week = gameWeek(now);
-  const boss = await openWorldBoss(week, tunables.worldBoss.hpMultiplier);
+  const day = gameDay(now);
+  const boss = await openWorldBoss(day, tunables.worldBoss.hpMultiplier);
   const definition = WORLD_BOSS_BY_KEY.get(boss.key);
   // A retired key degrades to no arena rather than a crash — the same rule
   // every other keyed table here follows.
@@ -388,7 +512,7 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
     // it. The arena hides the line when there is no name.
     slayerName: slayer && (slayer.isStaff || slayer.isBot) ? null : boss.slayerName,
 
-    endsAt: nextGameWeekStart(now).getTime(),
+    endsAt: nextGameDayStart(now).getTime(),
     serverNow: now.getTime(),
 
     strikesLeft: Math.max(0, tunables.worldBoss.maxStrikes - (mine?.hits ?? 0)),
@@ -406,8 +530,8 @@ export async function getWorldBossState(): Promise<WorldBossState | null> {
     feed,
     blocked: empire.isStaff || empire.isBot,
 
-    // The spoils open the moment it is down, not at the end of the week — a
-    // server that killed it on Tuesday should not be told to come back Sunday.
+    // The spoils open the moment it is down, not at midnight — a server that
+    // killed it at breakfast should not be told to come back tonight.
     claimable:
       boss.defeatedAt !== null && (mine?.hits ?? 0) > 0 && !(mine?.claimed ?? false),
     claimed: mine?.claimed ?? false,
@@ -455,7 +579,7 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
   const t = await getT();
   try {
     const empireId = await requireOwnEmpireId();
-    const week = gameWeek(new Date());
+    const day = gameDay(new Date());
 
     // Outside the transaction: a transaction must not ask for a second
     // connection while holding one — the same rule spyOnEmpire states. That is
@@ -465,9 +589,9 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
       return { error: t("זירת מפלצת העולם סגורה כרגע.") };
     }
 
-    const boss = await openWorldBoss(week, tunables.worldBoss.hpMultiplier);
+    const boss = await openWorldBoss(day, tunables.worldBoss.hpMultiplier);
     const definition = WORLD_BOSS_BY_KEY.get(boss.key);
-    if (!definition) return { error: t("אין מפלצת עולם השבוע.") };
+    if (!definition) return { error: t("אין מפלצת עולם היום.") };
 
     const result = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Empire" WHERE id = ${empireId} FOR UPDATE`;
@@ -490,10 +614,10 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
         where: { id: boss.id },
         select: { hp: true, defeatedAt: true, slayerName: true },
       });
-      if (!live) return { error: t("אין מפלצת עולם השבוע.") };
+      if (!live) return { error: t("אין מפלצת עולם היום.") };
       if (live.defeatedAt !== null || live.hp <= 0) {
         return {
-          error: t("{boss} כבר הופלה השבוע.", { boss: t(definition.name) }),
+          error: t("{boss} כבר הופלה היום.", { boss: t(definition.name) }),
         };
       }
 
@@ -505,7 +629,7 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
       const strikeTurns = tunables.worldBoss.strikeTurns;
       if ((mine?.hits ?? 0) >= maxStrikes) {
         return {
-          error: t("ניצלת את כל {max} המכות שלך השבוע.", { max: maxStrikes }),
+          error: t("ניצלת את כל {max} המכות שלך היום.", { max: maxStrikes }),
         };
       }
 
@@ -533,7 +657,7 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
       // into one, and assigning a `timestamptz` to such a column converts it
       // through the database session's own zone. On a server not running in UTC
       // the kill would be stamped hours from every other timestamp in the
-      // database — and `defeatedAt` is what the whole week's fixture is read
+      // database — and `defeatedAt` is what the whole day's fixture is read
       // against. See the same note in actions/daily.ts.
       const rows = await tx.$queryRaw<{ hp: number; slain: boolean }[]>`
         UPDATE "WorldBoss"
@@ -561,7 +685,7 @@ export async function strikeWorldBoss(): Promise<WorldBossStrikeState> {
           data: { turns: { increment: strikeTurns } },
         });
         return {
-          error: t("{boss} כבר הופלה השבוע.", { boss: t(definition.name) }),
+          error: t("{boss} כבר הופלה היום.", { boss: t(definition.name) }),
         };
       }
 
@@ -709,7 +833,7 @@ export interface WorldBossPoll {
  * for the reason `pollBossArena` states: this is a read path, and a refused
  * round costs the player nothing because the arena simply asks again. The
  * client also stops polling on a hidden tab and on a felled boss, which is what
- * keeps a page anyone may leave open all week from being a standing load.
+ * keeps a page anyone may leave open all day from being a standing load.
  */
 export async function pollWorldBoss(): Promise<WorldBossPoll> {
   try {
@@ -738,14 +862,15 @@ export async function pollWorldBoss(): Promise<WorldBossPoll> {
  * fan-out was interrupted before it reached, and it is deliberately kept because
  * the alternative is a player with an unpaid share and no way to ask for it.
  *
- * ## Any felled boss, not this week's
+ * ## Any felled boss, not today's
  *
- * It used to look the boss up by the current week, which quietly made the share
- * expire: at midnight on Saturday the lookup found next week's beast, the row
- * holding the debt was no longer reachable from any screen, and the purse was
- * gone. The lookup is now the *striker* row — this empire's oldest unpaid share
- * of anything that has actually fallen — so a debt survives the week that
- * incurred it, which is the whole point of a receipt.
+ * It used to look the boss up by the current period, which quietly made the
+ * share expire: at midnight the lookup found the next beast, the row holding
+ * the debt was no longer reachable from any screen, and the purse was gone.
+ * That mattered weekly and matters seven times as much daily. The lookup is now
+ * the *striker* row — this empire's oldest unpaid share of anything that has
+ * actually fallen — so a debt survives the day that incurred it, which is the
+ * whole point of a receipt.
  */
 export async function collectWorldBoss(): Promise<ActionState> {
   const t = await getT();
@@ -765,14 +890,14 @@ export async function collectWorldBoss(): Promise<ActionState> {
         hits: { gt: 0 },
         boss: { defeatedAt: { not: null } },
       },
-      orderBy: { boss: { week: "asc" } },
+      orderBy: { boss: { day: "asc" } },
       select: { bossId: true },
     });
     if (!owed) {
       // Two different nothings, and the arena's own state already distinguishes
       // them — but this action is reachable from a stale tab, so it says which.
       const standing = await prisma.worldBoss.findUnique({
-        where: { week: gameWeek(new Date()) },
+        where: { day: gameDay(new Date()) },
         select: { defeatedAt: true },
       });
       return {
@@ -794,7 +919,7 @@ export async function collectWorldBoss(): Promise<ActionState> {
         select: { id: true, damage: true, hits: true, claimed: true },
       });
       if (!mine || mine.hits === 0) {
-        return { error: t("לא הכית את המפלצת השבוע.") };
+        return { error: t("לא הכית את המפלצת היום.") };
       }
       if (mine.claimed) return { error: t("כבר אספת את חלקך.") };
 

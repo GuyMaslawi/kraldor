@@ -38,6 +38,8 @@ import { getMiniGameStates } from "@/server/actions/minigame";
 import { countWaitingSupport } from "@/server/actions/support";
 import { HappyHourBanner } from "@/components/game/HappyHourBanner";
 import { getHappyHourState } from "@/server/actions/happyHour";
+import { WorldBossHerald } from "@/components/game/WorldBossHerald";
+import { getWorldBossHerald } from "@/server/actions/worldBoss";
 import { getSeasonPassState } from "@/server/actions/seasonPass";
 import { getCollectableAchievements } from "@/server/achievementState";
 import { buildStreakState, getDailyBadge } from "@/server/dailyState";
@@ -85,6 +87,11 @@ export default async function GameLayout({ children }: { children: ReactNode }) 
   // Rendered server-side so a player who navigates during a release meets it on
   // the first paint rather than one poll later.
   const happyHour = await getHappyHourState();
+  // The day's world boss — and this read is also what *opens* it: the fixture
+  // has no scheduler behind it, so the first game screen loaded after midnight
+  // is what puts the beast on its feet and fans out its heralds. See
+  // getWorldBossHerald. One indexed lookup on every other load.
+  const worldBoss = await getWorldBossHerald();
 
   // Running potions ride in the command bar: a buff that is quietly doubling
   // plunder and XP has to be visible from the screens people actually play on,
@@ -198,6 +205,12 @@ export default async function GameLayout({ children }: { children: ReactNode }) 
       <ImpersonationBanner empireName={empire.name} />
       {/* Live toasts for incoming attacks / spies / messages. */}
       <WarAlerts />
+      {/* "המפלצת חזרה לחיים" — the once-per-beast full-screen announcement, on
+          whichever screen the player is standing on when the day turns over.
+          Renders nothing at all unless there is a beast this player has not
+          been shown yet; the poll inside is what keeps the fixture automatic
+          for a session that never navigates. */}
+      <WorldBossHerald initial={worldBoss} />
       {/* The herald: an admin's announcement, in the middle of the screen and
           once. Free to render — it reads the inbox pulse the toasts and the
           badges already run, and returns null unless something is waiting. */}

@@ -2,6 +2,8 @@ import "server-only";
 import type { DiamondEffectKind, Prisma } from "@prisma/client";
 import { bankInterestRate, type StorableResource } from "@/lib/game/constants";
 import { cityName } from "@/lib/game/cities";
+import { guildCityNote } from "@/lib/game/guild";
+import { applyGuildCityRule } from "@/server/guildCity";
 import { monumentBonuses, monumentMultiplier } from "@/lib/game/monuments";
 import type { T } from "@/i18n/translate";
 import {
@@ -444,6 +446,10 @@ export async function castCityDowngrade(
     update: { readyAt, activeUntil: null },
   });
 
+  // Down is a city change like any other, and a guild lives in exactly one
+  // city — see server/guildCity.ts. Same transaction as the decrement.
+  const guild = await applyGuildCityRule(ctx.tx, ctx.empireId, empire.cities);
+
   const to = empire.cities - 1;
   const tail = ctx.ignoreCooldown
     ? ""
@@ -451,6 +457,8 @@ export async function castCityDowngrade(
         hours: CITY_DOWNGRADE_COOLDOWN_HOURS,
       });
   return {
-    success: ctx.t("ירדת ל{city}.{tail}", { city: cityName(ctx.t, to), tail }),
+    success:
+      ctx.t("ירדת ל{city}.{tail}", { city: cityName(ctx.t, to), tail }) +
+      guildCityNote(ctx.t, guild),
   };
 }

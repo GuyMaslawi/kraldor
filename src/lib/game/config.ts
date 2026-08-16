@@ -91,11 +91,17 @@ export interface GameTunables {
     enabled: number;
   };
   /**
-   * מפלצת העולם. The week's beast is a clock fixture — see lib/game/worldBoss.ts
+   * מפלצת העולם. The day's beast is a clock fixture — see lib/game/worldBoss.ts
    * — so these do not schedule anything: they scale the pool a *new* spawn is
-   * given, what a blow takes off, and what the week pays. The live row is edited
+   * given, what a blow takes off, and what the day pays. The live row is edited
    * from /admin/bosses, which is the only thing that can reach a fixture already
    * standing.
+   *
+   * **These are stored, so they survived the move to a daily fixture.** The
+   * shipped defaults below were all rescaled with it; a server that had already
+   * saved an overlay is still running the weekly figures (20 strikes, 100
+   * diamonds) against a pool a seventh the size, which is a very different
+   * game. Worth a look at /admin/config after the deploy that brought this.
    */
   worldBoss: {
     /** 0 closes the arena entirely; 1 opens it. */
@@ -108,7 +114,7 @@ export interface GameTunables {
     rewardMultiplier: number;
     /** Diamonds for the killing blow, and for nothing else. */
     killDiamonds: number;
-    /** Blows one empire may land per week. */
+    /** Blows one empire may land per day. */
     maxStrikes: number;
     /** Turns one blow costs. */
     strikeTurns: number;

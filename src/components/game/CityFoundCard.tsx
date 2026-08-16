@@ -9,6 +9,8 @@ import { Icon, RESOURCE_ICON_COLOR } from "@/components/ui/Icon";
 import { formatNumber } from "@/lib/game/format";
 import { CITIZEN_GROWTH_LEVELS_PER_CITY } from "@/lib/game/constants";
 import { cityName } from "@/lib/game/cities";
+import type { GuildCityStake } from "@/lib/game/guild";
+import { GuildCityWarning } from "@/components/game/GuildCityWarning";
 import { useT } from "@/i18n/client";
 
 const COST_RESOURCES = [
@@ -26,6 +28,8 @@ export interface CityFoundCardProps {
   cost: { gold: number; wood: number; iron: number; stone: number; soldiers: number };
   available: { gold: number; wood: number; iron: number; stone: number };
   soldiersAvailable: number;
+  /** What the climb would cost the player's guild, or null if nothing. */
+  guildStake: GuildCityStake | null;
 }
 
 /** Mine production scales with the city count: ×1 now, ×(cities+1) after upgrading. */
@@ -38,6 +42,7 @@ export function CityFoundCard({
   cost,
   available,
   soldiersAvailable,
+  guildStake,
 }: CityFoundCardProps) {
   const t = useT();
   const [state, action] = useActionState<ActionState, FormData>(foundCity, {});
@@ -139,6 +144,10 @@ export function CityFoundCard({
               })}
             </div>
           </div>
+
+          {/* Last thing above the button: a leader who climbs takes his guild's
+              city with him and the guild is disbanded. */}
+          <GuildCityWarning stake={guildStake} />
 
           <form action={action} className="mt-auto">
             <SubmitButton

@@ -20,17 +20,33 @@ import { scaleRewards, type Reward } from "./rewards";
  * ## It is a fixture, not an event
  *
  * There is no admin button. The boss **spawns on the clock** — one per Jerusalem
- * week, created lazily the first time anybody looks at the arena that week, the
+ * day, opened lazily by the first game screen that looks after midnight, the
  * same way a mission board and a guild contract are. Three things follow, and
  * all three are why it was built this way:
  *
  *  - Nothing has to be running for the game to have a world boss. No scheduler,
  *    no cron, no admin who has to remember.
- *  - Which boss appears is a pure function of the week, so every player computes
+ *  - Which boss appears is a pure function of the day, so every player computes
  *    the same answer with no writer, and the row can be created by whoever gets
  *    there first (the unique index drops the losers).
  *  - The whole server is on the same timer, which is the only way "we are 60%
- *    through and it is Thursday" means anything to anybody.
+ *    through and it is nine in the evening" means anything to anybody.
+ *
+ * ## Every 24 hours, and why it is not every week
+ *
+ * It stood for a week until 2026-08-16, and a week is longer than this game's
+ * unit of attention. A beast felled on Monday left five days of an arena saying
+ * "already dead"; a beast nobody could fell left five days of one saying "still
+ * standing" to a server that had stopped turning up. Either way there was one
+ * moment in the fixture and six days of aftermath, and a player who missed the
+ * moment had nothing to come back for.
+ *
+ * Daily is the same fixture at the cadence people actually play it. **The week
+ * was held flat when it moved**: the health pool, the strike allowance and the
+ * purse were all divided by the same factor, so seven daily beasts cost one
+ * empire the turns one weekly beast did and pay what one weekly beast paid.
+ * Nothing was inflated — the drama was simply cut into seven pieces. Anything
+ * that moves one of those three numbers has to move the other two with it.
  *
  * ## What a strike costs and what it does
  *
@@ -54,14 +70,14 @@ export interface WorldBossDefinition {
   /** Accent as an `R G B` triple, so the arena tints from one token. */
   accent: string;
   /**
-   * Multiplier on the week's health pool. The whole difficulty dial: a 0.8
-   * beast is a Tuesday kill, a 1.4 one needs the server to actually turn up.
+   * Multiplier on the day's health pool. The whole difficulty dial: a 0.8
+   * beast falls by the evening, a 1.4 one needs the server to actually turn up.
    */
   toughness: number;
 }
 
 /**
- * Six of them, drawn one per week. They differ in flavour and in one number,
+ * Six of them, drawn one per day. They differ in flavour and in one number,
  * which is the honest amount of variety a fixture like this can carry without
  * becoming six features to balance.
  */
@@ -125,21 +141,45 @@ export const WORLD_BOSSES: readonly WorldBossDefinition[] = [
 export const WORLD_BOSS_BY_KEY = new Map(WORLD_BOSSES.map((b) => [b.key, b]));
 
 /**
- * Retuning the table changes what a given week draws, which would swap a live
+ * Retuning the table changes what a given day draws, which would swap a live
  * boss out from under a server mid-fight. Bump this instead, and the reroll is
- * deliberate.
+ * deliberate. `v2` is the move from a weekly index to a daily one — the seed
+ * space changed under it, so the old value would have meant nothing.
  */
-export const WORLD_BOSS_ROLL_VERSION = "v1";
+export const WORLD_BOSS_ROLL_VERSION = "v2";
 
 /**
- * The boss for a given Jerusalem week — a pure function of the week index, so
+ * How far back the draw looks to avoid repeating itself.
+ *
+ * Six beasts drawn independently repeat about one day in six, and two identical
+ * mornings in a row is the one thing that makes a daily fixture read as a
+ * respawning health bar rather than as something new. The lookback resolves the
+ * previous days' *final* picks, not their raw rolls, so the shift cannot chain
+ * into a repeat of its own; the depth is what bounds that recursion.
+ */
+const WORLD_BOSS_NO_REPEAT_DEPTH = 8;
+
+/** The unshifted draw for a day. */
+function rawPick(day: number): number {
+  const random = seededRandom(`${WORLD_BOSS_ROLL_VERSION}:${day}`);
+  return Math.floor(random() * WORLD_BOSSES.length) % WORLD_BOSSES.length;
+}
+
+/** The draw for a day, stepped one along if it matches the day before. */
+function pickIndex(day: number, depth = WORLD_BOSS_NO_REPEAT_DEPTH): number {
+  const raw = rawPick(day);
+  if (depth <= 0) return raw;
+  return raw === pickIndex(day - 1, depth - 1)
+    ? (raw + 1) % WORLD_BOSSES.length
+    : raw;
+}
+
+/**
+ * The boss for a given Jerusalem day — a pure function of the day index, so
  * every player computes the same answer with no writer.
  */
-export function rollWorldBoss(week: number): WorldBossDefinition {
-  const random = seededRandom(`${WORLD_BOSS_ROLL_VERSION}:${week}`);
-  return (
-    WORLD_BOSSES[Math.floor(random() * WORLD_BOSSES.length)] ?? WORLD_BOSSES[0]
-  );
+export function rollWorldBoss(day: number): WorldBossDefinition {
+  return WORLD_BOSSES[pickIndex(day)] ?? WORLD_BOSSES[0];
 }
 
 /* ------------------------------ health ------------------------------ */
@@ -153,33 +193,38 @@ export function rollWorldBoss(week: number): WorldBossDefinition {
  * share of the pool when its twenty blows come to this number, so a server where
  * most people turn up wins and one where they do not falls short.
  *
- * ## Twenty times what it opened at
+ * ## Priced at the late game, then cut to a day
  *
  * The original 40,000 put the break-even at an average military power of about
  * 28,000 — an army a player has three days into a season. From there the beast
- * was a Tuesday errand for the rest of the season, and the week had no arc.
+ * was a Tuesday errand for the rest of the season, and the fixture had no arc.
+ * The weekly figure that replaced it was 800,000, twenty times as much, which
+ * put break-even at roughly **11 million** military power.
  *
- * At 800,000 the same arithmetic (twenty blows of `√power × 12` covering one
- * empire's share) puts break-even at roughly **11 million** military power, so
- * the fixture is now priced at the late game: a mid-season server does not fell
- * it however many heads it brings — the pool grows with the head count, so more
- * players at the same power never closes the gap, only stronger ones do. That is
- * the deliberate shape. The escape hatch for a server that has been left short
- * of it is `worldBoss.damageMultiplier`, which is the one dial that reaches a
- * beast already standing (the pool is frozen at spawn — see `worldBossMaxHp`).
+ * 120,000 is that same wall on a daily clock. The strike allowance fell in the
+ * same proportion (twenty blows a week became three a day, see
+ * WORLD_BOSS_MAX_STRIKES), so the arithmetic behind the wall is untouched —
+ * three blows of `√power × 12` covering one empire's share of the pool still
+ * breaks even at about 11 million power. The fixture is priced at the late
+ * game: a mid-season server does not fell it however many heads it brings — the
+ * pool grows with the head count, so more players at the same power never
+ * closes the gap, only stronger ones do. That is the deliberate shape. The
+ * escape hatch for a server that has been left short of it is
+ * `worldBoss.damageMultiplier`, which is the one dial that reaches a beast
+ * already standing (the pool is frozen at spawn — see `worldBossMaxHp`).
  *
  * Nothing pays until it is down: the shared purse is gated on `defeatedAt`. A
- * pool nobody can reach is therefore not "a hard week", it is a closed fixture,
+ * pool nobody can reach is therefore not "a hard day", it is a closed fixture,
  * which is why this number and WORLD_BOSS_DAMAGE_PER_POWER have to be read
  * together and never moved alone.
  */
-export const WORLD_BOSS_HP_PER_EMPIRE = 800_000;
+export const WORLD_BOSS_HP_PER_EMPIRE = 120_000;
 
 /** The floor, so a server with three players still meets something. */
-export const WORLD_BOSS_HP_MIN = 5_000_000;
+export const WORLD_BOSS_HP_MIN = 750_000;
 
 /**
- * The health pool for a week.
+ * The health pool for a day.
  *
  * Frozen onto the row at spawn (never recomputed), which matters for the same
  * reason the guild contract's goal is frozen: a boss that grew because somebody
@@ -205,14 +250,21 @@ export function worldBossMaxHp(
 export const WORLD_BOSS_STRIKE_TURNS = 40;
 
 /**
- * Strikes one empire may land per week.
+ * Strikes one empire may land per day.
  *
  * A cap rather than turns alone, and it is the fairness mechanism: without it,
  * the empire with the largest turn income would land ten times as many blows as
  * anybody else *and* hit harder on each, and the damage board would be a copy of
  * the power ladder with extra steps.
+ *
+ * Three a day rather than the twenty a week it replaced, which is the same
+ * allowance to within a rounding error (21 against 20) and the same 120 turns a
+ * day. It is deliberately not "20, every day": that would be 800 turns a day on
+ * one fixture — more than most empires earn — so the cap would stop being the
+ * fairness mechanism and start being a wall only the largest turn income could
+ * reach, which is the exact thing it exists to prevent.
  */
-export const WORLD_BOSS_MAX_STRIKES = 20;
+export const WORLD_BOSS_MAX_STRIKES = 3;
 
 /**
  * Damage per point of military power. Sub-linear on purpose — see
@@ -230,9 +282,9 @@ export const WORLD_BOSS_DAMAGE_PER_POWER = 12;
  * race but a calculation: the arena publishes the boss's exact remaining
  * health, a player can compute their own damage to the point, and so anybody
  * holding strikes could sit on the page, wait for `hp` to drop below their
- * figure, and take the prize every single week with certainty. The comment on
+ * figure, and take the prize every single day with certainty. The comment on
  * WORLD_BOSS_KILL_DIAMONDS claimed the blow could not be farmed; before this
- * band, it could.
+ * band, it could — and on a daily fixture that is 365 certain purses a year.
  *
  * A band wide enough to straddle the threshold means nobody can know which blow
  * lands the kill. What remains is a genuine race at low health, between
@@ -266,7 +318,7 @@ export function strikeDamage(
   random: () => number = secureRandom,
   /**
    * `worldBoss.damageMultiplier`. Scales the blow rather than the pool, which is
-   * the knob to reach for once a week is already under way: the health of a
+   * the knob to reach for once a day is already under way: the health of a
    * standing boss is frozen at spawn, so raising it is the only way to help a
    * server that is not going to get its beast down in time.
    */
@@ -298,8 +350,8 @@ export function expectedStrikeDamage(
 /**
  * מפלצת העולם is the only fight in the game the whole server watches at once,
  * and until now nothing about it changed while it was being fought: the bar
- * shortened and that was the entire arc of a week. A phase is what gives the
- * week a *shape* — four states the server crosses together, each announced the
+ * shortened and that was the entire arc of the fixture. A phase is what gives
+ * the day a *shape* — four states the server crosses together, each announced the
  * moment somebody's blow breaks the threshold.
  *
  * ## Deliberately cosmetic
@@ -322,7 +374,7 @@ export interface WorldBossPhase {
   label: string;
   /**
    * What the arena announces when a blow crosses into it — null for the phase
-   * the week opens in, which is never crossed into.
+   * the day opens in, which is never crossed into.
    *
    * Written about "המפלצת" rather than about the beast by name, because the six
    * in the catalog are not of one grammatical gender and one line has to serve
@@ -443,33 +495,33 @@ export const WORLD_BOSS_BLOW_META: Record<
 /* ------------------------------ the spoils ------------------------------ */
 
 /**
- * The purse one empire takes for the whole week, quoted at **one city**;
+ * The purse one empire takes for the day, quoted at **one city**;
  * `scaleRewards` applies the city curve at claim time.
  *
- * Paid once a week to everybody who turned up, so it has to be worth the twenty
- * strikes it cost without being the week's main income.
+ * Paid once a day to everybody who turned up, so it has to be worth the three
+ * strikes it cost without being the day's main income.
  *
- * ## Sized to the wall
+ * ## Sized to the wall, then cut with it
  *
- * The resource lines moved with WORLD_BOSS_HP_PER_EMPIRE — twenty times what
- * they were — because a fixture the server can now only fell in the late game
- * has to pay a late-game purse. A week of everybody's strikes for 120,000 gold
- * was already thin against the mine income of an empire that could hurt the old
- * beast; against the one that can hurt this one it was a rounding error, and a
- * reward nobody notices makes the fixture optional.
+ * The resource lines were sized against WORLD_BOSS_HP_PER_EMPIRE — a fixture
+ * the server can only fell in the late game has to pay a late-game purse, or
+ * nobody spends the turns on it. Every line is now a seventh of the weekly
+ * figure it replaced, to the same rounding the strike allowance took: seven of
+ * these pays 2.52M gold against the week's old 2.4M, 525 turns against 500, 42
+ * spins against 40. The fixture pays what it always paid; it simply pays a
+ * little every morning instead of everything on one kill.
  *
- * `turns` is the one line held back — 500 rather than the 3,000 a straight ×20
- * would give. Turns are the game's real currency of attention rather than a
- * resource: three thousand of them is a week of play handed over at once, which
- * would make the boss the way you fund raiding rather than a thing you spend
- * attention on. Five hundred still pays back the 800 the twenty strikes cost
- * well enough to be worth turning up for.
+ * `turns` stays the line that is deliberately not proportional to the rest.
+ * Turns are the game's real currency of attention rather than a resource, and
+ * 75 of them is a purse that pays back the 120 the three strikes cost well
+ * enough to be worth turning up for without making the boss the way you fund
+ * raiding.
  */
 export const WORLD_BOSS_PURSE: readonly Reward[] = [
-  { kind: "gold", amount: 2_400_000 },
-  { kind: "iron", amount: 1_200_000 },
-  { kind: "turns", amount: 500 },
-  { kind: "wheelSpins", amount: 40 },
+  { kind: "gold", amount: 360_000 },
+  { kind: "iron", amount: 180_000 },
+  { kind: "turns", amount: 75 },
+  { kind: "wheelSpins", amount: 6 },
 ];
 
 /**
@@ -497,10 +549,16 @@ export const WORLD_BOSS_FLOOR_SHARE = 0.5;
  * because of WORLD_BOSS_DAMAGE_SPREAD. The arena publishes the boss's exact
  * remaining health, so with a damage figure a player could compute they would
  * simply wait for the bar to fall inside their own blow and take this every
- * week. The spread is what makes the last blow a race between everyone watching
+ * day. The spread is what makes the last blow a race between everyone watching
  * rather than a sum anyone can do.
+ *
+ * Fifteen, not the hundred it paid weekly. Diamonds are the one currency the
+ * game also sells, so a faucet that fired seven times as often at the same size
+ * would be a real change to what a diamond is worth — 105 a week against 100 is
+ * not. The moment is not made smaller by the figure: it is still the only prize
+ * in the fixture that belongs to one player.
  */
-export const WORLD_BOSS_KILL_DIAMONDS = 100;
+export const WORLD_BOSS_KILL_DIAMONDS = 15;
 
 /**
  * What an empire's participation is worth, as a multiplier on the purse.
@@ -562,7 +620,7 @@ export interface WorldBossStriker {
 /**
  * One blow in the live feed — the part of the arena that is other people.
  *
- * The damage board answers "who is carrying this week"; it is a standings
+ * The damage board answers "who is carrying this one"; it is a standings
  * table, and a standings table looks identical whether it was filled an hour
  * ago or on Monday. The feed answers the other question a shared fixture has to
  * answer — "is anyone else actually here" — and it is the only place the server
@@ -632,15 +690,15 @@ export interface WorldBossState {
   /** Who landed the killing blow, if it is down. */
   slayerName: string | null;
 
-  /** When the week's fixture closes, epoch ms. */
+  /** When the day's fixture closes — midnight Jerusalem, epoch ms. */
   endsAt: number;
   serverNow: number;
 
-  /** Strikes this empire has left this week. */
+  /** Strikes this empire has left today. */
   strikesLeft: number;
   strikeTurns: number;
   /**
-   * The week's allowance and the kill prize, as they actually stand.
+   * The day's allowance and the kill prize, as they actually stand.
    *
    * Carried on the state rather than read from the constants above, because
    * both are admin tunables now (`worldBoss.maxStrikes`, `worldBoss.killDiamonds`)
@@ -664,7 +722,7 @@ export interface WorldBossState {
   /**
    * The viewer is out of the game and may watch but never strike — a staff
    * account or a planted garrison. The arena is still drawn in full: an admin
-   * has every reason to look at the week's fixture, and none to be in it.
+   * has every reason to look at the day's fixture, and none to be in it.
    */
   blocked: boolean;
 

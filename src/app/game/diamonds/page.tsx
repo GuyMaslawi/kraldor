@@ -7,6 +7,7 @@ import { monumentBonuses, monumentMultiplier } from "@/lib/game/monuments";
 import { DiamondShop } from "@/components/game/DiamondShop";
 import { DiamondsHeader } from "@/components/game/DiamondsHeader";
 import { VipCard } from "@/components/game/VipCard";
+import { guildCityStake } from "@/server/guildCity";
 import { getT } from "@/i18n/server";
 import {
   BOOSTABLE_RESOURCES,
@@ -97,6 +98,10 @@ export default async function DiamondsPage() {
       ? bankEffect.readyAt.toISOString()
       : null;
 
+  // The downgrade spell is a city change, and a guild holds one city — the card
+  // has to say what the cast would cost the guild. See server/guildCity.ts.
+  const guildStake = await guildCityStake(empire.id);
+
   const downgradeEffect = byKind.get("CITY_DOWNGRADE");
   const cityDowngradeReadyAt =
     downgradeEffect?.readyAt != null && downgradeEffect.readyAt > now
@@ -133,6 +138,7 @@ export default async function DiamondsPage() {
         bankReadyAt={bankReadyAt}
         cities={empire.cities}
         cityDowngradeReadyAt={cityDowngradeReadyAt}
+        guildStake={guildStake}
         shields={shields}
       />
     </div>

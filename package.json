@@ -24,6 +24,7 @@
     "test:db": "vitest run --config vitest.db.config.ts",
     "db:power": "tsx scripts/backfill-power.ts",
     "db:guild-leaders": "tsx scripts/repair-guild-leadership.ts",
+    "db:guild-cities": "tsx scripts/repair-guild-cities.ts",
     "db:clamp": "tsx scripts/repair-out-of-range.ts",
     "db:bots": "tsx scripts/normalize-bots.ts",
     "i18n": "node scripts/i18n-coverage.mjs"

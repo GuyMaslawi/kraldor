@@ -89,7 +89,7 @@ describe("mergeTunables", () => {
     }
   });
 
-  it("leaves at least one strike a week and a pool that is not empty", () => {
+  it("leaves at least one strike a day and a pool that is not empty", () => {
     expect(mergeTunables({ worldBoss: { maxStrikes: 0 } }).worldBoss.maxStrikes)
       .toBeGreaterThanOrEqual(1);
     expect(mergeTunables({ worldBoss: { hpMultiplier: 0 } }).worldBoss.hpMultiplier)

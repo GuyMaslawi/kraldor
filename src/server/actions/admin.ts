@@ -93,7 +93,7 @@ import {
 } from "@/lib/game/happyHour";
 import { SEASON_PASS_XP_MAX } from "@/lib/game/seasonPass";
 import { ACHIEVEMENT_BY_KEY, GLORY_KEYS } from "@/lib/game/achievements";
-import { formatGameDateTime, gameWeek, lastDailyUpdate } from "@/lib/game/time";
+import { formatGameDateTime, gameDay, lastDailyUpdate } from "@/lib/game/time";
 import {
   WORLD_BOSS_BY_KEY,
   rollWorldBoss,
@@ -117,6 +117,8 @@ import { hashPassword } from "@/lib/password";
 import { syncEmpirePower } from "@/server/empirePower";
 import { createBots, deleteBot, ensureCityBots, planBots, rearmBot } from "@/server/bots";
 import { repairGuildLeadership } from "@/server/guildLeadership";
+import { applyGuildCityRule, guildCityTier } from "@/server/guildCity";
+import type { GuildCityOutcome } from "@/lib/game/guild";
 import {
   announceSeasonStart,
   archiveSeasonStandings,
@@ -688,6 +690,22 @@ export async function deleteUser(
 /* ============================================================= */
 
 /**
+ * Report a guild the city edit just broke up, appended to the panel's own
+ * success line.
+ *
+ * An admin nudging `cities` on the vitals panel is not thinking about guilds,
+ * and the rule (server/guildCity.ts) is silent by design — without this line
+ * the roster would simply be one member shorter, or the guild gone, with the
+ * only trace in the player's inbox.
+ */
+function guildCityAdminNote(outcome: GuildCityOutcome | null): string {
+  if (!outcome) return "";
+  return outcome.kind === "disbanded"
+    ? ` · הברית "${outcome.guildName}" פורקה — מנהיג שעבר עיר`
+    : ` · השחקן פרש מהברית "${outcome.guildName}" (עיר ${outcome.guildCity})`;
+}
+
+/**
  * Set the empire core scalars (resources, name, turns, wheel spins, cities).
  *
  * Deliberately does **not** touch `Empire.level`: that column is vestigial and
@@ -713,26 +731,38 @@ export async function updateEmpireCore(
     });
     if (clash) return { error: "שם האימפריה כבר תפוס" };
 
-    await prisma.empire.update({
-      where: { id: empireId },
-      data: {
-        name,
-        gold: Math.max(0, num(formData, "gold")),
-        wood: Math.max(0, num(formData, "wood")),
-        iron: Math.max(0, num(formData, "iron")),
-        stone: Math.max(0, num(formData, "stone")),
-        diamonds: Math.max(0, num(formData, "diamonds")),
-        citizens: Math.max(0, intNum(formData, "citizens")),
-        turns: Math.max(0, intNum(formData, "turns")),
-        wheelSpins: Math.max(0, intNum(formData, "wheelSpins")),
-        // Cities gate the whole progression (citizen cap, quest tiers, the
-        // ranking bucket), so it is clamped to the real ladder rather than
-        // trusted from the form.
-        cities: Math.max(
-          1,
-          Math.min(MAX_CITIES, Math.round(num(formData, "cities")))
-        ),
-      },
+    // The city write and the guild rule share a transaction: an admin moving a
+    // guild leader between tiers disbands the guild exactly the way the player
+    // doing it himself would. See server/guildCity.ts.
+    const guildOutcome = await prisma.$transaction(async (tx) => {
+      // Read before the write: the rule only fires on a tier that actually
+      // moved, and this form posts `cities` on every save.
+      const { cities: previousCities } = await tx.empire.findUniqueOrThrow({
+        where: { id: empireId },
+        select: { cities: true },
+      });
+      await tx.empire.update({
+        where: { id: empireId },
+        data: {
+          name,
+          gold: Math.max(0, num(formData, "gold")),
+          wood: Math.max(0, num(formData, "wood")),
+          iron: Math.max(0, num(formData, "iron")),
+          stone: Math.max(0, num(formData, "stone")),
+          diamonds: Math.max(0, num(formData, "diamonds")),
+          citizens: Math.max(0, intNum(formData, "citizens")),
+          turns: Math.max(0, intNum(formData, "turns")),
+          wheelSpins: Math.max(0, intNum(formData, "wheelSpins")),
+          // Cities gate the whole progression (citizen cap, quest tiers, the
+          // ranking bucket), so it is clamped to the real ladder rather than
+          // trusted from the form.
+          cities: Math.max(
+            1,
+            Math.min(MAX_CITIES, Math.round(num(formData, "cities")))
+          ),
+        },
+      });
+      return applyGuildCityRule(tx, empireId, previousCities);
     });
     await logAdmin(admin, {
       action: "empire.core",
@@ -753,9 +783,10 @@ export async function updateEmpireCore(
       ...clampNotes(formData, FLOAT_CORE_FIELDS, ADMIN_NUM_MAX),
     ];
     return {
-      success: notes.length
-        ? `נתוני האימפריה עודכנו — ${notes.join("; ")}`
-        : "נתוני האימפריה עודכנו",
+      success:
+        (notes.length
+          ? `נתוני האימפריה עודכנו — ${notes.join("; ")}`
+          : "נתוני האימפריה עודכנו") + guildCityAdminNote(guildOutcome),
     };
   } catch (e) {
     return toErr(e);
@@ -875,7 +906,13 @@ export async function updateVitals(
       cities: clampLevel(num(formData, "cities"), 1, MAX_CITIES),
     };
 
-    await prisma.$transaction(async (tx) => {
+    const guildOutcome = await prisma.$transaction(async (tx) => {
+      // See updateEmpireCore: the tier before the write is what tells the guild
+      // rule whether anything moved at all.
+      const { cities: previousCities } = await tx.empire.findUniqueOrThrow({
+        where: { id: empireId },
+        select: { cities: true },
+      });
       await tx.empire.update({ where: { id: empireId }, data: core });
       await tx.army.upsert({
         where: { empireId },
@@ -883,6 +920,9 @@ export async function updateVitals(
         update: army,
       });
       await syncEmpirePower(tx, empireId);
+      // This panel edits `cities` too, so it owes the same guild rule the core
+      // panel does — see server/guildCity.ts.
+      return applyGuildCityRule(tx, empireId, previousCities);
     });
 
     await logAdmin(admin, {
@@ -900,7 +940,10 @@ export async function updateVitals(
       ...clampNotes(formData, FLOAT_CORE_FIELDS, ADMIN_NUM_MAX),
     ];
     return {
-      success: notes.length ? `המבט המהיר נשמר — ${notes.join("; ")}` : "המבט המהיר נשמר",
+      success:
+        (notes.length
+          ? `המבט המהיר נשמר — ${notes.join("; ")}`
+          : "המבט המהיר נשמר") + guildCityAdminNote(guildOutcome),
     };
   } catch (e) {
     return toErr(e);
@@ -2410,7 +2453,21 @@ export async function setGuildMembership(
       summary: `שויך לברית ${guild.name} בתפקיד ${role}`,
     });
     revalidateEmpire(userId);
-    return { success: `האימפריה שויכה לברית ${guild.name}` };
+
+    // Not blocked, for the same reason capacity is not: this is the override.
+    // But a mixed-city guild is the state server/guildCity.ts exists to prevent,
+    // and it will not repair itself — nothing re-tests a roster until somebody
+    // moves — so the admin is told they have just created one.
+    const guildCity = await guildCityTier(prisma, guildId);
+    const target = await prisma.empire.findUnique({
+      where: { id: empireId },
+      select: { cities: true },
+    });
+    const mixed =
+      guildCity !== null && target != null && target.cities !== guildCity
+        ? ` · ⚠️ השחקן בעיר ${target.cities} והברית בעיר ${guildCity} — ברית אמורה לאחד שחקנים מעיר אחת`
+        : "";
+    return { success: `האימפריה שויכה לברית ${guild.name}${mixed}` };
   } catch (e) {
     return toErr(e);
   }
@@ -4554,19 +4611,21 @@ export async function deleteBotEmpire(
  * standing in front of one, so the actions below are scoped (everybody / one
  * tier / one empire) and act on the newest life of each.
  *
- * **מפלצת העולם** is the opposite: exactly one row a week, shared by the whole
+ * **מפלצת העולם** is the opposite: exactly one row a day, shared by the whole
  * server, deliberately built as a clock fixture with no admin button (see
  * lib/game/worldBoss.ts). That was right for *spawning* it and remains so — the
- * week's beast still appears on its own. What it left missing is any way to
- * reach the fixture once it is standing: a pool frozen too high on a quiet week
- * cannot be lowered, and a beast felled by an exploit cannot be put back. These
- * actions edit the live row and nothing else; which boss a week draws is still a
- * pure function of the week, except where an admin says otherwise here.
+ * day's beast still appears on its own, now within a minute of midnight rather
+ * than whenever somebody opens the arena (see `getWorldBossHerald`). What it
+ * left missing is any way to reach the fixture once it is standing: a pool
+ * frozen too high on a quiet day cannot be lowered, and a beast felled by an
+ * exploit cannot be put back. These actions edit the live row and nothing else;
+ * which boss a day draws is still a pure function of the day, except where an
+ * admin says otherwise here.
  */
 
-/** The live week's row, or null before anybody has opened the arena. */
+/** The live day's row, or null before anything has opened the arena. */
 async function currentWorldBoss() {
-  return prisma.worldBoss.findUnique({ where: { week: gameWeek(new Date()) } });
+  return prisma.worldBoss.findUnique({ where: { day: gameDay(new Date()) } });
 }
 
 /** Full health, no corpse: the shape both the revive and the reset write. */
@@ -4590,10 +4649,11 @@ function worldBossAlive(maxHp: number) {
 }
 
 /**
- * Spawn the week's boss by hand, ahead of the first player to look.
+ * Spawn the day's boss by hand, ahead of the first screen to look.
  *
- * Only useful before anybody has opened the arena — after that the row exists
- * and every other action here edits it.
+ * Rarely needed now that any game screen opens it (see `getWorldBossHerald`):
+ * useful on a server with nobody signed in, and harmless otherwise — after the
+ * row exists every other action here edits it instead.
  */
 export async function spawnWorldBoss(
   _prev: AdminActionState,
@@ -4601,17 +4661,17 @@ export async function spawnWorldBoss(
 ): Promise<AdminActionState> {
   try {
     const admin = await requireAdmin();
-    const week = gameWeek(new Date());
-    if (await prisma.worldBoss.findUnique({ where: { week } })) {
-      return { error: "מפלצת השבוע כבר קיימת" };
+    const day = gameDay(new Date());
+    if (await prisma.worldBoss.findUnique({ where: { day } })) {
+      return { error: "מפלצת היום כבר קיימת" };
     }
 
     const tunables = await getTunables();
-    const definition = rollWorldBoss(week);
+    const definition = rollWorldBoss(day);
     const empires = await prisma.empire.count({ where: notStaffOrBot });
     const maxHp = worldBossMaxHp(definition, empires, tunables.worldBoss.hpMultiplier);
     const boss = await prisma.worldBoss.create({
-      data: { week, key: definition.key, maxHp, hp: maxHp },
+      data: { day, key: definition.key, maxHp, hp: maxHp },
     });
 
     await logAdmin(admin, {
@@ -4631,7 +4691,7 @@ export async function spawnWorldBoss(
  * Edit the live beast: which one it is, its pool, and its health right now.
  *
  * `maxHp` is normally frozen at spawn — the fixture's whole shape depends on the
- * pool not moving under a server mid-week (see `worldBossMaxHp`) — so this is
+ * pool not moving under a server mid-fight (see `worldBossMaxHp`) — so this is
  * the one place it can move, and it moves deliberately. Health is clamped to the
  * pool: a beast on more health than it has is a bar that reads past full.
  */
@@ -4642,7 +4702,7 @@ export async function saveWorldBoss(
   try {
     const admin = await requireAdmin();
     const boss = await currentWorldBoss();
-    if (!boss) return { error: "אין מפלצת עולם השבוע — צור אותה קודם" };
+    if (!boss) return { error: "אין מפלצת עולם היום — צור אותה קודם" };
 
     const key = str(formData, "key", 40) || boss.key;
     const definition = WORLD_BOSS_BY_KEY.get(key);
@@ -4690,7 +4750,7 @@ export async function reviveWorldBoss(
   try {
     const admin = await requireAdmin();
     const boss = await currentWorldBoss();
-    if (!boss) return { error: "אין מפלצת עולם השבוע — צור אותה קודם" };
+    if (!boss) return { error: "אין מפלצת עולם היום — צור אותה קודם" };
 
     // An optional new pool, so "bring it back, but bigger" is one click rather
     // than two. Blank keeps the pool it already carries.
@@ -4717,8 +4777,8 @@ export async function reviveWorldBoss(
  * Fell it now.
  *
  * No slayer is stamped — nobody landed the blow — so the kill diamonds are paid
- * to nobody, and the shared purse opens for everyone who struck this week. That
- * is the point of the button: it ends a week that is not going to end on its own
+ * to nobody, and the shared purse opens for everyone who struck today. That is
+ * the point of the button: it ends a day that is not going to end on its own
  * without robbing the players who turned up.
  */
 export async function killWorldBoss(
@@ -4728,8 +4788,8 @@ export async function killWorldBoss(
   try {
     const admin = await requireAdmin();
     const boss = await currentWorldBoss();
-    if (!boss) return { error: "אין מפלצת עולם השבוע — צור אותה קודם" };
-    if (boss.defeatedAt) return { error: "המפלצת כבר הופלה השבוע" };
+    if (!boss) return { error: "אין מפלצת עולם היום — צור אותה קודם" };
+    if (boss.defeatedAt) return { error: "המפלצת כבר הופלה היום" };
 
     await prisma.worldBoss.update({
       where: { id: boss.id },
@@ -4743,18 +4803,18 @@ export async function killWorldBoss(
       summary: "המפלצת הופלה ידנית — השלל נפתח לכל המכים",
     });
     revalidateBossScreens();
-    return { success: "המפלצת הופלה. השלל פתוח לכל מי שהכה השבוע." };
+    return { success: "המפלצת הופלה. השלל פתוח לכל מי שהכה היום." };
   } catch (e) {
     return toErr(e);
   }
 }
 
 /**
- * Start the week over: full health, and the damage board wiped.
+ * Start the day over: full health, and the damage board wiped.
  *
  * The destructive one, and the warning is real — the strikes carry the `claimed`
  * receipts, so deleting them re-opens the purse for anyone who already collected
- * it. Use it on a week that went wrong, not on one that merely ended early.
+ * it. Use it on a day that went wrong, not on one that merely ended early.
  */
 export async function resetWorldBoss(
   _prev: AdminActionState,
@@ -4763,12 +4823,12 @@ export async function resetWorldBoss(
   try {
     const admin = await requireAdmin();
     const boss = await currentWorldBoss();
-    if (!boss) return { error: "אין מפלצת עולם השבוע — צור אותה קודם" };
+    if (!boss) return { error: "אין מפלצת עולם היום — צור אותה קודם" };
 
     const tunables = await getTunables();
     const definition = WORLD_BOSS_BY_KEY.get(boss.key);
     // Blank recomputes the pool from today's head count, which is what a spawn
-    // would have written had the week started now.
+    // would have written had the day started now.
     const empires = await prisma.empire.count({ where: notStaffOrBot });
     const fresh =
       definition != null
@@ -4786,7 +4846,7 @@ export async function resetWorldBoss(
       action: "worldboss.reset",
       targetType: "worldBoss",
       targetId: boss.id,
-      summary: `השבוע אופס: ${formatNumber(maxHp)} חיים, ${strikes.count} מכים ו-${blows.count} מכות נמחקו`,
+      summary: `היום אופס: ${formatNumber(maxHp)} חיים, ${strikes.count} מכים ו-${blows.count} מכות נמחקו`,
     });
     revalidateBossScreens();
     return {

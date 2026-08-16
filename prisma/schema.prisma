@@ -966,15 +966,25 @@ model EmpireTitle {
 
 /// מפלצת העולם — one enemy the whole server fights at once.
 ///
-/// A **fixture, not an event**: exactly one row per Jerusalem week, created
-/// lazily the first time anybody opens the arena that week. There is no admin
-/// button and no scheduler — which boss appears is a pure function of the week
-/// (see rollWorldBoss), so every player computes the same answer with no writer
-/// and the unique index below drops whichever concurrent first-load loses.
+/// A **fixture, not an event**: exactly one row per Jerusalem *day*, opened by
+/// whichever game screen looks first after midnight. There is no admin button
+/// and no scheduler — which boss appears is a pure function of the day (see
+/// rollWorldBoss), so every player computes the same answer with no writer and
+/// the unique index below drops whichever concurrent first-load loses.
+///
+/// It was one row per *week* until 2026-08-16. A week is longer than the game's
+/// unit of attention: a beast felled on Monday left five dead days behind it,
+/// and one nobody could fell was five days of a page that said so. The pool,
+/// the strike allowance and the purse were all divided by the same factor when
+/// it moved (see lib/game/worldBoss.ts), so a week of the fixture still costs
+/// and pays what it did — it simply happens seven times instead of once.
 model WorldBoss {
   id   String @id @default(cuid())
-  /// Jerusalem week index — see `gameWeek` in lib/game/time.ts.
-  week Int    @unique
+  /// Jerusalem calendar day index — see `gameDay` in lib/game/time.ts. The
+  /// boss ran weekly until 2026-08-16; the migration that renamed this column
+  /// also rewrote every stored week index to the day its week opened, exactly
+  /// as the arena's did, so the history keeps its order and its debts.
+  day  Int    @unique
   /// Catalog key from WORLD_BOSSES. Ignored on read if it falls out.
   key  String
 

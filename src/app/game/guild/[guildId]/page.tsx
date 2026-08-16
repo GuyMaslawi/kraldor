@@ -10,6 +10,7 @@ import { PlayerLink } from "@/components/ui/PlayerLink";
 import { GuildHall } from "@/components/game/GuildHall";
 import { GuildInviteActions } from "@/components/game/GuildInviteActions";
 import { isOnline } from "@/lib/game/chat";
+import { cityName } from "@/lib/game/cities";
 import { formatDate } from "@/lib/game/format";
 import { getI18n, getT } from "@/i18n/server";
 import {
@@ -89,6 +90,10 @@ export default async function GuildDossierPage({
                 title: true,
                 lastSeenAt: true,
                 isBot: true,
+                // The leader's tier is the guild's tier — the one thing a
+                // stranger reading this dossier needs to know before asking for
+                // an invitation. See server/guildCity.ts.
+                cities: true,
                 hero: { select: { level: true } },
               },
             },
@@ -113,6 +118,8 @@ export default async function GuildDossierPage({
       a.createdAt.getTime() - b.createdAt.getTime()
   );
   const full = members.length >= capacity;
+  const guildCity =
+    members.find((m) => m.role === "LEADER")?.empire.cities ?? null;
 
   // The one thing a stranger can act on here. Only asked for when he is
   // guildless — a member of another guild cannot accept anything anyway, and
@@ -153,6 +160,21 @@ export default async function GuildDossierPage({
             {members.length}/{capacity}
           </span>
         </span>
+        {guildCity !== null && (
+          <span
+            className="panel-inset flex items-center gap-1.5 rounded-full px-3 py-1"
+            title={t("ברית מאחדת שחקנים מאותה העיר בלבד")}
+          >
+            <span className="text-zinc-500">{t("עיר")}</span>
+            <span
+              className={`font-bold ${
+                guildCity === me.cities ? "text-bone" : "text-zinc-500"
+              }`}
+            >
+              {cityName(t, guildCity)}
+            </span>
+          </span>
+        )}
         <span className="panel-inset flex items-center gap-1.5 rounded-full px-3 py-1">
           <span className="text-zinc-500">{t("עזרת ברית")}</span>
           <span className="nums font-bold text-gold-bright" dir="ltr">

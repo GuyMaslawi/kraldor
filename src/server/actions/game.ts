@@ -49,6 +49,8 @@ import { grantCitizens } from "@/lib/game/grants";
 import { getActiveGuildBuffPct } from "@/lib/game/guildBuffs";
 import { getGuildAidBonus } from "@/lib/game/guildAid";
 import { sharedGuild } from "@/lib/game/guildAllies";
+import { guildCityNote } from "@/lib/game/guild";
+import { applyGuildCityRule } from "@/server/guildCity";
 import { getActiveShields, getShopDiscountPct } from "@/lib/game/diamondEffects";
 import {
   BURNABLE,
@@ -2427,10 +2429,17 @@ export async function foundCity(
       // Soldiers are a gate, not a currency — the garrison is left untouched.
       await awardSeasonPassXp(tx, empireId, "foundCity");
 
+      // A guild lives in one city (see server/guildCity.ts): climbing out of it
+      // costs the climber their seat, and costs a leader the whole guild. Run
+      // inside the same transaction as the increment, so the two can never
+      // commit apart.
+      const guild = await applyGuildCityRule(tx, empireId, empire.cities);
+
       return {
-        success: t("עלית לעיר {city}! התפוקה שלך גדלה בהתאם.", {
-          city: empire.cities + 1,
-        }),
+        success:
+          t("עלית לעיר {city}! התפוקה שלך גדלה בהתאם.", {
+            city: empire.cities + 1,
+          }) + guildCityNote(t, guild),
       };
     });
 

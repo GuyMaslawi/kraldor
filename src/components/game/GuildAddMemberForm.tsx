@@ -11,6 +11,8 @@ import { useT } from "@/i18n/client";
 export interface GuildAddMemberFormProps {
   /** True when every seat is taken — the form disables instead of failing. */
   full: boolean;
+  /** The guild's city tier: the only tier it may recruit from. */
+  cityLabel: string;
 }
 
 /**
@@ -18,7 +20,7 @@ export interface GuildAddMemberFormProps {
  * empire name and sends them an invitation. The player joins themselves — see
  * addGuildMember for why this is no longer a direct add.
  */
-export function GuildAddMemberForm({ full }: GuildAddMemberFormProps) {
+export function GuildAddMemberForm({ full, cityLabel }: GuildAddMemberFormProps) {
   const [state, action] = useActionState<ActionState, FormData>(
     addGuildMember,
     {}
@@ -60,6 +62,11 @@ export function GuildAddMemberForm({ full }: GuildAddMemberFormProps) {
         {full
           ? t("הברית מלאה — הרחב את הקיבולת כדי להזמין עוד שחקנים.")
           : t("מנהיג וסגן יכולים להזמין שחקנים שאינם בברית אחרת, ולהרחיק חברים. ההזמנה נשלחת לתיבת ההודעות והשחקן בוחר אם להצטרף.")}
+        {!full &&
+          " " +
+            t("ניתן להזמין רק שחקנים שנמצאים ב{city}, עיר הברית.", {
+              city: cityLabel,
+            })}
       </p>
 
       <FormMessage error={state.error} success={state.success} />

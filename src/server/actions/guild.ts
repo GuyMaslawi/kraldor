@@ -34,6 +34,8 @@ import {
   announceSuccession,
   ensureGuildLeader,
 } from "@/server/guildLeadership";
+import { guildCityTier } from "@/server/guildCity";
+import { cityName } from "@/lib/game/cities";
 
 async function requireOwnEmpireId(): Promise<string> {
   // Enforces the ban on every action (not just page loads); see getActiveEmpireId.
@@ -302,6 +304,29 @@ export async function joinGuild(
       const guild = await tx.guild.findUnique({ where: { id: guildId } });
       if (!guild) return { error: t("הברית לא נמצאה.") };
 
+      // One guild, one city (server/guildCity.ts). Checked here and not only at
+      // the invitation because an invitation is good for three days, and either
+      // side can climb a tier inside that window — the seat is granted here, so
+      // this is the check that binds. The invitation is deliberately left
+      // standing: it lapses on its own, and the two may line up again.
+      const guildCity = await guildCityTier(tx, guildId);
+      const joiner = await tx.empire.findUniqueOrThrow({
+        where: { id: empireId },
+        select: { cities: true },
+      });
+      if (guildCity !== null && joiner.cities !== guildCity) {
+        return {
+          error: t(
+            'ברית מאחדת שחקנים מאותה העיר בלבד — "{guild}" ב{ourCity} ואתה ב{yourCity}.',
+            {
+              guild: guild.name,
+              ourCity: cityName(t, guildCity),
+              yourCity: cityName(t, joiner.cities),
+            }
+          ),
+        };
+      }
+
       // Consume the invitation. deleteMany with the expiry in the WHERE makes
       // the check and the burn one statement, so a doubled click cannot spend
       // one invitation twice; count === 0 means never invited, or lapsed.
@@ -444,12 +469,36 @@ export async function addGuildMember(
     // empire names are unique, so at most one row can match.
     const target = await tx.empire.findFirst({
       where: { name: { equals: name, mode: "insensitive" } },
-      select: { id: true, name: true, guildMembership: { select: { id: true } } },
+      select: {
+        id: true,
+        name: true,
+        cities: true,
+        guildMembership: { select: { id: true } },
+      },
     });
     if (!target) return { error: t('לא נמצאה אימפריה בשם "{name}".', { name }) };
     if (target.id === empireId) return { error: t("אתה כבר חבר בברית.") };
     if (target.guildMembership) {
       return { error: t("{name} כבר חבר בברית אחרת.", { name: target.name }) };
+    }
+
+    // One guild, one city — see server/guildCity.ts. Refused at the invitation
+    // rather than at the join, so a recruiter is told *now* that the player they
+    // are chasing is out of reach, instead of after the invitation has sat in
+    // somebody's inbox for three days. `joinGuild` re-checks: the tiers can move
+    // between the two.
+    const guildCity = await guildCityTier(tx, membership.guildId);
+    if (guildCity !== null && target.cities !== guildCity) {
+      return {
+        error: t(
+          "{name} נמצא ב{theirCity}, והברית שלך ב{ourCity} — ברית מאחדת שחקנים מאותה העיר בלבד.",
+          {
+            name: target.name,
+            theirCity: cityName(t, target.cities),
+            ourCity: cityName(t, guildCity),
+          }
+        ),
+      };
     }
 
     const guild = await tx.guild.findUniqueOrThrow({

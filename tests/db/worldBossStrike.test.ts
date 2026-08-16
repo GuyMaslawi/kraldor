@@ -4,7 +4,7 @@ config({ path: ".env.local", override: true });
 import { AsyncLocalStorage } from "node:async_hooks";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PrismaClient } from "@prisma/client";
-import { gameWeek } from "@/lib/game/time";
+import { gameDay } from "@/lib/game/time";
 import {
   WORLD_BOSS_KILL_DIAMONDS,
   WORLD_BOSS_MAX_STRIKES,
@@ -27,10 +27,10 @@ import {
  *     `UPDATE ... WHERE hp > 0`, so of everyone landing the last hit exactly one
  *     matches a row with health left. The rest are refunded — their blow never
  *     landed.
- *  3. **The weekly cap is a cap.** It is the fairness mechanism; without it the
+ *  3. **The daily cap is a cap.** It is the fairness mechanism; without it the
  *     damage board is the power ladder with extra steps.
  *
- * The week's boss row is a live fixture shared with whatever else is in this
+ * The day's boss row is a live fixture shared with whatever else is in this
  * database, so it is snapshotted and put back — see `beforeAll`/`afterAll`.
  */
 
@@ -64,7 +64,7 @@ const { settleWorldBossSpoils } = await import("@/server/worldBossSpoils");
 
 const prisma = new PrismaClient();
 const TAG = `wb${Date.now().toString(36)}`;
-const WEEK = gameWeek(new Date());
+const DAY = gameDay(new Date());
 
 /** The row as it stood before this file touched it, or null if there was none. */
 let restore: { hp: number; maxHp: number } | null = null;
@@ -72,17 +72,17 @@ let createdHere = false;
 let bossId: string;
 
 beforeAll(async () => {
-  const existing = await prisma.worldBoss.findUnique({ where: { week: WEEK } });
+  const existing = await prisma.worldBoss.findUnique({ where: { day: DAY } });
   if (existing) {
     bossId = existing.id;
     restore = { hp: existing.hp, maxHp: existing.maxHp };
   } else {
-    // The week's boss is a pure function of the week, so creating the row the
+    // The day's boss is a pure function of the day, so creating the row the
     // app would have created is not a fiction — it is the same row.
     const created = await prisma.worldBoss.create({
       data: {
-        week: WEEK,
-        key: rollWorldBoss(WEEK).key,
+        day: DAY,
+        key: rollWorldBoss(DAY).key,
         maxHp: 1_000_000,
         hp: 1_000_000,
       },
@@ -224,7 +224,7 @@ describe("landing blows", () => {
     expect((await bossRow()).hp).toBe(1_000);
   });
 
-  it("stops at the weekly cap even with turns to spare", async () => {
+  it("stops at the daily cap even with turns to spare", async () => {
     await standBoss(10_000);
     const attempts = WORLD_BOSS_MAX_STRIKES + 5;
     const striker = await makeStriker(
@@ -283,7 +283,7 @@ describe("the killing blow", () => {
     // The four whose blow never landed keep their turns — a refused strike is
     // not a spent one.
     expect(rows.filter((r) => r.turns === WORLD_BOSS_STRIKE_TURNS)).toHaveLength(4);
-    // And the slayer is one of the five, not a stale name from another week.
+    // And the slayer is one of the five, not a stale name from another day.
     expect(strikers.map((s) => s.id)).toContain(boss.slayerId);
   });
 });
@@ -293,15 +293,15 @@ describe("the killing blow", () => {
  *
  * The bug these were rewritten for: a share sat unpaid until its owner opened
  * the arena and pressed "collect", and the arena only ever renders the *current*
- * week's boss — so a purse nobody took before midnight on Saturday became
- * unreachable, permanently. Everyone who struck on Thursday and did not come
- * back got nothing, which from the player's side is indistinguishable from the
- * fixture being broken.
+ * period's boss — so a purse nobody took before it turned over became
+ * unreachable, permanently. Everyone who struck and did not come back got
+ * nothing, which from the player's side is indistinguishable from the fixture
+ * being broken — and on a daily fixture the window to miss is a day wide.
  *
  * So the kill pays everybody, and these are the three properties that has to
  * have: it pays without being asked, it pays each contender exactly once however
  * many payers reach them, and a debt it failed to pay is still payable later —
- * including from a week that has already turned over.
+ * including from a day that has already turned over.
  */
 describe("the spoils", () => {
   it("pays every contender at the kill, without anyone pressing anything", async () => {
@@ -381,15 +381,15 @@ describe("the spoils", () => {
     expect(afterStorm.diamonds).toBe(afterKill.diamonds);
   });
 
-  it("settles a debt left behind by a week that has already turned over", async () => {
-    // The old bug, staged exactly: a boss felled in a week gone by, with a share
-    // still unpaid. No screen in the game can reach it — the arena renders this
-    // week — so the sweep is the only thing that can, and it must.
-    const staleWeek = WEEK - 900;
+  it("settles a debt left behind by a day that has already turned over", async () => {
+    // The old bug, staged exactly: a boss felled on a day gone by, with a share
+    // still unpaid. No screen in the game can reach it — the arena renders
+    // today — so the sweep is the only thing that can, and it must.
+    const staleDay = DAY - 900;
     const stale = await prisma.worldBoss.create({
       data: {
-        week: staleWeek,
-        key: rollWorldBoss(staleWeek).key,
+        day: staleDay,
+        key: rollWorldBoss(staleDay).key,
         maxHp: 100,
         hp: 0,
         defeatedAt: new Date(),

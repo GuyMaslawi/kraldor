@@ -1568,6 +1568,35 @@ export const EN: Record<string, string> = {
   "{potion} פועל! {tagline} למשך {duration}.":
     "{potion} is live. {tagline}, for {duration}.",
 
+  /* one guild, one city (server/guildCity.ts) */
+  "ברית מאחדת שחקנים מאותה העיר בלבד": "A guild unites players of one city only",
+  "עיר הברית:": "Guild city:",
+  "עיר אחרת": "Another city",
+  "עיר אחרת ({city}) 🚫": "Another city ({city}) 🚫",
+  "ברית מאחדת שחקנים מאותה העיר בלבד — אתה ב{city}.":
+    "A guild unites players of one city only — you are in {city}.",
+  "ניתן להזמין רק שחקנים שנמצאים ב{city}, עיר הברית.":
+    "Only players standing in {city}, the guild's city, may be invited.",
+  "{name} נמצא ב{theirCity}, והברית שלך ב{ourCity} — ברית מאחדת שחקנים מאותה העיר בלבד.":
+    "{name} stands in {theirCity} and your guild in {ourCity} — a guild unites players of one city only.",
+  'ברית מאחדת שחקנים מאותה העיר בלבד — "{guild}" ב{ourCity} ואתה ב{yourCity}.':
+    'A guild unites players of one city only — "{guild}" is in {ourCity} and you are in {yourCity}.',
+  'ברית מאחדת שחקנים מאותה העיר בלבד — שינוי עיר יוציא אותך מהברית "{guild}".':
+    'A guild unites players of one city only — changing city takes you out of "{guild}".',
+  'אתה מנהיג הברית "{guild}". ברית מאחדת שחקנים מאותה העיר בלבד — אם תשנה עיר הברית תפורק על אוצרה ושדרוגיה. העבר את ההנהגה לחבר אחר לפני שאתה זז כדי לשמור עליה.':
+    'You lead "{guild}". A guild unites players of one city only — change city and it is disbanded, treasury and upgrades with it. Hand the leadership to another member before you move to keep it standing.',
+  'הברית "{guild}" פורקה — מנהיג שעוזב את עיר הברית לוקח איתו את עיר הברית.':
+    'The guild "{guild}" is disbanded — a leader who leaves the guild\'s city takes the guild\'s city with him.',
+  'פרשת מהברית "{guild}" — ברית מאחדת שחקנים מאותה העיר בלבד.':
+    'You have left "{guild}" — a guild unites players of one city only.',
+  /* the guide's note on the rule */
+  "ברית אחת, עיר אחת": "One guild, one city",
+  "אותה עיר": "the same city",
+  "שינוי עיר מוציא אותך מהברית": "changing city takes you out of the guild",
+  "להעביר את ההנהגה": "hand the leadership over",
+  "כל חברי הברית עומדים ב <0> — עיר הברית היא עיר המנהיג, ואפשר להזמין רק שחקנים שנמצאים בה. לכן <1>: מי שאינו מנהיג פורש מהברית אוטומטית, ומנהיג לוקח איתו את עיר הברית — הברית מתפרקת על אוצרה ושדרוגיה. מנהיג שמתכוון לעלות עיר צריך <2> לפני שהוא זז.":
+    "Every member of a guild stands in <0> — the guild's city is its leader's, and only players standing in it can be invited. So <1>: anyone but the leader resigns automatically, and a leader takes the guild's city with him — the guild is disbanded, treasury and upgrades with it. A leader who means to climb should <2> before he moves.",
+
   /* the guild */
   "אינך חבר בברית.": "You are not in a guild.",
   "אתה כבר חבר בברית.": "You are already in a guild.",
@@ -4188,11 +4217,12 @@ export const EN: Record<string, string> = {
   "מפלצת העולם | KRALDOR": "World Boss | KRALDOR",
   "הזירה אינה זמינה כרגע. נסה לרענן.":
     "The arena is unavailable right now. Try refreshing.",
-  "אין מפלצת עולם השבוע.": "There is no world boss this week.",
+  "אין מפלצת עולם היום.": "There is no world boss today.",
   "{count} נלחמים": "{count} fighting",
-  "השבוע נגמר": "the week is over",
-  "{d}י {h}ש": "{d}d {h}h",
-  "{h}ש": "{h}h",
+  /* the countdown to midnight, when this beast goes and the next rises. The
+     "{h}ש {m}ד" / "{m}ד" pair it prints is already in the dictionary above —
+     the daily board counts down in the same two units. */
+  "היום נגמר": "the day is over",
 
   /* the beast's temper — WORLD_BOSS_PHASES */
   "שלווה": "Untroubled",
@@ -4238,9 +4268,9 @@ export const EN: Record<string, string> = {
   "מספר המכות מוגבל כדי שלוח הנזק לא יהיה עותק של דירוג הכוח":
     "Strikes are capped so the damage board is not simply a copy of the power ladder",
   "מכה עולה {turns} תורות.": "A strike costs {turns} turns.",
-  "ניצלת את כל {max} המכות שלך השבוע.":
-    "You have used all {max} of your strikes this week.",
-  "{boss} כבר הופלה השבוע.": "{boss} has already been felled this week.",
+  "ניצלת את כל {max} המכות שלך היום.":
+    "You have used all {max} of your strikes today.",
+  "{boss} כבר הופלה היום.": "{boss} has already been felled today.",
   "המכה שלך הפילה את {boss}! {diamonds} יהלומים על המכה האחרונה.":
     "Your blow felled {boss}! {diamonds} diamonds for the killing strike.",
   "המכה שלך הפילה את {boss}!": "Your blow felled {boss}!",
@@ -4262,13 +4292,24 @@ export const EN: Record<string, string> = {
   "המכה האחרונה: {name}": "Killing blow: {name}",
   "המפלצת עדיין עומדת — אין שלל לחלק.":
     "The beast is still standing — there are no spoils to divide.",
-  "לא הכית את המפלצת השבוע.": "You did not strike the beast this week.",
-  "לא הכית את המפלצת השבוע — אין חלק בשלל.":
-    "You did not strike the beast this week — no share of the spoils.",
+  "לא הכית את המפלצת היום.": "You did not strike the beast today.",
+  "לא הכית את המפלצת היום — אין חלק בשלל.":
+    "You did not strike the beast today — no share of the spoils.",
   "כבר אספת את חלקך.": "You have already collected your share.",
   "חלקך בשלל שולם.": "Your share of the spoils has been paid.",
   "חלקך בשלל: {spoils}. ({pct}% מהנזק)":
     "Your share of the spoils: {spoils}. ({pct}% of the damage)",
+
+  /* the full-screen herald — "she is back", once per beast (WorldBossTakeover) */
+  "מפלצת העולם חזרה לחיים": "The world boss has risen again",
+  "{boss} עלתה על העולם": "{boss} has risen over the world",
+  "נקודות חיים — והיא נופלת רק אם כל השרת יכה בה":
+    "health — and it falls only if the whole server strikes it",
+  "מכות מחכות לך": "strikes waiting for you",
+  "נעלמת בעוד {h} שעות": "gone in {h} hours",
+  "נעלמת בחצות": "gone at midnight",
+  "⚔️ קדימה, לזירה!": "⚔️ To the arena!",
+  "אחר כך — היא עומדת עד חצות": "Later — it stands until midnight",
 
   /* the damage board */
   "לוח הנזק": "Damage board",
@@ -5405,8 +5446,8 @@ export const EN: Record<string, string> = {
     "Repelling an attack earns no experience at all — the reward for defending is that nothing was taken from you. A hero advances only when he goes out to fight.",
   "הדירוג אומר לך איפה אתה עומד; הוא אף פעם לא אומר לך אם היית  <0>.  <1>  היא הקרב ההוגן הזה, <2>, לכל מי שנרשם: בחצות (שעון ישראל) כל נרשם פוגש <3>, והטבלה היא התוצאה. אף אחד לא לוחץ תקיפה ואף אחד לא צריך להיות מחובר.":
     "The ladder tells you where you stand; it never tells you whether you would have <0>. <1> is that fair fight, <2>, for everyone who enters: at midnight (Israel time) every entrant meets <3>, and the table is the result. Nobody presses attack and nobody needs to be online.",
-  "הדף מפרסם את החיים שנשארו למפלצת. בלי פיזור, מי שיודע לחשב את הנזק שלו היה יושב וממתין שהמד ירד בדיוק אל מתחת למכה שלו — ולוקח את היהלומים כל שבוע בוודאות. הפיזור הופך את המכה האחרונה למרוץ.":
-    "The page publishes the health the monster has left. Without a spread, anyone who can work out their own damage would sit and wait for the bar to drop just below their blow — and take the diamonds every week, with certainty. The spread turns the killing blow into a race.",
+  "הדף מפרסם את החיים שנשארו למפלצת. בלי פיזור, מי שיודע לחשב את הנזק שלו היה יושב וממתין שהמד ירד בדיוק אל מתחת למכה שלו — ולוקח את היהלומים כל יום בוודאות. הפיזור הופך את המכה האחרונה למרוץ.":
+    "The page publishes the health the monster has left. Without a spread, anyone who can work out their own damage would sit and wait for the bar to drop just below their blow — and take the diamonds every day, with certainty. The spread turns the killing blow into a race.",
   "הדרגה והנדירות מוגרלות בדיוק באותה פונקציה ובאותה טבלה של נפילה רגילה. אגדי מהנפחייה נדיר כמו אגדי מפשיטה.":
     "The level and the rarity are rolled by exactly the same function and the same table as an ordinary drop. A Legendary from the forge is as rare as a Legendary from a raid.",
   "הדרגה נגזרת מהרמה, והסדרה חוזרת על עצמה בכל עשור רמות: רמות 1–2 פשוט, 3–7 מתקדם, 8–9 אליט, 10 אגדי — ואז שוב, עשור אחד גבוה יותר. אגדי סוגר את הסט: אין לאן לשדרג אותו.":
@@ -5577,8 +5618,8 @@ export const EN: Record<string, string> = {
   "כל עליית רמה מביאה גם אזרחים.": "Every level gained brings citizens too.",
   "כל עשר רמות מתחלף הסט: תשעת החפצים מצוירים מחדש בחומר יקר יותר, מעור ונחושת ועד לזהב לבן זוהר. הרמה קובעת את הבונוס — הסט קובע איך זה נראה על הגיבור.":
     "Every ten levels the set changes: the nine items are redrawn in a costlier material, from leather and copper up to glowing white gold. The level sets the bonus — the set sets how it looks on the hero.",
-  "כל קרב אחר במשחק הוא בין שני שחקנים או בין שחקן לשליט העיר שלו.  <0>  היא המקום היחיד שבו <1>: מפלצת אחת לשבוע, מאגר חיים משותף שגדל עם מספר האימפריות, וכל אימפריה שהנחיתה מכה מקבלת חלק בשלל. אין כפתור מנהלים — היא עולה על השעון.":
-    "Every other battle in the game is between two players, or between a player and his own city boss. <0> is the one place where <1>: one monster a week, a shared health pool that grows with the number of empires, and every empire that lands a blow takes a share of the spoils. There is no admin button — it comes up on the clock.",
+  "כל קרב אחר במשחק הוא בין שני שחקנים או בין שחקן לשליט העיר שלו.  <0>  היא המקום היחיד שבו <1>: מפלצת אחת ליום, מאגר חיים משותף שגדל עם מספר האימפריות, וכל אימפריה שהנחיתה מכה מקבלת חלק בשלל. אין כפתור מנהלים — היא עולה על השעון בחצות, לבד.":
+    "Every other battle in the game is between two players, or between a player and his own city boss. <0> is the one place where <1>: one monster a day, a shared health pool that grows with the number of empires, and every empire that lands a blow takes a share of the spoils. There is no admin button — it comes up on the clock, at midnight, by itself.",
   "כל רמה = נקודה אחת = +1% התקפה/הגנה/תפוקה. גיבור רמה 16 מחזיק 16 נקודות, ורמה 100 — 100.":
     "Every level = one point = +1% attack/defence/output. A level 16 hero holds 16 points, and level 100 — 100.",
   "כל רמה עולה פי שניים בערך מקודמתה ומשלמת בדיוק אותן שתי נקודות אחוז — לכן מבנה אף פעם לא מחזיר את עצמו מהר יותר משהוא עולה.":
@@ -5665,7 +5706,7 @@ export const EN: Record<string, string> = {
   "מיני־משחקים": "Mini-games",
   "מינימום {p0}": "Minimum {p0}",
   "מכה עולה": "Cost of a blow",
-  "מכות לשבוע": "Blows per week",
+  "מכות ליום": "Blows per day",
   "מכל משאב בנפרד": "From each resource separately",
   "מכל משאב זמין של המגן": "From every available resource the defender holds",
   "מכסה לכל שיחה": "A quota per conversation",
@@ -5847,7 +5888,7 @@ export const EN: Record<string, string> = {
   "רצפה של נזק אחד": "A floor of one damage",
   "רק מונים שעולים": "Only counters that rise",
   "רק תקיפה משלמת": "Only attacking pays",
-  "שבוע אחד, מפלצת אחת": "One week, one monster",
+  "יום אחד, מפלצת אחת": "One day, one monster",
   "שבירת הצבא": "The army breaking",
   'שבעה מאזנים מנהלים את האימפריה. ארבעה מהם נאגרים ונבזזים, אחד נקנה בכסף אמיתי, ושניים הם "דלק" — כוח אדם וזמן פעולה.':
     'Seven balances run an empire. Four of them are banked and plundered, one is bought with real money, and two are "fuel" — manpower and time to act.',
@@ -5977,7 +6018,7 @@ export const EN: Record<string, string> = {
     "Raw manpower — becomes soldiers, spies or mine slaves.",
   "דלק הפעולה: כל תקיפה, ריגול וקרב בוס עולה תורות.":
     "The fuel of action: every attack, spy mission and boss fight costs turns.",
-  "המצב שבו השבוע נפתח.": "The state the week opened in.",
+  "המצב שבו הקרב נפתח.": "The state the fight opens in.",
   "קרב בוס": "Boss fight",
   "ייסוד עיר": "Founding a city",
   "שדרוג אימפריה": "Empire upgrade",
@@ -6024,8 +6065,8 @@ export const EN: Record<string, string> = {
   "אחוז": "percentage",
   "אחוז הבונוס": "Bonus percentage",
   "אחוז מהמשאבים הלא-מופקדים של המגן": "per cent of the defender's undeposited resources",
-  "איזו מפלצת מופיעה נגזר מהשבוע עצמו, כך שכל שחקן בעולם רואה את אותה מפלצת בלי שאף אחד ״פתח״ אותה. מה שלא הופל עד סוף השבוע פשוט נעלם, והשבוע הבא מביא חדשה — עם מאגר חיים חדש ומכסת מכות חדשה.":
-    'Which monster appears follows from the week itself, so every player in the world sees the same one without anybody having "opened" it. Whatever is not felled by the end of the week simply vanishes, and the next week brings a new one — with a fresh health pool and a fresh quota of blows.',
+  "איזו מפלצת מופיעה נגזר מהיום עצמו, כך שכל שחקן בעולם רואה את אותה מפלצת בלי שאף אחד ״פתח״ אותה — והיא עולה בחצות בלי שאף אחד צריך להיכנס לזירה. מה שלא הופל עד חצות פשוט נעלם, ומחר עולה אחרת (אף פעם לא זו של אתמול) — עם מאגר חיים חדש ומכסת מכות חדשה.":
+    'Which monster appears follows from the day itself, so every player in the world sees the same one without anybody having "opened" it — and it rises at midnight without anybody needing to walk into the arena. Whatever is not felled by midnight simply vanishes, and tomorrow another one rises (never yesterday\'s) — with a fresh health pool and a fresh quota of blows.',
   "איך משיגים": "How to get one",
   "אימפריה טרייה מוגנת מתקיפה ומריגול למשך  <0> מהרישום. המגן נשבר ברגע שאתה עצמך תוקף או מרגל — אי אפשר להסתתר מאחוריו ולפעול בתוקפנות באותו הזמן.":
     "A fresh empire is shielded from attack and from spying for <0> after registering. The shield breaks the moment *you* attack or spy — you cannot hide behind it and act aggressively at the same time.",
@@ -6164,8 +6205,8 @@ export const EN: Record<string, string> = {
   "כוח נשק =": "Weapon power =",
   "כוח קבוע לכל חבר": "flat power for every member",
   "כוח:": "Power:",
-  "ככל שהמפלצת נשחקת היא עוברת בין ארבעה מצבים, וכל השרת חוצה כל סף יחד — מי שהמכה שלו שברה את הסף הוא שרואה את ההכרזה. המצב משנה איך הזירה נראית ומה היא אומרת, ו<0>: לא את מאגר החיים, לא את הנזק ולא את הקופה. זו החלטה ולא השמטה — כל השלושה מכוילים זה מול זה, ו״זעם״ שהיה מכפיל חיים באמצע השבוע היה מכייל מחדש את הפיקסצ׳ר דווקא לשרת שכבר מפגר.":
-    "As the monster is worn down it passes through four states, and the whole server crosses each threshold together — whoever's blow broke the threshold is the one who sees the announcement. The state changes how the arena looks and what it says, and <0>: not the health pool, not the damage and not the purse. That is a decision rather than an omission — all three are calibrated against each other, and a \"rage\" that doubled health mid-week would recalibrate the fixture against the very server already falling behind.",
+  "ככל שהמפלצת נשחקת היא עוברת בין ארבעה מצבים, וכל השרת חוצה כל סף יחד — מי שהמכה שלו שברה את הסף הוא שרואה את ההכרזה. המצב משנה איך הזירה נראית ומה היא אומרת, ו<0>: לא את מאגר החיים, לא את הנזק ולא את הקופה. זו החלטה ולא השמטה — כל השלושה מכוילים זה מול זה, ו״זעם״ שהיה מכפיל חיים באמצע הקרב היה מכייל מחדש את הפיקסצ׳ר דווקא לשרת שכבר מפגר.":
+    "As the monster is worn down it passes through four states, and the whole server crosses each threshold together — whoever's blow broke the threshold is the one who sees the announcement. The state changes how the arena looks and what it says, and <0>: not the health pool, not the damage and not the purse. That is a decision rather than an omission — all three are calibrated against each other, and a \"rage\" that doubled health mid-fight would recalibrate the fixture against the very server already falling behind.",
   "כל {p0} השליטים מוצגים בדף  <0>  עם הכוח המדויק שלהם — אפשר לתכנן מולם מראש. מד הזעם של הגיבור נטען בכל סבב, וברגע שהוא מתמלא הגיבור משתחרר מעצמו במכה אחת גדולה.":
     "All {p0} bosses are listed on the <0> page with their exact power — you can plan against them in advance. The hero's rage meter charges every round, and the moment it fills he lets go by himself in one great blow.",
   "כל השרת נמצא באותו צד": "the whole server is on the same side",
@@ -6355,16 +6396,16 @@ export const EN: Record<string, string> = {
 
   /* a world boss on the loose */
   "🌍 מפלצת עולם חדשה: {boss}": "🌍 A new world boss: {boss}",
-  "{lore} {hp} נקודות חיים, והיא נופלת רק אם כל השרת יכה בה. הזירה פתוחה עד סוף השבוע.":
-    "{lore} {hp} hit points, and it falls only if the whole server strikes it. The arena is open until the end of the week.",
+  "{lore} {hp} נקודות חיים, והיא נופלת רק אם כל השרת יכה בה. הזירה פתוחה עד חצות — ומחר תעלה אחרת.":
+    "{lore} {hp} hit points, and it falls only if the whole server strikes it. The arena is open until midnight — and tomorrow another one rises.",
   "{sigil} {boss} עלתה על העולם. הזירה פתוחה — כל אימפריה מוזמנת להכות.":
     "{sigil} {boss} has risen over the world. The arena is open — every empire is invited to strike.",
 
   /* and a world boss brought down. Past tense throughout: the herald is sent
      after the shares have been paid, not to summon anybody to collect them. */
   "🏆 {boss} הופלה": "🏆 {boss} has been felled",
-  "{slayer} חלקו של כל מי שהכה אותה השבוע כבר נכנס לאוצר שלו.":
-    "{slayer} Everyone who struck it this week has had their share paid into their treasury.",
+  "{slayer} חלקו של כל מי שהכה אותה היום כבר נכנס לאוצר שלו.":
+    "{slayer} Everyone who struck it today has had their share paid into their treasury.",
   "{name} הנחית את המכה האחרונה.": "{name} landed the final blow.",
   "🏆 {slayer} הפיל את {boss}! השלל חולק בין כל מי שהכה בה.":
     "🏆 {slayer} has felled {boss}! The spoils have been split between everyone who struck it.",

@@ -6,6 +6,7 @@ import {
   WORLD_BOSS_BY_KEY,
   WORLD_BOSS_FLOOR_SHARE,
   WORLD_BOSS_HP_MIN,
+  WORLD_BOSS_KILL_DIAMONDS,
   WORLD_BOSS_HP_PER_EMPIRE,
   WORLD_BOSS_MAX_STRIKES,
   WORLD_BOSS_PHASES,
@@ -45,15 +46,24 @@ describe("the world boss catalog", () => {
 });
 
 describe("rollWorldBoss", () => {
-  it("is a pure function of the week", () => {
-    expect(rollWorldBoss(2_900).key).toBe(rollWorldBoss(2_900).key);
+  it("is a pure function of the day", () => {
+    expect(rollWorldBoss(20_680).key).toBe(rollWorldBoss(20_680).key);
   });
 
-  it("moves between weeks and reaches every beast", () => {
+  it("moves between days and reaches every beast", () => {
     const seen = new Set(
       Array.from({ length: 400 }, (_, i) => rollWorldBoss(i).key)
     );
     expect(seen.size).toBe(WORLD_BOSSES.length);
+  });
+
+  // The whole point of the daily fixture is that tomorrow brings something
+  // else. Two identical mornings in a row would read as a health bar being
+  // refilled rather than as a new beast — see WORLD_BOSS_NO_REPEAT_DEPTH.
+  it("never draws the same beast two days running", () => {
+    for (let day = 20_000; day < 20_400; day++) {
+      expect(rollWorldBoss(day).key).not.toBe(rollWorldBoss(day - 1).key);
+    }
   });
 });
 
@@ -84,27 +94,29 @@ describe("worldBossMaxHp", () => {
     // each landing their full allowance: the question is what army it takes.
     const boss = WORLD_BOSSES.find((b) => b.toughness === 1.0) ?? WORLD_BOSSES[0];
     const pool = worldBossMaxHp(boss, 200);
-    const week = (power: number) =>
+    const day = (power: number) =>
       expectedStrikeDamage(power) * WORLD_BOSS_MAX_STRIKES;
 
     // A server of mid-season armies does not fell it, and cannot fix that by
     // bringing more people: the pool grows with the head count, so only power
     // ever closes the gap.
-    expect(week(500_000) * 200).toBeLessThan(pool);
+    expect(day(500_000) * 200).toBeLessThan(pool);
     // Late-season armies do — break-even sits at roughly 11M military power,
-    // which is the whole claim in the note on WORLD_BOSS_HP_PER_EMPIRE.
-    expect(week(12_000_000) * 200).toBeGreaterThan(pool);
+    // which is the whole claim in the note on WORLD_BOSS_HP_PER_EMPIRE. The
+    // pool and the allowance were divided by the same factor when the fixture
+    // moved from a week to a day, which is why this wall did not move.
+    expect(day(12_000_000) * 200).toBeGreaterThan(pool);
   });
 
   it("is still reachable at all — the purse is gated on the kill", () => {
     // Nothing is paid until `defeatedAt` is stamped, so a pool no achievable
     // army can reach is a closed fixture rather than a hard one. One empire's
-    // week of strikes must be able to cover one empire's share of the pool.
+    // day of strikes must be able to cover one empire's share of the pool.
     const boss = WORLD_BOSSES.find((b) => b.toughness === 1.0) ?? WORLD_BOSSES[0];
     const share = worldBossMaxHp(boss, 200) / 200;
     // The strongest army the game realistically fields late in a season.
-    const week = expectedStrikeDamage(50_000_000) * WORLD_BOSS_MAX_STRIKES;
-    expect(week).toBeGreaterThan(share);
+    const day = expectedStrikeDamage(50_000_000) * WORLD_BOSS_MAX_STRIKES;
+    expect(day).toBeGreaterThan(share);
   });
 });
 
@@ -146,7 +158,7 @@ describe("the killing blow cannot be computed", () => {
    * arena publishes the boss's exact remaining health. While the blow was a
    * pure function of the striker's own power, taking that prize was arithmetic
    * rather than a race: hold a strike, watch the bar, fire the instant `hp`
-   * drops inside your own figure, and collect every week with certainty.
+   * drops inside your own figure, and collect every day with certainty.
    */
   it("scatters the blow, so no striker knows which one lands the kill", () => {
     const power = 1_000_000;
@@ -257,15 +269,43 @@ describe("the price of a strike", () => {
     expect(WORLD_BOSS_STRIKE_TURNS).toBeGreaterThanOrEqual(20);
   });
 
-  it("caps a week's participation at a sane number of blows", () => {
-    expect(WORLD_BOSS_MAX_STRIKES).toBeGreaterThan(5);
-    expect(WORLD_BOSS_MAX_STRIKES).toBeLessThanOrEqual(50);
+  it("caps a day's participation at a sane number of blows", () => {
+    // More than one, or "the daily boss" is a single button press; few enough
+    // that the cap is still the fairness mechanism rather than a turn wall.
+    expect(WORLD_BOSS_MAX_STRIKES).toBeGreaterThan(1);
+    expect(WORLD_BOSS_MAX_STRIKES).toBeLessThanOrEqual(10);
   });
 
-  it("keeps a full week of strikes within a real turn budget", () => {
+  it("keeps a full day of strikes within a real turn budget", () => {
     // A player must not have to choose between the world boss and playing the
-    // rest of the game: 800 turns is a couple of days' income, not a week's.
-    expect(WORLD_BOSS_STRIKE_TURNS * WORLD_BOSS_MAX_STRIKES).toBeLessThan(1_500);
+    // rest of the game — and the fixture comes round *every day* now, so the
+    // budget it may ask for is a fraction of a day's turns, not a week's.
+    expect(WORLD_BOSS_STRIKE_TURNS * WORLD_BOSS_MAX_STRIKES).toBeLessThan(250);
+  });
+
+  it("still costs and pays a week what the weekly fixture did", () => {
+    // The one invariant the move to 24 hours had to preserve: seven days of
+    // this must be the week it replaced, or "daily" was a sevenfold buff to
+    // both the turn cost and the economy wearing a cadence change as a hat.
+    // The weekly figures, for the record: 20 strikes, 800k health per empire,
+    // 2.4M gold, 500 turns, 100 kill diamonds. A tenth either way, because
+    // every one of these had to round to a number worth printing on a screen —
+    // three strikes a day is 21 a week, not 20.
+    const weekly = (perDay: number) => perDay * 7;
+    const near = (actual: number, was: number) => {
+      expect(actual).toBeGreaterThan(was * 0.9);
+      expect(actual).toBeLessThan(was * 1.1);
+    };
+    const line = (kind: string) =>
+      WORLD_BOSS_PURSE.find((r) => r.kind === kind)?.amount ?? 0;
+
+    near(weekly(WORLD_BOSS_MAX_STRIKES), 20);
+    near(weekly(WORLD_BOSS_HP_PER_EMPIRE), 800_000);
+    near(weekly(line("gold")), 2_400_000);
+    near(weekly(line("iron")), 1_200_000);
+    near(weekly(line("turns")), 500);
+    near(weekly(line("wheelSpins")), 40);
+    near(weekly(WORLD_BOSS_KILL_DIAMONDS), 100);
   });
 
   it("prices health against participation", () => {
@@ -285,7 +325,7 @@ describe("the beast's temper", () => {
     expect(WORLD_BOSS_PHASE_BY_KEY.size).toBe(WORLD_BOSS_PHASES.length);
   });
 
-  it("announces every phase except the one the week opens in", () => {
+  it("announces every phase except the one the fight opens in", () => {
     expect(WORLD_BOSS_PHASES[0].cry).toBeNull();
     for (const phase of WORLD_BOSS_PHASES.slice(1)) {
       expect(phase.cry).toBeTruthy();
@@ -387,7 +427,7 @@ describe("how a blow landed", () => {
  *
  * All three are trailing optional parameters, so every existing call site keeps
  * the shipped fixture — that is the property the first test here pins, and it is
- * the one that matters: an untouched overlay must leave the week exactly as it
+ * the one that matters: an untouched overlay must leave the day exactly as it
  * was designed.
  */
 describe("the admin multipliers", () => {
@@ -406,7 +446,7 @@ describe("the admin multipliers", () => {
   });
 
   it("never hands back a pool of nothing, however small the dial", () => {
-    // A pool of zero would be felled by the first blow of the week — and the
+    // A pool of zero would be felled by the first blow of the day — and the
     // bounds in config.ts refuse anything under 0.01 before it ever gets here.
     const boss = WORLD_BOSSES[0];
     expect(worldBossMaxHp(boss, 200, 0)).toBeGreaterThanOrEqual(1);

@@ -4,6 +4,7 @@ config({ path: ".env.local", override: true });
 import { afterAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { ensureGuildLeader, repairGuildLeadership } from "@/server/guildLeadership";
+import { applyGuildCityRule, guildCityTier } from "@/server/guildCity";
 import { sharedGuild } from "@/lib/game/guildAllies";
 
 /**
@@ -26,7 +27,7 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
-async function makeEmpire(name: string) {
+async function makeEmpire(name: string, cities = 1) {
   const user = await prisma.user.create({
     data: {
       email: `${name}@${TAG}.test`,
@@ -36,7 +37,14 @@ async function makeEmpire(name: string) {
     },
   });
   return prisma.empire.create({
-    data: { userId: user.id, name: `${TAG}-${name}`, gold: 0, turns: 100, citizens: 0 },
+    data: {
+      userId: user.id,
+      name: `${TAG}-${name}`,
+      gold: 0,
+      turns: 100,
+      citizens: 0,
+      cities,
+    },
   });
 }
 
@@ -246,5 +254,133 @@ describe("guildmates", () => {
     await prisma.guildMember.delete({ where: { empireId: quitter!.id } });
 
     expect(await sharedGuild(leader!.id, quitter!.id, prisma)).toBeNull();
+  });
+});
+
+/**
+ * The same-city rule (src/server/guildCity.ts). Database-shaped for the same
+ * reason succession is: the decision is a read of the roster followed by a
+ * delete of it, taken under a row lock, and the interesting cases are the ones
+ * where the row being read is the row about to go.
+ */
+describe("one guild, one city", () => {
+  /** Move an empire between tiers exactly the way the game does, rule included. */
+  const moveTo = (empireId: string, cities: number) =>
+    prisma.$transaction(async (tx) => {
+      const before = await tx.empire.findUniqueOrThrow({
+        where: { id: empireId },
+        select: { cities: true },
+      });
+      await tx.empire.update({ where: { id: empireId }, data: { cities } });
+      return applyGuildCityRule(tx, empireId, before.cities);
+    });
+
+  it("reads the guild's city off its leader", async () => {
+    const { guild, empires } = await makeGuild("tier", ["LEADER", "MEMBER"]);
+    await prisma.empire.update({
+      where: { id: empires[0]!.id },
+      data: { cities: 4 },
+    });
+
+    expect(await guildCityTier(prisma, guild.id)).toBe(4);
+  });
+
+  it("drops a plain member who leaves the guild's city", async () => {
+    const { guild, empires } = await makeGuild("stray", ["LEADER", "MEMBER"]);
+    const [leader, mover] = empires;
+
+    const outcome = await moveTo(mover!.id, 2);
+
+    expect(outcome).toMatchObject({ kind: "left", guildCity: 1 });
+    const left = await prisma.guildMember.findMany({ where: { guildId: guild.id } });
+    expect(left.map((m) => m.empireId)).toEqual([leader!.id]);
+    // Told why, in the inbox — the admin editor moves players who are not here
+    // to read a toast.
+    const notice = await prisma.message.findFirst({
+      where: { empireId: mover!.id, title: "🏰 עזבת את הברית" },
+    });
+    expect(notice).not.toBeNull();
+  });
+
+  it("leaves a member who moves *into* the guild's city alone", async () => {
+    // The rule compares tiers; it does not fire on movement as such. A roster
+    // repaired by the mover is a roster that keeps him.
+    const { guild, empires } = await makeGuild("rejoin", ["LEADER", "MEMBER"]);
+    await prisma.empire.update({
+      where: { id: empires[0]!.id },
+      data: { cities: 3 },
+    });
+
+    expect(await moveTo(empires[1]!.id, 3)).toBeNull();
+    expect(await prisma.guildMember.count({ where: { guildId: guild.id } })).toBe(2);
+  });
+
+  it("disbands the guild when the leader moves", async () => {
+    const { guild, empires } = await makeGuild("crown", ["LEADER", "DEPUTY", "MEMBER"]);
+    const [leader, deputy, member] = empires;
+
+    const outcome = await moveTo(leader!.id, 2);
+
+    expect(outcome).toMatchObject({ kind: "disbanded" });
+    expect(await prisma.guild.findUnique({ where: { id: guild.id } })).toBeNull();
+    expect(await prisma.guildMember.count({ where: { guildId: guild.id } })).toBe(0);
+    // Everyone left behind is told; the mover already has the toast.
+    for (const left of [deputy, member]) {
+      const notice = await prisma.message.findFirst({
+        where: { empireId: left!.id, title: "🏰 הברית פורקה" },
+      });
+      expect(notice).not.toBeNull();
+    }
+  });
+
+  it("does nothing when the tier did not actually move", async () => {
+    // The admin vitals panel posts `cities` on every save. A leader whose gold
+    // is topped up must not lose his guild to it.
+    const { guild, empires } = await makeGuild("still", ["LEADER", "MEMBER"]);
+
+    expect(await moveTo(empires[0]!.id, 1)).toBeNull();
+    expect(await prisma.guild.findUnique({ where: { id: guild.id } })).not.toBeNull();
+  });
+
+  it("keeps a one-man guild — it moves with its owner", async () => {
+    const { guild, empires } = await makeGuild("solo", ["LEADER"]);
+
+    expect(await moveTo(empires[0]!.id, 5)).toBeNull();
+    expect(await prisma.guild.findUnique({ where: { id: guild.id } })).not.toBeNull();
+    expect(await guildCityTier(prisma, guild.id)).toBe(5);
+  });
+
+  it("crowns the heir before deciding, so a headless guild is not decided by a stray", async () => {
+    // No LEADER row: the deputy is about to be crowned, which makes *him* the
+    // guild's city — and the plain member the one who has to leave.
+    const { guild, empires } = await makeGuild("headless", ["DEPUTY", "MEMBER"]);
+    const [deputy, member] = empires;
+
+    const outcome = await moveTo(member!.id, 2);
+
+    expect(outcome).toMatchObject({ kind: "left" });
+    const roles = await rolesIn(guild.id);
+    expect(roles).toEqual([{ empireId: deputy!.id, role: "LEADER" }]);
+  });
+
+  it("takes the guild down with a rolled-back city change, or not at all", async () => {
+    const { guild, empires } = await makeGuild("atomic", ["LEADER", "MEMBER"]);
+
+    await expect(
+      prisma.$transaction(async (tx) => {
+        await tx.empire.update({
+          where: { id: empires[0]!.id },
+          data: { cities: 2 },
+        });
+        await applyGuildCityRule(tx, empires[0]!.id, 1);
+        throw new Error("rolled back");
+      })
+    ).rejects.toThrow("rolled back");
+
+    expect(await prisma.guild.findUnique({ where: { id: guild.id } })).not.toBeNull();
+    expect(await prisma.empire.findUnique({
+      where: { id: empires[0]!.id },
+      select: { cities: true },
+    })).toMatchObject({ cities: 1 });
   });
 });

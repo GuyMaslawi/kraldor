@@ -21,15 +21,24 @@ export default async function AdminUsersPage({
   const now = new Date();
 
   const users = await prisma.user.findMany({
-    where: query
-      ? {
-          OR: [
-            { name: { contains: query, mode: "insensitive" } },
-            { email: { contains: query, mode: "insensitive" } },
-            { empire: { name: { contains: query, mode: "insensitive" } } },
-          ],
-        }
-      : undefined,
+    where: {
+      // Real players only. A bot is a planted garrison, not an account anybody
+      // administers from here — everything about it (planting, re-arming,
+      // deleting) lives on /admin/bots, and its synthetic user row would only
+      // pad this table and the count under it. Written as a `NOT … is` on the
+      // relation rather than `empire: { isBot: false }` so that a user with no
+      // empire at all still shows up.
+      NOT: { empire: { is: { isBot: true } } },
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query, mode: "insensitive" } },
+              { email: { contains: query, mode: "insensitive" } },
+              { empire: { name: { contains: query, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: 200,
     select: {

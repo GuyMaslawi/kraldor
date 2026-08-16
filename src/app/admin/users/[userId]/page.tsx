@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, ADMIN_INT_MAX } from "@/lib/admin";
 import { banLabel, formatBanDate, isBanned } from "@/lib/ban";
@@ -181,6 +181,11 @@ export default async function AdminUserDetail({
     },
   });
   if (!user) notFound();
+  // A bot never opens here. This page is the full player editor — gifts, bans,
+  // resets, mail — and none of that means anything for a garrison; a reset would
+  // even strand it (see resetEmpireProgress). Any stale link to one lands on the
+  // single screen that does own bots.
+  if (user.empire?.isBot) redirect("/admin/bots");
   const empire = user.empire;
 
   // Hero stat points the player is entitled to at his current standing: one per

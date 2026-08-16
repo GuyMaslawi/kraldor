@@ -4,6 +4,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ActionForm } from "@/components/admin/ActionForm";
 import { EditorSection } from "@/components/admin/fields";
 import { HappyHourLauncher } from "@/components/admin/HappyHourLauncher";
+import { GAME_TIMEZONE } from "@/lib/game/constants";
 import { activeEffects, multiplierLabel } from "@/lib/game/happyHour";
 import { durationLabel } from "@/components/admin/happyHourDuration";
 import {
@@ -87,7 +88,11 @@ export default async function AdminHappyHourPage() {
                       <>
                         {" "}
                         · שוחרר{" "}
-                        <span dir="ltr">{event.startsAt.toLocaleString("he-IL")}</span>
+                        <span dir="ltr">
+                          {event.startsAt.toLocaleString("he-IL", {
+                            timeZone: GAME_TIMEZONE,
+                          })}
+                        </span>
                       </>
                     )}
                   </p>

@@ -6,6 +6,7 @@ import { bannedWhere } from "@/lib/ban";
 import { notBot } from "@/lib/bot";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
+import { GAME_TIMEZONE } from "@/lib/game/constants";
 import { formatIls } from "@/lib/game/diamondStore";
 import { EconomyBoard } from "@/components/admin/EconomyBoard";
 
@@ -135,7 +136,7 @@ export default async function AdminDashboard({
                     </span>
                   </span>
                   <span className="shrink-0 text-[11px] text-zinc-500 nums" dir="ltr">
-                    {u.createdAt.toLocaleDateString("he-IL")}
+                    {u.createdAt.toLocaleDateString("he-IL", { timeZone: GAME_TIMEZONE })}
                   </span>
                 </Link>
               </li>
@@ -153,7 +154,8 @@ export default async function AdminDashboard({
               <li key={a.id} className="rounded-lg panel-inset px-3 py-2">
                 <div className="text-zinc-200">{a.summary ?? a.action}</div>
                 <div className="text-[11px] text-zinc-500" dir="ltr">
-                  {a.adminEmail} · {a.createdAt.toLocaleString("he-IL")}
+                  {a.adminEmail} ·{" "}
+                  {a.createdAt.toLocaleString("he-IL", { timeZone: GAME_TIMEZONE })}
                 </div>
               </li>
             ))}

@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/admin";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
 import { ReceiptButton } from "@/components/ui/ReceiptButton";
+import { GAME_TIMEZONE } from "@/lib/game/constants";
 import { formatIls } from "@/lib/game/diamondStore";
 
 export const dynamic = "force-dynamic";
@@ -159,7 +160,7 @@ export default async function AdminPurchasesPage() {
               return (
                 <tr key={p.id} className="border-b border-border-subtle/50">
                   <td className="p-2 text-[11px] text-zinc-500 nums" dir="ltr">
-                    {p.createdAt.toLocaleString("he-IL")}
+                    {p.createdAt.toLocaleString("he-IL", { timeZone: GAME_TIMEZONE })}
                   </td>
                   <td className="p-2">
                     {p.empireId ? (

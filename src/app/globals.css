@@ -12261,19 +12261,194 @@ body {
   }
 }
 
-/* The two new palettes, matching how .mgt[data-game] dresses the cups and the
-   safe: a parchment gold for the map, a cold violet for the riddle. */
+/* The two newer palettes — parchment gold for the map, cold violet for the
+   riddle — in the SAME shape the cups and the safe use up in the .mgt block.
+
+   These were written as bare rgb triples (`205 150 70`) and with no background
+   at all, which is why a map release looked like nothing happened. `--mgt-accent`
+   is consumed as a colour directly, not through rgb(): `border: 3px solid
+   205 150 70` and `color: 205 150 70` are invalid at computed-value time, so
+   both shockwave rings lost their border and the kicker lost its glow;
+   `--mgt-accent-soft` was never defined at all, which killed the whole conic
+   gradient on .mgt-rays and took the beams with it. And with no `background`
+   on the overlay the takeover was literally transparent — the game page showed
+   straight through the announcement that was supposed to be interrupting it.
+   Whatever you do here, define all three, and define the accents as colours. */
 .mgt[data-game="map"] {
-  --mgt-accent: 205 150 70;
+  background: radial-gradient(circle at 50% 42%, rgba(58, 40, 14, 0.94), rgba(0, 0, 0, 0.95) 68%);
+  --mgt-accent: #e0b063;
+  --mgt-accent-soft: rgba(224, 176, 99, 0.22);
+}
+.mgt[data-game="riddle"] {
+  background: radial-gradient(circle at 50% 42%, rgba(38, 20, 66, 0.94), rgba(0, 0, 0, 0.95) 68%);
+  --mgt-accent: #b18cf5;
+  --mgt-accent-soft: rgba(150, 96, 232, 0.22);
 }
 
-.mgt[data-game="riddle"] {
-  --mgt-accent: 150 96 232;
+/* --- מפת האוצר: a parchment grid, dug cold → warm → hot, then the find --- */
+
+.mgt-stage--map {
+  background:
+    radial-gradient(120% 90% at 50% 115%, rgba(92, 62, 22, 0.7), transparent 70%),
+    linear-gradient(180deg, rgba(24, 16, 6, 0.35), rgba(12, 8, 3, 0.8));
+}
+
+/* The sheet itself: aged paper, laid slightly off-square so it reads as a chart
+   dropped on a table rather than a UI panel. The inset shadow is the fold.
+
+   Sized by its HEIGHT with an aspect-ratio rather than stretched across the
+   stage: the stage is a 30rem × 11rem letterbox, and a sheet that wide left the
+   square grid marooned in a field of blank paper. A chart floating on the dark
+   with the spotlight on it is the picture. */
+.mgt-parchment {
+  position: absolute;
+  top: 0.55rem;
+  bottom: 0.55rem;
+  left: 50%;
+  aspect-ratio: 1.32;
+  border-radius: 0.35rem;
+  transform: translateX(-50%) rotate(-1.6deg);
+  background:
+    radial-gradient(120% 100% at 20% 0%, rgba(255, 240, 200, 0.12), transparent 60%),
+    linear-gradient(150deg, #e8d4a6 0%, #d8bf88 45%, #c2a468 100%);
+  box-shadow:
+    0 10px 30px -8px rgba(0, 0, 0, 0.85),
+    inset 0 0 40px rgba(122, 88, 38, 0.45);
+  overflow: hidden;
+}
+
+/* One landmass under the grid, as a clip-path silhouette. It is there so the
+   grid is over *something* — a bare lattice on paper is a spreadsheet. It is
+   deliberately wider than the grid: the chart continues past the squares being
+   searched, which is what makes them read as a search area. */
+.mgt-map-isle {
+  position: absolute;
+  inset: 10% 12% 12% 10%;
+  background: linear-gradient(160deg, rgba(112, 134, 66, 0.55), rgba(86, 100, 46, 0.4));
+  clip-path: polygon(
+    18% 8%, 46% 0, 72% 12%, 92% 34%, 84% 62%, 96% 84%,
+    64% 100%, 34% 92%, 8% 72%, 2% 40%
+  );
+}
+
+/* A square 4×4 centred on the sheet. The stage is a wide letterbox, so this is
+   pinned by its height and squared with aspect-ratio — laid out as `inset: 8%`
+   the cells came out as landscape rectangles, which is not what the board a
+   player is about to open looks like. */
+.mgt-map-grid {
+  position: absolute;
+  top: 7%;
+  bottom: 7%;
+  left: 50%;
+  transform: translateX(-50%);
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 0.22rem;
+}
+
+/* Undug cells are ink on paper, not chrome — the ruled squares of a chart. */
+.mgt-map-cell {
+  position: relative;
+  border-radius: 0.2rem;
+  border: 1px solid rgba(92, 66, 28, 0.35);
+  display: grid;
+  place-items: center;
+}
+
+/* The readings, in the board's own ramp (see .tmap-cell[data-band]): blue is
+   far, gold is on it. `both` so a dug cell keeps its answer for the rest of the
+   announcement, exactly as it does on the real grid. */
+.mgt-map-cell[data-band] {
+  animation: mgt-map-dig 0.45s ease-out both;
+  animation-delay: var(--d, 0s);
+}
+.mgt-map-cell[data-band="cold"] {
+  --band: rgb(96 156 224);
+}
+.mgt-map-cell[data-band="warm"] {
+  --band: rgb(228 160 60);
+}
+.mgt-map-cell[data-band="hot"] {
+  --band: rgb(232 82 82);
+}
+.mgt-map-cell[data-band="found"] {
+  --band: rgb(196 160 50);
+}
+@keyframes mgt-map-dig {
+  0% {
+    transform: scale(0.7);
+    background: transparent;
+    box-shadow: 0 0 0 0 var(--band);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+    background: color-mix(in srgb, var(--band) 45%, transparent);
+    border-color: var(--band);
+    box-shadow: 0 0 14px -2px var(--band);
+  }
+}
+
+/* The ✕ lands last, after the hot reading next door has already told you where
+   to look — the beat the whole game is played for. */
+.mgt-map-x {
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #a3231d;
+  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.35);
+  animation: mgt-map-stamp 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+  animation-delay: 3.05s;
+}
+@keyframes mgt-map-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2.6) rotate(-18deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(0.92) rotate(4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* A compass rose in the corner, turning slowly — the one thing on the stage
+   that moves for the whole six seconds, so the picture never freezes. */
+.mgt-compass {
+  position: absolute;
+  bottom: 0.5rem;
+  inset-inline-end: 0.75rem;
+  z-index: 2;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: rgba(92, 66, 28, 0.75);
+  animation: mgt-compass-turn 12s linear infinite;
+}
+@keyframes mgt-compass-turn {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mgt-sigil {
+  .mgt-sigil,
+  .mgt-compass,
+  .mgt-map-x {
     animation: none;
+  }
+  /* The readings are the picture, not the motion — so they are kept, just
+     without the pop-in. */
+  .mgt-map-cell[data-band] {
+    animation: none;
+    background: color-mix(in srgb, var(--band) 45%, transparent);
+    border-color: var(--band);
   }
 }
 

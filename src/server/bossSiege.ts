@@ -41,7 +41,7 @@ import { notStaff } from "@/lib/staff";
 import { notBot } from "@/lib/bot";
 import { cityAt } from "@/lib/game/cities";
 import { formatNumber } from "@/lib/game/format";
-import { RESOURCE_META } from "@/lib/game/constants";
+import { GAME_TIMEZONE, RESOURCE_META } from "@/lib/game/constants";
 import { getI18n, getT, type T } from "@/i18n/server";
 import { LOCALE_TAG } from "@/i18n/locale";
 import {
@@ -410,6 +410,9 @@ export async function startBossAssault(empireId: string): Promise<BossSortieOutc
         error: t("{boss} מת — הוא קם לתחייה ב־{time}.", {
           boss: t(boss.name),
           time: life.revivesAt.toLocaleTimeString(LOCALE_TAG[locale], {
+            // The server's clock is UTC in production; the hour a player is
+            // told to come back on has to be theirs.
+            timeZone: GAME_TIMEZONE,
             hour: "2-digit",
             minute: "2-digit",
           }),

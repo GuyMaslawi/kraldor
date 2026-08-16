@@ -108,18 +108,69 @@ function CupsStage() {
 }
 
 /**
- * The shared stage for the newer games: one large sigil, breathing.
+ * The fallback stage: one large sigil, breathing.
  *
- * Deliberately not two more bespoke animations. The takeover holds the screen
- * for six seconds and then hands over to the pill in the command bar — the
- * palette and the flavour line already say which game arrived, and a scene
- * nobody has time to read is scenery for its own sake.
+ * Left for חידה, whose premise really is just a question mark — there is no
+ * scene that says "a riddle went up" better than the flavour line does.
  */
 function SigilStage({ sigil }: { sigil: string }) {
   return (
     <div className="mgt-stage mgt-stage--sigil" aria-hidden>
       <span className="mgt-spot" />
       <span className="mgt-sigil">{sigil}</span>
+    </div>
+  );
+}
+
+/**
+ * מפת האוצר: a parchment grid being dug, cold → warm → hot, then the find.
+ *
+ * The three digs are the whole game — every cell you open tells you how close
+ * you were and nothing else — so the stage plays one short round of it rather
+ * than showing a map emoji. The dug cells hold their reading once they land
+ * (`both`), because on the real board they hold it forever: the grid IS the
+ * player's notes.
+ *
+ * The layout is a fixed 4×4 with hand-picked cells, not the released game's
+ * `size` — this is scenery, and a designed sequence reads as a deduction while
+ * a random one reads as flicker.
+ */
+const MAP_DIGS: Record<number, { band: string; delay: string }> = {
+  1: { band: "cold", delay: "0.7s" },
+  8: { band: "warm", delay: "1.5s" },
+  11: { band: "hot", delay: "2.3s" },
+};
+/** Where the chest is — the cell the ✕ stamps onto after the last reading. */
+const MAP_PRIZE = 10;
+
+function MapStage() {
+  return (
+    <div className="mgt-stage mgt-stage--map" aria-hidden>
+      <span className="mgt-spot" />
+      <div className="mgt-parchment">
+        <span className="mgt-map-isle" />
+        <div className="mgt-map-grid">
+          {Array.from({ length: 16 }).map((_, i) => {
+            // The chest lands last, as `found` — the same band the real board
+            // pays out in — so the sequence finishes the round instead of
+            // stopping on a hot reading.
+            const dig = i === MAP_PRIZE ? { band: "found", delay: "3.05s" } : MAP_DIGS[i];
+            return (
+              <span
+                key={i}
+                className="mgt-map-cell"
+                data-band={dig?.band}
+                style={{ ["--d" as string]: dig?.delay }}
+              >
+                {i === MAP_PRIZE && <span className="mgt-map-x">✕</span>}
+              </span>
+            );
+          })}
+        </div>
+        {/* Inside the sheet, not beside it: hung off the stage it sat half off
+            the paper and half on the sea, which reads as a stray glyph. */}
+        <span className="mgt-compass">✵</span>
+      </div>
     </div>
   );
 }
@@ -260,11 +311,12 @@ export function MiniGameTakeover({
             <SafeStage />
           ) : state.type === "FIND_BALL" ? (
             <CupsStage />
+          ) : state.type === "TREASURE_MAP" ? (
+            <MapStage />
           ) : (
-            // The two newer games share one sigil stage. A six-second
-            // announcement does not need a bespoke animation each — the flavour
-            // text and the palette already say which game arrived.
-            <SigilStage sigil={state.type === "TREASURE_MAP" ? "🗺️" : "❓"} />
+            // חידה keeps the sigil: its premise is a question, and there is no
+            // scene for that the flavour line does not already carry.
+            <SigilStage sigil="❓" />
           )}
         </div>
 

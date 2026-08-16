@@ -1,4 +1,5 @@
 import { LOCALE_TAG, type Locale } from "@/i18n/locale";
+import { GAME_TIMEZONE } from "./constants";
 
 /**
  * One formatter for both languages: Hebrew and English group thousands the same
@@ -151,9 +152,17 @@ export function formatShort(value: number): string {
  * to an English one, and a date that silently picks the wrong one is read
  * wrong rather than read as untranslated. Every caller is a server component or
  * a client component under the locale provider, so both have it to hand.
+ *
+ * The zone is pinned to Jerusalem, never left to the runtime's own. Most callers
+ * are server components, and the server's clock is UTC in production, so an
+ * unpinned formatter printed every date three hours behind the time the game
+ * actually runs on — the season's end date most visibly. Pinning also keeps a
+ * client caller from rendering one string on the server and another after
+ * hydration. Same rule as the war bell: every player reads one clock.
  */
 export function formatDate(date: Date, locale: Locale): string {
   return new Intl.DateTimeFormat(LOCALE_TAG[locale], {
+    timeZone: GAME_TIMEZONE,
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);

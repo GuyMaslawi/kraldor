@@ -8,6 +8,7 @@ import { PlayerLink } from "@/components/ui/PlayerLink";
 import { GuildLink } from "@/components/ui/GuildLink";
 import { GuildHall } from "@/components/game/GuildHall";
 import { isOnline } from "@/lib/game/chat";
+import { GAME_TIMEZONE } from "@/lib/game/constants";
 import { formatNumber } from "@/lib/game/format";
 import { getT } from "@/i18n/server";
 import { RichText } from "@/components/ui/RichText";
@@ -573,6 +574,9 @@ export default async function GuildPage() {
             const activeLabel =
               activeUntil && new Date(activeUntil).getTime() > new Date().getTime()
                 ? new Date(activeUntil).toLocaleTimeString("he-IL", {
+                    // Resolved on a server whose clock is UTC in production —
+                    // without this the label reads three hours early.
+                    timeZone: GAME_TIMEZONE,
                     hour: "2-digit",
                     minute: "2-digit",
                   })

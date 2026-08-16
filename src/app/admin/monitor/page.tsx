@@ -19,6 +19,7 @@ import {
   type FeedKind,
 } from "@/server/adminMonitor";
 import {
+  GAME_TIMEZONE,
   TICKS_PER_DAY,
   TURNS_UPGRADE_MAX_LEVEL,
 } from "@/lib/game/constants";
@@ -57,7 +58,11 @@ const FREE_DIAMOND_LUCK = 1_000;
 const nf = (n: number) => Math.round(n).toLocaleString("he-IL");
 
 function clock(d: Date): string {
-  return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString("he-IL", {
+    timeZone: GAME_TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function when(d: Date, now: Date): string {
@@ -404,7 +409,9 @@ export default async function AdminMonitorPage() {
                           </span>
                         )}
                         <span className="text-[10px] text-zinc-600">
-                          {a.createdAt.toLocaleDateString("he-IL")}
+                          {a.createdAt.toLocaleDateString("he-IL", {
+                            timeZone: GAME_TIMEZONE,
+                          })}
                         </span>
                       </span>
                     </li>

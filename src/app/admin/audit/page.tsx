@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
+import { GAME_TIMEZONE } from "@/lib/game/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export default async function AdminAuditPage() {
             {entries.map((e) => (
               <tr key={e.id} className="border-b border-border-subtle/50">
                 <td className="p-2 text-[11px] text-zinc-500 nums" dir="ltr">
-                  {e.createdAt.toLocaleString("he-IL")}
+                  {e.createdAt.toLocaleString("he-IL", { timeZone: GAME_TIMEZONE })}
                 </td>
                 <td className="p-2 text-[11px] text-zinc-400" dir="ltr">
                   {e.adminEmail}

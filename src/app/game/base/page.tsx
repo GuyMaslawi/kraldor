@@ -28,6 +28,7 @@ import {
 } from "@/server/gloryBoard";
 import { selectGlory } from "@/lib/game/achievements";
 import { wheelClock } from "@/lib/game/wheel";
+import { RegistrationPixel } from "@/components/analytics/RegistrationPixel";
 import { formatNumber, formatCompact, formatDate } from "@/lib/game/format";
 import { getShieldsForEmpires, shieldFlags } from "@/lib/game/diamondEffects";
 import { getI18n, getT } from "@/i18n/server";
@@ -37,9 +38,17 @@ export async function generateMetadata() {
   return { title: t("בסיס | KRALDOR") };
 }
 
-export default async function BasePage() {
+export default async function BasePage({
+  searchParams,
+}: {
+  // `?welcome=1` is set once, by the redirect that ends Google onboarding, and
+  // fires the campaign's conversion event. Nothing else on this screen reads a
+  // query parameter.
+  searchParams: Promise<{ welcome?: string }>;
+}) {
   const empire = await requireEmpire();
   const { t, locale } = await getI18n();
+  const justRegistered = (await searchParams).welcome === "1";
 
   const [
     recentBattles,
@@ -193,6 +202,7 @@ export default async function BasePage() {
 
   return (
     <div className="space-y-6">
+      {justRegistered && <RegistrationPixel />}
       <SectionHeading title={t("מרכז הפיקוד")} ornament={<Icon name="base" size={22} className="text-crimson" />} />
 
       {/* World records lead the screen: they are the one thing here about the

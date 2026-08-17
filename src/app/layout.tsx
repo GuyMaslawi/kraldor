@@ -5,6 +5,7 @@ import { LOCALE_DIR } from "@/i18n/locale";
 import { getI18n } from "@/i18n/server";
 import { LocaleProvider } from "@/i18n/client";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { AdPixels } from "@/components/analytics/AdPixels";
 
 const heebo = Heebo({
   // Both alphabets in one face, so switching to English does not also switch
@@ -47,6 +48,8 @@ export default async function RootLayout({
         {/* Every page change lands at the top of the new screen — Next's own
             default is to keep the scroll position. See ScrollToTop. */}
         <ScrollToTop />
+        {/* Renders nothing unless a campaign is live — see AdPixels. */}
+        <AdPixels />
         <LocaleProvider locale={locale}>{children}</LocaleProvider>
       </body>
     </html>

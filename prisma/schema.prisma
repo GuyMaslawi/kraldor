@@ -120,6 +120,23 @@ model User {
   /// 32-symbol alphabet is 60 bits — the code is not guessable, so `/r/<code>`
   /// is not an enumeration oracle for who plays here.
   referralCode  String?   @unique
+  /// First-touch ad attribution: which campaign this account arrived on, copied
+  /// off the `kr_attr` cookie at registration. See src/lib/attribution.ts for
+  /// what these hold and — more importantly — what they deliberately do not
+  /// (no click ids, nothing that identifies a person).
+  ///
+  /// They live on the **User**, not the Empire, for the same reason the referral
+  /// code does: a season restart deletes every empire, and the question these
+  /// answer — "did the players that ad bought stay?" — is a question about the
+  /// account, across seasons.
+  ///
+  /// All four are null for every account that did not arrive on a tagged link,
+  /// which is what organic traffic looks like and is a legitimate row in the
+  /// report rather than missing data.
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  utmContent    String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -130,6 +147,11 @@ model User {
   /// The alt-cluster lookups: group accounts by the address they share.
   @@index([signupIp])
   @@index([lastLoginIp])
+  /// The acquisition report (/admin/acquisition): every signup in a date window,
+  /// bucketed by campaign. Leading column is `createdAt` because the window is
+  /// always the selective half — a campaign runs for days inside an account
+  /// table that grows for seasons.
+  @@index([createdAt, utmSource])
 }
 
 /// One (browser, account) pair the game has seen — the backbone of the

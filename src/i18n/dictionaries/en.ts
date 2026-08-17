@@ -6432,4 +6432,116 @@ export const EN: Record<string, string> = {
   "פרי שטן ברמה <0> = דרגה <1> מתוך <2>, ובכל זאת <3> זהב בכל עדכון רגיל — יותר ממה שמכרה של אימפריה בת עיר אחת מפיק. חרב ברמה <4> = דרגה <5>, כלומר <6> מהתקרה באחוזים: <7> התקפה, ועוד <8> תפוקת מכרות ו־<9> אזרחים כמשניים; אותה רמה בכנפיים = <10> תורות בכל עדכון רגיל.":
     "A devil's fruit at level <0> is step <1> of <2>, and still pays <3> gold on every regular update — more than a one-city empire's mine produces. A sword at level <4> is step <5>, that is <6> of the percentage ceiling: <7> attack, plus <8> mine output and <9> citizens as secondaries; the same level on wings is <10> turns per regular update.",
 
+  /* ------------------------------------------------------------------ */
+  /* /play — the landing page a paid click arrives on                    */
+  /* ------------------------------------------------------------------ */
+
+  /* Ad copy, not UI copy: translated for what it has to *do* rather than word
+     for word. The Hebrew leans on nostalgia for a genre Israelis played in
+     Hebrew fifteen years ago; the English cannot borrow that and leans on the
+     wipe instead, which is the claim that works in any language. */
+  "קראלדור — משחק אסטרטגיה בעברית, בדפדפן":
+    "Kraldor — a browser strategy game",
+  "בנה אימפריה, גייס צבא, הצטרף לברית וכבוש את הדירוג. עונה חדשה כל 30 יום — כולם מתחילים מאפס. חינם, בדפדפן, בלי הורדה.":
+    "Build an empire, raise an army, join an alliance and conquer the ladder. A new season every 30 days — everyone starts from zero. Free, in your browser, no download.",
+  "משחק אסטרטגיה בעברית, בדפדפן. בנה אימפריה, גייס צבא, הצטרף לברית — וכבוש את הדירוג.":
+    "A strategy game in your browser. Build an empire, raise an army, forge an alliance — and conquer the ladder.",
+  "בלי הורדה, בלי אפ-סטור. נכנסים ומשחקים.":
+    "No download, no app store. Open it and play.",
+
+  /* the clock — the page's whole argument, in three states */
+  "העולם החדש נפתח בעוד": "The new world opens in",
+  "כולם מתחילים מאפס. באותו רגע.": "Everyone starts from zero. At the same moment.",
+  "{season} נחתמת בעוד": "{season} is sealed in",
+  /* what the clock says once it reaches zero. SeasonCountdown's own default
+     promises gates opening; this one counts down to the opposite. */
+  "העונה נחתמת…": "The season is being sealed…",
+  "ואז העולם נמחק וכולם מתחילים מאפס — כולל מי שנמצא עכשיו במקום הראשון.":
+    "Then the world is wiped and everyone starts from zero — including whoever is in first place right now.",
+  "כל 30 יום העולם נמחק וכולם מתחילים מאפס.":
+    "Every 30 days the world is wiped and everyone starts from zero.",
+
+  /* the ask */
+  "נרשמים באימייל או עם Google. לוקח פחות מדקה.":
+    "Sign up with email or Google. Takes under a minute.",
+  "כבר יש לי חשבון": "I already have an account",
+  "קבלו התראה כשהשערים נפתחים": "Get notified when the gates open",
+  "ההרשמה נפתחת יחד עם העונה. הצטרפו לדיסקורד ותדעו ראשונים.":
+    "Sign-ups open with the season. Join the Discord and you will know first.",
+  "העולם הזה נגמר בקרוב. הבא הוא שלכם.":
+    "This world ends soon. The next one is yours.",
+  "העולם מחכה.": "The world is waiting.",
+  "או קפצו קודם לדיסקורד": "Or drop into the Discord first",
+
+  /* the live counts */
+  "אימפריות בעולם": "Empires in the world",
+  "קרבות ב-24 שעות": "Battles in 24 hours",
+
+  /* section headings */
+  "איך זה עובד": "How it works",
+  "מה יש שם": "What is in there",
+  "שאלות שנשאלות": "Questions people ask",
+  "יש עוד הרבה — הכל מוסבר עד הסוף ב": "There is much more — all of it explained in the",
+  ", בלי להירשם.": ", without signing up.",
+
+  /* the three steps */
+  "מקימים אימפריה": "Found an empire",
+  "שם, גיבור, וכפר אחד. חופרים מכרות, בונים מחסנים, מייצרים נשק — כל דקה מייצרת משאבים גם כשאתם לא מחוברים.":
+    "A name, a hero, and one village. You dig mines, raise warehouses and forge weapons — every minute produces resources, including the ones you are not online for.",
+  "יוצאים לקרב": "March to war",
+  "מרגלים אחרי השכן, תוקפים את מי שנראה שמן מדי, ובוזזים לו את הזהב. מפסידים? גם זה קורה. החומות נבנות מחדש.":
+    "Spy on your neighbour, attack whoever looks too fat, and take their gold. Lose one? That happens too. Walls get rebuilt.",
+  "מצטרפים לברית": "Join an alliance",
+  "לבד לא מפילים מפלצת עולם ולא זוכים במלחמת בריתות. הברית היא מה שהופך את זה ממשחק לחיים חברתיים.":
+    "Nobody fells a world boss alone, and nobody wins the alliance war alone. The alliance is what turns this from a game into a social life.",
+
+  /* the six features */
+  "כל 24 שעות קמה חיה אחת שכל השרת מכה בה יחד. מי שהנחית את המכה האחרונה לוקח את הראש — והשלל מתחלק לפי מי שדימם אותה.":
+    "Every 24 hours one beast rises and the whole server strikes it together. Whoever lands the last blow takes the head — and the spoils are split by who bled it.",
+  "כל ערב ב-19:30 הבריתות מתנגשות. הקרב נלחם על ידי המערכת, בגודל הוגן — ברית קטנה לא נמחקת מול ברית ענקית.":
+    "Every evening at 19:30 the alliances collide. The battle is fought by the system, size-fair — a small alliance is not erased by a huge one.",
+  "טורניר בין שחקנים בדרגה שלכם. נכנסים, נלחמים, ומי שנשאר עומד לוקח את הקופה.":
+    "A tournament between players at your tier. You enter, you fight, and whoever is left standing takes the purse.",
+  "גיבור וציוד": "A hero and their gear",
+  "לגיבור שלכם יש מחלקה, רמה, נשק ושריון. הציוד נופל מקרבות שניצחתם, מתחלף כל 10 רמות, ואפשר לחשל אותו למעלה.":
+    "Your hero has a class, a level, a weapon and armour. Gear drops from battles you won, is redrawn every 10 levels, and can be forged upwards.",
+  "בכל עיר יושב עריץ אחד משותף לכל תושביה. להפיל אותו זו מצור, לא דו-קרב — וזה משתלם.":
+    "One tyrant sits in each city, shared by everyone who lives there. Bringing him down is a siege, not a duel — and it pays.",
+  "עונה של 30 יום": "A 30-day season",
+  "בסוף העונה הדירוג נחתם, שלושת הראשונים לוקחים יהלומים, השמות נכנסים להיכל התהילה — והעולם נמחק ומתחיל מחדש.":
+    "At the end of a season the ladder is sealed, the top three take diamonds, the names enter the Hall of Fame — and the world is wiped and begins again.",
+
+  /* the FAQ */
+  "צריך להוריד משהו?": "Do I need to download anything?",
+  "לא. קראלדור רץ בדפדפן — במחשב ובנייד. אין אפליקציה להתקין, אין אפ-סטור, אין עדכונים.":
+    "No. Kraldor runs in the browser, on desktop and phone. Nothing to install, no app store, no updates.",
+  "זה עולה כסף?": "Does it cost money?",
+  "אפשר לשחק את כל המשחק בחינם. יש חנות יהלומים שחוסכת זמן ומוסיפה נוחות, והיא לא קונה ניצחון בקרב — הכוח מגיע מהצבא, מהשדרוגים ומהברית.":
+    "The whole game is playable for free. There is a diamond shop that saves time and adds convenience, and it does not buy a win in battle — power comes from your army, your upgrades and your alliance.",
+  "מאוחר מדי להתחיל?": "Is it too late to start?",
+  "לא, וזו כל הנקודה. העולם נמחק כל 30 יום וכולם מתחילים מאפס באותו רגע. גם באמצע עונה אפשר להיכנס — נכנסים לעיר הראשונה, שבה כולם חדשים כמוכם.":
+    "No, and that is the whole point. The world is wiped every 30 days and everyone starts from zero at the same moment. You can also join mid-season — you arrive in the first city, where everyone is as new as you are.",
+  "כמה זמן ביום זה דורש?": "How much time a day does it take?",
+  "המכרות עובדים גם כשאתם לא. עשר דקות ביום מספיקות כדי להישאר בעניינים; מי שרוצה להיות במקום הראשון ישקיע יותר.":
+    "The mines work while you do not. Ten minutes a day is enough to stay in it; whoever wants first place will put in more.",
+  "המשחק בעברית?": "Is the game in Hebrew?",
+  "כולו. עברית מלאה, מימין לשמאל, כולל התמיכה והקהילה. יש גם אנגלית למי שמעדיף.":
+    "Entirely. Full right-to-left Hebrew, including support and the community. English is available too.",
+
+  /* ------------------------------------------------------------------ */
+  /* privacy — the advertising disclosures                               */
+  /* ------------------------------------------------------------------ */
+  "כדי למדוד את הפרסום של המשחק — לדעת מאיזו מודעה הגיעו שחקנים ואילו מודעות מביאות אנשים שנשארים לשחק.":
+    "To measure the game's advertising — to know which ad players arrived from, and which ads bring people who stay.",
+  "רשתות הפרסום Meta ו-TikTok — רק בתקופות שבהן רץ קמפיין פרסום, ורק העובדה שביקרת באתר או שנרשמת. אין להן גישה לחשבון, לנתוני המשחק או לרכישות.":
+    "The ad networks Meta and TikTok — only while an advertising campaign is running, and only the fact that you visited the site or signed up. They have no access to your account, your game data or your purchases.",
+  "רוב העוגיות באתר הן **עוגיות חיוניות** להפעלת המשחק. **אין באתר כלי אנליטיקה שעוקב אחרי מה שאתה עושה בתוך המשחק.** בתקופות שבהן אנחנו מפרסמים את המשחק נטענים גם פיקסלים של רשתות הפרסום — פירוט מלא בסעיף זה ובסעיף 3.":
+    "Most cookies on this site are **essential** to running the game. **There is no analytics tool here tracking what you do inside the game.** While we are advertising the game, advertising-network pixels are loaded as well — detailed in this clause and in clause 3.",
+  "**מקור ההגעה** — אם הגעת דרך מודעה, נשמרת עוגייה עם שם הקמפיין שהמודעה שייכת לו (למשל ‎meta / paid / launch‎). היא מאפשרת לנו לדעת אילו מודעות מביאות שחקנים שנשארים. **המזהים האישיים שרשתות הפרסום מוסיפות לכתובת (fbclid ודומיו) אינם נשמרים אצלנו כלל** — רק שם הקמפיין, שמשותף לכל מי שהגיע מאותה מודעה. העוגייה נמחקת אחרי 30 יום.":
+    "**Where you came from** — if you arrived through an ad, a cookie stores the name of the campaign that ad belongs to (for example ‎meta / paid / launch‎). It lets us tell which ads bring players who stay. **The personal identifiers ad networks append to the URL (fbclid and the like) are not stored by us at all** — only the campaign name, which is shared by everyone who arrived from that ad. The cookie is deleted after 30 days.",
+  "**פיקסלים של רשתות פרסום** — כשאנחנו מריצים קמפיין, נטענים באתר פיקסלים של Meta (פייסבוק ואינסטגרם) ו/או TikTok. הם מדווחים לרשת שביקרת באתר ושנרשמת, כדי שנוכל למדוד את הקמפיין ולהציג מודעה למי שהתעניין ולא נרשם. אלה **עוגיות של צד שלישי**, והשימוש בהן כפוף גם למדיניות הפרטיות של אותן חברות. **הפיקסלים אינם נטענים כלל כשאין קמפיין פעיל**, ואינם מדווחים דבר על מה שקורה בתוך המשחק — לא על האימפריה שלך, לא על הקרבות ולא על הרכישות.":
+    "**Advertising-network pixels** — while we are running a campaign, pixels from Meta (Facebook and Instagram) and/or TikTok are loaded on the site. They report to the network that you visited and that you signed up, so we can measure the campaign and show an ad to people who were interested and did not sign up. These are **third-party cookies**, and their use is also governed by those companies' privacy policies. **The pixels are not loaded at all when no campaign is running**, and they report nothing about what happens inside the game — not your empire, not your battles, not your purchases.",
+  "אפשר לחסום את הפיקסלים בלי לפגוע במשחק: כל תוסף חוסם פרסומות, או הגדרת ״מניעת מעקב״ בדפדפן, עוצרים אותם. המשחק עצמו ימשיך לעבוד במלואו.":
+    "You can block the pixels without harming the game: any ad blocker, or your browser's tracking-prevention setting, stops them. The game itself keeps working in full.",
+
 };

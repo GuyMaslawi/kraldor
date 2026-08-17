@@ -42,11 +42,21 @@ import { MAX_CITIES, type StorableResource } from "./constants";
  * the haul were all raised together on one instruction — the boss should be the
  * hardest thing in the game and pay like it. Felling one now takes about three
  * assaults from an army standing at its printed power (it used to take one), and
- * a life is worth about six times what it was. The two curves are kept in step on
- * purpose: `BOSS_REWARD_TIER_MULTIPLIER` now matches `BOSS_POWER_TIER_MULTIPLIER`
- * exactly, so a tenth-city tyrant is not merely bigger in both directions but
- * pays the *same* haul per unit of work as the first — which it did not before.
- * The arithmetic behind "harder, and worth it" is written out on each constant.
+ * a life is worth about six times what it was. That pass also set
+ * `BOSS_REWARD_TIER_MULTIPLIER` equal to `BOSS_POWER_TIER_MULTIPLIER`, believing
+ * it made the haul-per-unit-of-work flat across all ten tiers. It did not, and
+ * `BOSS_POWER_TIER_MULTIPLIER` now says at length why.
+ *
+ * **The wall is priced in power, not in resources (2026-08-17).** Every curve in
+ * this file rode the *resource* ladder (×2.5 a tier, `CITY_COST_TIER_MULTIPLIER`)
+ * — but an army is not bought in resources, it is bought in **power**, and power
+ * gets cheaper as the empire climbs: a weapon tier buys 25% more power per gold
+ * than the tier below it (see `WEAPON_POWER_GROWTH` against `WEAPON_COST_GROWTH`)
+ * and a city opens four of them (`weaponTierGate`), so a gold at city ten is worth
+ * a thousand times the *power* a gold at city one is. Nothing here accounted for
+ * that, so the printed wall — the one number the whole encounter is calibrated
+ * against — quietly stopped meaning anything past the middle cities. The fix is
+ * one number, and it is on `BOSS_POWER_TIER_MULTIPLIER`.
  *
  * Deliberately absent: diamonds. Same reasoning as the season pass — a
  * repeatable source of diamonds undercuts the real-money store (see
@@ -213,10 +223,62 @@ export function bossTurnCost(cities: number): number {
 export const BOSS_BASE_POWER = 30_000;
 
 /**
- * Power multiplier per city tier. Matches CITY_COST_TIER_MULTIPLIER, so the
- * boss keeps pace with the empire that founded the city it guards.
+ * Power multiplier per city tier.
+ *
+ * **2.5 → 4.5 on 2026-08-17**, and the reason is the most important thing in this
+ * file: the wall used to be priced on the wrong curve entirely.
+ *
+ * It matched `CITY_COST_TIER_MULTIPLIER` (×2.5) on the reasoning that "the boss
+ * keeps pace with the empire that founded the city it guards". That compares a
+ * *resource* ladder against an army, and the two are not the same ladder. An army
+ * is bought in power, and the price of power collapses as the empire climbs:
+ * `WEAPON_POWER_GROWTH` (2.5) outruns `WEAPON_COST_GROWTH` (2) on purpose, so each
+ * weapon tier buys ×1.25 the power per gold, and `weaponTierGate` opens four tiers
+ * per city — **×2.44 more power per gold for every city founded**. Nine cities of
+ * that is ×1,011, and nothing in the boss's curve knew about it.
+ *
+ * What that did to the fixture, measured (day 1, S-grade kill, gold converted into
+ * the best attack weapon the tier unlocks):
+ *
+ *   one kill's gold bought    city 1  ×6 the wall
+ *                             city 5  ×213
+ *                             city 9  ×6,040
+ *
+ * So the first kill at any middle city funded an army thousands of times the wall,
+ * and from then on the tyrant died to a single assault, for good. Everything the
+ * encounter is made of — the five marches, the tactic matrix, the fury meter, the
+ * grade — was decoration past city 4 or so. The same gap showed up in the loot: an
+ * empire putting the same gold into weapons at every tier earned ×160 the loot per
+ * turn at city 9 that it did at city 1, because the pool it was chipping had grown
+ * far slower than the army chipping it.
+ *
+ * **Why 4.5 and not 6.1.** ×6.1 (= 2.5 × 2.44) is the arithmetically "correct"
+ * figure: it holds "a kill's gold buys ×6 the wall" flat at all ten tiers, exactly
+ * as city one has it. It is also the wrong number to ship, and the reason is
+ * `bossTurnCost`: turn income is the one quantity in this game that does **not**
+ * grow with the city ladder (`turnsPerRegularUpdate` tops out at 5 a tick, so 1,440
+ * a day at city one and at city ten alike). A wall on the full ×6.1 curve cuts the
+ * boss's loot per turn to 5% of the first city's by the tenth, which does not make
+ * the fixture hard — it closes it, and leaves the tyrant a board only new empires
+ * have any reason to march on.
+ *
+ * 4.5 is where the two demands meet. Measured across the ladder:
+ *
+ *   a kill's gold buys    ×6 → ×55 the wall   (was ×6 → ×6,040)
+ *   loot per turn         ×0.73 … ×1.49 of city one's   (was ×1 → ×160)
+ *
+ * — so the printed power is a wall the whole way up, the haul per turn is finally
+ * near enough flat to call flat, and climbing the city ladder is still worth it.
+ *
+ * Only the slope moved. {@link BOSS_BASE_POWER} is untouched, so the first city's
+ * tyrant — the one a new player meets — is exactly the fight it was yesterday.
+ *
+ * `boss.powerMultiplier` is the live dial, and it reaches the pool too
+ * (`bossSiegeMaxHp`), so a server that finds this too steep can be walked back
+ * without a deploy. Lives already standing are re-fitted rather than re-priced —
+ * see `refitSiegePool`, which exists for exactly this kind of change.
  */
-export const BOSS_POWER_TIER_MULTIPLIER = 2.5;
+export const BOSS_POWER_TIER_MULTIPLIER = 4.5;
 
 /**
  * The boss's reference battle power. Static by design and printed on the boss
@@ -224,10 +286,21 @@ export const BOSS_POWER_TIER_MULTIPLIER = 2.5;
  *
  * It is the yardstick, not the verdict: the boss's health pool is a multiple of
  * it (`bossSiegeMaxHp`) and each round's damage is a fraction of the attacker's
- * power, so the printed power reads as a ladder rather than as a pass/fail line —
- * an army *at* the wall fells the tyrant in about three assaults, one at double
- * it in two, one at triple in one, and one under it chips away and is paid for
- * the work. Casualties are dealt per round by the tactic matrix.
+ * power, so the printed power reads as a ladder rather than as a pass/fail line.
+ * Measured over 2,000 simulated sieges (hero level 1 / level 100):
+ *
+ *   at the wall   5.2 / 4.1 assaults      ×3 the wall   2.0 / 2.0
+ *   ×2 the wall   3.0 / 2.1               ×5 the wall   1.3 / 1.0
+ *
+ * — and an army under the wall chips away across more of them and is paid for
+ * every one. Casualties are dealt per round by the tactic matrix. (The figures
+ * here read "three at the wall, two at double, one at triple" until 2026-08-17;
+ * they were left behind by the 2026-08-14 pass that took `BOSS_HP_PER_POWER`
+ * from 18 to 30, which is the constant that decides them.)
+ *
+ * The ladder is only a ladder while the rungs are reachable *and* the top one
+ * costs something. See {@link BOSS_POWER_TIER_MULTIPLIER} for how the wall lost
+ * that property at the higher cities and what puts it back.
  */
 export function bossPower(cities: number, powerMultiplier = 1): number {
   const tier = Math.min(MAX_CITIES, Math.max(1, Math.floor(cities)));
@@ -313,15 +386,24 @@ export const BOSS_REWARD_SCALE = 15;
 export const BOSS_REWARD_SCALE_SLAVES = 1;
 
 /**
- * Resource reward multiplier per city tier — deliberately *identical* to
- * `BOSS_POWER_TIER_MULTIPLIER`.
+ * Resource reward multiplier per city tier — the *resource* ladder, and it stays
+ * on `CITY_COST_TIER_MULTIPLIER` (×2.5) because that is what it pays in.
  *
- * It was 2.4 against the power's 2.5, and that gap compounded the wrong way: nine
- * tiers of `(2.4 / 2.5)` left the tenth city's tyrant paying ~31% less per unit of
- * work than the first city's, so climbing the city ladder quietly made the boss a
- * worse deal at exactly the point it became a bigger commitment. Matching the two
- * curves makes the haul-per-turn flat across all ten tiers: every city up is more
- * power on the wall *and* proportionally more resources behind it.
+ * It was 2.4 against 2.5 once, and that gap compounded the wrong way: nine tiers
+ * of `(2.4 / 2.5)` left the tenth city's tyrant paying ~31% less per unit of work
+ * than the first city's, so climbing the city ladder quietly made the boss a worse
+ * deal at exactly the point it became a bigger commitment. Matching the two put the
+ * haul where a tier's economy is.
+ *
+ * **It did not, as the 2026-08-06 note here used to claim, make haul-per-turn flat
+ * across the ten tiers** — matching this to `BOSS_POWER_TIER_MULTIPLIER` only makes
+ * the haul flat *per point of the boss's health*, which is a different statement.
+ * What a player spends is turns, and turns bought a fast-growing amount of damage
+ * (the army they buy with a tier's gold grows ×2.44 a tier beyond the resources
+ * themselves — see `BOSS_POWER_TIER_MULTIPLIER`) against a pool that was growing
+ * only ×2.5. The flattening is that constant's job, and it is done there, on the
+ * wall, rather than here: the haul is meant to track what a tier's economy is
+ * worth, and it does.
  */
 export const BOSS_REWARD_TIER_MULTIPLIER = 2.5;
 

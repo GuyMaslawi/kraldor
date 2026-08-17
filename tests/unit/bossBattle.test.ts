@@ -6,6 +6,7 @@ import {
   BOSS_FURY_MAX,
   BOSS_FURY_ON_MISREAD,
   BOSS_FURY_PER_ROUND,
+  BOSS_GRADE_BONUS,
   BOSS_HP_PER_POWER,
   BOSS_KILL_SHARE,
   BOSS_LOSS_ENGAGEMENT_FLOOR,
@@ -54,7 +55,9 @@ import {
   bossPower,
   bossReviveMs,
   bossReward,
+  bossTurnCost,
 } from "@/lib/game/bosses";
+import { WEAPONS, weaponTierGate } from "@/lib/game/weapons";
 
 const MOVES: BossMove[] = ["SMASH", "SWEEP", "EXPOSED"];
 const COUNTERS: BossCounter[] = ["ASSAULT", "SHIELD", "FLANK"];
@@ -881,15 +884,73 @@ describe("the reward scale-up", () => {
     expect(bossReward(1, 10).gold).toBeGreaterThan(bossReward(1, 1).gold);
   });
 
-  it("pays the same haul per point of damage at every city tier", () => {
-    // The reward curve and the power curve are the same number on purpose (see
-    // BOSS_REWARD_TIER_MULTIPLIER). While they differed, nine tiers of 2.4/2.5
-    // compounded into the tenth city's tyrant paying ~31% less per unit of work
-    // than the first city's — the boss got quietly stingier the further you
-    // climbed, which is exactly backwards.
-    const rate = (tier: number) => bossReward(tier, 1).gold / bossSiegeMaxHp(tier);
+  it("keeps the printed wall a wall at every city tier", () => {
+    // The test this replaced asserted `haul / bossSiegeMaxHp` was flat across the
+    // tiers and called that "the same haul per unit of work". It is not: work is
+    // paid in *turns*, and what a turn is worth against the tyrant depends on the
+    // army the tier's gold buys — which grows ×2.44 a city beyond the resources
+    // themselves, because a city opens four weapon tiers and each buys 25% more
+    // power per gold (`weaponTierGate`, WEAPON_POWER_GROWTH vs WEAPON_COST_GROWTH).
+    //
+    // Nothing in the boss's curve knew that, so the wall fell away underneath the
+    // ladder: one kill's gold, converted into the best attack weapon its city
+    // unlocks, bought ×6 the printed power at city 1 and ×6,040 at city 9. Past
+    // the middle cities the first kill funded a one-shot army for the rest of the
+    // season and the entire encounter — five marches, the matrix, fury, the grade —
+    // stopped happening. See BOSS_POWER_TIER_MULTIPLIER.
+    const perGold = (cities: number) => {
+      const attack = WEAPONS.filter((w) => w.category === "ATTACK");
+      let best = attack[0];
+      attack.forEach((w, i) => {
+        if (weaponTierGate(i + 1).cities <= cities) best = w;
+      });
+      return best.power / best.cost.gold;
+    };
+    const takeS = BOSS_CHIP_SHARE + BOSS_KILL_SHARE * BOSS_GRADE_BONUS.S;
+    const buysWalls = (tier: number) =>
+      (bossReward(tier, 1).gold * takeS * perGold(tier)) / bossPower(tier);
+
+    // A kill is meant to fund an army several times the wall — that is the reward
+    // for felling it. Several, not thousands: once a haul buys three figures of
+    // walls the fixture has no fight left in it at that tier or any above it.
+    for (let tier = 1; tier <= 10; tier++) {
+      expect(buysWalls(tier)).toBeGreaterThan(3);
+      expect(buysWalls(tier)).toBeLessThan(100);
+    }
+  });
+
+  it("pays a flat-ish haul per turn across the city ladder", () => {
+    // The other half of the same fix, and the one a player feels. For an empire
+    // that puts the same gold into weapons at every tier, loot per turn is
+    //
+    //   (army damage / the pool it chips) × haul ÷ the turns an assault costs
+    //
+    // and it ran ×1 → ×160 from city 1 to city 9 before BOSS_POWER_TIER_MULTIPLIER
+    // went to 4.5 — the boss paid two orders of magnitude better the higher you
+    // climbed, on top of already being trivial to fell up there.
+    //
+    // Turn income is flat at every city tier (`turnsPerRegularUpdate` tops out at
+    // 5 a tick), which is why this is the ratio that has to stay level and why the
+    // arithmetically exact ×6.1 wall was not shipped: it would have driven this to
+    // 0.05 at city ten and closed the fixture. A factor of two either way over ten
+    // tiers is what "flat" can honestly mean here.
+    const perGold = (cities: number) => {
+      const attack = WEAPONS.filter((w) => w.category === "ATTACK");
+      let best = attack[0];
+      attack.forEach((w, i) => {
+        if (weaponTierGate(i + 1).cities <= cities) best = w;
+      });
+      return best.power / best.cost.gold;
+    };
+    const takeS = BOSS_CHIP_SHARE + BOSS_KILL_SHARE * BOSS_GRADE_BONUS.S;
+    const lootPerTurn = (tier: number) =>
+      (perGold(tier) * BOSS_ROUND_DAMAGE_BASE * bossReward(tier, 1).gold * takeS) /
+      (bossSiegeMaxHp(tier) * bossTurnCost(tier));
+
     for (let tier = 2; tier <= 10; tier++) {
-      expect(rate(tier) / rate(1)).toBeCloseTo(1, 2);
+      const ratio = lootPerTurn(tier) / lootPerTurn(1);
+      expect(ratio).toBeGreaterThan(0.5);
+      expect(ratio).toBeLessThan(2);
     }
   });
 

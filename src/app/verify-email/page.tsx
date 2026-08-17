@@ -7,6 +7,7 @@ import { requireOpenSeason } from "@/server/seasonGuard";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { ResendVerification } from "@/components/auth/ResendVerification";
 import { FormMessage } from "@/components/ui/FormMessage";
+import { RegistrationPixel } from "@/components/analytics/RegistrationPixel";
 import { getT } from "@/i18n/server";
 
 export async function generateMetadata() {
@@ -30,7 +31,7 @@ export const dynamic = "force-dynamic";
 export default async function VerifyEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; welcome?: string }>;
 }) {
   // Shut with the rest of the site between seasons (see seasonGuard). A link
   // that expires unclicked during the break costs its owner nothing: there is
@@ -38,7 +39,12 @@ export default async function VerifyEmailPage({
   // moment the next season opens.
   await requireOpenSeason();
   const t = await getT();
-  const { token } = await searchParams;
+  const { token, welcome } = await searchParams;
+
+  // Set only by the redirect at the end of `register` — this is the moment an
+  // empire came into existence, and the only moment the campaign counts a
+  // conversion. See RegistrationPixel.
+  const justRegistered = welcome === "1" && !token;
 
   if (token) {
     const result = await verifyEmailToken(token);
@@ -51,7 +57,7 @@ export default async function VerifyEmailPage({
             <p className="text-sm text-zinc-400">
               {t("החשבון שלך פעיל. אפשר להיכנס ולהתחיל לבנות.")}
             </p>
-            <Link href="/game/base" className="btn btn-primary block w-full py-2">
+            <Link href="/game/base" className="btn btn-gold block w-full py-2">
               {t("כניסה למשחק")}
             </Link>
           </div>
@@ -83,6 +89,7 @@ export default async function VerifyEmailPage({
 
   return (
     <AuthShell>
+      {justRegistered && <RegistrationPixel />}
       <div className="space-y-4 text-center">
         <div className="text-4xl">📬</div>
         <h2 className="text-xl font-bold text-zinc-100">{t("אמת את האימייל שלך")}</h2>

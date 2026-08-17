@@ -14441,3 +14441,102 @@ button.vil-lot:hover .vil-plaque,
   }
   .ann-rays { display: none; }
 }
+
+/* ==========================================================================
+   /play — the landing page a paid click arrives on.
+
+   It borrows the gate's world wholesale: same besieged capital behind it, same
+   crest, same wordmark, same entrance choreography (`gate-crest`, `gate-word`,
+   `gate-fade` all come from the block above). What it adds is only what a long
+   scrolling page needs and a login form does not — sections that arrive as the
+   reader reaches them, and cards that stagger within a row.
+
+   The one rule that matters here: **nothing on this page may depend on motion
+   to be readable**. It is the first thing a stranger sees, it is frequently
+   opened from an in-app browser on a phone with reduced motion on, and a
+   section that animates in from opacity 0 and never arrives is a blank page and
+   a wasted click. Every rule below is an `animation` on an element that is
+   fully visible without it, and the whole block goes still at the foot.
+   ========================================================================== */
+
+.lnd-lede {
+  animation: lnd-rise 0.6s ease-out 0.5s backwards;
+}
+.lnd-lede-sub {
+  animation: lnd-rise 0.6s ease-out 0.62s backwards;
+}
+.lnd-clock {
+  animation: lnd-rise 0.7s cubic-bezier(0.22, 0.9, 0.3, 1) 0.74s backwards;
+}
+
+/* `backwards`, never `both` — see the gate block's note. `both` holds the
+   final frame and the element stops responding to hover afterwards, which on
+   the primary call to action is a button that looks dead. */
+.lnd-cta {
+  animation: lnd-cta-in 0.6s cubic-bezier(0.22, 0.9, 0.3, 1) 0.88s backwards;
+}
+
+@keyframes lnd-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lnd-cta-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The three live counts, dealt left to right. `--i` is set inline by the page. */
+.lnd-count {
+  animation: lnd-rise 0.5s ease-out calc(1s + var(--i) * 0.08s) backwards;
+}
+
+/* --- sections that arrive as they are scrolled to ------------------------ */
+
+/* `animation-timeline: view()` rather than an IntersectionObserver: this page's
+   entire client bundle is one countdown, and adding a scroll observer to it to
+   fade in some cards would be the most expensive thing on the screen. Browsers
+   without scroll-driven animation support simply ignore the timeline and run
+   the animation once on load, which lands every card at full opacity — the
+   degradation is "it does not stagger", never "it is invisible". */
+.lnd-card,
+.lnd-faq {
+  animation: lnd-rise 0.5s ease-out both;
+  animation-timeline: view();
+  animation-range: entry 0% cover 22%;
+}
+
+/* Within a row the cards deal in order. Only applied where the page sets --i;
+   the FAQ rows have no index and all arrive together, which is right for a
+   stack of one-line summaries. */
+.lnd-card {
+  animation-delay: calc(var(--i, 0) * 0.05s);
+}
+
+.lnd-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lnd-lede,
+  .lnd-lede-sub,
+  .lnd-clock,
+  .lnd-cta,
+  .lnd-count,
+  .lnd-card,
+  .lnd-faq {
+    animation: none;
+  }
+}

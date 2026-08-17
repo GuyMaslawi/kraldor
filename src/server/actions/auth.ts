@@ -11,6 +11,7 @@ import { banNotice, isBanned } from "@/lib/ban";
 import { clientIp, clientIpForStorage, rateLimit } from "@/lib/rateLimit";
 import { rememberDevice } from "@/lib/device";
 import { consumePendingReferral } from "@/server/referralGuard";
+import { signupAttribution } from "@/server/attribution";
 import { verifyGoogleIdToken } from "@/lib/google";
 import { newEmpireData } from "@/lib/game/createEmpire";
 import { normalizeName } from "@/lib/game/text";
@@ -365,12 +366,24 @@ export async function register(
   // clientIpForStorage).
   const signupIp = await clientIpForStorage();
 
+  // Which ad brought them, if any — off the first-touch cookie the proxy set on
+  // arrival (src/lib/attribution.ts). Read before the transaction because it is
+  // a cookie lookup, not a query, and must not sit inside one.
+  const attribution = await signupAttribution();
+
   let user;
   let empireId: string;
   try {
     const founded = await prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
-        data: { email, passwordHash, name, signupIp, lastLoginIp: signupIp },
+        data: {
+          email,
+          passwordHash,
+          name,
+          signupIp,
+          lastLoginIp: signupIp,
+          ...attribution,
+        },
       });
       const empire = await tx.empire.create({
         data: newEmpireData(
@@ -415,7 +428,10 @@ export async function register(
   await sendVerificationEmail({ id: user.id, email: user.email, name: user.name });
 
   await createSession(user.id, user.tokenVersion);
-  redirect("/verify-email");
+  // `?welcome=1` is what mounts the conversion pixel on the other side — see
+  // RegistrationPixel. It marks *this* arrival, not the page, so a player who
+  // comes back to /verify-email tomorrow does not count as a second signup.
+  redirect("/verify-email?welcome=1");
 }
 
 const loginSchema = z.object({
@@ -785,6 +801,11 @@ export async function googleSignIn(credential: string): Promise<AuthState> {
           emailVerified: new Date(),
           signupIp: googleIp,
           lastLoginIp: googleIp,
+          // Only on the create branch. Reaching here with an existing `user`
+          // means this Google identity was linked to an account that already
+          // had a first touch of its own, and overwriting it would re-credit an
+          // old player to whatever ad they most recently happened to click.
+          ...(await signupAttribution()),
         },
       });
     } catch (e) {
@@ -979,5 +1000,9 @@ export async function createEmpireForCurrentUser(
   );
   if (err) return err;
 
-  redirect("/game/base");
+  // The Google path's conversion point. A Google account exists from the moment
+  // the button is pressed, but it has no empire and cannot reach a game screen —
+  // *this* line is where a player actually joins, so this is what the campaign
+  // counts. Same one-shot flag as the password path; see RegistrationPixel.
+  redirect("/game/base?welcome=1");
 }

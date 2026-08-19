@@ -2229,12 +2229,8 @@ export async function GuideContent({
                       desc: t("אלה לא רצים עם הכלכלה — בניין הגידול משלם כמות קבועה בכל עדכון יומי, ושדרוג התורות משלם רמה אחת בכל עדכון רגיל — ולכן שניהם עולים בחזקת הדרגה ובתקרה נמוכה בכוונה. נעליים רמה 1 נותנות {p0} אזרחים בכל עדכון יומי, רמה 10 נותנות {p1}, ורמה 100 נותנות {p2}. כנפיים רמה 100 נותנות {p3} תורות בכל עדכון רגיל — בדיוק כמו שדרוג התורות המלא, ולא יותר. חפץ לא אמור להחליף את הבניין או את השדרוג שקיימים בשביל זה.", { p0: itemStatBonus("BOOTS", 1, "citizens"), p1: itemStatBonus("BOOTS", 10, "citizens"), p2: itemPrimaryBonus("BOOTS", HERO_MAX_LEVEL).value, p3: itemPrimaryBonus("WINGS", HERO_MAX_LEVEL).value }),
                     },
                     {
-                      term: t("כוח קרב"),
-                      desc: t("לצד כל אחוז לחימה יש גם כוח קבוע, באותו משקל. הוא נספר יחד עם החיילים והנשקים — לא מעליהם — ולכן כל האחוזים מוכפלים גם עליו. חרב ראשית נותנת {p0} ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100; חפץ שנותן את הסטט כמשני נותן רבע עד חצי מזה. נעליים הן המשבצת היחידה בלי כוח קרב — היא לא נלחמת.", { p0: formatNumber(itemStatBonus("SWORD", 1, "attackPower")), p1: formatNumber(itemStatBonus("SWORD", 50, "attackPower")), p2: formatNumber(itemStatBonus("SWORD", HERO_MAX_LEVEL, "attackPower")) }),
-                    },
-                    {
                       term: t("יהלומים"),
-                      desc: t("מכנסיים הן המשבצת היחידה שמזקקת יהלומים, וכמשני בלבד: {p0} בכל עדכון יומי ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100 — כלומר {p3} יהלומים ביום בציוד המקסימלי. זה טפטוף מכוון — יהלומים הם מטבע אמיתי, ולא אמורים להיות הכנסה, ולכן הם היחידים (יחד עם האזרחים) שממתינים לעדכון היומי.", { p0: itemStatBonus("PANTS", 1, "diamonds"), p1: itemStatBonus("PANTS", 50, "diamonds"), p2: itemStatBonus("PANTS", HERO_MAX_LEVEL, "diamonds"), p3: flatStatPerDay("diamonds", itemStatBonus("PANTS", HERO_MAX_LEVEL, "diamonds")) ?? 0 }),
+                      desc: t("מכנסיים הן המשבצת היחידה שמזקקת יהלומים, וכמשני בלבד: {p0} בכל עדכון יומי ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100 — כלומר {p3} יהלומים ביום בציוד המקסימלי. זה טפטוף מכוון — יהלומים הם מטבע אמיתי, ולא אמורים להיות הכנסה, ולכן הם היחידים (יחד עם האזרחים) שממתינים לעדכון היומי.", { p0: itemStatBonus("PANTS", 1, "diamonds"), p1: itemStatBonus("PANTS", 50, "diamonds"), p2: itemStatBonus("PANTS", HERO_MAX_LEVEL, "diamonds"), p3: flatStatPerDay("diamonds", itemStatBonus("PANTS", HERO_MAX_LEVEL, "diamonds")) }),
                     },
                     {
                       term: t("משאבים — שני כלים"),

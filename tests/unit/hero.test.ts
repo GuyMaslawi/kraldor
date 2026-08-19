@@ -12,8 +12,6 @@ import {
   ITEM_LEVELS,
   PRIMARY_WEIGHT,
   MINOR_EXTRA_WEIGHT,
-  HERO_POWER_STATS,
-  HERO_PERCENT_STATS,
   HERO_CADENCE_META,
   HERO_CADENCE_ORDER,
   HERO_FLAT_CADENCE,
@@ -22,8 +20,6 @@ import {
   UPDATES_PER_DAY,
   flatStatPerDay,
   flatStatsWithCadence,
-  POWER_STAT_FOR,
-  type HeroStat,
   RARITY_ORDER,
   SLOT_META,
   SLOT_ORDER,
@@ -661,16 +657,11 @@ describe("item stats", () => {
     // were exactly that (1.25 against everyone else's 1.5) for as long as an
     // extra was worth a flat quarter.
     //
-    // Measured over the *percentage/economy* budget only. The flat power twins
-    // are a parallel budget with its own rule (the mirror test below), and
-    // diamonds are a deliberate single-slot outlier — folding either in would
-    // make this assertion say nothing about the thing it exists to protect.
+    // Measured over the *percentage/economy* budget only. Diamonds are a
+    // deliberate single-slot outlier — folding them in would make this
+    // assertion say nothing about the thing it exists to protect.
     const economy = (slot: (typeof SLOT_ORDER)[number]) =>
-      SLOT_META[slot].stats.filter(
-        (s) =>
-          !(HERO_POWER_STATS as readonly string[]).includes(s.stat) &&
-          s.stat !== "diamonds"
-      );
+      SLOT_META[slot].stats.filter((s) => s.stat !== "diamonds");
     const budgets = SLOT_ORDER.map((slot) =>
       economy(slot).reduce((sum, s) => sum + s.weight, 0)
     );
@@ -685,38 +676,27 @@ describe("item stats", () => {
     }
   });
 
-  it("mirrors every combat percentage with a flat power line of equal weight", () => {
-    // The rule that keeps a slot's combat identity from drifting between its
-    // two instruments: a slot that pays attack% pays attackPower at exactly the
-    // same weight, and pays a power stat for nothing else. 🥾 is the one slot
-    // with no combat stat at all, and so must carry no power line either.
+  it("never grants the same stat twice on one slot", () => {
+    // The flat "power twins" were removed on 2026-08-19: a combat bonus is
+    // stated once, as a percentage. No slot may list a stat twice in any form.
     for (const slot of SLOT_ORDER) {
-      const weightOf = (stat: string) =>
-        SLOT_META[slot].stats.find((s) => s.stat === stat)?.weight ?? 0;
-      for (const pct of HERO_PERCENT_STATS) {
-        expect(weightOf(POWER_STAT_FOR[pct])).toBe(weightOf(pct));
-      }
-    }
-    // …and the mirror is not vacuous: the slots that fight do carry it.
-    expect(SLOT_ORDER.filter((s) => slotGrants(s, "attackPower"))).toContain("SWORD");
-    expect(SLOT_ORDER.filter((s) => slotGrants(s, "defensePower"))).toContain("ARMOR");
-    for (const stat of HERO_POWER_STATS) {
-      expect(slotGrants("BOOTS", stat)).toBe(false);
+      const stats = SLOT_META[slot].stats.map((s) => s.stat);
+      expect(new Set(stats).size).toBe(stats.length);
     }
   });
 
-  it("climbs the power ladder on every single rung", () => {
+  it("climbs the geometric resource ladder on every single rung", () => {
     // A geometric curve over 40 rungs, rounded to three significant figures,
     // must still strictly increase — the rounding that made a level-based bonus
     // pay +17 → +17 is the reason bonuses are keyed to the rung at all.
-    for (const stat of HERO_POWER_STATS) {
-      const armed = SLOT_ORDER.find((s) => slotGrants(s, stat))!;
-      let previous = 0;
-      for (const level of ITEM_LEVELS) {
-        const value = itemStatBonus(armed, level, stat);
-        expect(value).toBeGreaterThan(previous);
-        previous = value;
-      }
+    const armed = SLOT_ORDER.find(
+      (s) => slotGrants(s, "resources") && slotStatIsFlat(s, "resources")
+    )!;
+    let previous = 0;
+    for (const level of ITEM_LEVELS) {
+      const value = itemStatBonus(armed, level, "resources");
+      expect(value).toBeGreaterThan(previous);
+      previous = value;
     }
   });
 
@@ -789,7 +769,7 @@ describe("when a flat bonus is paid", () => {
     for (const stat of HERO_FLAT_STATS) {
       expect(HERO_CADENCE_ORDER).toContain(HERO_FLAT_CADENCE[stat]);
     }
-    // …and the three groups partition the flat stats: nothing paid twice, nothing
+    // …and the groups partition the flat stats: nothing paid twice, nothing
     // left with no clock at all.
     const grouped = HERO_CADENCE_ORDER.flatMap((c) => flatStatsWithCadence(c));
     expect(grouped.sort()).toEqual([...HERO_FLAT_STATS].sort());
@@ -800,11 +780,6 @@ describe("when a flat bonus is paid", () => {
     // update, except the two stats whose base is itself daily.
     expect(flatStatsWithCadence("regular").sort()).toEqual(["resources", "turns"]);
     expect(flatStatsWithCadence("daily").sort()).toEqual(["citizens", "diamonds"]);
-    // The three power stats are on no clock at all — they are counted inside the
-    // fight, which is why a settlement pays them nothing.
-    expect(flatStatsWithCadence("battle").sort()).toEqual(
-      [...HERO_POWER_STATS].sort()
-    );
   });
 
   it("names its own cadence in every label the player reads", () => {
@@ -816,7 +791,6 @@ describe("when a flat bonus is paid", () => {
     };
     for (const stat of HERO_FLAT_STATS) {
       const cadence = HERO_FLAT_CADENCE[stat];
-      if (cadence === "battle") continue;
       const meta = HERO_STAT_META[stat];
       const word = CADENCE_WORD[cadence];
       const other = CADENCE_WORD[cadence === "regular" ? "daily" : "regular"];
@@ -836,12 +810,6 @@ describe("when a flat bonus is paid", () => {
   it("counts a day's worth of each clock", () => {
     expect(UPDATES_PER_DAY.regular).toBe(TICKS_PER_DAY);
     expect(UPDATES_PER_DAY.daily).toBe(DAILY_UPDATE_TIMES.length);
-    // A battle stat has no clock, so it has no daily total either — null, not 0,
-    // which would read as "it pays nothing".
-    expect(UPDATES_PER_DAY.battle).toBe(0);
-    for (const stat of HERO_POWER_STATS) {
-      expect(flatStatPerDay(stat, 1_000)).toBeNull();
-    }
     // The two figures the hero page prints beside each other.
     expect(flatStatPerDay("citizens", 450)).toBe(900);
     expect(flatStatPerDay("turns", 5)).toBe(1_440);

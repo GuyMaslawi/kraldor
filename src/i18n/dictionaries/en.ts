@@ -2306,23 +2306,9 @@ export const EN: Record<string, string> = {
   "כוח האימפריה": "Empire power",
   "כוח התקפה": "Attack power",
   "כוח הגנה": "Defence power",
-  "כוח ציוד": "Gear power",
-  "נספר עם החיילים והנשקים בתקיפה": "Counted with the soldiers and weapons when attacking",
-  "נספר עם החיילים והנשקים בהגנה": "Counted with the soldiers and weapons when defending",
-  "נספר עם המרגלים בכל משימת ריגול": "Counted with the spies on every spy mission",
   "מזוקק מהמכנסיים בלבד": "Distilled by the trousers alone",
-  // "כוח קרב" is not repeated here — the battle-report section below already
-  // carries it ("Battle power"), and the guide's legend heading is the same word.
-  "לצד כל אחוז לחימה יש גם כוח קבוע, באותו משקל. הוא נספר יחד עם החיילים והנשקים — לא מעליהם — ולכן כל האחוזים מוכפלים גם עליו. חרב ראשית נותנת {p0} ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100; חפץ שנותן את הסטט כמשני נותן רבע עד חצי מזה. נעליים הן המשבצת היחידה בלי כוח קרב — היא לא נלחמת.":
-    "Every combat percentage is matched by a flat power of the same weight. It is counted together with the soldiers and the weapons — not on top of them — so every percentage multiplies it too. A sword's headline power is {p0} at level 1, {p1} at level 50 and {p2} at level 100; a slot that carries the stat as an extra pays a quarter to a half of that. Boots are the one slot with no combat power at all — they do not fight.",
   "מכנסיים הן המשבצת היחידה שמזקקת יהלומים, וכמשני בלבד: {p0} בכל עדכון יומי ברמה 1, {p1} ברמה 50 ו־{p2} ברמה 100 — כלומר {p3} יהלומים ביום בציוד המקסימלי. זה טפטוף מכוון — יהלומים הם מטבע אמיתי, ולא אמורים להיות הכנסה, ולכן הם היחידים (יחד עם האזרחים) שממתינים לעדכון היומי.":
     "Trousers are the one slot that distils diamonds, and only as a minor extra: {p0} per daily update at level 1, {p1} at level 50 and {p2} at level 100 — that is {p3} diamonds a day on maxed gear. The trickle is deliberate: diamonds are real currency and are not meant to be an income, which is why they (with the citizens) are the only gear bonus that waits for the daily update.",
-  "כוח קרב קבוע שנוסף לצבא שלך בתקיפה, בדיוק כמו כוח מנשקים — ואז כל האחוזים מוכפלים גם עליו.":
-    "Flat combat power added to your army when attacking, exactly like the power from weapons — and every percentage then multiplies it too.",
-  "כוח קרב קבוע שנוסף לצבא שלך בהגנה, בדיוק כמו כוח מנשקים — ואז כל האחוזים מוכפלים גם עליו.":
-    "Flat combat power added to your army when defending, exactly like the power from weapons — and every percentage then multiplies it too.",
-  "כוח ריגול קבוע שנוסף למרגלים ולנשקי הריגול שלך בכל משימת ריגול, לפני מכפיל המודיעין.":
-    "Flat spy power added to your spies and spy weapons on every spy mission, before the intelligence multiplier.",
   "יהלומים לעדכון יומי": "Diamonds per daily update",
   "סלוט אחד בלבד (מכנסיים) מזקק יהלומים, ובכמות קטנה — עד 25 בכל עדכון יומי בציוד המקסימלי.":
     "A single slot (trousers) distils diamonds, and only a trickle — up to 25 per daily update on maxed gear.",
@@ -2348,21 +2334,18 @@ export const EN: Record<string, string> = {
   "אימון צבא": "Train the army",
   "אימון מרגלים": "Train spies",
   "סך הכל מהגיבור": "Everything the hero pays",
-  "מה שאתה מקבל בפועל מהנקודות והחפצים יחד. שורות מודגשות פעילות; שורות עמומות ממתינות לחפץ מתאים. התשואה מסודרת לפי מתי היא מגיעה: משאבים ותורות בכל עדכון רגיל, אזרחים ויהלומים בעדכון היומי, וכוח הקרב בקרב עצמו.":
-    "What the points and the gear actually pay you, together. Bright rows are live; dim ones are waiting on the right item. The yield is grouped by when it arrives: resources and turns on every regular update, citizens and diamonds on the daily one, and combat power inside the battle itself.",
+  "מה שאתה מקבל בפועל מהנקודות והחפצים יחד. שורות מודגשות פעילות; שורות עמומות ממתינות לחפץ מתאים. התשואה מסודרת לפי מתי היא מגיעה: משאבים ותורות בכל עדכון רגיל, אזרחים ויהלומים בעדכון היומי.":
+    "What the points and the gear actually pay you, together. Bright rows are live; dim ones are waiting on the right item. The yield is grouped by when it arrives: resources and turns on every regular update, citizens and diamonds on the daily one.",
   "בונוסי קרב · באחוזים": "Battle bonuses · as percentages",
   "תשואה קבועה מחפצים · בכמויות": "Flat yield from gear · as amounts",
   "תפוקת משאבים · אחוזים + כמות": "Resource output · percentage + amount",
-  /* the three cadence headings on the hero's yield panel, and the clock each
+  /* the cadence headings on the hero's yield panel, and the clock each
      one runs on — see HERO_CADENCE_META / HERO_FLAT_CADENCE */
   "בכל עדכון רגיל": "On every regular update",
   /* "בכל עדכון יומי" is already carried by the guide's section below */
-  "בכל קרב": "In every battle",
   "נוסף בכל עדכון רגיל": "added on every regular update",
-  "נספר בקרב עצמו — לא על השעון": "counted inside the battle — never on the clock",
   "כל {minutes} דקות": "every {minutes} minutes",
   "פעמיים ביום — כל {hours} שעות": "twice a day — every {hours} hours",
-  "לא על השעון": "not on the clock",
   "×{updates} עדכונים = {perDay} ביום": "×{updates} updates = {perDay} a day",
   "נקודות": "Points",
   "חפצים": "Gear",
@@ -3517,8 +3500,8 @@ export const EN: Record<string, string> = {
   "סך כוח בסיס": "Base power total",
   "חיילים + נשקים. כל הבונוסים שמתחת מוכפלים על הסכום הזה, בזה אחר זה.":
     "Soldiers + weapons. Every bonus below multiplies this total, one after another.",
-  "חיילים + נשקים + כוח ציוד הגיבור. כל הבונוסים שמתחת מוכפלים על הסכום הזה, בזה אחר זה.":
-    "Soldiers + weapons + hero gear power. Every bonus below multiplies this total, one after another.",
+  "כל השורות שמעל יחד. כל הבונוסים שמתחת מוכפלים על הסכום הזה, בזה אחר זה.":
+    "Every line above, added up. Every bonus below multiplies this total, one after another.",
   "יתרון המגן +{pct}%": "Defender's edge +{pct}%",
   "הצד המתגונן נלחם בשטח שלו ומקבל תוספת קבועה של {pct}% על כוח הבסיס — לפני הגיבור ולפני קסמי הברית. התוקף לא מקבל אותה.":
     "The defending side fights on its own ground and gets a flat {pct}% on its base power — before the hero and before any guild spell. The attacker gets none of it.",

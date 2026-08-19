@@ -10,7 +10,6 @@ import {
   type HeroBonuses,
   type HeroFlatCadence,
   type HeroFlatStat,
-  type HeroPowerStat,
   type HeroStat,
 } from "@/lib/game/hero";
 import {
@@ -31,7 +30,7 @@ import { getT, type T } from "@/i18n/server";
  *
  * The flat yield is grouped **by when it is actually paid**, not by what it is:
  * one block per cadence, in HERO_CADENCE_ORDER, each headed with the clock it
- * runs on (every 5 minutes / twice a day / inside a battle) and each line
+ * runs on (every 5 minutes / twice a day) and each line
  * carrying what it adds up to over a day. The grouping is read straight off
  * `HERO_FLAT_CADENCE` — the same table `applyPendingUpdates` pays from — so this
  * screen cannot promise a cadence the settlement does not honour. That drift is
@@ -283,47 +282,32 @@ export async function HeroPowerSummary({ bonuses }: { bonuses: HeroBonuses }) {
 
   /* -------- the flat yield, grouped by the clock it arrives on --------
 
-     Two clocks and a battle. The headings say which is which, and every line on
-     a clock states what it comes to over a day — the only figure that makes 5
-     turns per tick and 450 citizens per daily update comparable numbers. */
+     Two clocks. The headings say which is which, and every line on a clock
+     states what it comes to over a day — the only figure that makes 5 turns
+     per tick and 450 citizens per daily update comparable numbers. */
 
   const hoursBetweenDailies = 24 / DAILY_UPDATE_TIMES.length;
   const cadenceHint = (cadence: HeroFlatCadence) =>
     cadence === "regular"
       ? t("כל {minutes} דקות", { minutes: REGULAR_TICK_MINUTES })
-      : cadence === "daily"
-        ? t("פעמיים ביום — כל {hours} שעות", { hours: hoursBetweenDailies })
-        : t("לא על השעון");
+      : t("פעמיים ביום — כל {hours} שעות", { hours: hoursBetweenDailies });
 
   // What a line on a clock is worth over a day. A stat the hero does not carry
   // yet falls back to the plain cadence note, so the row still says when it
   // *would* arrive rather than advertising "0 ביום".
   const cadenceNote = (stat: HeroFlatStat, value: number): string => {
     const cadence = HERO_FLAT_CADENCE[stat];
-    const perDay = flatStatPerDay(stat, value);
-    if (perDay === null || value <= 0) return t(HERO_CADENCE_META[cadence].note);
+    if (value <= 0) return t(HERO_CADENCE_META[cadence].note);
     return t("×{updates} עדכונים = {perDay} ביום", {
       updates: formatNumber(UPDATES_PER_DAY[cadence]),
-      perDay: formatNumber(perDay),
+      perDay: formatNumber(flatStatPerDay(stat, value)),
     });
-  };
-
-  // The three power stats never touch a clock: they are counted inside the fight,
-  // beside the soldiers and the weapons, so every percentage above them in this
-  // panel multiplies them too.
-  const BATTLE_NOTE: Record<HeroPowerStat, string> = {
-    attackPower: t("נספר עם החיילים והנשקים בתקיפה"),
-    defensePower: t("נספר עם החיילים והנשקים בהגנה"),
-    spyPower: t("נספר עם המרגלים בכל משימת ריגול"),
   };
 
   const flatRow = (stat: HeroFlatStat): { stat: HeroStat; value: number; note: string } => ({
     stat,
     value: itemsFlat[stat],
-    note:
-      HERO_FLAT_CADENCE[stat] === "battle"
-        ? BATTLE_NOTE[stat as HeroPowerStat]
-        : cadenceNote(stat, itemsFlat[stat]),
+    note: cadenceNote(stat, itemsFlat[stat]),
   });
 
   // Resources are the one stat with two instruments (a % that multiplies the
@@ -346,7 +330,7 @@ export async function HeroPowerSummary({ bonuses }: { bonuses: HeroBonuses }) {
       </div>
       <div className="rule-gold my-3" />
       <p className="mb-4 text-[11px] leading-relaxed text-zinc-500">
-        {t("מה שאתה מקבל בפועל מהנקודות והחפצים יחד. שורות מודגשות פעילות; שורות עמומות ממתינות לחפץ מתאים. התשואה מסודרת לפי מתי היא מגיעה: משאבים ותורות בכל עדכון רגיל, אזרחים ויהלומים בעדכון היומי, וכוח הקרב בקרב עצמו.")}
+        {t("מה שאתה מקבל בפועל מהנקודות והחפצים יחד. שורות מודגשות פעילות; שורות עמומות ממתינות לחפץ מתאים. התשואה מסודרת לפי מתי היא מגיעה: משאבים ותורות בכל עדכון רגיל, אזרחים ויהלומים בעדכון היומי.")}
       </p>
 
       {/* Three labelled groups. The panel only owns half the row from xl up
@@ -364,7 +348,7 @@ export async function HeroPowerSummary({ bonuses }: { bonuses: HeroBonuses }) {
           </div>
         </section>
 
-        {/* One block per cadence, fastest clock first, then the battle stats.
+        {/* One block per cadence, fastest clock first.
             The dividers the three-column layout used to carry are gone: with
             two-then-one columns the section labels already separate the groups,
             and a rule down a two-column split reads as a page seam. */}

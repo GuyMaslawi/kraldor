@@ -155,7 +155,7 @@ export default async function BattleResultPage({
         return {
           label: t("סך כוח בסיס"),
           value: formatNumber(row.value),
-          tip: t("חיילים + נשקים + כוח ציוד הגיבור. כל הבונוסים שמתחת מוכפלים על הסכום הזה, בזה אחר זה."),
+          tip: t("כל השורות שמעל יחד. כל הבונוסים שמתחת מוכפלים על הסכום הזה, בזה אחר זה."),
           strong: true,
         };
       case "defense":

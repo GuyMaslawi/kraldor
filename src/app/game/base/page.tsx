@@ -12,7 +12,7 @@ import {
   type StorableResource,
 } from "@/lib/game/constants";
 import { productionPerTick } from "@/lib/game/resources";
-import { heroBonuses, heroPowerBonus } from "@/lib/game/hero";
+import { heroBonuses } from "@/lib/game/hero";
 import { getActiveGuildBuffPct } from "@/lib/game/guildBuffs";
 import { getGuildAidBonus } from "@/lib/game/guildAid";
 import { GUILD_ROLE_META } from "@/lib/game/guild";
@@ -111,7 +111,6 @@ export default async function BasePage({
     army: empire.army,
     weapons: empire.weapons,
     heroAttackPct: heroBonus.totalPct.attack,
-    heroAttackPower: heroPowerBonus(heroBonus, "attack"),
     guildAttackPct,
     guildAid,
   });
@@ -119,7 +118,6 @@ export default async function BasePage({
     army: empire.army,
     weapons: empire.weapons,
     heroDefensePct: heroBonus.totalPct.defense,
-    heroDefensePower: heroPowerBonus(heroBonus, "defense"),
     guildDefensePct,
     guildAid,
   });

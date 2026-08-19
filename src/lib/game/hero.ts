@@ -376,20 +376,11 @@ export type HeroPercentStat = "attack" | "defense" | "spy";
  * grants turns/citizens gives whole units, and a resources item adds a flat
  * amount to each mined resource.
  *
- * ### The three power stats
- *
- * `attackPower` / `defensePower` / `spyPower` are raw combat power, added to a
- * side's base **beside soldiers and weapons** rather than multiplying it. Gear
- * used to speak only in percentages, which is self-scaling and correct but
- * unreadable: "+40% התקפה" is a number about an army the tooltip cannot see. A
- * flat line is the same promise stated in the unit the battle report already
- * counts in, and it is what makes a found piece feel like equipment rather than
- * a modifier.
- *
- * It is safe here in a way it would not be in another game: PvP costs neither
- * side a single soldier (see `attackEmpire`) and weapons are never destroyed,
- * so power that does not depend on the army is not a new class of thing — it is
- * exactly what a weapon already is.
+ * Combat is deliberately **not** in this list. Gear speaks about a fight only
+ * in percentages (attack/defense/spy) — the flat "power twins" that once
+ * mirrored every combat % were removed on 2026-08-19 as a duplication: two
+ * lines on the same item saying the same thing in two units. A percentage is
+ * self-scaling and already the battle's own language.
  *
  * ### Diamonds
  *
@@ -401,14 +392,7 @@ export type HeroPercentStat = "attack" | "defense" | "spy";
  * (2 → 50 a day) rather than +80. The season pass and the wheel still mint none
  * that scale.
  */
-export type HeroFlatStat =
-  | "resources"
-  | "turns"
-  | "citizens"
-  | "attackPower"
-  | "defensePower"
-  | "spyPower"
-  | "diamonds";
+export type HeroFlatStat = "resources" | "turns" | "citizens" | "diamonds";
 
 /** Every stat the hero surfaces: the percentage stats + the flat-count stats. */
 export type HeroStat = HeroPercentStat | HeroFlatStat;
@@ -416,7 +400,7 @@ export type HeroStat = HeroPercentStat | HeroFlatStat;
 /* ------------------------------ when a flat stat is paid ------------------------------ */
 
 /**
- * **When** a flat item bonus is actually handed over. Three cadences, and every
+ * **When** a flat item bonus is actually handed over. Two cadences, and every
  * flat stat has exactly one:
  *
  * - `regular` — the 5-minute production tick. The empire's own clock, and where
@@ -426,20 +410,18 @@ export type HeroStat = HeroPercentStat | HeroFlatStat;
  *   stats whose *base* is itself paid daily live here: citizens (the growth
  *   building pays per daily update) and diamonds (a deliberate trickle — the paid
  *   currency must never be a per-tick faucet).
- * - `battle` — not on a clock at all. The three flat power stats are counted
- *   inside a fight, beside soldiers and weapons, every time one happens.
  *
  * This table is the **single source of truth** for the cadence: `applyPendingUpdates`
  * pays each stat by the count its cadence names (see `lib/game/updates.ts`), and
- * the hero page groups its yield lines under these same three headings. A stat
+ * the hero page groups its yield lines under these same headings. A stat
  * cannot drift between what the code pays and what the screen promises, which is
  * exactly what happened before: turns were paid per *daily* update while the item
  * tooltips of the same build had said "per regular update" for months.
  */
-export type HeroFlatCadence = "regular" | "daily" | "battle";
+export type HeroFlatCadence = "regular" | "daily";
 
-/** Display order — the two clock cadences first, fastest first, then battle. */
-export const HERO_CADENCE_ORDER: HeroFlatCadence[] = ["regular", "daily", "battle"];
+/** Display order — fastest clock first. */
+export const HERO_CADENCE_ORDER: HeroFlatCadence[] = ["regular", "daily"];
 
 export interface HeroCadenceMeta {
   /** Heading a UI groups this cadence's lines under. */
@@ -451,7 +433,6 @@ export interface HeroCadenceMeta {
 export const HERO_CADENCE_META: Record<HeroFlatCadence, HeroCadenceMeta> = {
   regular: { label: "בכל עדכון רגיל", note: "נוסף בכל עדכון רגיל" },
   daily: { label: "בכל עדכון יומי", note: "נוסף בכל עדכון יומי" },
-  battle: { label: "בכל קרב", note: "נספר בקרב עצמו — לא על השעון" },
 };
 
 export const HERO_FLAT_CADENCE: Record<HeroFlatStat, HeroFlatCadence> = {
@@ -461,9 +442,6 @@ export const HERO_FLAT_CADENCE: Record<HeroFlatStat, HeroFlatCadence> = {
   turns: "regular",
   citizens: "daily",
   diamonds: "daily",
-  attackPower: "battle",
-  defensePower: "battle",
-  spyPower: "battle",
 };
 
 /** The flat stats paid on one cadence, in HERO_FLAT_STATS order. */
@@ -472,25 +450,21 @@ export function flatStatsWithCadence(cadence: HeroFlatCadence): HeroFlatStat[] {
 }
 
 /**
- * How many times a cadence comes round in a day — 288 ticks, two daily updates,
- * and 0 for the battle stats, which have no clock at all.
+ * How many times a cadence comes round in a day — 288 ticks, two daily updates.
  */
 export const UPDATES_PER_DAY: Record<HeroFlatCadence, number> = {
   regular: TICKS_PER_DAY,
   daily: DAILY_UPDATE_TIMES.length,
-  battle: 0,
 };
 
 /**
- * What a flat bonus adds up to over a full day, or null for a stat with no
- * cadence to add up (the battle stats). This is the figure that makes the two
- * clocks comparable — 5 turns a tick and 450 citizens a daily update are 1,440
- * and 900 a day respectively — so the hero page can state both without the
- * player having to know how many ticks a day holds.
+ * What a flat bonus adds up to over a full day. This is the figure that makes
+ * the two clocks comparable — 5 turns a tick and 450 citizens a daily update
+ * are 1,440 and 900 a day respectively — so the hero page can state both
+ * without the player having to know how many ticks a day holds.
  */
-export function flatStatPerDay(stat: HeroFlatStat, value: number): number | null {
-  const updates = UPDATES_PER_DAY[HERO_FLAT_CADENCE[stat]];
-  return updates === 0 ? null : value * updates;
+export function flatStatPerDay(stat: HeroFlatStat, value: number): number {
+  return value * UPDATES_PER_DAY[HERO_FLAT_CADENCE[stat]];
 }
 
 export interface HeroStatMeta {
@@ -556,30 +530,6 @@ export const HERO_STAT_META: Record<HeroStat, HeroStatMeta> = {
     tone: "text-lime-300",
     description: "חפצים מוסיפים אזרחים בכמות קבועה בכל עדכון יומי (לא באחוזים).",
   },
-  attackPower: {
-    label: "כוח התקפה",
-    itemLabel: "כוח התקפה",
-    icon: "attack",
-    tone: "text-red-300",
-    description:
-      "כוח קרב קבוע שנוסף לצבא שלך בתקיפה, בדיוק כמו כוח מנשקים — ואז כל האחוזים מוכפלים גם עליו.",
-  },
-  defensePower: {
-    label: "כוח הגנה",
-    itemLabel: "כוח הגנה",
-    icon: "shield",
-    tone: "text-sky-200",
-    description:
-      "כוח קרב קבוע שנוסף לצבא שלך בהגנה, בדיוק כמו כוח מנשקים — ואז כל האחוזים מוכפלים גם עליו.",
-  },
-  spyPower: {
-    label: "כוח ריגול",
-    itemLabel: "כוח ריגול",
-    icon: "spy",
-    tone: "text-fuchsia-200",
-    description:
-      "כוח ריגול קבוע שנוסף למרגלים ולנשקי הריגול שלך בכל משימת ריגול, לפני מכפיל המודיעין.",
-  },
   diamonds: {
     label: "יהלומים",
     itemLabel: "יהלומים לעדכון יומי",
@@ -612,26 +562,8 @@ export const HERO_FLAT_STATS: HeroFlatStat[] = [
   "resources",
   "turns",
   "citizens",
-  "attackPower",
-  "defensePower",
-  "spyPower",
   "diamonds",
 ];
-
-/**
- * The three flat combat stats, and which battle number each one reinforces.
- * Everything that adds gear power to a fight reads this rather than naming the
- * three keys again.
- */
-export const HERO_POWER_STATS = ["attackPower", "defensePower", "spyPower"] as const;
-export type HeroPowerStat = (typeof HERO_POWER_STATS)[number];
-
-/** The flat power stat that reinforces a percentage stat's side of a battle. */
-export const POWER_STAT_FOR: Record<HeroPercentStat, HeroPowerStat> = {
-  attack: "attackPower",
-  defense: "defensePower",
-  spy: "spyPower",
-};
 
 /** Whether a stat's item bonus is a flat count (true) or a percentage (false). */
 export function statIsFlat(stat: HeroStat): stat is HeroFlatStat {
@@ -970,19 +902,11 @@ export function slotStatIsFlat(slot: HeroItemSlot, stat: HeroStat): boolean {
  * appears as an extra somewhere else so there is always more than one route to
  * it.
  *
- * ### The power twins
- *
- * Every combat percentage a slot grants is **mirrored by a flat power line at
- * the same weight** — a slot that pays attack% pays attackPower, a slot that
- * pays a minor defence% pays a minor defensePower. That is a rule, not nine
- * separate decisions, so a slot's combat identity is stated once and cannot
- * drift between its two instruments.
- *
- * The power lines are a *parallel* budget, not a share of the percentage one:
- * they are new value, and the whole reason gear now reads as equipment rather
- * than as a modifier. 🥾 is the one slot with no power line at all, because it
- * is the one slot that grants no combat stat — the quartermaster does not
- * fight.
+ * Combat stats appear **once per slot, as a percentage only**. The flat "power
+ * twin" that used to mirror every combat % was removed (2026-08-19): two lines
+ * stating the same bonus in two units on the same item was a duplication, and
+ * the percentage — which self-scales with the army it multiplies — is the one
+ * that stays.
  */
 export const SLOT_META: Record<HeroItemSlot, SlotMeta> = {
   SWORD: {
@@ -991,65 +915,38 @@ export const SLOT_META: Record<HeroItemSlot, SlotMeta> = {
     slug: "sword",
     // No resourceOrder: a percentage multiplies every mine at once, so there is
     // no single resource for the slot to lead with.
-    stats: [
-      primary("attack"),
-      primary("attackPower"),
-      extra("resources", "pct"),
-      minor("citizens"),
-    ],
+    stats: [primary("attack"), extra("resources", "pct"), minor("citizens")],
   },
   GAUNTLETS: {
     label: "כפפות",
     icon: "🧤",
     slug: "gauntlet",
-    stats: [
-      primary("attack"),
-      primary("attackPower"),
-      major("defense"),
-      major("defensePower"),
-    ],
+    stats: [primary("attack"), major("defense")],
   },
   HELMET: {
     label: "קסדה",
     icon: "🪖",
     slug: "helmet",
-    stats: [
-      primary("spy"),
-      primary("spyPower"),
-      extra("turns"),
-      minor("defense"),
-      minor("defensePower"),
-    ],
+    stats: [primary("spy"), extra("turns"), minor("defense")],
   },
   ARMOR: {
     label: "שריון",
     icon: "🛡️",
     slug: "armor",
-    stats: [primary("defense"), primary("defensePower"), major("citizens")],
+    stats: [primary("defense"), major("citizens")],
   },
   SHIELD: {
     label: "מגן",
     icon: "🔰",
     slug: "buckler",
     // No resourceOrder — see חרב above.
-    stats: [
-      primary("defense"),
-      primary("defensePower"),
-      extra("resources", "pct"),
-      minor("turns"),
-    ],
+    stats: [primary("defense"), extra("resources", "pct"), minor("turns")],
   },
   RELIC: {
     label: "פרי שטן",
     icon: "😈",
     slug: "demon-fruit",
-    stats: [
-      primary("resources", "flat"),
-      extra("attack"),
-      extra("attackPower"),
-      minor("spy"),
-      minor("spyPower"),
-    ],
+    stats: [primary("resources", "flat"), extra("attack"), minor("spy")],
     // The conjurer's slot — the canonical order, gold first.
     resourceOrder: ["gold", "wood", "iron", "stone"],
   },
@@ -1057,13 +954,7 @@ export const SLOT_META: Record<HeroItemSlot, SlotMeta> = {
     label: "כנפיים",
     icon: "🪽",
     slug: "wings",
-    stats: [
-      primary("turns"),
-      extra("spy"),
-      extra("spyPower"),
-      minor("attack"),
-      minor("attackPower"),
-    ],
+    stats: [primary("turns"), extra("spy"), minor("attack")],
   },
   PANTS: {
     // The pocket that used to be the diamond slot, and is again — as its minor
@@ -1074,7 +965,6 @@ export const SLOT_META: Record<HeroItemSlot, SlotMeta> = {
     stats: [
       primary("resources", "flat"),
       extra("defense"),
-      extra("defensePower"),
       minor("citizens"),
       minor("diamonds"),
     ],
@@ -1146,36 +1036,6 @@ export const PCT_PER_STEP = 1;
  * are the numbers a player sees at the two ends of the ladder. Everything in
  * between is filled in by the shape.
  */
-/**
- * ### The combat-power anchors
- *
- * Flat power is the one gear stat measured against something outside the hero:
- * the weapon ladder, which is what a player's power is actually made of. A
- * weapon's power is ×2.5 a tier and four tiers open every ten hero levels, so
- * the thing an item's flat power has to be priced against grows by ~×39 per
- * decade — and stops dead at tier 30, which a hero-70 empire has already
- * unlocked.
- *
- * Both anchors are therefore stated as *weapons of the tier that item's level
- * can field*:
- *
- *   - rung 1 (a level-1 piece):  250 ≈ three tier-4 weapons, or 25 soldiers.
- *     A beginner's whole army is a few hundred power, so the first sword he
- *     finds is felt the moment he equips it.
- *   - rung 40 (a level-100 piece):  5T ≈ three tier-30 weapons (1.73T each),
- *     which is roughly what a maxed relic's own resource line buys in a day.
- *
- * That is ×1.837 a rung, ×11.4 a set. Deliberately **flatter than the weapon
- * curve it is priced against**: gear power leads early, and by the endgame a
- * full set is a respectable slice of an army rather than a replacement for one.
- * Chasing the weapon curve instead would either round to +1 for the first
- * twenty rungs or hand a level-100 player a second arsenal for free.
- *
- * Both are one constant each — retune here and the whole ladder follows.
- */
-export const POWER_AT_FIRST_STEP = 250;
-export const POWER_AT_MAX_STEP = 5_000_000_000_000;
-
 export type FlatCurve =
   /**
    * Constant *relative* growth: every rung multiplies the bonus by the same
@@ -1270,23 +1130,6 @@ export const FLAT_CURVE: Record<HeroFlatStat, FlatCurve> = {
   // primary wing is worth the whole turns-upgrade ladder. See the turns note above.
   turns: { shape: "power", atMaxStep: TURNS_UPGRADE_MAX_LEVEL, exponent: 2 },
   citizens: { shape: "power", atMaxStep: 450, exponent: 1.75 },
-  // The three combat-power curves are one curve, used three times — see the
-  // POWER_CURVE note below for what the two anchors are measured against.
-  attackPower: {
-    shape: "geometric",
-    atFirstStep: POWER_AT_FIRST_STEP,
-    atMaxStep: POWER_AT_MAX_STEP,
-  },
-  defensePower: {
-    shape: "geometric",
-    atFirstStep: POWER_AT_FIRST_STEP,
-    atMaxStep: POWER_AT_MAX_STEP,
-  },
-  spyPower: {
-    shape: "geometric",
-    atFirstStep: POWER_AT_FIRST_STEP,
-    atMaxStep: POWER_AT_MAX_STEP,
-  },
   // Stated unweighted like every other curve, but no slot carries diamonds as a
   // primary: 👖 pays them as its *minor* extra, so a quarter of this is the
   // whole ladder — +1 per daily update at the bottom, +25 in the divine set (2
@@ -1795,25 +1638,6 @@ export function resourceProductionPct(bonuses: HeroBonuses): number {
 /** Multiplier form of a % bonus (e.g. 25 → 1.25). */
 export function bonusMultiplier(pct: number): number {
   return 1 + pct / 100;
-}
-
-/**
- * The flat combat power the hero's gear contributes to one side of a fight.
- *
- * It joins the base **beside soldiers and weapons**, before every multiplier —
- * so the hero's own percentages, the guild spell and the defender bonus all
- * scale it too. That is the only placement that keeps the battle report's
- * arithmetic honest: a term added after the multipliers would make "+40%" mean
- * two different things on the same line.
- *
- * Zero for a fallen hero, like every other bonus he carries: `heroBonuses`
- * already zeroes the tally, and this only reads it.
- */
-export function heroPowerBonus(
-  bonuses: HeroBonuses,
-  stat: HeroPercentStat
-): number {
-  return bonuses.itemsFlat[POWER_STAT_FOR[stat]];
 }
 
 /* ------------------------------ item drops ------------------------------ */

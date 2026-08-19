@@ -152,9 +152,8 @@ export async function applyPendingUpdates(
   // Hero bonuses: the resources *points* still multiply mine production, while
   // equipped items add flat amounts in whole units — each on its own cadence,
   // which is HERO_FLAT_CADENCE's business and not this function's (resources and
-  // turns per 5-minute tick, citizens and diamonds per daily update, the three
-  // power stats inside a battle instead). A hero who is still dead at this point
-  // contributes none of it (heroBonuses).
+  // turns per 5-minute tick, citizens and diamonds per daily update). A hero who
+  // is still dead at this point contributes none of it (heroBonuses).
   const heroBonus = heroBonuses(empire.hero);
 
   // The capital's monuments, folded into five percentages. This is the only
@@ -249,14 +248,10 @@ export async function applyPendingUpdates(
 
   /* ---- the flat gear grants, each on its own cadence ---- */
 
-  // How many updates of each cadence this settlement is paying for. The battle
-  // stats have no clock — they are counted inside a fight — so they are worth
-  // nothing here, and stating that as a 0 rather than as an omission is what lets
-  // every flat stat be paid by the same expression.
+  // How many updates of each cadence this settlement is paying for.
   const updatesByCadence: Record<HeroFlatCadence, number> = {
     regular: ticks,
     daily: missedDailies.length,
-    battle: 0,
   };
   /**
    * The whole flat yield of one gear stat for this settlement: its per-update

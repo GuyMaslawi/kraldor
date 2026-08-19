@@ -77,7 +77,6 @@ import {
   bonusMultiplier,
   damagedHealth,
   heroBonuses,
-  heroPowerBonus,
   rollItemDrop,
 } from "@/lib/game/hero";
 import {
@@ -857,22 +856,16 @@ export async function spyOnEmpire(
       const defenderIntelLevel =
         defender.upgrades.find((u) => u.type === "INTELLIGENCE")?.level ?? 1;
       const heroSpyBonusPct = heroBonuses(attacker.hero).totalPct.spy;
-      // Gear spy power is a *base* term — it sits with the spies and the spy
-      // weapons — so both sides bring theirs. Only the percentage stays the
-      // attacker's, which is the asymmetry this mission has always had.
       const attackerIntel = getEmpireIntelPower(
         attacker.army,
         attacker.weapons,
         attackerIntelLevel,
-        heroSpyBonusPct,
-        heroPowerBonus(heroBonuses(attacker.hero), "spy")
+        heroSpyBonusPct
       );
       const defenderIntel = getEmpireIntelPower(
         defender.army,
         defender.weapons,
-        defenderIntelLevel,
-        0,
-        heroPowerBonus(heroBonuses(defender.hero), "spy")
+        defenderIntelLevel
       );
       const success = attackerIntel > defenderIntel;
 
@@ -1073,15 +1066,12 @@ export async function sabotageEmpire(
         attacker.army,
         attacker.weapons,
         attackerIntelLevel,
-        heroBonuses(attacker.hero).totalPct.spy,
-        heroPowerBonus(heroBonuses(attacker.hero), "spy")
+        heroBonuses(attacker.hero).totalPct.spy
       );
       const defenderIntel = getEmpireIntelPower(
         defender.army,
         defender.weapons,
-        defenderIntelLevel,
-        0,
-        heroPowerBonus(heroBonuses(defender.hero), "spy")
+        defenderIntelLevel
       );
       const success = sabotageSucceeds(attackerIntel, defenderIntel);
 
@@ -1386,12 +1376,6 @@ export async function attackEmpire(
       const defenderBonuses = heroBonuses(defenderHero);
       const attackerHeroBonusPct = attackerBonuses.totalPct.attack;
       const defenderHeroBonusPct = defenderBonuses.totalPct.defense;
-      // Flat power from equipped gear. It joins the base beside soldiers and
-      // weapons, so the percentages below multiply it too — and a fallen hero
-      // contributes none of it, because `heroBonuses` has already zeroed the
-      // whole tally he carries.
-      const attackerHeroPower = heroPowerBonus(attackerBonuses, "attack");
-      const defenderHeroPower = heroPowerBonus(defenderBonuses, "defense");
       const attackerGuildBonusPct = await getActiveGuildBuffPct(
         empireId,
         "ATTACK",
@@ -1412,12 +1396,12 @@ export async function attackEmpire(
       const defenderSoldiersPower = armyPower(defenderArmy);
       const defenderWeaponsPower = weaponsPower(defender.weapons, "DEFENSE");
       const attackerPower =
-        (attackerSoldiersPower + attackerWeaponsPower + attackerHeroPower) *
+        (attackerSoldiersPower + attackerWeaponsPower) *
           bonusMultiplier(attackerHeroBonusPct) *
           bonusMultiplier(attackerGuildBonusPct) +
         attackerGuildAid.power;
       const defenderPower =
-        (defenderSoldiersPower + defenderWeaponsPower + defenderHeroPower) *
+        (defenderSoldiersPower + defenderWeaponsPower) *
           DEFENSE_BONUS *
           bonusMultiplier(defenderHeroBonusPct) *
           bonusMultiplier(defenderGuildBonusPct) +
@@ -1764,8 +1748,9 @@ export async function attackEmpire(
           turnsSpent: ATTACK_TURN_COST,
           attackerHeroBonusPct,
           defenderHeroBonusPct,
-          attackerHeroPower,
-          defenderHeroPower,
+          // attackerHeroPower/defenderHeroPower are no longer written: the flat
+          // gear-power stat was removed on 2026-08-19. The columns stay so
+          // reports from before that date still itemise the term they used.
           attackerGuildBonusPct,
           defenderGuildBonusPct,
           // Every remaining term of the two power formulas above, so the battle

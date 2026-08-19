@@ -925,25 +925,6 @@ function FullDossier({
                   value={`+${Math.round(intel.hero.pct.resources)}%`}
                   tone="text-emerald-400"
                 />
-                {/* Flat gear power — the part of the target's defence that is
-                    not in the barracks. Worth more to a scout than any other
-                    line here: it is counted with the soldiers and the weapons,
-                    so it is already inside the power figures above. */}
-                <Line
-                  label={<><Icon name={HERO_STAT_META.attackPower.icon} size={15} className="inline-block align-middle" /> {t(HERO_STAT_META.attackPower.label)}</>}
-                  value={`+${formatNumber(intel.hero.flat.attackPower)}`}
-                  tone="text-red-300"
-                />
-                <Line
-                  label={<><Icon name={HERO_STAT_META.defensePower.icon} size={15} className="inline-block align-middle" /> {t(HERO_STAT_META.defensePower.label)}</>}
-                  value={`+${formatNumber(intel.hero.flat.defensePower)}`}
-                  tone="text-sky-200"
-                />
-                <Line
-                  label={<><Icon name={HERO_STAT_META.spyPower.icon} size={15} className="inline-block align-middle" /> {t(HERO_STAT_META.spyPower.label)}</>}
-                  value={`+${formatNumber(intel.hero.flat.spyPower)}`}
-                  tone="text-fuchsia-200"
-                />
                 <Line
                   label={<><Icon name="turns" size={15} className="inline-block align-middle text-emerald-400" /> {t("תורות מציוד")}</>}
                   value={`+${formatNumber(intel.hero.flat.turns)}`}

@@ -111,13 +111,12 @@ export interface SpyIntelHero {
    */
   pct: { attack: number; defense: number; spy: number; resources: number };
   /**
-   * Every flat bonus from equipped gear: the per-update yields, and the three
-   * flat combat powers — which are the most valuable line in the whole report,
-   * because they are the part of the target's defence that is not in the
-   * barracks and cannot be read off the army count.
+   * Every flat bonus from equipped gear — the per-update yields.
    *
-   * Typed as the whole tally rather than a hand-picked three, so a new flat
-   * stat reaches the report instead of being silently dropped here.
+   * Typed as the whole tally rather than a hand-picked list, so a new flat
+   * stat reaches the report instead of being silently dropped here. (Reports
+   * written before 2026-08-19 also carry the since-removed flat combat powers
+   * in this JSON; unknown keys are simply not rendered.)
    */
   flat: Record<HeroFlatStat, number>;
   items: SpyIntelHeroItem[];

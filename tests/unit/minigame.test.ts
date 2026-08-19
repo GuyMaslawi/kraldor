@@ -11,6 +11,9 @@ import {
   parseHistory,
   attemptsRange,
   clampAttempts,
+  clampExtraAttempts,
+  eventCost,
+  eventExtraCost,
   HISTORY_LIMIT,
   CUPS_MIN,
   CUPS_MAX,
@@ -320,5 +323,70 @@ describe("parseHistory for the newer games", () => {
     expect(parseHistory([{ kind: "dig", pick: 4, band: "boiling" }])).toEqual([]);
     expect(parseHistory([{ kind: "dig", pick: 1.5, band: "hot" }])).toEqual([]);
     expect(parseHistory([{ kind: "word", word: 7, hit: true }])).toEqual([]);
+  });
+});
+
+describe("the entry fee (eventCost / eventExtraCost)", () => {
+  const free = { costResource: null, costAmount: 0, extraAttemptCost: 0, maxExtraAttempts: 0 };
+
+  it("reads a whole fee back", () => {
+    expect(
+      eventCost({ ...free, costResource: "diamonds", costAmount: 200 })
+    ).toEqual({ resource: "diamonds", amount: 200 });
+  });
+
+  // "Both halves or neither": a half-configured fee must read as a free game,
+  // because the paid gate refuses guesses whenever eventCost is non-null — a
+  // fee nobody can pay (no resource) or nobody owes (zero) would lock the
+  // event for everyone.
+  it("treats a missing half as a free game", () => {
+    expect(eventCost(free)).toBeNull();
+    expect(eventCost({ ...free, costAmount: 200 })).toBeNull();
+    expect(eventCost({ ...free, costResource: "gold" })).toBeNull();
+    expect(eventCost({ ...free, costResource: "citizens", costAmount: 5 })).toBeNull();
+  });
+
+  it("sells extras only when priced, capped and payable", () => {
+    const base = { ...free, costResource: "gold" as const, extraAttemptCost: 50 };
+    expect(eventExtraCost({ ...base, maxExtraAttempts: 2 })).toEqual({
+      resource: "gold",
+      amount: 50,
+    });
+    expect(eventExtraCost({ ...base, maxExtraAttempts: 0 })).toBeNull();
+    expect(eventExtraCost({ ...base, extraAttemptCost: 0, maxExtraAttempts: 2 })).toBeNull();
+    expect(eventExtraCost({ ...free, extraAttemptCost: 50, maxExtraAttempts: 2 })).toBeNull();
+  });
+
+  it("extras may be sold on a game whose entry is free", () => {
+    const event = {
+      costResource: "diamonds",
+      costAmount: 0,
+      extraAttemptCost: 25,
+      maxExtraAttempts: 3,
+    };
+    expect(eventCost(event)).toBeNull();
+    expect(eventExtraCost(event)).toEqual({ resource: "diamonds", amount: 25 });
+  });
+});
+
+describe("clampExtraAttempts", () => {
+  // Base + extras must never exceed what the shape can carry — a bought
+  // attempt is no less a giveaway than a granted one (lift every cup).
+  it("leaves no room past the shape's ceiling", () => {
+    const shape = { cups: 3, digits: 3 };
+    // Three cups: max is 1, base is 1 → nothing to sell.
+    expect(clampExtraAttempts("FIND_BALL", shape, 1, 5)).toBe(0);
+    // Six cups: max is 4 → base 2 leaves room for 2.
+    expect(clampExtraAttempts("FIND_BALL", { ...shape, cups: 6 }, 2, 5)).toBe(2);
+  });
+
+  it("keeps a request already inside the room", () => {
+    expect(clampExtraAttempts("CRACK_SAFE", { cups: 3, digits: 3 }, 5, 3)).toBe(3);
+  });
+
+  it("floors at zero and zeroes garbage", () => {
+    const shape = { cups: 3, digits: 3 };
+    expect(clampExtraAttempts("CRACK_SAFE", shape, 5, -2)).toBe(0);
+    expect(clampExtraAttempts("CRACK_SAFE", shape, 5, Number.NaN)).toBe(0);
   });
 });

@@ -4,7 +4,14 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ActionForm } from "@/components/admin/ActionForm";
 import { EditorSection } from "@/components/admin/fields";
 import { MiniGameCreator } from "@/components/admin/MiniGameCreator";
-import { prizeText, MINIGAME_TYPE_META, MAX_LIVE_MINIGAMES } from "@/lib/game/minigame";
+import {
+  prizeText,
+  costText,
+  eventCost,
+  eventExtraCost,
+  MINIGAME_TYPE_META,
+  MAX_LIVE_MINIGAMES,
+} from "@/lib/game/minigame";
 import { makeT } from "@/i18n/translate";
 import { DEFAULT_LOCALE } from "@/i18n/locale";
 import {
@@ -122,7 +129,20 @@ export default async function AdminMiniGamePage() {
                     {prizeText(he, g)}
                   </span>{" "}
                   · {g.maxAttempts} ניסיונות ·{" "}
-                  {g.maxWinners === 0 ? "זוכים ללא הגבלה" : `עד ${g.maxWinners} זוכים`} · זכו עד כה{" "}
+                  {(() => {
+                    const fee = eventCost(g);
+                    const extra = eventExtraCost(g);
+                    if (!fee && !extra) return "חינם";
+                    return [
+                      fee ? `🎟️ כניסה: ${costText(he, fee.resource, fee.amount)}` : "כניסה חופשית",
+                      extra
+                        ? `עד ${g.maxExtraAttempts} נוספים ב־${costText(he, extra.resource, extra.amount)} כ״א`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
+                  })()}{" "}
+                  · {g.maxWinners === 0 ? "זוכים ללא הגבלה" : `עד ${g.maxWinners} זוכים`} · זכו עד כה{" "}
                   <span className="nums" dir="ltr">
                     {g.winnersCount}
                   </span>{" "}

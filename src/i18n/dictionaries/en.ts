@@ -1707,6 +1707,32 @@ export const EN: Record<string, string> = {
   '🎉 ניצחת ב"{game}"!': '🎉 You won "{game}"!',
   "כל הכבוד! זכית בפרס: {prize}": "Well played — your prize: {prize}",
 
+  /* mini-games — the entry fee */
+  "השתתפות:": "Entry:",
+  "יש לשלם את דמי ההשתתפות קודם": "Pay the entry fee first",
+  "המשחק הזה חינם — פשוט שחק": "This game is free — just play",
+  "כבר שילמת — המשחק פתוח": "Already paid — the game is open",
+  "🎟️ שולם {cost} — {count} הניסיונות שלך נפתחו!":
+    "🎟️ Paid {cost} — your {count} attempts are unlocked!",
+  "אין מספיק {resource}": "You do not have enough {resource}",
+  "במשחק הזה אין ניסיונות נוספים למכירה":
+    "This game has no extra attempts for sale",
+  "קנית כבר את כל הניסיונות הנוספים":
+    "You have already bought every extra attempt",
+  "🎯 נוסף ניסיון תמורת {cost}": "🎯 One more attempt, for {cost}",
+  "🎟️ משחק בתשלום": "🎟️ A paid game",
+  "דמי ההשתתפות: {cost} — התשלום פותח {count} ניסיונות":
+    "Entry fee: {cost} — paying unlocks {count} attempts",
+  "ואם ייגמרו — עד {count} ניסיונות נוספים ב־{cost} כל אחד":
+    "And if they run out — up to {count} extra attempts at {cost} each",
+  "שלם {cost} והשתתף": "Pay {cost} and play",
+  "רגע…": "One moment…",
+  "אפשר לקנות עוד ניסיון ולהישאר במשחק — נותרו לך {count} לקנייה":
+    "You can buy another attempt and stay in the race — {count} left to buy",
+  "🎯 קנה ניסיון נוסף — {cost}": "🎯 Buy an extra attempt — {cost}",
+  "הלוח ייפתח ברגע שתשלם את דמי ההשתתפות":
+    "The board opens the moment the entry fee is paid",
+
   /* chat and mail */
   "לאט יותר — המתן רגע לפני ההודעה הבאה":
     "Slow down — wait a moment before the next message",

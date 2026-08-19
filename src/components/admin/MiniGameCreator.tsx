@@ -13,9 +13,11 @@ import {
   SAFE_DIGITS_MAX,
   MAP_SIZE_MIN,
   MAP_SIZE_MAX,
+  MINIGAME_COST_RESOURCES,
   RIDDLE_ANSWER_MAX,
   RIDDLE_QUESTION_MAX,
   attemptsRange,
+  type MiniGameCostResource,
 } from "@/lib/game/minigame";
 import type { AdminActionState } from "@/server/actions/admin";
 
@@ -71,6 +73,9 @@ export function MiniGameCreator({ action }: { action: Action }) {
   // the submission again regardless.
   const [attempts, setAttempts] = useState(String(range.fallback));
   const [pinned, setPinned] = useState(false);
+  // "" = a free game; anything else is the balance the entry fee (and any
+  // extra attempts) are charged in.
+  const [costRes, setCostRes] = useState<"" | MiniGameCostResource>("");
   const shapeKey = `${type}:${range.min}-${range.max}:${range.fallback}`;
   const [lastShape, setLastShape] = useState(shapeKey);
   if (lastShape !== shapeKey) {
@@ -230,6 +235,72 @@ export function MiniGameCreator({ action }: { action: Action }) {
             />
           ))}
         </div>
+      </div>
+
+      {/* Entry fee — optional; the server zeroes everything when "חינם" */}
+      <div>
+        <p className="mb-2 text-xs font-semibold text-gold-dim">🎟️ עלות השתתפות</p>
+        <input type="hidden" name="costResource" value={costRes} />
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setCostRes("")}
+            className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+              costRes === ""
+                ? "border-gold bg-gold/12 text-gold-bright"
+                : "border-border-subtle bg-panel-inset text-zinc-300 hover:border-gold-dim"
+            }`}
+          >
+            חינם
+          </button>
+          {MINIGAME_COST_RESOURCES.map((r) => (
+            <button
+              key={r.key}
+              type="button"
+              onClick={() => setCostRes(r.key)}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+                costRes === r.key
+                  ? "border-gold bg-gold/12 text-gold-bright"
+                  : "border-border-subtle bg-panel-inset text-zinc-300 hover:border-gold-dim"
+              }`}
+            >
+              <ResourceFieldLabel resource={r.key} text={r.label} />
+            </button>
+          ))}
+        </div>
+        {costRes !== "" && (
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <LabeledInput
+              label="דמי כניסה"
+              name="costAmount"
+              type="number"
+              min={0}
+              placeholder="0"
+              hint={`תשלום חד־פעמי שפותח את כל ${attempts || range.fallback} הניסיונות · 0 = כניסה חופשית`}
+            />
+            <LabeledInput
+              label="מחיר ניסיון נוסף"
+              name="extraAttemptCost"
+              type="number"
+              min={0}
+              placeholder="0"
+              hint="מחיר לניסיון בודד מעבר למכסה · 0 = אין תוספות"
+            />
+            <LabeledInput
+              label="מקס׳ ניסיונות נוספים"
+              name="maxExtraAttempts"
+              type="number"
+              min={0}
+              max={Math.max(0, range.max - Math.round(Number(attempts) || range.fallback))}
+              placeholder="0"
+              hint={
+                range.max - Math.round(Number(attempts) || range.fallback) <= 0
+                  ? "אין מקום — המכסה הבסיסית כבר בתקרת הצורה הזו"
+                  : `לכל שחקן · עד ${range.max - Math.round(Number(attempts) || range.fallback)} בצורה הזו`
+              }
+            />
+          </div>
+        )}
       </div>
 
       {/* Actions — launch is the primary path */}

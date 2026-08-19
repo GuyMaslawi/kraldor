@@ -15,11 +15,17 @@ import {
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useScrollLock } from "@/components/ui/scrollLock";
-import { pollMiniGame, submitMiniGameGuess } from "@/server/actions/minigame";
+import {
+  buyMiniGameAttempt,
+  payMiniGameEntry,
+  pollMiniGame,
+  submitMiniGameGuess,
+} from "@/server/actions/minigame";
 import {
   DIG_BAND_LABEL,
   MINIGAME_TYPE_META,
   RIDDLE_ANSWER_MAX,
+  costText,
   type DigBand,
   type MiniGameBoardRow,
   type MiniGameHistoryRow,
@@ -106,9 +112,11 @@ function Countdown({
 }
 
 /** One rival's row on the live standings. */
-function BoardRow({ row, maxAttempts }: { row: MiniGameBoardRow; maxAttempts: number }) {
+function BoardRow({ row }: { row: MiniGameBoardRow }) {
   const t = useT();
-  const out = !row.solved && row.attempts >= maxAttempts;
+  // Against the ROW's own ceiling — a rival who bought extra attempts is
+  // still in the race at 3/5 when the base budget was 3.
+  const out = !row.solved && row.attempts >= row.maxAttempts;
   return (
     <li
       className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs ${
@@ -126,7 +134,7 @@ function BoardRow({ row, maxAttempts }: { row: MiniGameBoardRow; maxAttempts: nu
         )}
       </span>
       <span className="nums shrink-0 text-[11px] text-zinc-500" dir="ltr">
-        {row.attempts}/{maxAttempts}
+        {row.attempts}/{row.maxAttempts}
       </span>
       <span className="shrink-0 text-[10px] font-bold">
         {row.won ? (
@@ -646,6 +654,8 @@ function MiniGameStage({
   pending,
   feedback: fb,
   onPlay,
+  onPay,
+  onBuyExtra,
   onClose,
   onExpire,
 }: {
@@ -653,6 +663,10 @@ function MiniGameStage({
   pending: boolean;
   feedback: Feedback | null;
   onPlay: (value: string) => void;
+  /** Pay the entry fee — only meaningful while `state.paid` is false. */
+  onPay: () => void;
+  /** Buy one extra attempt — only meaningful while `state.extrasLeft` > 0. */
+  onBuyExtra: () => void;
   onClose: () => void;
   onExpire: () => void;
 }) {
@@ -660,11 +674,15 @@ function MiniGameStage({
   const dir = useDir();
   const meta = MINIGAME_TYPE_META[state.type];
   const attemptsLeft = Math.max(0, state.maxAttempts - state.attempts);
-  const outOfAttempts = !state.solved && attemptsLeft === 0;
+  const outOfAttempts = state.paid && !state.solved && attemptsLeft === 0;
+  // Out of attempts, but more are for sale and this player may still buy some.
+  const canBuyExtra =
+    state.paid && !state.solved && state.extraCost !== null && state.extrasLeft > 0;
   // A finished player keeps the board on screen in a read-only state rather than
   // having it swapped out for a text box: the cracked safe and the cup with the
-  // ball under it ARE the payoff.
-  const interactive = !state.solved && !outOfAttempts;
+  // ball under it ARE the payoff. An unpaid player sees the board too — the
+  // game itself is the sales pitch — but cannot touch it until the fee clears.
+  const interactive = state.paid && !state.solved && !outOfAttempts;
   const toneClass =
     fb?.tone === "win"
       ? "text-emerald-300"
@@ -762,6 +780,39 @@ function MiniGameStage({
       {/* ── Play area + live standings ── */}
       <div className="grid gap-4 pt-4 md:grid-cols-[minmax(0,1fr)_260px]">
         <div className="min-w-0 space-y-3">
+          {!state.paid && state.cost && (
+            <div className="panel-inset space-y-2 rounded-lg border border-gold/40 p-4 text-center">
+              <p className="text-lg font-black text-gold-bright">
+                {t("🎟️ משחק בתשלום")}
+              </p>
+              <p className="text-sm text-zinc-300">
+                {t("דמי ההשתתפות: {cost} — התשלום פותח {count} ניסיונות", {
+                  cost: costText(t, state.cost.resource, state.cost.amount),
+                  count: state.baseAttempts,
+                })}
+              </p>
+              {state.extraCost && state.extrasLeft > 0 && (
+                <p className="text-xs text-zinc-500">
+                  {t("ואם ייגמרו — עד {count} ניסיונות נוספים ב־{cost} כל אחד", {
+                    count: state.extrasLeft,
+                    cost: costText(t, state.extraCost.resource, state.extraCost.amount),
+                  })}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={onPay}
+                disabled={pending}
+                className="btn btn-gold px-6 py-2.5 text-sm disabled:opacity-50"
+              >
+                {pending
+                  ? t("רגע…")
+                  : t("שלם {cost} והשתתף", {
+                      cost: costText(t, state.cost.resource, state.cost.amount),
+                    })}
+              </button>
+            </div>
+          )}
           {state.solved && (
             <div className="panel-inset space-y-1 rounded-lg p-3 text-center">
               <p className="text-xl font-black text-emerald-300">
@@ -775,11 +826,33 @@ function MiniGameStage({
             </div>
           )}
           {outOfAttempts && (
-            <div className="panel-inset space-y-1 rounded-lg p-3 text-center">
+            <div className="panel-inset space-y-2 rounded-lg p-3 text-center">
               <p className="text-xl font-black text-red-300">{t("😔 נגמרו הניסיונות")}</p>
-              <p className="text-sm text-zinc-400">
-                {t("יצאת מהמשחק, אבל הוא עדיין רץ — סגור את החלון והמשך לשחק; הכפתור למעלה יעדכן אותך מי זכה.")}
-              </p>
+              {canBuyExtra && state.extraCost ? (
+                <>
+                  <p className="text-sm text-zinc-300">
+                    {t("אפשר לקנות עוד ניסיון ולהישאר במשחק — נותרו לך {count} לקנייה", {
+                      count: state.extrasLeft,
+                    })}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onBuyExtra}
+                    disabled={pending}
+                    className="btn btn-gold px-5 py-2 text-sm disabled:opacity-50"
+                  >
+                    {pending
+                      ? t("רגע…")
+                      : t("🎯 קנה ניסיון נוסף — {cost}", {
+                          cost: costText(t, state.extraCost.resource, state.extraCost.amount),
+                        })}
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm text-zinc-400">
+                  {t("יצאת מהמשחק, אבל הוא עדיין רץ — סגור את החלון והמשך לשחק; הכפתור למעלה יעדכן אותך מי זכה.")}
+                </p>
+              )}
             </div>
           )}
 
@@ -820,9 +893,11 @@ function MiniGameStage({
           )}
 
           <p className="nums text-center text-xs text-zinc-500">
-            {interactive
-              ? t("נותרו {count} ניסיונות", { count: attemptsLeft })
-              : t("המשחק ממשיך בלעדיך — עקוב אחרי המתחרים")}
+            {!state.paid
+              ? t("הלוח ייפתח ברגע שתשלם את דמי ההשתתפות")
+              : interactive
+                ? t("נותרו {count} ניסיונות", { count: attemptsLeft })
+                : t("המשחק ממשיך בלעדיך — עקוב אחרי המתחרים")}
           </p>
 
           {fb && <p className={`text-center text-sm font-bold ${toneClass}`}>{fb.text}</p>}
@@ -843,7 +918,7 @@ function MiniGameStage({
             ) : (
               <ul className="max-h-56 space-y-0.5 overflow-y-auto">
                 {state.board.map((row) => (
-                  <BoardRow key={row.empireId} row={row} maxAttempts={state.maxAttempts} />
+                  <BoardRow key={row.empireId} row={row} />
                 ))}
               </ul>
             )}
@@ -1091,11 +1166,19 @@ function MiniGamePill({
         </span>
       )}
 
-      {/* The one badge that changes with the player's own standing: attempts
-          while they are in it, the medal count once they are not. This is the
-          answer to "what is this chip telling me right now" — and the piece
-          that stands down on a phone when it is sharing the row. */}
-      {interactive ? (
+      {/* The one badge that changes with the player's own standing: the fee
+          until it is paid, attempts while they are in it, the medal count once
+          they are not. This is the answer to "what is this chip telling me
+          right now" — and the piece that stands down on a phone when it is
+          sharing the row. */}
+      {!state.paid && state.cost ? (
+        <span className="mg-pill-badge mg-pill-badge--go">
+          🎟️{" "}
+          <span className="nums">
+            {costText(t, state.cost.resource, state.cost.amount)}
+          </span>
+        </span>
+      ) : interactive ? (
         <span className="mg-pill-badge mg-pill-badge--go">
           {attemptsLeft === 1 ? (
             t("ניסיון אחרון")
@@ -1387,6 +1470,22 @@ export function MiniGameButton({ initial }: { initial: MiniGameState[] }) {
     });
   }
 
+  /** The two purchases share the guess's plumbing: fresh state in, feedback out.
+   *  The router refresh is what repaints the resource bar the fee just left. */
+  function purchase(eventId: string, action: (id: string) => Promise<{
+    state: MiniGameState | null;
+    feedback: string;
+    tone: string;
+  }>) {
+    startTransition(async () => {
+      const res = await action(eventId);
+      const next = res.state;
+      if (next) setStates((prev) => prev.map((s) => (s.id === next.id ? next : s)));
+      setFeedback({ text: res.feedback, tone: res.tone, eventId });
+      if (res.tone !== "error") router.refresh();
+    });
+  }
+
   if (states.length === 0) return null;
 
   const fb =
@@ -1433,6 +1532,8 @@ export function MiniGameButton({ initial }: { initial: MiniGameState[] }) {
             pending={pending}
             feedback={fb}
             onPlay={(value) => play(openState.id, value)}
+            onPay={() => purchase(openState.id, payMiniGameEntry)}
+            onBuyExtra={() => purchase(openState.id, buyMiniGameAttempt)}
             onClose={() => setOpenId(null)}
             onExpire={refresh}
           />

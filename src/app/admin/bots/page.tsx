@@ -3,10 +3,15 @@ import { requireAdmin } from "@/lib/admin";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
 import { ActionForm } from "@/components/admin/ActionForm";
-import { EditorSection } from "@/components/admin/fields";
+import { EditorSection, LabeledInput, ResourceFieldLabel } from "@/components/admin/fields";
 import { BotPlanter, type BotCityStat } from "@/components/admin/BotPlanter";
 import { botsPerCity, listBots, playersPerCity } from "@/server/bots";
-import { createBotEmpires, deleteBotEmpire, rearmBotEmpire } from "@/server/actions/admin";
+import {
+  createBotEmpires,
+  deleteBotEmpire,
+  rearmBotEmpire,
+  updateBotEmpire,
+} from "@/server/actions/admin";
 import {
   BOT_ONLINE_SHARE,
   BOT_RESTORE_MS,
@@ -15,7 +20,13 @@ import {
   botOnline,
 } from "@/lib/game/bots";
 import { cityAt } from "@/lib/game/cities";
-import { MAX_CITIES } from "@/lib/game/constants";
+import { HERO_MAX_LEVEL } from "@/lib/game/hero";
+import {
+  ENSLAVE_MIN_SOLDIERS,
+  MAX_CITIES,
+  MINE_MAX_LEVEL,
+  isProductionBuilding,
+} from "@/lib/game/constants";
 import { getTunables } from "@/lib/game/config";
 import { formatCompact, formatNumber } from "@/lib/game/format";
 
@@ -130,6 +141,10 @@ export default async function AdminBotsPage() {
               // is what a player is looking at right now, not an admin-only
               // approximation of it.
               const online = botOnline(empire.id, nowDate);
+              // Every production building carries the same level and staffing
+              // (updateBot writes them as one), so the first stands for all.
+              const mine = empire.buildings.find((b) => isProductionBuilding(b.type));
+              const resets = empire.hero?.resets ?? 0;
 
               return (
                 <div key={bot.id} className="panel rounded-xl p-4">
@@ -169,7 +184,17 @@ export default async function AdminBotsPage() {
                         · גיבור רמה{" "}
                         <span className="nums" dir="ltr">
                           {empire.hero?.level ?? 1}
-                        </span>{" "}
+                        </span>
+                        {resets > 0 && (
+                          <span className="text-zinc-500">
+                            {" "}
+                            (+
+                            <span className="nums" dir="ltr">
+                              {resets}
+                            </span>{" "}
+                            ריסטים)
+                          </span>
+                        )}{" "}
                         ·{" "}
                         <span className="nums" dir="ltr">
                           {formatNumber(soldiers)}
@@ -228,6 +253,115 @@ export default async function AdminBotsPage() {
                       </ActionForm>
                     </div>
                   </div>
+
+                  {/* ---- the individual editor ---- */}
+                  <details className="mt-3 border-t border-border-subtle pt-3">
+                    <summary className="cursor-pointer select-none text-xs font-bold text-gold-dim transition-colors hover:text-gold-bright">
+                      ✏️ עריכה אישית — רמה, ריסטים, צבא, מכרות ומשאבים
+                    </summary>
+                    <ActionForm
+                      action={updateBotEmpire}
+                      submitLabel="💾 שמור בוט"
+                      submitClassName="text-xs"
+                      className="mt-3"
+                    >
+                      <input type="hidden" name="empireId" value={empire.id} />
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                        <LabeledInput
+                          label="🏛️ עיר"
+                          name="cities"
+                          type="number"
+                          min={1}
+                          max={MAX_CITIES}
+                          defaultValue={empire.cities}
+                          hint={`1–${MAX_CITIES}`}
+                        />
+                        <LabeledInput
+                          label="⚔️ רמת גיבור"
+                          name="heroLevel"
+                          type="number"
+                          min={1}
+                          max={HERO_MAX_LEVEL}
+                          defaultValue={empire.hero?.level ?? 1}
+                          hint={`1–${HERO_MAX_LEVEL}`}
+                        />
+                        <LabeledInput
+                          label="🔄 ריסטים"
+                          name="heroResets"
+                          type="number"
+                          min={0}
+                          defaultValue={resets}
+                          hint="מעלה את הרמה האפקטיבית"
+                        />
+                        <LabeledInput
+                          label="🪖 חיילים"
+                          name="soldiers"
+                          type="number"
+                          min={0}
+                          defaultValue={bot.soldiers}
+                          hint={`מ-${ENSLAVE_MIN_SOLDIERS} ומעלה ניתן לשעבוד`}
+                        />
+                        <LabeledInput
+                          label="🕵️ מרגלים"
+                          name="spies"
+                          type="number"
+                          min={0}
+                          defaultValue={bot.spies}
+                        />
+                        <LabeledInput
+                          label="⛏️ רמת מכרות"
+                          name="mineLevel"
+                          type="number"
+                          min={1}
+                          max={MINE_MAX_LEVEL}
+                          defaultValue={mine?.level ?? 1}
+                          hint="תפוקה = רמה ×2 לעבד"
+                        />
+                        <LabeledInput
+                          label="⛓️ עבדים בכל מכרה"
+                          name="slavesPerMine"
+                          type="number"
+                          min={0}
+                          defaultValue={mine?.slavesAssigned ?? 0}
+                        />
+                        <LabeledInput
+                          label={<ResourceFieldLabel resource="gold" text="זהב" />}
+                          name="gold"
+                          type="number"
+                          min={0}
+                          defaultValue={Math.round(empire.gold)}
+                        />
+                        <LabeledInput
+                          label={<ResourceFieldLabel resource="wood" text="עץ" />}
+                          name="wood"
+                          type="number"
+                          min={0}
+                          defaultValue={Math.round(empire.wood)}
+                        />
+                        <LabeledInput
+                          label={<ResourceFieldLabel resource="iron" text="ברזל" />}
+                          name="iron"
+                          type="number"
+                          min={0}
+                          defaultValue={Math.round(empire.iron)}
+                        />
+                        <LabeledInput
+                          label={<ResourceFieldLabel resource="stone" text="אבן" />}
+                          name="stone"
+                          type="number"
+                          min={0}
+                          defaultValue={Math.round(empire.stone)}
+                        />
+                      </div>
+                      <p className="text-[11px] text-zinc-500">
+                        החיילים והמרגלים שנקבעים כאן הם גם חיל המצב שהבוט משתקם
+                        אליו אחרי שדידה — העריכה מחזיקה מעמד, לא נמחקת בריענון
+                        השעתי. המשאבים הם היתרה הזמינה (מה ששוד מגיע אליו),
+                        והמכרות ממשיכים לייצר מעליה. שינוי עיר/רמה מעדכן גם את
+                        דרג הנשק שדוח ריגול מציג.
+                      </p>
+                    </ActionForm>
+                  </details>
                 </div>
               );
             })}

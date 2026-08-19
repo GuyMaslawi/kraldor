@@ -15,6 +15,10 @@ import {
   scoreCode,
   digBand,
   riddleSolved,
+  eventCost,
+  eventExtraCost,
+  costText,
+  costResourceLabel,
   DIG_BAND_LABEL,
   RIDDLE_ANSWER_MAX,
   HISTORY_LIMIT,
@@ -22,6 +26,7 @@ import {
   PRIZE_FIELDS,
   type MiniGameState,
   type MiniGameBoardRow,
+  type MiniGameCostResource,
   type MiniGameGuessResult,
   type MiniGameHistoryRow,
 } from "@/lib/game/minigame";
@@ -34,7 +39,7 @@ type Board = { rows: MiniGameBoardRow[]; players: number };
 const EMPTY_BOARD: Board = { rows: [], players: 0 };
 
 /** The viewer's own entry in one event — what the board needs to pin their row. */
-type OwnEntry = { attempts: number; solved: boolean; won: boolean };
+type OwnEntry = { attempts: number; solved: boolean; won: boolean; extraAttempts: number };
 
 async function ownEmpireId(): Promise<string | null> {
   // Enforces the ban on every action (not just page loads); see getActiveEmpireId.
@@ -43,13 +48,25 @@ async function ownEmpireId(): Promise<string | null> {
 
 function toState(
   event: MiniGameEvent,
-  entry: { attempts: number; solved: boolean; won: boolean; guesses?: unknown } | null,
+  entry: {
+    attempts: number;
+    solved: boolean;
+    won: boolean;
+    paid?: boolean;
+    extraAttempts?: number;
+    guesses?: unknown;
+  } | null,
   t: T,
   board: Board = EMPTY_BOARD
 ): MiniGameState {
   const attempts = entry?.attempts ?? 0;
   const solved = entry?.solved ?? false;
   const pub = publicConfig(event);
+  const cost = eventCost(event);
+  const extraCost = eventExtraCost(event);
+  const extras = entry?.extraAttempts ?? 0;
+  // The viewer's own ceiling — the base budget plus every extra they bought.
+  const maxAttempts = event.maxAttempts + extras;
   return {
     id: event.id,
     type: event.type,
@@ -61,10 +78,15 @@ function toState(
     question: pub.question,
     history: parseHistory(entry?.guesses),
     attempts,
-    maxAttempts: event.maxAttempts,
+    maxAttempts,
+    baseAttempts: event.maxAttempts,
+    cost,
+    paid: cost === null || (entry?.paid ?? false),
+    extraCost,
+    extrasLeft: extraCost ? Math.max(0, event.maxExtraAttempts - extras) : 0,
     solved,
     won: entry?.won ?? false,
-    finished: solved || attempts >= event.maxAttempts,
+    finished: solved || attempts >= maxAttempts,
     prizesLeft: event.maxWinners === 0 || event.winnersCount < event.maxWinners,
     winnersCount: event.winnersCount,
     maxWinners: event.maxWinners,
@@ -123,12 +145,16 @@ async function loadLiveEvents(): Promise<MiniGameEvent[]> {
  * the caller (which already read it) rather than re-fetched per event.
  */
 async function loadBoards(
-  eventIds: string[],
+  events: { id: string; maxAttempts: number }[],
   selfEmpireId: string,
   own: Map<string, OwnEntry>,
   t: T
 ): Promise<Map<string, Board>> {
-  if (eventIds.length === 0) return new Map();
+  if (events.length === 0) return new Map();
+  const eventIds = events.map((e) => e.id);
+  // Each row's attempt ceiling is the event's base budget plus ITS OWN bought
+  // extras — a rival who paid for two more must read 5/5, not 5/3.
+  const baseAttempts = new Map(events.map((e) => [e.id, e.maxAttempts]));
 
   const [perEvent, counts] = await Promise.all([
     Promise.all(
@@ -143,7 +169,13 @@ async function loadBoards(
             { updatedAt: "asc" },
           ],
           take: BOARD_LIMIT,
-          select: { empireId: true, attempts: true, solved: true, won: true },
+          select: {
+            empireId: true,
+            attempts: true,
+            solved: true,
+            won: true,
+            extraAttempts: true,
+          },
         })
       )
     ),
@@ -181,6 +213,7 @@ async function loadBoards(
           empireId: e.empireId,
           name: names.get(e.empireId) ?? t("אימפריה אלמונית"),
           attempts: e.attempts,
+          maxAttempts: (baseAttempts.get(eventIds[i]) ?? 0) + e.extraAttempts,
           solved: e.solved,
           won: e.won,
           isSelf: e.empireId === selfEmpireId,
@@ -192,18 +225,37 @@ async function loadBoards(
 
 /** One event's board — the single-event door into `loadBoards`. */
 async function loadBoard(
-  eventId: string,
+  event: { id: string; maxAttempts: number },
   selfEmpireId: string,
   own: OwnEntry | null,
   t: T
 ): Promise<Board> {
   const boards = await loadBoards(
-    [eventId],
+    [event],
     selfEmpireId,
-    own ? new Map([[eventId, own]]) : new Map(),
+    own ? new Map([[event.id, own]]) : new Map(),
     t
   );
-  return boards.get(eventId) ?? EMPTY_BOARD;
+  return boards.get(event.id) ?? EMPTY_BOARD;
+}
+
+/** Rebuild one event's board from a just-computed state — the actions' way out. */
+async function refreshBoard(
+  state: MiniGameState,
+  empireId: string,
+  t: T
+): Promise<Board> {
+  return loadBoard(
+    { id: state.id, maxAttempts: state.baseAttempts },
+    empireId,
+    {
+      attempts: state.attempts,
+      solved: state.solved,
+      won: state.won,
+      extraAttempts: state.maxAttempts - state.baseAttempts,
+    },
+    t
+  );
 }
 
 /**
@@ -223,15 +275,18 @@ export async function getMiniGameStates(): Promise<MiniGameState[]> {
     // needs the attempt log, and the boards need the row to pin.
     const entries = await prisma.miniGameEntry.findMany({
       where: { eventId: { in: events.map((e) => e.id) }, empireId },
-      select: { eventId: true, attempts: true, solved: true, won: true, guesses: true },
+      select: {
+        eventId: true,
+        attempts: true,
+        solved: true,
+        won: true,
+        paid: true,
+        extraAttempts: true,
+        guesses: true,
+      },
     });
     const mine = new Map(entries.map((e) => [e.eventId, e]));
-    const boards = await loadBoards(
-      events.map((e) => e.id),
-      empireId,
-      mine,
-      t
-    );
+    const boards = await loadBoards(events, empireId, mine, t);
 
     return events.map((e) =>
       toState(e, mine.get(e.id) ?? null, t, boards.get(e.id) ?? EMPTY_BOARD)
@@ -397,6 +452,18 @@ export async function submitMiniGameGuess(
         update: {},
       });
 
+      // A game with an entry fee takes no guesses until the fee is paid — the
+      // client gates this too, but the server is the wall. Checked after the
+      // upsert on purpose: the unpaid row is what payMiniGameEntry flips, and
+      // it costs the player nothing.
+      if (eventCost(event) !== null && !entry.paid) {
+        return {
+          state: toState(event, entry, t),
+          feedback: t("יש לשלם את דמי ההשתתפות קודם"),
+          tone: "error" as const,
+        };
+      }
+
       if (entry.solved) {
         return {
           state: toState(event, entry, t),
@@ -412,8 +479,16 @@ export async function submitMiniGameGuess(
       // (solve any mini-game on demand and drain the prize). This guarded
       // updateMany serializes the spend on the entry row, so at most
       // maxAttempts submissions ever proceed past here.
+      //
+      // The ceiling includes the extras this entry has bought. Read from the
+      // pre-claim row, which can only UNDERcount — extraAttempts only grows,
+      // so a purchase racing this guess is at worst not spendable this round.
       const attemptClaim = await tx.miniGameEntry.updateMany({
-        where: { id: entry.id, solved: false, attempts: { lt: event.maxAttempts } },
+        where: {
+          id: entry.id,
+          solved: false,
+          attempts: { lt: event.maxAttempts + entry.extraAttempts },
+        },
         data: { attempts: { increment: 1 } },
       });
       if (attemptClaim.count === 0) {
@@ -482,7 +557,7 @@ export async function submitMiniGameGuess(
       const history = [...parseHistory(locked.guesses), row].slice(-HISTORY_LIMIT);
 
       if (!correct) {
-        const finished = attempts >= event.maxAttempts;
+        const finished = attempts >= event.maxAttempts + locked.extraAttempts;
         const updated = await tx.miniGameEntry.update({
           where: { id: entry.id },
           data: { guesses: history },
@@ -583,11 +658,252 @@ export async function submitMiniGameGuess(
     // Refresh the rival board on the way out so a player who just spent their
     // last attempt lands straight on the live standings instead of a stale copy.
     if (result.state) {
-      const board = await loadBoard(result.state.id, empireId, result.state, t);
+      const board = await refreshBoard(result.state, empireId, t);
       return { ...result, state: { ...result.state, board: board.rows, players: board.players } };
     }
     return result;
   } catch {
+    return { state: null, feedback: t("אירעה שגיאה, נסה שוב"), tone: "error" };
+  }
+}
+
+/* ------------------------------ paid entry ------------------------------ */
+
+/**
+ * Thrown inside a payment transaction when the guarded debit matched nothing —
+ * the balance was short. Typed so the catch can tell "roll back and say so"
+ * apart from a real failure.
+ */
+class InsufficientFunds extends Error {}
+
+/**
+ * Everything both purchase actions share before any money moves: the live
+ * event, the staff refusal, and the player's entry row (created unpaid).
+ * Returns a refusal result instead when the event is over or the account is
+ * staff — the same walls submitMiniGameGuess puts up, for the same reasons.
+ */
+async function preparePurchase(
+  tx: Prisma.TransactionClient,
+  eventId: string,
+  empireId: string,
+  t: T
+): Promise<
+  | { refusal: MiniGameGuessResult }
+  | {
+      event: MiniGameEvent;
+      entry: { id: string; paid: boolean; solved: boolean; extraAttempts: number };
+    }
+> {
+  const event = await tx.miniGameEvent.findFirst({
+    where: { id: eventId, isActive: true },
+  });
+  if (!event || isExpired(event)) {
+    return {
+      refusal: { state: null, feedback: t("המשחק הסתיים"), tone: "info" },
+    };
+  }
+  const player = await tx.empire.findUnique({
+    where: { id: empireId },
+    select: { isStaff: true },
+  });
+  if (!player || player.isStaff) {
+    return {
+      refusal: {
+        state: null,
+        feedback: t("חשבון הנהלה אינו משתתף במשחקי הצד"),
+        tone: "info",
+      },
+    };
+  }
+  const entry = await tx.miniGameEntry.upsert({
+    where: { eventId_empireId: { eventId: event.id, empireId } },
+    create: { eventId: event.id, empireId },
+    update: {},
+  });
+  return { event, entry };
+}
+
+/**
+ * Debit the entry fee / extra-attempt price from the paying balance.
+ *
+ * The guarded updateMany IS the balance check (the resource-spend convention:
+ * a plain decrement after a read is a TOCTOU hole — two purchases both read a
+ * sufficient balance and drive it negative). Zero rows matched means the money
+ * was not there; the thrown error rolls the whole transaction back, taking the
+ * paid flag / extras increment with it.
+ */
+async function debitOrThrow(
+  tx: Prisma.TransactionClient,
+  empireId: string,
+  resource: MiniGameCostResource,
+  amount: number
+): Promise<void> {
+  // The key is one of five known Float columns on Empire (see
+  // MINIGAME_COST_RESOURCES); the casts are only because the column is picked
+  // at runtime, which Prisma's generated input types cannot express.
+  const debit = await tx.empire.updateMany({
+    where: { id: empireId, [resource]: { gte: amount } } as Prisma.EmpireWhereInput,
+    data: { [resource]: { decrement: amount } } as Prisma.EmpireUpdateManyMutationInput,
+  });
+  if (debit.count === 0) throw new InsufficientFunds();
+}
+
+/**
+ * Pay a running mini-game's entry fee, unlocking its base attempt budget.
+ *
+ * The paid flip happens BEFORE the debit, both inside one transaction: the
+ * guarded flip takes the entry row's lock, so of two concurrent payments only
+ * one reaches the debit — the other sees paid already true and pays nothing.
+ * A short balance throws, rolling the flip back with the money untouched.
+ */
+export async function payMiniGameEntry(eventId: string): Promise<MiniGameGuessResult> {
+  const t = await getT();
+  try {
+    const empireId = await ownEmpireId();
+    if (!empireId) return { state: null, feedback: t("לא מחובר"), tone: "error" };
+
+    const result = await prisma.$transaction(async (tx) => {
+      const prep = await preparePurchase(tx, eventId, empireId, t);
+      if ("refusal" in prep) return prep.refusal;
+      const { event, entry } = prep;
+
+      const cost = eventCost(event);
+      if (cost === null || entry.paid) {
+        const current = await tx.miniGameEntry.findUniqueOrThrow({ where: { id: entry.id } });
+        return {
+          state: toState(event, current, t),
+          feedback: cost === null ? t("המשחק הזה חינם — פשוט שחק") : t("כבר שילמת — המשחק פתוח"),
+          tone: "info" as const,
+        };
+      }
+
+      const claim = await tx.miniGameEntry.updateMany({
+        where: { id: entry.id, paid: false },
+        data: { paid: true },
+      });
+      if (claim.count === 0) {
+        const current = await tx.miniGameEntry.findUniqueOrThrow({ where: { id: entry.id } });
+        return {
+          state: toState(event, current, t),
+          feedback: t("כבר שילמת — המשחק פתוח"),
+          tone: "info" as const,
+        };
+      }
+
+      await debitOrThrow(tx, empireId, cost.resource, cost.amount);
+
+      const current = await tx.miniGameEntry.findUniqueOrThrow({ where: { id: entry.id } });
+      return {
+        state: toState(event, current, t),
+        feedback: t("🎟️ שולם {cost} — {count} הניסיונות שלך נפתחו!", {
+          cost: costText(t, cost.resource, cost.amount),
+          count: event.maxAttempts,
+        }),
+        tone: "info" as const,
+      };
+    });
+
+    if (result.state) {
+      const board = await refreshBoard(result.state, empireId, t);
+      return { ...result, state: { ...result.state, board: board.rows, players: board.players } };
+    }
+    return result;
+  } catch (e) {
+    if (e instanceof InsufficientFunds) {
+      const event = await prisma.miniGameEvent.findUnique({ where: { id: eventId } });
+      const cost = event ? eventCost(event) : null;
+      return {
+        state: null,
+        feedback: cost
+          ? t("אין מספיק {resource}", { resource: t(costResourceLabel(cost.resource)) })
+          : t("אין מספיק משאבים זמינים לקנייה."),
+        tone: "error",
+      };
+    }
+    return { state: null, feedback: t("אירעה שגיאה, נסה שוב"), tone: "error" };
+  }
+}
+
+/**
+ * Buy ONE extra attempt past the base budget, up to the event's per-player cap.
+ *
+ * Same shape as the entry payment: the guarded increment (solved:false, under
+ * the cap, and — when the event charges entry — paid:true) serializes on the
+ * entry row, so N concurrent buys can never exceed maxExtraAttempts; the
+ * debit's failure rolls the increment back.
+ */
+export async function buyMiniGameAttempt(eventId: string): Promise<MiniGameGuessResult> {
+  const t = await getT();
+  try {
+    const empireId = await ownEmpireId();
+    if (!empireId) return { state: null, feedback: t("לא מחובר"), tone: "error" };
+
+    const result = await prisma.$transaction(async (tx) => {
+      const prep = await preparePurchase(tx, eventId, empireId, t);
+      if ("refusal" in prep) return prep.refusal;
+      const { event, entry } = prep;
+
+      const extra = eventExtraCost(event);
+      if (extra === null) {
+        const current = await tx.miniGameEntry.findUniqueOrThrow({ where: { id: entry.id } });
+        return {
+          state: toState(event, current, t),
+          feedback: t("במשחק הזה אין ניסיונות נוספים למכירה"),
+          tone: "info" as const,
+        };
+      }
+
+      const claim = await tx.miniGameEntry.updateMany({
+        where: {
+          id: entry.id,
+          solved: false,
+          extraAttempts: { lt: event.maxExtraAttempts },
+          ...(eventCost(event) !== null ? { paid: true } : {}),
+        },
+        data: { extraAttempts: { increment: 1 } },
+      });
+      if (claim.count === 0) {
+        const current = await tx.miniGameEntry.findUniqueOrThrow({ where: { id: entry.id } });
+        return {
+          state: toState(event, current, t),
+          feedback: current.solved
+            ? t("כבר פתרת את המשחק 🎉")
+            : !current.paid && eventCost(event) !== null
+              ? t("יש לשלם את דמי ההשתתפות קודם")
+              : t("קנית כבר את כל הניסיונות הנוספים"),
+          tone: "info" as const,
+        };
+      }
+
+      await debitOrThrow(tx, empireId, extra.resource, extra.amount);
+
+      const current = await tx.miniGameEntry.findUniqueOrThrow({ where: { id: entry.id } });
+      return {
+        state: toState(event, current, t),
+        feedback: t("🎯 נוסף ניסיון תמורת {cost}", {
+          cost: costText(t, extra.resource, extra.amount),
+        }),
+        tone: "info" as const,
+      };
+    });
+
+    if (result.state) {
+      const board = await refreshBoard(result.state, empireId, t);
+      return { ...result, state: { ...result.state, board: board.rows, players: board.players } };
+    }
+    return result;
+  } catch (e) {
+    if (e instanceof InsufficientFunds) {
+      const event = await prisma.miniGameEvent.findUnique({ where: { id: eventId } });
+      const extra = event ? eventExtraCost(event) : null;
+      return {
+        state: null,
+        feedback: extra
+          ? t("אין מספיק {resource}", { resource: t(costResourceLabel(extra.resource)) })
+          : t("אין מספיק משאבים זמינים לקנייה."),
+        tone: "error",
+      };
+    }
     return { state: null, feedback: t("אירעה שגיאה, נסה שוב"), tone: "error" };
   }
 }

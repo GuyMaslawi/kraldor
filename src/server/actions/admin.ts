@@ -40,11 +40,15 @@ import {
   SAFE_DIGITS_MIN,
   clampAttempts,
   clampCups,
+  clampExtraAttempts,
   clampMapSize,
   MAP_SIZE_MIN,
   RIDDLE_ANSWER_MAX,
   RIDDLE_QUESTION_MAX,
   clampDigits,
+  costText,
+  eventCost,
+  isMiniGameCostResource,
   prizeText,
   type MiniGameShape,
 } from "@/lib/game/minigame";
@@ -61,6 +65,7 @@ import {
 import { itemSetForLevel } from "@/lib/game/heroSets";
 import {
   EMPIRE_UPGRADE_META,
+  ENSLAVE_MIN_SOLDIERS,
   MAX_CITIES,
   MINE_MAX_LEVEL,
   RESOURCE_MAX,
@@ -115,7 +120,14 @@ import { DEFAULT_LOCALE } from "@/i18n/locale";
 import { newEmpireData } from "@/lib/game/createEmpire";
 import { hashPassword } from "@/lib/password";
 import { syncEmpirePower } from "@/server/empirePower";
-import { createBots, deleteBot, ensureCityBots, planBots, rearmBot } from "@/server/bots";
+import {
+  createBots,
+  deleteBot,
+  ensureCityBots,
+  planBots,
+  rearmBot,
+  updateBot,
+} from "@/server/bots";
 import { repairGuildLeadership } from "@/server/guildLeadership";
 import { applyGuildCityRule, guildCityTier } from "@/server/guildCity";
 import type { GuildCityOutcome } from "@/lib/game/guild";
@@ -3912,6 +3924,31 @@ function readPrizeBundle(formData: FormData) {
   };
 }
 
+/**
+ * The entry-fee knobs off the creation form. A resource the list does not know
+ * (or "free") zeroes everything — a fee with nothing to debit is not a fee, and
+ * storing it would make eventCost's "both halves or neither" rule ambiguous.
+ * `maxExtraAttempts` is clamped against the shape's ceiling by the caller,
+ * which knows the base budget (see clampExtraAttempts).
+ */
+function readCostFields(formData: FormData): {
+  costResource: string | null;
+  costAmount: number;
+  extraAttemptCost: number;
+  maxExtraAttempts: number;
+} {
+  const raw = formData.get("costResource");
+  if (!isMiniGameCostResource(raw)) {
+    return { costResource: null, costAmount: 0, extraAttemptCost: 0, maxExtraAttempts: 0 };
+  }
+  return {
+    costResource: raw,
+    costAmount: Math.max(0, optNum(formData, "costAmount")),
+    extraAttemptCost: Math.max(0, optNum(formData, "extraAttemptCost")),
+    maxExtraAttempts: Math.max(0, intOptNum(formData, "maxExtraAttempts")),
+  };
+}
+
 /** Upper bound on a timed release: one week, in minutes. */
 const MAX_DURATION_MINUTES = 7 * 24 * 60;
 
@@ -3953,6 +3990,7 @@ async function activateEvent(
     config: unknown;
     title: string;
     maxAttempts: number;
+    maxExtraAttempts: number;
   },
   durationMinutes: number
 ): Promise<void> {
@@ -3976,6 +4014,14 @@ async function activateEvent(
     word: typeof cfg.word === "string" ? cfg.word : "",
   };
   const maxAttempts = clampAttempts(event.type, params, event.maxAttempts);
+  // Extras ride the same re-clamp as the budget: a row saved before the bounds
+  // moved must not release with base + extras past what the shape can carry.
+  const maxExtraAttempts = clampExtraAttempts(
+    event.type,
+    params,
+    maxAttempts,
+    event.maxExtraAttempts
+  );
   const minutes = Math.min(MAX_DURATION_MINUTES, Math.max(0, Math.round(durationMinutes)));
   const endsAt = minutes > 0 ? new Date(Date.now() + minutes * 60_000) : null;
 
@@ -4000,6 +4046,7 @@ async function activateEvent(
         endsAt,
         endedAt: null,
         maxAttempts,
+        maxExtraAttempts,
         config: freshConfig(event.type, params, authored),
       },
     }),
@@ -4023,8 +4070,10 @@ async function activateEvent(
   // committed. Same channel voice as the other posts: prize first, deadline
   // second, flavour last.
   const meta = MINIGAME_TYPE_META[event.type];
+  const fee = eventCost(released);
   const limits = [
     `${released.maxAttempts} ניסיונות לכל אחד`,
+    fee ? `🎟️ השתתפות: ${costText(t, fee.resource, fee.amount)}` : null,
     released.maxWinners > 0 ? `${released.maxWinners} זוכים בלבד` : null,
   ]
     .filter(Boolean)
@@ -4088,6 +4137,14 @@ export async function createMiniGame(
       throw new AdminError("לחידה צריך גם שאלה וגם תשובה");
     }
 
+    const cost = readCostFields(formData);
+    cost.maxExtraAttempts = clampExtraAttempts(
+      type,
+      shape,
+      maxAttempts,
+      cost.maxExtraAttempts
+    );
+
     const event = await prisma.miniGameEvent.create({
       data: {
         type,
@@ -4096,6 +4153,7 @@ export async function createMiniGame(
         maxAttempts,
         maxWinners,
         durationMinutes,
+        ...cost,
         ...readPrizeBundle(formData),
       },
     });
@@ -4560,6 +4618,64 @@ export async function rearmBotEmpire(
     revalidatePath("/admin/bots");
     revalidatePath("/game", "layout");
     return { success: "חיל המצב חודש" };
+  } catch (e) {
+    return toErr(e);
+  }
+}
+
+/**
+ * Edit one bot individually — its city tier, hero level and resets, garrison,
+ * mine setup and purse, in a single submit.
+ *
+ * Clamped exactly like the player editor: the same ceilings the game itself
+ * enforces (`clampLevel`'s note says why), the resources through `num`
+ * (RESOURCE_MAX). The numbers typed here also become the garrison the hourly
+ * refill rebuilds to — see `updateBot` for the two-armies subtlety.
+ */
+export async function updateBotEmpire(
+  _prev: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  try {
+    const admin = await requireAdmin();
+    const empireId = str(formData, "empireId");
+
+    const edit = {
+      cities: clampLevel(num(formData, "cities"), 1, MAX_CITIES),
+      heroLevel: clampLevel(num(formData, "heroLevel"), 1, HERO_MAX_LEVEL),
+      heroResets: Math.max(0, intNum(formData, "heroResets")),
+      soldiers: Math.max(0, intNum(formData, "soldiers")),
+      spies: Math.max(0, intNum(formData, "spies")),
+      mineLevel: clampLevel(num(formData, "mineLevel"), 1, MINE_MAX_LEVEL),
+      slavesPerMine: Math.max(0, intNum(formData, "slavesPerMine")),
+      gold: Math.max(0, num(formData, "gold")),
+      wood: Math.max(0, num(formData, "wood")),
+      iron: Math.max(0, num(formData, "iron")),
+      stone: Math.max(0, num(formData, "stone")),
+    };
+
+    if (!(await updateBot(empireId, edit))) return { error: "הבוט לא נמצא" };
+
+    await logAdmin(admin, {
+      action: "bots.update",
+      targetType: "empire",
+      targetId: empireId,
+      summary:
+        `בוט עודכן: עיר ${edit.cities}, גיבור ${edit.heroLevel}` +
+        (edit.heroResets > 0 ? ` (+${edit.heroResets} ריסטים)` : "") +
+        `, ${edit.soldiers} חיילים, ${edit.slavesPerMine} עבדים למכרה`,
+      details: edit,
+    });
+    revalidatePath("/admin/bots");
+    revalidatePath("/game", "layout");
+
+    // Not blocked — the admin may want a fat target on purpose — but worth
+    // saying out loud: past this line the bot becomes a renewable slave farm.
+    const enslaveNote =
+      edit.soldiers >= ENSLAVE_MIN_SOLDIERS
+        ? ` — שים לב: מ-${ENSLAVE_MIN_SOLDIERS} חיילים ומעלה תקיפה מנצחת משעבדת ממנו חיילים, וחיל המצב מתחדש כל שעה`
+        : "";
+    return { success: `הבוט עודכן${enslaveNote}` };
   } catch (e) {
     return toErr(e);
   }

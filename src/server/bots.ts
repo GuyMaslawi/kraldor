@@ -7,7 +7,8 @@ import { newEmpireData } from "@/lib/game/createEmpire";
 import { getTunables, type GameTunables } from "@/lib/game/config";
 import { BUILDING_TYPES, isProductionBuilding } from "@/lib/game/constants";
 import { WEAPON_CATEGORIES } from "@/lib/game/weapons";
-import { computePower } from "@/server/empirePower";
+import { computePower, syncEmpirePower } from "@/server/empirePower";
+import { heroPointPool } from "@/lib/game/hero";
 import {
   BOT_RESTORE_MS,
   botFallbackName,
@@ -17,6 +18,7 @@ import {
   botName,
   botRealisedPower,
   botWeaponKeys,
+  botWeaponTier,
   type BotGarrison,
 } from "@/lib/game/bots";
 
@@ -440,6 +442,120 @@ export async function rearmBot(empireId: string): Promise<boolean> {
   });
 }
 
+/* ------------------------------ editing ------------------------------ */
+
+/** Everything about one bot an admin may set by hand. Clamped by the caller. */
+export interface BotEdit {
+  /** City tier the bot stands in (1..MAX_CITIES). */
+  cities: number;
+  /** Hero level (1..HERO_MAX_LEVEL) — what the ladder breaks ties on. */
+  heroLevel: number;
+  /** Hero resets behind it (≥0) — lifts the effective level like a player's. */
+  heroResets: number;
+  soldiers: number;
+  spies: number;
+  /** Production-building level (1..MINE_MAX_LEVEL) — decides income per slave. */
+  mineLevel: number;
+  /** Slaves standing in each production building (≥0). */
+  slavesPerMine: number;
+  gold: number;
+  wood: number;
+  iron: number;
+  stone: number;
+}
+
+/**
+ * Rewrite one bot to exactly what the admin typed — tier, hero, garrison,
+ * mines and purse, in one transaction.
+ *
+ * The one subtlety is that a bot has *two* armies: the live one (`Army`) and
+ * the garrison it is rebuilt to on the hourly refill (`EmpireBot`). An edit
+ * that touched only the live rows would quietly revert the next time a raider
+ * loads the bot as a target, so both are written to the same figures — the
+ * numbers typed here are the numbers the bot restores to from now on.
+ *
+ * The armoury stays deliberately empty (any legacy stacks from old plantings
+ * are cleared), the weapon-unlock tier is recomputed so a spy dossier still
+ * reads consistent for the new city and level, and the hero's whole point pool
+ * is left unspent — an allocated point is +1% attack/defence, and a bot must
+ * fight at exactly the power printed beside it on the ladder.
+ */
+export async function updateBot(empireId: string, edit: BotEdit): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const empire = await tx.empire.findUnique({
+      where: { id: empireId },
+      select: { isBot: true },
+    });
+    if (!empire?.isBot) return false;
+
+    const weaponTier = botWeaponTier(edit.cities, edit.heroLevel);
+    const garrison: BotGarrison = {
+      soldiers: edit.soldiers,
+      spies: edit.spies,
+      weaponTier,
+      attackWeapons: 0,
+      defenseWeapons: 0,
+      spyWeapons: 0,
+    };
+
+    // The garrison first — this is what restoreBotGarrison rebuilds to, so it
+    // must never be allowed to disagree with the live army written below.
+    await tx.empireBot.updateMany({
+      where: { empireId },
+      data: { targetPower: botRealisedPower(garrison), ...garrison },
+    });
+
+    await tx.empire.updateMany({
+      where: { id: empireId },
+      data: {
+        cities: edit.cities,
+        gold: edit.gold,
+        wood: edit.wood,
+        iron: edit.iron,
+        stone: edit.stone,
+      },
+    });
+
+    const mineTypes = BUILDING_TYPES.filter(isProductionBuilding);
+    await tx.army.updateMany({
+      where: { empireId },
+      data: {
+        soldiers: edit.soldiers,
+        spies: edit.spies,
+        // The pool covers exactly what stands in the mines — see plantBot.
+        mineSlaves: edit.slavesPerMine * mineTypes.length,
+      },
+    });
+    await tx.building.updateMany({
+      where: { empireId, type: { in: [...mineTypes] } },
+      data: { level: edit.mineLevel, slavesAssigned: edit.slavesPerMine },
+    });
+
+    await tx.hero.updateMany({
+      where: { empireId },
+      data: {
+        level: edit.heroLevel,
+        resets: edit.heroResets,
+        attackPoints: 0,
+        defensePoints: 0,
+        resourcePoints: 0,
+        unspentPoints: heroPointPool(edit.heroLevel, edit.heroResets),
+      },
+    });
+
+    // A bot planted before the garrison was fixed may still hold an arsenal;
+    // the edit is the moment it is finally cleaned out.
+    await tx.empireWeapon.deleteMany({ where: { empireId } });
+    await tx.empireWeaponUnlock.updateMany({
+      where: { empireId },
+      data: { unlockedTier: weaponTier },
+    });
+
+    await syncEmpirePower(tx, empireId);
+    return true;
+  });
+}
+
 /**
  * Remove a bot: the user row goes, and the empire and its garrison cascade off
  * it. Deleting the account rather than just the empire is the point — a bot's
@@ -468,8 +584,13 @@ export async function listBots() {
           cities: true,
           militaryPower: true,
           gold: true,
-          army: { select: { soldiers: true, spies: true } },
-          hero: { select: { level: true } },
+          wood: true,
+          iron: true,
+          stone: true,
+          army: { select: { soldiers: true, spies: true, mineSlaves: true } },
+          hero: { select: { level: true, resets: true } },
+          // The per-bot editor prefills its mine fields from the real rows.
+          buildings: { select: { type: true, level: true, slavesAssigned: true } },
         },
       },
     },

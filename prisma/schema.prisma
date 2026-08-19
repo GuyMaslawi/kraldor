@@ -248,6 +248,17 @@ model MiniGameEvent {
   /// on the event so re-activating it reuses the last chosen duration.
   durationMinutes Int @default(0)
 
+  /// Which balance pays to play (null = a free game): "diamonds" | "gold" |
+  /// "wood" | "iron" | "stone". `costAmount` is the one-off entry fee that
+  /// unlocks the full base attempt budget (`maxAttempts`); `extraAttemptCost`
+  /// prices ONE additional attempt past that budget, purchasable up to
+  /// `maxExtraAttempts` times per player. Any of the amounts may be 0 — an
+  /// admin can sell entry without extras, or extras on a free game.
+  costResource     String?
+  costAmount       Float   @default(0)
+  extraAttemptCost Float   @default(0)
+  maxExtraAttempts Int     @default(0)
+
   prizeGold       Float @default(0)
   prizeWood       Float @default(0)
   prizeIron       Float @default(0)
@@ -279,6 +290,12 @@ model MiniGameEntry {
   solved    Boolean   @default(false)
   won       Boolean   @default(false)
   wonAt     DateTime?
+  /// Whether this player paid the event's entry fee. Meaningless (and left
+  /// false) on free games — the gate only reads it when a fee exists.
+  paid      Boolean   @default(false)
+  /// Extra attempts bought past the event's base budget; this player's real
+  /// ceiling is `event.maxAttempts + extraAttempts`. Only ever grows.
+  extraAttempts Int   @default(0)
   /// This player's own attempt log, capped at the most recent few — the board
   /// a cracked-safe player reasons over, and what keeps a lifted cup lifted
   /// across a reload. Rows are `{kind:"cup"|"code", ...}`; see

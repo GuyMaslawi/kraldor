@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useScrollLock } from "@/components/ui/scrollLock";
 import { CloseButton } from "@/components/ui/CloseButton";
-import { MINIGAME_TYPE_META, type MiniGameState } from "@/lib/game/minigame";
+import { MINIGAME_TYPE_META, costText, type MiniGameState } from "@/lib/game/minigame";
 import { useT } from "@/i18n/client";
 
 /**
@@ -348,6 +348,14 @@ export function MiniGameTakeover({
             </span>{" "}
             {t("ניסיונות")}
           </span>
+          {state.cost && (
+            <span className="mgt-chip">
+              <span aria-hidden>🎟️</span> {t("השתתפות:")}{" "}
+              <span className="nums font-black" dir="ltr">
+                {costText(t, state.cost.resource, state.cost.amount)}
+              </span>
+            </span>
+          )}
           {state.maxWinners > 0 && (
             <span className="mgt-chip">
               <span aria-hidden>🏆</span>{" "}

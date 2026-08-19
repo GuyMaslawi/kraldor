@@ -45,6 +45,78 @@ export function prizeText(t: T, event: MiniGameEvent): string {
   return parts.length ? parts.join(" · ") : t("כבוד בלבד");
 }
 
+/**
+ * The balances an entry fee may be charged in. A deliberate subset of
+ * RESOURCE_META: citizens and turns are *earned* quantities with their own
+ * ceilings and grant paths, and a game that ate them would interact with every
+ * system that pays them out.
+ */
+export const MINIGAME_COST_RESOURCES = [
+  { key: "diamonds", label: "יהלומים" },
+  { key: "gold", label: "זהב" },
+  { key: "wood", label: "עץ" },
+  { key: "iron", label: "ברזל" },
+  { key: "stone", label: "אבן" },
+] as const satisfies ReadonlyArray<{ key: string; label: string }>;
+
+export type MiniGameCostResource = (typeof MINIGAME_COST_RESOURCES)[number]["key"];
+
+export function isMiniGameCostResource(value: unknown): value is MiniGameCostResource {
+  return (
+    typeof value === "string" &&
+    MINIGAME_COST_RESOURCES.some((r) => r.key === value)
+  );
+}
+
+/** The word for a cost resource, e.g. "יהלומים". */
+export function costResourceLabel(resource: MiniGameCostResource): string {
+  return MINIGAME_COST_RESOURCES.find((r) => r.key === resource)!.label;
+}
+
+/** "200 יהלומים" — same voice as prizeText, and for the same inbox/toast reasons. */
+export function costText(t: T, resource: MiniGameCostResource, amount: number): string {
+  return t("{amount} {resource}", {
+    amount: Math.round(amount).toLocaleString("en-US"),
+    resource: t(costResourceLabel(resource)),
+  });
+}
+
+/** The fields on a MiniGameEvent this feature reads — see the schema note. */
+export interface MiniGameCostFields {
+  costResource: string | null;
+  costAmount: number;
+  extraAttemptCost: number;
+  maxExtraAttempts: number;
+}
+
+/**
+ * The entry fee an event actually charges, or null for a free game.
+ *
+ * Null unless BOTH halves are sane — a resource with a zero amount is a free
+ * game, and an amount with no resource has nothing to debit. Extras are read
+ * separately (see `eventExtraCost`) because they are independent: an admin may
+ * sell extra attempts on a game whose entry is free.
+ */
+export function eventCost(
+  event: MiniGameCostFields
+): { resource: MiniGameCostResource; amount: number } | null {
+  if (!isMiniGameCostResource(event.costResource)) return null;
+  const amount = Number(event.costAmount);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  return { resource: event.costResource, amount };
+}
+
+/** The price of one extra attempt, or null when extras are not for sale. */
+export function eventExtraCost(
+  event: MiniGameCostFields
+): { resource: MiniGameCostResource; amount: number } | null {
+  if (!isMiniGameCostResource(event.costResource)) return null;
+  const amount = Number(event.extraAttemptCost);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  if (Math.round(Number(event.maxExtraAttempts)) <= 0) return null;
+  return { resource: event.costResource, amount };
+}
+
 export const MINIGAME_TYPE_META: Record<MiniGameType, { label: string; icon: string }> = {
   FIND_BALL: { label: "מצא את הכדור", icon: "🥤" },
   CRACK_SAFE: { label: "פריצת הכספת", icon: "🔐" },
@@ -177,6 +249,26 @@ export function clampAttempts(
 ): number {
   const range = attemptsRange(type, shape);
   return Number.isFinite(value) ? clamp(value, range.min, range.max) : range.fallback;
+}
+
+/**
+ * Clamp how many extra attempts one player may buy on top of `baseAttempts`.
+ *
+ * Bounded by the same ceiling as the budget itself — `attemptsRange` exists
+ * because past a point the attempts ARE the answer (lift every cup, sweep the
+ * map), and an attempt that was paid for is no less a giveaway than one that
+ * was not. So base + extras can never exceed what the shape can carry: a
+ * three-cup game (max 1) simply has no extras to sell.
+ */
+export function clampExtraAttempts(
+  type: MiniGameType,
+  shape: MiniGameShape,
+  baseAttempts: number,
+  value: number
+): number {
+  const range = attemptsRange(type, shape);
+  const room = Math.max(0, range.max - baseAttempts);
+  return Number.isFinite(value) ? clamp(value, 0, room) : 0;
 }
 
 /**
@@ -375,6 +467,8 @@ export interface MiniGameBoardRow {
   empireId: string;
   name: string;
   attempts: number;
+  /** THIS row's ceiling — base budget plus whatever extras they bought. */
+  maxAttempts: number;
   solved: boolean;
   won: boolean;
   /** True for the viewer's own row, so it can be highlighted. */
@@ -396,7 +490,18 @@ export interface MiniGameState {
   /** The viewer's own attempt log, oldest first. Never another player's. */
   history: MiniGameHistoryRow[];
   attempts: number;
+  /** The VIEWER's ceiling: the base budget plus their own bought extras. */
   maxAttempts: number;
+  /** The event's base budget — what an entry fee unlocks, before extras. */
+  baseAttempts: number;
+  /** The entry fee, or null for a free game. */
+  cost: { resource: MiniGameCostResource; amount: number } | null;
+  /** True once the viewer may play: no fee, or the fee was paid. */
+  paid: boolean;
+  /** Price of one extra attempt, or null when extras are not for sale. */
+  extraCost: { resource: MiniGameCostResource; amount: number } | null;
+  /** How many more extras the viewer may still buy. */
+  extrasLeft: number;
   solved: boolean;
   won: boolean;
   /** No more moves for this player (solved or out of attempts). */
